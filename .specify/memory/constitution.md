@@ -1,18 +1,15 @@
 <!--
 Sync Impact Report
 ==================
-Version Change: [TEMPLATE] → 1.0.0
-Bump Rationale: Initial constitution adoption (MAJOR)
+Version Change: 1.0.0 → 1.1.0
+Bump Rationale: MINOR - Added mandatory go-prompt requirement to Minimal Dependencies principle
 
-Modified Principles: N/A (initial creation)
+Modified Principles:
+- VI. Minimal Dependencies: Added explicit requirement that go-prompt MUST be used for REPL
 
-Added Sections:
-- Core Principles (7 principles)
-- Technical Constraints
-- Quality Standards
-- Governance
+Added Sections: None
 
-Removed Sections: N/A
+Removed Sections: None
 
 Templates Requiring Updates:
 - .specify/templates/plan-template.md: ✅ Compatible (Constitution Check section exists)
@@ -87,13 +84,14 @@ pgtail MUST minimize external dependencies:
 
 - **Justified Additions**: Each dependency MUST provide clear cross-platform value that would be expensive to replicate
 - **Standard Library Preference**: Prefer Go standard library when functionality is adequate
+- **Mandatory REPL Library**: The REPL MUST use `github.com/c-bata/go-prompt` for autocomplete and history; no custom or simplified implementations
 - **Approved Dependencies**: Core approved dependencies are:
-  - `github.com/c-bata/go-prompt` (REPL functionality)
-  - `github.com/fatih/color` (cross-platform colors)
+  - `github.com/c-bata/go-prompt` (REPL with autocomplete/history - REQUIRED)
+  - `github.com/charmbracelet/lipgloss` (terminal styling)
   - `github.com/fsnotify/fsnotify` (file watching)
   - `github.com/shirou/gopsutil/v3` (process detection)
 
-**Rationale**: Fewer dependencies mean easier maintenance, faster builds, and fewer security vulnerabilities.
+**Rationale**: Fewer dependencies mean easier maintenance, faster builds, and fewer security vulnerabilities. go-prompt is mandatory because autocomplete and history are core UX requirements, not optional polish.
 
 ### VII. Developer Workflow Priority
 
@@ -137,4 +135,4 @@ This constitution supersedes all other project guidelines. All contributions MUS
 - All PRs MUST be verified against these principles before merge
 - Complexity additions MUST be justified against Simplicity First and Minimal Dependencies principles
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
+**Version**: 1.1.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
