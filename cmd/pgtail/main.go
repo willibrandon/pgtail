@@ -4,12 +4,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/willibrandon/pgtail/internal/detector"
 	"github.com/willibrandon/pgtail/internal/repl"
 )
+
+var shellMode bool
 
 // Version is set at build time.
 var Version = "0.1.0"
@@ -51,6 +55,36 @@ func main() {
 		prompt.OptionPreviewSuggestionTextColor(prompt.Blue),
 		prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),
 		prompt.OptionSuggestionBGColor(prompt.DarkGray),
+		prompt.OptionAddASCIICodeBind(
+			prompt.ASCIICodeBind{
+				ASCIICode: []byte{'!'},
+				Fn: func(buf *prompt.Buffer) {
+					if buf.Text() == "" {
+						shellMode = true
+					} else {
+						buf.InsertText("!", false, true)
+					}
+				},
+			},
+		),
+		prompt.OptionAddKeyBind(
+			prompt.KeyBind{
+				Key: prompt.Escape,
+				Fn: func(buf *prompt.Buffer) {
+					shellMode = false
+				},
+			},
+			prompt.KeyBind{
+				Key: prompt.Backspace,
+				Fn: func(buf *prompt.Buffer) {
+					if shellMode && buf.Text() == "" {
+						shellMode = false
+					} else {
+						buf.DeleteBeforeCursor(1)
+					}
+				},
+			},
+		),
 	)
 
 	// Run the REPL.
@@ -89,6 +123,13 @@ func makeExecutor(state *repl.AppState) func(string) {
 	return func(input string) {
 		input = strings.TrimSpace(input)
 		if input == "" {
+			shellMode = false
+			return
+		}
+
+		if shellMode {
+			shellMode = false
+			runShell(input)
 			return
 		}
 
@@ -240,6 +281,10 @@ func suggestLevels(alreadyUsed []string) []prompt.Suggest {
 
 func makeLivePrefix(state *repl.AppState) func() (string, bool) {
 	return func() (string, bool) {
+		if shellMode {
+			return "! ", true
+		}
+
 		prefix := "pgtail"
 
 		// Add instance index if selected.
@@ -336,4 +381,20 @@ func executeRefresh(state *repl.AppState) {
 func executeStop(state *repl.AppState) {
 	state.StopTailing()
 	// Returns to prompt silently.
+}
+
+func runShell(cmdLine string) {
+	if cmdLine == "" {
+		return
+	}
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", cmdLine)
+	} else {
+		cmd = exec.Command("sh", "-c", cmdLine)
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 }
