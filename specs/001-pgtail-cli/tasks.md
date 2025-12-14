@@ -5,6 +5,8 @@
 
 **Tests**: Tests are NOT explicitly requested in the specification. Unit tests included for core detection and parsing logic per constitution Quality Standards.
 
+**REPL Requirement**: Per constitution v1.2.0, the REPL MUST use `github.com/c-bata/go-prompt` for autocomplete and history. NO simplified implementations (e.g., bufio.Scanner) are permitted. Reference: `../go-prompt/`
+
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -28,7 +30,7 @@ This project uses Go conventions:
 
 - [ ] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
 - [ ] T002 Initialize Go module with `go mod init github.com/willibrandon/pgtail` in go.mod
-- [ ] T003 [P] Add dependencies to go.mod: go-prompt, fatih/color, fsnotify, gopsutil/v3
+- [ ] T003 [P] Add dependencies to go.mod: go-prompt (REQUIRED for REPL), lipgloss, fsnotify, gopsutil/v3
 - [ ] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
 - [ ] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
 
@@ -45,7 +47,7 @@ This project uses Go conventions:
 - [ ] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
 - [ ] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
 - [ ] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
-- [ ] T011 [P] Create entry point skeleton with --help and --version flags in cmd/pgtail/main.go
+- [ ] T011 [P] Create entry point skeleton with --help, --version flags and go-prompt REPL loop in cmd/pgtail/main.go (MUST use go-prompt, not bufio)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -135,7 +137,7 @@ This project uses Go conventions:
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Implement REPL initialization with go-prompt in internal/repl/repl.go
+- [ ] T049 [US4] Implement REPL initialization with go-prompt (REQUIRED - see ../go-prompt/) in internal/repl/repl.go
 - [ ] T050 [US4] Implement command completer for all commands in internal/repl/completer.go
 - [ ] T051 [US4] Implement instance index/path suggestions after `tail ` in internal/repl/completer.go
 - [ ] T052 [US4] Implement log level suggestions after `levels ` in internal/repl/completer.go
