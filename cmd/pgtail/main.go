@@ -2,9 +2,13 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/willibrandon/pgtail/internal/repl"
 )
 
 // Version is the current version of pgtail.
@@ -32,9 +36,46 @@ func main() {
 		os.Exit(0)
 	}
 
-	// TODO: Initialize REPL and run
+	// Initialize state and executor
+	state := repl.NewAppState()
+	executor := repl.NewExecutor(state)
+
+	// Run initial detection
 	fmt.Println("pgtail - PostgreSQL log tailer")
-	fmt.Println("REPL not yet implemented")
+	fmt.Println("[Scanning for PostgreSQL instances...]")
+	result := executor.DetectAndSetInstances()
+	fmt.Printf("[Found %d instance(s)]\n", result.InstanceCount())
+	if result.HasErrors() {
+		for _, err := range result.Errors {
+			fmt.Printf("[Warning: %v]\n", err)
+		}
+	}
+	fmt.Println()
+
+	// Start REPL
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		// Print prompt
+		fmt.Print("pgtail> ")
+
+		// Read input
+		if !scanner.Scan() {
+			// EOF (Ctrl+D)
+			fmt.Println()
+			break
+		}
+
+		input := strings.TrimSpace(scanner.Text())
+		if input == "" {
+			continue
+		}
+
+		// Execute command
+		output := executor.Execute(input)
+		if output != "" {
+			fmt.Println(output)
+		}
+	}
 }
 
 func printHelp() {
