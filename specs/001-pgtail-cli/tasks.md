@@ -26,11 +26,11 @@ This project uses Go conventions:
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
-- [ ] T002 Initialize Go module with `go mod init github.com/your-org/pgtail` in go.mod
-- [ ] T003 [P] Add dependencies to go.mod: go-prompt, fatih/color, fsnotify, gopsutil/v3
-- [ ] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
-- [ ] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
+- [x] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
+- [x] T002 Initialize Go module with `go mod init github.com/willibrandon/pgtail` in go.mod
+- [x] T003 [P] Add dependencies to go.mod: go-prompt, fatih/color, fsnotify, gopsutil/v3
+- [x] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
+- [x] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
 
 ---
 
@@ -40,12 +40,12 @@ This project uses Go conventions:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create Instance type with all fields in internal/instance/instance.go
-- [ ] T007 [P] Create DetectionSource enum with String() method in internal/instance/instance.go
-- [ ] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
-- [ ] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
-- [ ] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
-- [ ] T011 [P] Create entry point skeleton with --help and --version flags in cmd/pgtail/main.go
+- [x] T006 Create Instance type with all fields in internal/instance/instance.go
+- [x] T007 [P] Create DetectionSource enum with String() method in internal/instance/instance.go
+- [x] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
+- [x] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
+- [x] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
+- [x] T011 [P] Create entry point skeleton with --help and --version flags in cmd/pgtail/main.go
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
