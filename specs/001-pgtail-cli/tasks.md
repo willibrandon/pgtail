@@ -28,11 +28,11 @@ This project uses Go conventions:
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
-- [ ] T002 Initialize Go module with `go mod init github.com/willibrandon/pgtail` in go.mod
-- [ ] T003 [P] Add dependencies to go.mod: go-prompt (REQUIRED for REPL), lipgloss, fsnotify, gopsutil/v3
-- [ ] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
-- [ ] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
+- [X] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
+- [X] T002 Initialize Go module with `go mod init github.com/willibrandon/pgtail` in go.mod
+- [X] T003 [P] Add dependencies to go.mod: go-prompt (REQUIRED for REPL), lipgloss, fsnotify, gopsutil/v3
+- [X] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
+- [X] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
 
 ---
 
@@ -42,12 +42,12 @@ This project uses Go conventions:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create Instance type with all fields in internal/instance/instance.go
-- [ ] T007 [P] Create DetectionSource enum with String() method in internal/instance/instance.go
-- [ ] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
-- [ ] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
-- [ ] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
-- [ ] T011 [P] Create entry point skeleton with --help, --version flags and go-prompt REPL loop in cmd/pgtail/main.go (MUST use go-prompt, not bufio)
+- [X] T006 Create Instance type with all fields in internal/instance/instance.go
+- [X] T007 [P] Create DetectionSource enum with String() method in internal/instance/instance.go
+- [X] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
+- [X] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
+- [X] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
+- [X] T011 [P] Create entry point skeleton with --help, --version flags and go-prompt REPL loop in cmd/pgtail/main.go (MUST use go-prompt, not bufio)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
