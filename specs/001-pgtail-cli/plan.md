@@ -12,7 +12,7 @@ Build a cross-platform interactive CLI tool that auto-detects PostgreSQL instanc
 **Language/Version**: Go 1.21+ (latest stable)
 **Primary Dependencies**:
 - `github.com/c-bata/go-prompt` v0.2.6 (REPL with autocomplete)
-- `github.com/fatih/color` v1.16.0 (cross-platform terminal colors)
+- `github.com/charmbracelet/lipgloss` v1.0.0 (terminal styling and colors)
 - `github.com/fsnotify/fsnotify` v1.7.0 (file watching for Unix)
 - `github.com/shirou/gopsutil/v3` v3.24.1 (cross-platform process info)
 

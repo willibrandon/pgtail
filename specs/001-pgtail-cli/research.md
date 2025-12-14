@@ -259,39 +259,45 @@ C:\Program Files (x86)\PostgreSQL\*\data\
 
 ## 7. Color Output Strategy
 
-**Decision**: Use `github.com/fatih/color` with level-based formatting
+**Decision**: Use `github.com/charmbracelet/lipgloss` for terminal styling
 
-**Rationale**: Constitution-approved; handles Windows console automatically.
+**Rationale**: Modern terminal styling library with flexible theming, cross-platform support, and foundation for future bubbletea TUI enhancements.
 
 **Best Practices**:
-- Create color functions once, reuse for efficiency
-- Check `color.NoColor` for terminal capability detection
-- Use `color.New().SprintFunc()` for thread-safe coloring
-- Bold for critical levels (FATAL, PANIC)
+- Define styles as package-level variables for reuse
+- Use `lipgloss.NewStyle()` to create base styles
+- Chain style methods: `.Foreground()`, `.Bold()`, `.Padding()`
+- Check `lipgloss.HasDarkBackground()` for adaptive theming
+- Use `NO_COLOR` env var detection via lipgloss
 
 **Implementation Pattern**:
 ```go
 var (
-    errorColor   = color.New(color.FgRed).SprintFunc()
-    fatalColor   = color.New(color.FgRed, color.Bold).SprintFunc()
-    warnColor    = color.New(color.FgYellow).SprintFunc()
-    noticeColor  = color.New(color.FgCyan).SprintFunc()
-    infoColor    = color.New(color.FgGreen).SprintFunc()
-    debugColor   = color.New(color.FgHiBlack).SprintFunc()
+    errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))  // red
+    fatalStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
+    warnStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // yellow
+    noticeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("14")) // cyan
+    infoStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10")) // green
+    debugStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))  // gray
+
+    // UI elements
+    headerStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
+    mutedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
 
 func colorize(level, line string) string {
     switch level {
     case "FATAL", "PANIC":
-        return fatalColor(line)
+        return fatalStyle.Render(line)
     case "ERROR":
-        return errorColor(line)
+        return errorStyle.Render(line)
     // ...
     }
 }
 ```
 
 **Alternatives Considered**:
+- fatih/color: Simpler but less flexible styling options
 - ANSI codes directly: Windows compatibility issues
 - No color: Reduces usability for quick scanning
 
@@ -305,6 +311,6 @@ All technology decisions align with the project constitution. Key implementation
 4. **Log Parsing**: Regex for standard PostgreSQL format
 5. **Config Parsing**: Simple key-value extraction
 6. **Path Detection**: Prioritized platform-specific paths with pgrx first
-7. **Colors**: fatih/color for cross-platform terminal colors
+7. **Colors**: lipgloss for cross-platform terminal styling
 
 No unresolved clarifications remain. Ready for Phase 1 design.

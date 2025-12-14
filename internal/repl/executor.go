@@ -11,6 +11,7 @@ import (
 	"github.com/willibrandon/pgtail/internal/detector"
 	"github.com/willibrandon/pgtail/internal/instance"
 	"github.com/willibrandon/pgtail/internal/tailer"
+	"github.com/willibrandon/pgtail/internal/ui"
 )
 
 // AppState represents the runtime state for the REPL session.
@@ -135,18 +136,18 @@ func (e *Executor) cmdList() string {
 
 // cmdRefresh re-scans for PostgreSQL instances.
 func (e *Executor) cmdRefresh() string {
-	fmt.Fprintln(e.Output, "[Scanning for PostgreSQL instances...]")
+	fmt.Fprintln(e.Output, ui.RenderInfo("Scanning for PostgreSQL instances..."))
 
 	result := detector.Detect()
 	e.State.SetInstances(result.Instances)
 
 	if result.HasErrors() {
 		for _, err := range result.Errors {
-			fmt.Fprintf(e.Output, "[Warning: %v]\n", err)
+			fmt.Fprintln(e.Output, ui.RenderWarning(err.Error()))
 		}
 	}
 
-	return fmt.Sprintf("[Found %d instance(s)]", len(result.Instances))
+	return ui.RenderInfo(fmt.Sprintf("Found %d instance(s)", len(result.Instances)))
 }
 
 // cmdHelp displays available commands.
@@ -192,17 +193,17 @@ func (e *Executor) formatInstanceTable() string {
 	var sb strings.Builder
 
 	// Header
-	sb.WriteString(fmt.Sprintf("  %-3s  %-8s  %6s  %-8s  %-8s  %s\n",
-		"#", "VERSION", "PORT", "STATUS", "SOURCE", "DATA DIRECTORY"))
+	sb.WriteString(fmt.Sprintf("  %s  %s  %s  %s  %s  %s\n",
+		ui.TableHeader.Render(fmt.Sprintf("%-3s", "#")),
+		ui.TableHeader.Render(fmt.Sprintf("%-8s", "VERSION")),
+		ui.TableHeader.Render(fmt.Sprintf("%6s", "PORT")),
+		ui.TableHeader.Render(fmt.Sprintf("%-8s", "STATUS")),
+		ui.TableHeader.Render(fmt.Sprintf("%-8s", "SOURCE")),
+		ui.TableHeader.Render("DATA DIRECTORY")))
 
 	// Rows
 	for i, inst := range e.State.Instances {
-		status := "stopped"
-		if inst.Running {
-			status = "running"
-		}
-
-		portStr := "-"
+		portStr := ui.Muted.Render("-")
 		if inst.Port > 0 {
 			portStr = fmt.Sprintf("%d", inst.Port)
 		}
@@ -210,8 +211,13 @@ func (e *Executor) formatInstanceTable() string {
 		// Shorten home directory to ~
 		dataDir := shortenPath(inst.DataDir)
 
-		sb.WriteString(fmt.Sprintf("  %-3d  %-8s  %6s  %-8s  %-8s  %s\n",
-			i, inst.Version, portStr, status, inst.DisplaySource(), dataDir))
+		sb.WriteString(fmt.Sprintf("  %s  %-8s  %6s  %s  %-8s  %s\n",
+			ui.TableIndex.Render(fmt.Sprintf("%-3d", i)),
+			inst.Version,
+			portStr,
+			fmt.Sprintf("%-8s", ui.RenderStatus(inst.Running)),
+			inst.DisplaySource(),
+			dataDir))
 	}
 
 	return sb.String()
