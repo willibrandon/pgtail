@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/c-bata/go-prompt"
+	"github.com/willibrandon/pgtail/internal/detector"
 	"github.com/willibrandon/pgtail/internal/repl"
 )
 
@@ -31,6 +32,13 @@ func main() {
 
 	// Initialize application state.
 	state := repl.NewAppState()
+
+	// Auto-detect instances on startup.
+	fmt.Println("[Scanning for PostgreSQL instances...]")
+	result := detector.DetectInstances()
+	state.Instances = result.Instances
+	fmt.Printf("[Found %d instance(s)]\n", len(state.Instances))
+	fmt.Println()
 
 	// Create the REPL with go-prompt.
 	p := prompt.New(
@@ -253,16 +261,15 @@ func makeLivePrefix(state *repl.AppState) func() (string, bool) {
 	}
 }
 
-// Placeholder command implementations - to be completed in Phase 3+.
-
 func executeList(state *repl.AppState) {
 	if len(state.Instances) == 0 {
 		fmt.Println("No PostgreSQL instances found.")
 		fmt.Println("")
 		fmt.Println("Suggestions:")
 		fmt.Println("  - Start a PostgreSQL instance")
-		fmt.Println("  - Check PGDATA environment variable")
+		fmt.Println("  - Set PGDATA environment variable to your data directory")
 		fmt.Println("  - Run 'refresh' after starting PostgreSQL")
+		fmt.Println("  - Check ~/.pgrx/ for pgrx development instances")
 		return
 	}
 
@@ -276,9 +283,23 @@ func executeList(state *repl.AppState) {
 		if inst.Port > 0 {
 			port = fmt.Sprintf("%d", inst.Port)
 		}
+		// Shorten home directory to ~ for display.
+		dataDir := shortenPath(inst.DataDir)
 		fmt.Printf("  %d  %-8s %-6s %-8s %-7s %s\n",
-			i, inst.Version, port, status, inst.Source.String(), inst.DataDir)
+			i, inst.Version, port, status, inst.Source.String(), dataDir)
 	}
+}
+
+// shortenPath replaces the home directory with ~ for display.
+func shortenPath(path string) string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+	if strings.HasPrefix(path, homeDir) {
+		return "~" + path[len(homeDir):]
+	}
+	return path
 }
 
 func executeTail(state *repl.AppState, args []string) {
@@ -306,10 +327,10 @@ func executeLevels(state *repl.AppState, args []string) {
 
 func executeRefresh(state *repl.AppState) {
 	fmt.Println("[Scanning for PostgreSQL instances...]")
-	// TODO: Implement detection in Phase 3 (User Story 1).
-	state.Instances = nil
+	result := detector.DetectInstances()
+	state.Instances = result.Instances
 	state.ClearSelection()
-	fmt.Printf("[Found %d instances]\n", len(state.Instances))
+	fmt.Printf("[Found %d instance(s)]\n", len(state.Instances))
 }
 
 func executeStop(state *repl.AppState) {
