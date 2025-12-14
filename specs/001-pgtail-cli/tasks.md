@@ -92,8 +92,8 @@ This project uses Go conventions:
 
 - [ ] T028 [US2] Implement log file path resolution from Instance.LogDir and LogPattern in internal/tailer/tailer.go
 - [ ] T029 [US2] Implement most-recent log file finder when multiple files match pattern in internal/tailer/tailer.go
-- [ ] T030 [US2] Implement file tailing with fsnotify for Unix platforms in internal/tailer/tailer.go
-- [ ] T031 [US2] Implement polling-based file tailing fallback for Windows in internal/tailer/tailer.go
+- [ ] T030 [US2] Implement file tailing with fsnotify (cross-platform: inotify/kqueue/ReadDirectoryChangesW) in internal/tailer/tailer.go
+- [ ] T031 [US2] Implement polling-based file tailing fallback for edge cases (network fs, permission issues) in internal/tailer/tailer.go
 - [ ] T032 [US2] Implement PostgreSQL log line parser (timestamp, PID, level extraction) in internal/tailer/parser.go
 - [ ] T033 [US2] Implement multi-line log entry handling (continuation detection) in internal/tailer/parser.go
 - [ ] T034 [US2] Implement `tail` command with numeric index argument in internal/repl/executor.go
