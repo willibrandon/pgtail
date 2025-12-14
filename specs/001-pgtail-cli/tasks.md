@@ -26,11 +26,11 @@ This project uses Go conventions:
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
-- [x] T002 Initialize Go module with `go mod init github.com/willibrandon/pgtail` in go.mod
-- [x] T003 [P] Add dependencies to go.mod: go-prompt, fatih/color, fsnotify, gopsutil/v3
-- [x] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
-- [x] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
+- [ ] T001 Create directory structure: `cmd/pgtail/`, `internal/detector/`, `internal/instance/`, `internal/tailer/`, `internal/repl/`
+- [ ] T002 Initialize Go module with `go mod init github.com/willibrandon/pgtail` in go.mod
+- [ ] T003 [P] Add dependencies to go.mod: go-prompt, fatih/color, fsnotify, gopsutil/v3
+- [ ] T004 [P] Create .gitignore for Go project (binaries, vendor/, .idea/, etc.)
+- [ ] T005 [P] Configure golangci-lint with .golangci.yml (default configuration per constitution)
 
 ---
 
@@ -40,12 +40,12 @@ This project uses Go conventions:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [x] T006 Create Instance type with all fields in internal/instance/instance.go
-- [x] T007 [P] Create DetectionSource enum with String() method in internal/instance/instance.go
-- [x] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
-- [x] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
-- [x] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
-- [x] T011 [P] Create entry point skeleton with --help and --version flags in cmd/pgtail/main.go
+- [ ] T006 Create Instance type with all fields in internal/instance/instance.go
+- [ ] T007 [P] Create DetectionSource enum with String() method in internal/instance/instance.go
+- [ ] T008 [P] Create LogLevel enum with all PostgreSQL levels in internal/tailer/filter.go
+- [ ] T009 [P] Create LogEntry struct for parsed log lines in internal/tailer/parser.go
+- [ ] T010 Create AppState struct with Instances, CurrentIndex, Filter, Tailing fields in internal/repl/executor.go
+- [ ] T011 [P] Create entry point skeleton with --help and --version flags in cmd/pgtail/main.go
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -59,22 +59,22 @@ This project uses Go conventions:
 
 ### Implementation for User Story 1
 
-- [x] T012 [P] [US1] Implement postgresql.conf parser for log_directory, log_filename, port in internal/detector/config.go
-- [x] T013 [P] [US1] Implement PG_VERSION file reader to extract PostgreSQL version in internal/detector/config.go
-- [x] T014 [P] [US1] Implement postmaster.pid parser for port and PID in internal/detector/config.go
-- [x] T015 [P] [US1] Implement running process detection with gopsutil in internal/detector/process.go
-- [x] T016 [P] [US1] Implement Unix-specific process detection (build tag: !windows) in internal/detector/process_unix.go
-- [x] T017 [P] [US1] Implement Windows-specific process detection (build tag: windows) in internal/detector/process_windows.go
-- [x] T018 [US1] Implement pgrx path scanner for ~/.pgrx/data-*/ directories in internal/detector/paths.go
-- [x] T019 [US1] Implement platform-specific known paths (Homebrew, apt, yum, Windows) in internal/detector/paths.go
-- [x] T020 [US1] Implement PGDATA environment variable check in internal/detector/paths.go
-- [x] T021 [US1] Implement main detector orchestration with priority ordering in internal/detector/detector.go
-- [x] T022 [US1] Implement instance deduplication by normalized DataDir in internal/detector/detector.go
-- [x] T023 [US1] Implement `list` command with tabular output formatting in internal/repl/executor.go
-- [x] T024 [US1] Implement helpful "no instances found" message with suggestions in internal/repl/executor.go
-- [x] T025 [US1] Add graceful error handling: continue on detection failures, report skipped sources in internal/detector/detector.go
-- [x] T026 [P] [US1] Add unit tests for config parsing in internal/detector/config_test.go
-- [x] T027 [P] [US1] Add unit tests for detector with mock filesystem in internal/detector/detector_test.go
+- [ ] T012 [P] [US1] Implement postgresql.conf parser for log_directory, log_filename, port in internal/detector/config.go
+- [ ] T013 [P] [US1] Implement PG_VERSION file reader to extract PostgreSQL version in internal/detector/config.go
+- [ ] T014 [P] [US1] Implement postmaster.pid parser for port and PID in internal/detector/config.go
+- [ ] T015 [P] [US1] Implement running process detection with gopsutil in internal/detector/process.go
+- [ ] T016 [P] [US1] Implement Unix-specific process detection (build tag: !windows) in internal/detector/process_unix.go
+- [ ] T017 [P] [US1] Implement Windows-specific process detection (build tag: windows) in internal/detector/process_windows.go
+- [ ] T018 [US1] Implement pgrx path scanner for ~/.pgrx/data-*/ directories in internal/detector/paths.go
+- [ ] T019 [US1] Implement platform-specific known paths (Homebrew, apt, yum, Windows) in internal/detector/paths.go
+- [ ] T020 [US1] Implement PGDATA environment variable check in internal/detector/paths.go
+- [ ] T021 [US1] Implement main detector orchestration with priority ordering in internal/detector/detector.go
+- [ ] T022 [US1] Implement instance deduplication by normalized DataDir in internal/detector/detector.go
+- [ ] T023 [US1] Implement `list` command with tabular output formatting in internal/repl/executor.go
+- [ ] T024 [US1] Implement helpful "no instances found" message with suggestions in internal/repl/executor.go
+- [ ] T025 [US1] Add graceful error handling: continue on detection failures, report skipped sources in internal/detector/detector.go
+- [ ] T026 [P] [US1] Add unit tests for config parsing in internal/detector/config_test.go
+- [ ] T027 [P] [US1] Add unit tests for detector with mock filesystem in internal/detector/detector_test.go
 
 **Checkpoint**: User Story 1 complete - `pgtail` launches and `list` shows all detected PostgreSQL instances
 

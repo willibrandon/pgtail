@@ -1,11 +1,11 @@
 <!--
 Sync Impact Report
 ==================
-Version Change: 1.0.0 → 1.1.0
-Bump Rationale: MINOR - Added mandatory go-prompt requirement to Minimal Dependencies principle
+Version Change: 1.1.0 → 1.2.0
+Bump Rationale: MINOR - Added reference source location for go-prompt library
 
 Modified Principles:
-- VI. Minimal Dependencies: Added explicit requirement that go-prompt MUST be used for REPL
+- VI. Minimal Dependencies: Added local reference path for go-prompt
 
 Added Sections: None
 
@@ -84,9 +84,9 @@ pgtail MUST minimize external dependencies:
 
 - **Justified Additions**: Each dependency MUST provide clear cross-platform value that would be expensive to replicate
 - **Standard Library Preference**: Prefer Go standard library when functionality is adequate
-- **Mandatory REPL Library**: The REPL MUST use `github.com/c-bata/go-prompt` for autocomplete and history; no custom or simplified implementations
+- **Mandatory REPL Library**: The REPL MUST use `github.com/c-bata/go-prompt` for autocomplete and history; no custom or simplified implementations. Reference source: `../go-prompt/`
 - **Approved Dependencies**: Core approved dependencies are:
-  - `github.com/c-bata/go-prompt` (REPL with autocomplete/history - REQUIRED)
+  - `github.com/c-bata/go-prompt` (REPL with autocomplete/history - REQUIRED) - Local reference: `../go-prompt/`
   - `github.com/charmbracelet/lipgloss` (terminal styling)
   - `github.com/fsnotify/fsnotify` (file watching)
   - `github.com/shirou/gopsutil/v3` (process detection)
@@ -135,4 +135,4 @@ This constitution supersedes all other project guidelines. All contributions MUS
 - All PRs MUST be verified against these principles before merge
 - Complexity additions MUST be justified against Simplicity First and Minimal Dependencies principles
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
+**Version**: 1.2.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
