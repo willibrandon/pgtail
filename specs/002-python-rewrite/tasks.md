@@ -135,14 +135,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Create commands.py with COMMANDS dict defining all command names and descriptions
-- [ ] T052 [US4] Create PgtailCompleter class in commands.py extending Completer
-- [ ] T053 [US4] Implement command name completion in PgtailCompleter.get_completions()
-- [ ] T054 [US4] Add instance ID/path completion for tail command arguments
-- [ ] T055 [US4] Add log level name completion for levels command arguments
-- [ ] T056 [US4] Wire FileHistory into PromptSession using history_path from config.py
-- [ ] T057 [US4] Ensure history directory is created if it doesn't exist
-- [ ] T058 [US4] Wire PgtailCompleter into PromptSession in cli.py
+- [x] T051 [US4] Create commands.py with COMMANDS dict defining all command names and descriptions
+- [x] T052 [US4] Create PgtailCompleter class in commands.py extending Completer
+- [x] T053 [US4] Implement command name completion in PgtailCompleter.get_completions()
+- [x] T054 [US4] Add instance ID/path completion for tail command arguments
+- [x] T055 [US4] Add log level name completion for levels command arguments
+- [x] T056 [US4] Wire FileHistory into PromptSession using history_path from config.py
+- [x] T057 [US4] Ensure history directory is created if it doesn't exist
+- [x] T058 [US4] Wire PgtailCompleter into PromptSession in cli.py
 
 **Checkpoint**: User Story 4 complete - autocomplete and history working
 

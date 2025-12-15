@@ -13,6 +13,7 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 
 from pgtail_py.colors import print_log_entry
+from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import ensure_history_dir, get_history_path
 from pgtail_py.detector import detect_all
 from pgtail_py.filter import LogLevel, parse_levels
@@ -451,12 +452,14 @@ def main() -> None:
     print("Type 'help' for available commands, 'quit' to exit.")
     print()
 
-    # Set up prompt session with history and key bindings
+    # Set up prompt session with history, key bindings, and completer
     history_path = ensure_history_dir()
     bindings = _create_key_bindings(state)
+    completer = PgtailCompleter(get_instances=lambda: state.instances)
     session: PromptSession[str] = PromptSession(
         history=FileHistory(str(history_path)),
         key_bindings=bindings,
+        completer=completer,
     )
 
     # REPL loop
