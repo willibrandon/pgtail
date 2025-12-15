@@ -15,7 +15,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from pgtail_py.colors import print_log_entry
 from pgtail_py.config import ensure_history_dir, get_history_path
 from pgtail_py.detector import detect_all
-from pgtail_py.filter import LogLevel
+from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.instance import Instance
 from pgtail_py.tailer import LogTailer
 
@@ -255,6 +255,51 @@ def stop_command(state: AppState) -> None:
     print("Stopped tailing.")
 
 
+def levels_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'levels' command - set or display log level filter.
+
+    Args:
+        state: Current application state.
+        args: Level names to filter by, or empty to show current.
+    """
+    # No args - show current filter
+    if not args:
+        if state.active_levels is None:
+            print("Filter: ALL (showing all levels)")
+        else:
+            names = sorted(level.name for level in state.active_levels)
+            print(f"Filter: {' '.join(names)}")
+        print()
+        print("Usage: levels [LEVEL...]  Set filter to specific levels")
+        print("       levels ALL         Show all levels")
+        print()
+        print(f"Available levels: {' '.join(LogLevel.names())}")
+        return
+
+    # Parse levels
+    new_levels, invalid = parse_levels(args)
+
+    # Report any invalid level names
+    if invalid:
+        print(f"Unknown level(s): {', '.join(invalid)}")
+        print(f"Valid levels: {' '.join(LogLevel.names())}")
+        return
+
+    # Update filter
+    state.active_levels = new_levels
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_levels(new_levels)
+
+    # Confirm change
+    if new_levels is None:
+        print("Filter cleared - showing all levels")
+    else:
+        names = sorted(level.name for level in new_levels)
+        print(f"Filter set: {' '.join(names)}")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -309,7 +354,7 @@ def handle_command(state: AppState, line: str) -> bool:
     elif cmd == "tail":
         tail_command(state, args)
     elif cmd == "levels":
-        print("Levels command not yet implemented. Coming in Phase 5.")
+        levels_command(state, args)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":

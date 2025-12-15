@@ -116,12 +116,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T045 [US3] Create filter.py should_show() function checking if LogEntry.level is in active_levels set
-- [ ] T046 [US3] Create levels_command() handler in cli.py parsing level arguments
-- [ ] T047 [US3] Handle 'levels' with no args: display current filter settings in cli.py
-- [ ] T048 [US3] Handle 'levels ALL': reset filter to show all levels in cli.py
-- [ ] T049 [US3] Integrate filter into tail loop: only print entries passing should_show()
-- [ ] T050 [US3] Add level name validation with helpful error for invalid level names
+- [x] T045 [US3] Create filter.py should_show() function checking if LogEntry.level is in active_levels set
+- [x] T046 [US3] Create levels_command() handler in cli.py parsing level arguments
+- [x] T047 [US3] Handle 'levels' with no args: display current filter settings in cli.py
+- [x] T048 [US3] Handle 'levels ALL': reset filter to show all levels in cli.py
+- [x] T049 [US3] Integrate filter into tail loop: only print entries passing should_show()
+- [x] T050 [US3] Add level name validation with helpful error for invalid level names
 
 **Checkpoint**: User Story 3 complete - can filter by level
 
