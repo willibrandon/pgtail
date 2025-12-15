@@ -33,3 +33,10 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `lipgloss` - Terminal colors (respects NO_COLOR)
 - `fsnotify` - File watching with polling fallback
 - `gopsutil` - Cross-platform process detection
+
+## Active Technologies
+- Python 3.10+ + prompt_toolkit, psutil, watchdog (002-python-rewrite)
+- File-based (command history in platform-appropriate location) (002-python-rewrite)
+
+## Recent Changes
+- 002-python-rewrite: Added Python 3.10+ + prompt_toolkit, psutil, watchdog
