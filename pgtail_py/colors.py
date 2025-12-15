@@ -32,8 +32,12 @@ _STYLE_RULES = [(level.name.lower(), style) for level, style in LEVEL_STYLES.ite
 _STYLE_RULES.extend([
     ("timestamp", "fg:ansibrightblack"),
     ("pid", "fg:ansibrightblack"),
+    ("highlight", "fg:black bg:yellow"),  # Yellow background for highlights
 ])
 LOG_STYLE = Style(_STYLE_RULES)
+
+# Standalone highlight style for direct use
+HIGHLIGHT_STYLE = "fg:black bg:yellow"
 
 
 def _is_color_disabled() -> bool:
@@ -68,6 +72,68 @@ def format_log_entry(entry: LogEntry) -> FormattedText:
     # Level and message
     level_name = entry.level.name.ljust(7)  # Align level names
     parts.append((level_class, f"{level_name}: {entry.message}"))
+
+    return FormattedText(parts)
+
+
+def format_log_entry_with_highlights(
+    entry: LogEntry,
+    highlight_spans: list[tuple[int, int]],
+) -> FormattedText:
+    """Format a log entry with highlighted spans.
+
+    Applies yellow background highlighting to specified character ranges
+    in the message portion of the log entry.
+
+    Args:
+        entry: The log entry to format.
+        highlight_spans: List of (start, end) tuples for highlight positions
+                        relative to the message text.
+
+    Returns:
+        FormattedText suitable for print_formatted_text().
+    """
+    level_class = f"class:{entry.level.name.lower()}"
+    parts = []
+
+    # Timestamp
+    if entry.timestamp:
+        ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]  # HH:MM:SS.mmm
+        parts.append(("class:timestamp", f"{ts_str} "))
+
+    # PID
+    if entry.pid:
+        parts.append(("class:pid", f"[{entry.pid}] "))
+
+    # Level name
+    level_name = entry.level.name.ljust(7)
+    parts.append((level_class, f"{level_name}: "))
+
+    # Message with highlights applied
+    message = entry.message
+    if not highlight_spans:
+        parts.append((level_class, message))
+    else:
+        # Sort spans and apply highlights
+        sorted_spans = sorted(highlight_spans, key=lambda x: x[0])
+        pos = 0
+        for start, end in sorted_spans:
+            # Skip invalid or overlapping spans
+            if start < pos or start >= len(message):
+                continue
+            end = min(end, len(message))
+
+            # Text before highlight
+            if start > pos:
+                parts.append((level_class, message[pos:start]))
+
+            # Highlighted text
+            parts.append(("class:highlight", message[start:end]))
+            pos = end
+
+        # Remaining text after last highlight
+        if pos < len(message):
+            parts.append((level_class, message[pos:]))
 
     return FormattedText(parts)
 

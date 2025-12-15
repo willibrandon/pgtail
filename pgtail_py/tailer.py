@@ -154,6 +154,9 @@ class LogTailer:
             return self._queue.get(timeout=timeout)
         except Empty:
             return None
+        except RuntimeError:
+            # Can occur if KeyboardInterrupt hits during queue lock operations
+            raise KeyboardInterrupt from None
 
     def update_levels(self, levels: set[LogLevel] | None) -> None:
         """Update the active log levels filter.

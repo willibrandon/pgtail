@@ -113,15 +113,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Add HIGHLIGHT_STYLE for yellow background in pgtail_py/colors.py
-- [ ] T030 [US4] Implement format_log_entry_with_highlights() to apply highlight spans in pgtail_py/colors.py
-- [ ] T031 [US4] Add "highlight" to COMMANDS dict with description in pgtail_py/commands.py
-- [ ] T032 [US4] Implement highlight_command() handler for `highlight /pattern/` syntax in pgtail_py/cli.py
-- [ ] T033 [US4] Implement highlight status display when `highlight` called with no args in pgtail_py/cli.py
-- [ ] T034 [US4] Implement `highlight clear` to remove highlights in pgtail_py/cli.py
-- [ ] T035 [US4] Add highlight command dispatch to handle_command() in pgtail_py/cli.py
-- [ ] T036 [US4] Integrate highlight rendering into log output in pgtail_py/tailer.py
-- [ ] T037 [US4] Update help_command() to include highlight command documentation in pgtail_py/cli.py
+- [x] T029 [US4] Add HIGHLIGHT_STYLE for yellow background in pgtail_py/colors.py
+- [x] T030 [US4] Implement format_log_entry_with_highlights() to apply highlight spans in pgtail_py/colors.py
+- [x] T031 [US4] Add "highlight" to COMMANDS dict with description in pgtail_py/commands.py
+- [x] T032 [US4] Implement highlight_command() handler for `highlight /pattern/` syntax in pgtail_py/cli.py
+- [x] T033 [US4] Implement highlight status display when `highlight` called with no args in pgtail_py/cli.py
+- [x] T034 [US4] Implement `highlight clear` to remove highlights in pgtail_py/cli.py
+- [x] T035 [US4] Add highlight command dispatch to handle_command() in pgtail_py/cli.py
+- [x] T036 [US4] Integrate highlight rendering into log output in pgtail_py/cli.py
+- [x] T037 [US4] Update help_command() to include highlight command documentation in pgtail_py/cli.py
 
 **Checkpoint**: `highlight /pattern/` shows yellow background on matches, all lines still visible
 

@@ -18,6 +18,7 @@ COMMANDS: dict[str, str] = {
     "tail": "Tail logs for an instance (by ID or path)",
     "levels": "Set log level filter (e.g., 'levels ERROR WARNING')",
     "filter": "Set regex filter (e.g., 'filter /pattern/')",
+    "highlight": "Highlight text matching regex (e.g., 'highlight /pattern/')",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
     "enable-logging": "Enable logging_collector for an instance",
@@ -77,6 +78,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_levels(arg_text, parts[1:] if text.endswith(" ") else parts[1:-1])
         elif cmd == "filter":
             yield from self._complete_filter(arg_text)
+        elif cmd == "highlight":
+            yield from self._complete_highlight(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -172,4 +175,20 @@ class PgtailCompleter(Completer):
                 "clear",
                 start_position=-len(prefix),
                 display_meta="Clear all filters",
+            )
+
+    def _complete_highlight(self, prefix: str) -> list[Completion]:
+        """Complete highlight subcommands.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for highlight subcommands.
+        """
+        if "clear".startswith(prefix.lower()):
+            yield Completion(
+                "clear",
+                start_position=-len(prefix),
+                display_meta="Clear all highlights",
             )

@@ -7,12 +7,16 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from prompt_toolkit import PromptSession
+from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 
-from pgtail_py.colors import print_log_entry
+from pgtail_py.colors import (
+    LOG_STYLE,
+    format_log_entry_with_highlights,
+    print_log_entry,
+)
 from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import ensure_history_dir, get_history_path
 from pgtail_py.detector import detect_all
@@ -22,6 +26,7 @@ from pgtail_py.instance import Instance
 from pgtail_py.regex_filter import (
     FilterState,
     FilterType,
+    Highlight,
     RegexFilter,
     parse_filter_arg,
 )
@@ -136,6 +141,9 @@ Available commands:
                     &/pattern/  Add AND pattern
                     /pattern/c  Case-sensitive match
                     clear       Clear all filters
+  highlight /pattern/  Highlight matching text (yellow background)
+                    /pattern/c  Case-sensitive highlight
+                    clear       Clear all highlights
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -407,6 +415,67 @@ def filter_command(state: AppState, args: list[str]) -> None:
         state.tailer.update_regex_state(state.regex_state)
 
 
+def highlight_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'highlight' command - set or display text highlights.
+
+    Args:
+        state: Current application state.
+        args: Highlight pattern or subcommand.
+    """
+    import re
+
+    # No args - show current highlight status
+    if not args:
+        if not state.regex_state.has_highlights():
+            print("No highlights active")
+        else:
+            print("Active highlights:")
+            for h in state.regex_state.highlights:
+                cs = " (case-sensitive)" if h.case_sensitive else ""
+                print(f"  /{h.pattern}/{cs}")
+        print()
+        print("Usage: highlight /pattern/   Highlight matching text (yellow background)")
+        print("       highlight /pattern/c  Case-sensitive highlight")
+        print("       highlight clear       Clear all highlights")
+        return
+
+    arg = args[0]
+
+    # Handle 'clear' subcommand
+    if arg.lower() == "clear":
+        state.regex_state.clear_highlights()
+        print("Highlights cleared")
+        return
+
+    # Parse the pattern
+    if not arg.startswith("/"):
+        print(f"Invalid highlight syntax: {arg}")
+        print("Use /pattern/ syntax (e.g., highlight /error/)")
+        return
+
+    try:
+        pattern, case_sensitive = parse_filter_arg(arg)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
+    # Validate regex
+    try:
+        highlight = Highlight.create(pattern, case_sensitive)
+    except re.error as e:
+        print(f"Invalid regex pattern: {e}")
+        return
+
+    # Add the highlight
+    state.regex_state.highlights.append(highlight)
+    cs = " (case-sensitive)" if case_sensitive else ""
+    print(f"Highlight added: /{pattern}/{cs}")
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_regex_state(state.regex_state)
+
+
 def enable_logging_command(state: AppState, args: list[str]) -> None:
     """Handle the 'enable-logging' command - enable logging_collector for an instance.
 
@@ -519,6 +588,8 @@ def handle_command(state: AppState, line: str) -> bool:
         levels_command(state, args)
     elif cmd == "filter":
         filter_command(state, args)
+    elif cmd == "highlight":
+        highlight_command(state, args)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":
@@ -549,7 +620,21 @@ def _process_tail_output(state: AppState) -> None:
         entry = state.tailer.get_entry(timeout=0.01)
         if entry is None:
             break
-        print_log_entry(entry)
+
+        # Check if we have highlights to apply
+        if state.regex_state.has_highlights():
+            # Collect all highlight spans from all highlight patterns
+            all_spans: list[tuple[int, int]] = []
+            for h in state.regex_state.highlights:
+                all_spans.extend(h.find_spans(entry.message))
+
+            if all_spans:
+                formatted = format_log_entry_with_highlights(entry, all_spans)
+                print_formatted_text(formatted, style=LOG_STYLE)
+            else:
+                print_log_entry(entry)
+        else:
+            print_log_entry(entry)
 
 
 def _create_key_bindings(state: AppState) -> KeyBindings:
