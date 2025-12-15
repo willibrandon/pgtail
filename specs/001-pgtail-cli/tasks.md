@@ -161,11 +161,11 @@ This project uses Go conventions:
 
 ### Implementation for User Story 5
 
-- [ ] T060 [US5] Implement color functions using fatih/color for each log level in internal/tailer/parser.go
-- [ ] T061 [US5] Implement colorize() function mapping LogLevel to colored output in internal/tailer/parser.go
-- [ ] T062 [US5] Implement NO_COLOR environment variable detection in internal/tailer/parser.go
-- [ ] T063 [US5] Implement terminal color capability detection fallback in internal/tailer/parser.go
-- [ ] T064 [US5] Integrate colorized output into tailer display loop in internal/tailer/tailer.go
+- [X] T060 [US5] Implement color functions using lipgloss for each log level in internal/tailer/color.go
+- [X] T061 [US5] Implement colorize() function mapping LogLevel to colored output in internal/tailer/color.go
+- [X] T062 [US5] Implement NO_COLOR environment variable detection in internal/tailer/color.go
+- [X] T063 [US5] Implement terminal color capability detection fallback in internal/tailer/color.go
+- [X] T064 [US5] Integrate colorized output into tailer display loop in cmd/pgtail/main.go
 
 **Checkpoint**: All 5 user stories complete - full featured pgtail with colors
 

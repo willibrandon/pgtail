@@ -639,19 +639,9 @@ func findInstanceIndex(state *repl.AppState, identifier string) int {
 	return -1
 }
 
-// displayLogEntry prints a log entry to stdout.
+// displayLogEntry prints a log entry to stdout with color coding.
 func displayLogEntry(entry tailer.LogEntry) {
-	if entry.IsContinuation {
-		fmt.Printf("    %s\n", entry.Message)
-		return
-	}
-
-	// Format: TIMESTAMP [PID] LEVEL: MESSAGE
-	if entry.Timestamp != "" {
-		fmt.Printf("%s [%d] %s: %s\n", entry.Timestamp, entry.PID, entry.Level.String(), entry.Message)
-	} else {
-		fmt.Println(entry.Raw)
-	}
+	fmt.Println(tailer.ColorizeEntry(entry))
 }
 
 func executeLevels(state *repl.AppState, args []string) {
