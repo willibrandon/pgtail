@@ -132,7 +132,6 @@ func ColorizeEntry(entry LogEntry) string {
 
 	// Build colorized output: TIMESTAMP [PID] LEVEL: MESSAGE
 	timestamp := styleTimestamp.Render(entry.Timestamp)
-	pid := stylePID.Render("[" + itoa(entry.PID) + "]")
 	level := ColorizeLevel(entry.Level)
 
 	// Message uses the level's color for high severity, plain for others
@@ -144,7 +143,12 @@ func ColorizeEntry(entry LogEntry) string {
 		message = entry.Message
 	}
 
-	return timestamp + " " + pid + " " + level + ": " + message
+	// Only include PID if present
+	if entry.PID > 0 {
+		pid := stylePID.Render("[" + itoa(entry.PID) + "]")
+		return timestamp + " " + pid + " " + level + ": " + message
+	}
+	return timestamp + " " + level + ": " + message
 }
 
 // levelStyle returns the lipgloss style for a log level.

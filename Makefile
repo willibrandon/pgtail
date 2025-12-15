@@ -1,8 +1,22 @@
 # pgtail Makefile
 # Cross-platform build targets for macOS, Linux, and Windows
 
-BINARY := pgtail
 VERSION := 0.1.0
+
+# Detect Windows and add .exe extension
+ifeq ($(OS),Windows_NT)
+    BINARY := pgtail.exe
+    RM := del /q
+    RMDIR := rmdir /s /q
+    RUN_PREFIX := .\
+    MKDIR := mkdir
+else
+    BINARY := pgtail
+    RM := rm -f
+    RMDIR := rm -rf
+    RUN_PREFIX := ./
+    MKDIR := mkdir -p
+endif
 BUILD_DIR := build
 CMD_DIR := ./cmd/pgtail
 
@@ -31,8 +45,8 @@ lint:
 # Clean build artifacts
 .PHONY: clean
 clean:
-	rm -f $(BINARY)
-	rm -rf $(BUILD_DIR)
+	-$(RM) $(BINARY)
+	-$(RMDIR) $(BUILD_DIR)
 
 # Cross-compile for all platforms
 .PHONY: release
@@ -41,26 +55,26 @@ release: clean build-darwin-arm64 build-darwin-amd64 build-linux-amd64 build-win
 # macOS ARM64 (Apple Silicon)
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
-	@mkdir -p $(BUILD_DIR)
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY)-darwin-arm64 $(CMD_DIR)
+	-@$(MKDIR) $(BUILD_DIR)
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-darwin-arm64 $(CMD_DIR)
 
 # macOS AMD64 (Intel)
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
-	@mkdir -p $(BUILD_DIR)
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY)-darwin-amd64 $(CMD_DIR)
+	-@$(MKDIR) $(BUILD_DIR)
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-darwin-amd64 $(CMD_DIR)
 
 # Linux AMD64
 .PHONY: build-linux-amd64
 build-linux-amd64:
-	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY)-linux-amd64 $(CMD_DIR)
+	-@$(MKDIR) $(BUILD_DIR)
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-linux-amd64 $(CMD_DIR)
 
 # Windows AMD64
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	@mkdir -p $(BUILD_DIR)
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY)-windows-amd64.exe $(CMD_DIR)
+	-@$(MKDIR) $(BUILD_DIR)
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-windows-amd64.exe $(CMD_DIR)
 
 # Install to GOBIN
 .PHONY: install
@@ -70,7 +84,7 @@ install:
 # Development helpers
 .PHONY: run
 run: build
-	./$(BINARY)
+	$(RUN_PREFIX)$(BINARY)
 
 .PHONY: fmt
 fmt:

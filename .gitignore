@@ -37,3 +37,6 @@ coverage.html
 # Temporary files
 *.tmp
 *.log
+
+# Claude settings
+.claude/settings.local.json

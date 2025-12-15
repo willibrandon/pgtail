@@ -182,7 +182,7 @@ This project uses Go conventions:
 - [X] T069 [P] Run golangci-lint and fix any issues
 - [X] T070 [P] Build and test on macOS (ARM64)
 - [ ] T071 [P] Build and test on Linux (AMD64 via Docker or VM)
-- [ ] T072 [P] Build and test on Windows (AMD64 via VM or cross-compile test)
+- [X] T072 [P] Build and test on Windows (AMD64 via VM or cross-compile test)
 - [X] T073 Run quickstart.md validation steps to verify all workflows
 - [X] T074 Create Makefile or build script for cross-platform builds
 

@@ -46,6 +46,14 @@ var simpleLogPattern = regexp.MustCompile(
 		`(.*)$`, // message
 )
 
+// Pattern for log formats without PID (common on Windows).
+// Matches: "2024-01-15 10:23:45 PST LOG: message"
+var noPidPattern = regexp.MustCompile(
+	`^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+\w+)\s+` + // timestamp with timezone
+		`(\w+):\s*` + // level followed by colon (no PID)
+		`(.*)$`, // message
+)
+
 // ParseLogLine parses a PostgreSQL log line into a LogEntry.
 // If the line cannot be parsed, it returns an entry with only Raw populated
 // and Level set to LevelLog.
@@ -62,30 +70,37 @@ func ParseLogLine(line string) LogEntry {
 		return entry
 	}
 
-	// Try primary pattern first.
+	// Try primary pattern first (with PID).
 	matches := logPattern.FindStringSubmatch(line)
 	if matches == nil {
-		// Try simpler pattern.
+		// Try simpler pattern (with PID, no timezone).
 		matches = simpleLogPattern.FindStringSubmatch(line)
 	}
 
-	if matches == nil {
-		// Unparseable line; return as-is with default level.
-		entry.Message = line
+	if matches != nil {
+		entry.Timestamp = matches[1]
+		if pid, err := strconv.Atoi(matches[2]); err == nil {
+			entry.PID = pid
+		}
+		if level, ok := ParseLogLevel(matches[3]); ok {
+			entry.Level = level
+		}
+		entry.Message = matches[4]
 		return entry
 	}
 
-	entry.Timestamp = matches[1]
-
-	if pid, err := strconv.Atoi(matches[2]); err == nil {
-		entry.PID = pid
+	// Try pattern without PID (common on Windows).
+	matches = noPidPattern.FindStringSubmatch(line)
+	if matches != nil {
+		entry.Timestamp = matches[1]
+		if level, ok := ParseLogLevel(matches[2]); ok {
+			entry.Level = level
+		}
+		entry.Message = matches[3]
+		return entry
 	}
 
-	if level, ok := ParseLogLevel(matches[3]); ok {
-		entry.Level = level
-	}
-
-	entry.Message = matches[4]
-
+	// Unparseable line; return as-is with default level.
+	entry.Message = line
 	return entry
 }

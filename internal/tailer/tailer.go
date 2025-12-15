@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -78,16 +79,18 @@ func NewTailer(cfg TailerConfig) (*Tailer, error) {
 		entries:      make(chan LogEntry, 100),
 		errors:       make(chan error, 10),
 		pollInterval: pollInterval,
-		useFsnotify:  true,
+		useFsnotify:  runtime.GOOS != "windows", // Use polling on Windows
 	}
 
-	// Try to create fsnotify watcher.
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		// Fallback to polling if fsnotify fails.
-		t.useFsnotify = false
-	} else {
-		t.watcher = watcher
+	// Try to create fsnotify watcher (only on non-Windows).
+	if t.useFsnotify {
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			// Fallback to polling if fsnotify fails.
+			t.useFsnotify = false
+		} else {
+			t.watcher = watcher
+		}
 	}
 
 	return t, nil
@@ -278,7 +281,8 @@ func (t *Tailer) tailWithFsnotify(ctx context.Context) {
 				return
 			}
 			// Check if this is a write to our file or a new log file.
-			if event.Has(fsnotify.Write) && event.Name == t.currentPath {
+			// Use case-insensitive comparison for Windows compatibility.
+			if event.Has(fsnotify.Write) && pathsEqual(event.Name, t.currentPath) {
 				t.readNewLines(reader)
 			} else if event.Has(fsnotify.Create) && isLogFile(event.Name) {
 				// A new log file was created; switch to it.
@@ -420,6 +424,17 @@ func isLogFile(path string) bool {
 	base := filepath.Base(path)
 	return strings.HasSuffix(base, ".log") &&
 		(strings.HasPrefix(base, "postgresql") || strings.HasPrefix(base, "postgres"))
+}
+
+// pathsEqual compares two file paths for equality.
+// On Windows, this is case-insensitive and normalizes path separators.
+func pathsEqual(a, b string) bool {
+	// Clean and normalize paths.
+	a = filepath.Clean(a)
+	b = filepath.Clean(b)
+
+	// Case-insensitive comparison for Windows.
+	return strings.EqualFold(a, b)
 }
 
 // ResolveLogFile resolves the log file path for an instance.
