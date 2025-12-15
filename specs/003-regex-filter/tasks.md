@@ -79,9 +79,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Extend filter_command() to handle `-/pattern/` exclude syntax in pgtail_py/cli.py
-- [ ] T022 [US2] Update filter status display to show exclude filters in pgtail_py/cli.py
-- [ ] T023 [US2] Test exclude filter precedence (exclude wins over include for same line)
+- [x] T021 [US2] Extend filter_command() to handle `-/pattern/` exclude syntax in pgtail_py/cli.py
+- [x] T022 [US2] Update filter status display to show exclude filters in pgtail_py/cli.py
+- [x] T023 [US2] Test exclude filter precedence (exclude wins over include for same line)
 
 **Checkpoint**: `filter -/pattern/` hides matching lines, works with include filters
 
@@ -95,11 +95,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Extend filter_command() to handle `+/pattern/` OR syntax in pgtail_py/cli.py
-- [ ] T025 [US3] Extend filter_command() to handle `&/pattern/` AND syntax in pgtail_py/cli.py
-- [ ] T026 [US3] Update filter status display to show all filter types with logic indicators in pgtail_py/cli.py
-- [ ] T027 [US3] Implement `filter clear` to remove all filters in pgtail_py/cli.py
-- [ ] T028 [US3] Add completion for filter subcommands (clear) in pgtail_py/commands.py
+- [x] T024 [US3] Extend filter_command() to handle `+/pattern/` OR syntax in pgtail_py/cli.py
+- [x] T025 [US3] Extend filter_command() to handle `&/pattern/` AND syntax in pgtail_py/cli.py
+- [x] T026 [US3] Update filter status display to show all filter types with logic indicators in pgtail_py/cli.py
+- [x] T027 [US3] Implement `filter clear` to remove all filters in pgtail_py/cli.py
+- [x] T028 [US3] Add completion for filter subcommands (clear) in pgtail_py/commands.py
 
 **Checkpoint**: Multiple filters combine correctly, `filter clear` works, status shows all filters
 

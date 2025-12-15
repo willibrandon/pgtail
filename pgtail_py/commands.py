@@ -75,6 +75,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_instances(arg_text)
         elif cmd == "levels":
             yield from self._complete_levels(arg_text, parts[1:] if text.endswith(" ") else parts[1:-1])
+        elif cmd == "filter":
+            yield from self._complete_filter(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -155,3 +157,19 @@ class PgtailCompleter(Completer):
                     start_position=-len(prefix),
                     display_meta=f"Severity {level.value}",
                 )
+
+    def _complete_filter(self, prefix: str) -> list[Completion]:
+        """Complete filter subcommands.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for filter subcommands.
+        """
+        if "clear".startswith(prefix.lower()):
+            yield Completion(
+                "clear",
+                start_position=-len(prefix),
+                display_meta="Clear all filters",
+            )
