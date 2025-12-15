@@ -71,7 +71,7 @@ Or reference the file directly when planning.
 ## Suggested Implementation Order
 
 ### Phase 1: Quick Wins (Low complexity, high value)
-1. regex-filtering
+1. regex-filtering - completed
 2. slow-query-detection
 3. config-file
 4. export-and-pipe
