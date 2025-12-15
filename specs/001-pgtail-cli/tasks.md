@@ -137,17 +137,17 @@ This project uses Go conventions:
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Implement REPL initialization with go-prompt (REQUIRED - see ../go-prompt/) in internal/repl/repl.go
-- [ ] T050 [US4] Implement command completer for all commands in internal/repl/completer.go
-- [ ] T051 [US4] Implement instance index/path suggestions after `tail ` in internal/repl/completer.go
-- [ ] T052 [US4] Implement log level suggestions after `levels ` in internal/repl/completer.go
-- [ ] T053 [US4] Implement dynamic live prefix showing current state (instance, filter) in internal/repl/repl.go
-- [ ] T054 [US4] Implement Ctrl+L keybinding for clear screen in internal/repl/repl.go
-- [ ] T055 [US4] Implement Ctrl+D handling for exit (when input empty) in internal/repl/repl.go
-- [ ] T056 [US4] Implement `refresh` command to re-scan instances in internal/repl/executor.go
-- [ ] T057 [US4] Implement `help` command with full command reference in internal/repl/executor.go
-- [ ] T058 [US4] Implement `clear` command in internal/repl/executor.go
-- [ ] T059 [US4] Implement `quit` and `exit` commands in internal/repl/executor.go
+- [X] T049 [US4] Implement REPL initialization with go-prompt (REQUIRED - see ../go-prompt/) in internal/repl/repl.go
+- [X] T050 [US4] Implement command completer for all commands in internal/repl/completer.go
+- [X] T051 [US4] Implement instance index/path suggestions after `tail ` in internal/repl/completer.go
+- [X] T052 [US4] Implement log level suggestions after `levels ` in internal/repl/completer.go
+- [X] T053 [US4] Implement dynamic live prefix showing current state (instance, filter) in internal/repl/repl.go
+- [X] T054 [US4] Implement Ctrl+L keybinding for clear screen in internal/repl/repl.go
+- [X] T055 [US4] Implement Ctrl+D handling for exit (when input empty) in internal/repl/repl.go
+- [X] T056 [US4] Implement `refresh` command to re-scan instances in internal/repl/executor.go
+- [X] T057 [US4] Implement `help` command with full command reference in internal/repl/executor.go
+- [X] T058 [US4] Implement `clear` command in internal/repl/executor.go
+- [X] T059 [US4] Implement `quit` and `exit` commands in internal/repl/executor.go
 
 **Checkpoint**: User Stories 1-4 complete - full interactive REPL with autocomplete and history
 

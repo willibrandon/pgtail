@@ -2,10 +2,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -20,6 +22,129 @@ var shellMode bool
 
 // Version is set at build time.
 var Version = "0.1.0"
+
+// historyFile is the path to the command history file.
+var historyFile string
+
+// historyMaxLines is the maximum number of history entries to keep.
+const historyMaxLines = 1000
+
+// lastHistoryCmd tracks the last command to skip consecutive duplicates.
+var lastHistoryCmd string
+
+// historyIgnore contains commands that should not be saved to history.
+var historyIgnore = map[string]bool{
+	"q": true, "quit": true, "exit": true,
+	"": true,
+}
+
+func init() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	historyFile = filepath.Join(home, ".pgtail.hist")
+}
+
+// loadHistory reads command history from the history file.
+func loadHistory() []string {
+	if historyFile == "" {
+		return nil
+	}
+	file, err := os.Open(historyFile)
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	var history []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if line := scanner.Text(); line != "" {
+			history = append(history, line)
+		}
+	}
+
+	// Track last command for duplicate detection.
+	if len(history) > 0 {
+		lastHistoryCmd = history[len(history)-1]
+	}
+
+	return history
+}
+
+// saveHistory appends a command to the history file.
+func saveHistory(cmd string) {
+	if historyFile == "" || cmd == "" {
+		return
+	}
+
+	// Ignore certain commands.
+	cmdLower := strings.ToLower(strings.Fields(cmd)[0])
+	if historyIgnore[cmdLower] {
+		return
+	}
+
+	// Skip single-character commands.
+	if len(strings.TrimSpace(cmd)) == 1 {
+		return
+	}
+
+	// Skip consecutive duplicates.
+	if cmd == lastHistoryCmd {
+		return
+	}
+	lastHistoryCmd = cmd
+
+	// Append to file.
+	file, err := os.OpenFile(historyFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return
+	}
+	file.WriteString(cmd + "\n")
+	file.Close()
+
+	// Trim history if needed.
+	trimHistory()
+}
+
+// trimHistory keeps only the last historyMaxLines entries.
+func trimHistory() {
+	if historyFile == "" {
+		return
+	}
+
+	// Read current history.
+	file, err := os.Open(historyFile)
+	if err != nil {
+		return
+	}
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	file.Close()
+
+	// Only trim if over limit.
+	if len(lines) <= historyMaxLines {
+		return
+	}
+
+	// Keep last N lines.
+	lines = lines[len(lines)-historyMaxLines:]
+
+	// Rewrite file.
+	file, err = os.OpenFile(historyFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	for _, line := range lines {
+		file.WriteString(line + "\n")
+	}
+}
 
 func main() {
 	// Handle --help and --version flags.
@@ -54,6 +179,7 @@ func main() {
 		prompt.OptionPrefix("pgtail> "),
 		prompt.OptionLivePrefix(makeLivePrefix(state)),
 		prompt.OptionTitle("pgtail"),
+		prompt.OptionHistory(loadHistory()),
 		prompt.OptionPrefixTextColor(prompt.Cyan),
 		prompt.OptionPreviewSuggestionTextColor(prompt.Blue),
 		prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),
@@ -133,6 +259,9 @@ func makeExecutor(state *repl.AppState) func(string) {
 			}
 			return
 		}
+
+		// Save to history.
+		saveHistory(input)
 
 		if shellMode {
 			shellMode = false
