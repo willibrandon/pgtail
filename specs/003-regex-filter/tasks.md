@@ -24,8 +24,8 @@
 
 **Purpose**: Create new module and basic structure
 
-- [ ] T001 Create pgtail_py/regex_filter.py with module docstring and imports
-- [ ] T002 [P] Create tests/test_regex_filter.py with test file structure
+- [x] T001 Create pgtail_py/regex_filter.py with module docstring and imports
+- [x] T002 [P] Create tests/test_regex_filter.py with test file structure
 
 ---
 
@@ -35,16 +35,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement FilterType enum in pgtail_py/regex_filter.py
-- [ ] T004 Implement RegexFilter dataclass with create() and matches() methods in pgtail_py/regex_filter.py
-- [ ] T005 Implement Highlight dataclass with create() and find_spans() methods in pgtail_py/regex_filter.py
-- [ ] T006 Implement FilterState dataclass with empty(), has_filters(), should_show() methods in pgtail_py/regex_filter.py
-- [ ] T007 Implement parse_filter_arg() to parse /pattern/ and /pattern/c syntax in pgtail_py/regex_filter.py
-- [ ] T008 [P] Write unit tests for FilterType, RegexFilter.create(), RegexFilter.matches() in tests/test_regex_filter.py
-- [ ] T009 [P] Write unit tests for Highlight.create(), Highlight.find_spans() in tests/test_regex_filter.py
-- [ ] T010 [P] Write unit tests for FilterState.should_show() with include/exclude/AND logic in tests/test_regex_filter.py
-- [ ] T011 [P] Write unit tests for parse_filter_arg() including edge cases in tests/test_regex_filter.py
-- [ ] T012 Run pytest tests/test_regex_filter.py to verify foundation
+- [x] T003 Implement FilterType enum in pgtail_py/regex_filter.py
+- [x] T004 Implement RegexFilter dataclass with create() and matches() methods in pgtail_py/regex_filter.py
+- [x] T005 Implement Highlight dataclass with create() and find_spans() methods in pgtail_py/regex_filter.py
+- [x] T006 Implement FilterState dataclass with empty(), has_filters(), should_show() methods in pgtail_py/regex_filter.py
+- [x] T007 Implement parse_filter_arg() to parse /pattern/ and /pattern/c syntax in pgtail_py/regex_filter.py
+- [x] T008 [P] Write unit tests for FilterType, RegexFilter.create(), RegexFilter.matches() in tests/test_regex_filter.py
+- [x] T009 [P] Write unit tests for Highlight.create(), Highlight.find_spans() in tests/test_regex_filter.py
+- [x] T010 [P] Write unit tests for FilterState.should_show() with include/exclude/AND logic in tests/test_regex_filter.py
+- [x] T011 [P] Write unit tests for parse_filter_arg() including edge cases in tests/test_regex_filter.py
+- [x] T012 Run pytest tests/test_regex_filter.py to verify foundation
 
 **Checkpoint**: Foundation ready - FilterState can evaluate any combination of filters
 
