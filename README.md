@@ -7,6 +7,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
 - Real-time log tailing with polling (handles log rotation)
 - Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
+- Regex pattern filtering (include, exclude, AND/OR logic)
+- Highlight matching text with yellow background
 - Color-coded output by severity
 - REPL with autocomplete and command history
 - Cross-platform (macOS, Linux, Windows)
@@ -43,6 +45,8 @@ python -m pgtail_py
 list               Show detected PostgreSQL instances
 tail <id|path>     Tail logs for an instance
 levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
+filter /pattern/   Regex filter (see Filtering below)
+highlight /pattern/ Highlight matching text (yellow background)
 enable-logging <id> Enable logging_collector for an instance
 refresh            Re-scan for instances
 stop               Stop current tail
@@ -55,6 +59,27 @@ quit               Exit (alias: exit, q)
 ### Log Levels
 
 `PANIC` `FATAL` `ERROR` `WARNING` `NOTICE` `LOG` `INFO` `DEBUG1-5`
+
+### Filtering
+
+```
+filter /pattern/     Show only lines matching pattern
+filter -/pattern/    Exclude lines matching pattern
+filter +/pattern/    Add OR pattern (match any)
+filter &/pattern/    Add AND pattern (must match all)
+filter /pattern/c    Case-sensitive match
+filter clear         Remove all filters
+filter               Show current filters
+```
+
+### Highlighting
+
+```
+highlight /pattern/   Highlight matches with yellow background
+highlight /pattern/c  Case-sensitive highlight
+highlight clear       Remove all highlights
+highlight             Show current highlights
+```
 
 ### Example
 
@@ -72,6 +97,12 @@ Press Ctrl+C to stop
 
 pgtail> levels ERROR WARNING
 Filter set: ERROR WARNING
+
+pgtail> filter /SELECT/
+Filter set: /SELECT/
+
+pgtail> highlight /users/
+Highlight added: /users/
 ```
 
 ## Keyboard Shortcuts

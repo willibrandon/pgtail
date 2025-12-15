@@ -26,7 +26,8 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/detector_windows.py` - Windows-specific detection
 - `pgtail_py/instance.py` - Instance dataclass and DetectionSource enum
 - `pgtail_py/parser.py` - PostgreSQL log line parsing, LogEntry dataclass
-- `pgtail_py/filter.py` - LogLevel enum, filtering logic
+- `pgtail_py/filter.py` - LogLevel enum, level filtering logic
+- `pgtail_py/regex_filter.py` - Regex pattern filtering and highlighting
 - `pgtail_py/tailer.py` - Log file tailing with polling (handles rotation)
 - `pgtail_py/colors.py` - Color output using prompt_toolkit styles
 - `pgtail_py/commands.py` - Command definitions, PgtailCompleter for autocomplete
@@ -39,9 +40,9 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `prompt_toolkit` - REPL with autocomplete and history
 - `psutil` - Cross-platform process detection
 
-## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib) (003-regex-filter)
-- N/A (session state only) (003-regex-filter)
+## Tech Stack
 
-## Recent Changes
-- 003-regex-filter: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib)
+- Python 3.10+
+- prompt_toolkit >=3.0.0 (REPL, autocomplete, styled output)
+- psutil >=5.9.0 (process detection)
+- re (stdlib, regex filtering)
