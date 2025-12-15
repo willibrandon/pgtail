@@ -19,6 +19,12 @@ from pgtail_py.detector import detect_all
 from pgtail_py.enable_logging import enable_logging
 from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.instance import Instance
+from pgtail_py.regex_filter import (
+    FilterState,
+    FilterType,
+    RegexFilter,
+    parse_filter_arg,
+)
 from pgtail_py.tailer import LogTailer
 
 
@@ -30,6 +36,7 @@ class AppState:
         instances: List of detected PostgreSQL instances
         current_instance: Currently selected instance for tailing
         active_levels: Set of log levels to display (all by default)
+        regex_state: Regex pattern filter state
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
         tailer: Active log tailer instance
@@ -40,6 +47,7 @@ class AppState:
     instances: list[Instance] = field(default_factory=list)
     current_instance: Instance | None = None
     active_levels: set[LogLevel] = field(default_factory=LogLevel.all_levels)
+    regex_state: FilterState = field(default_factory=FilterState.empty)
     tailing: bool = False
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None
@@ -122,6 +130,12 @@ Available commands:
   levels [LEVEL...] Set log level filter (e.g., 'levels ERROR WARNING')
                     With no args, shows current filter settings
                     Use 'levels ALL' to show all levels
+  filter /pattern/  Filter logs by regex pattern
+                    -/pattern/  Exclude matching lines
+                    +/pattern/  Add OR pattern
+                    &/pattern/  Add AND pattern
+                    /pattern/c  Case-sensitive match
+                    clear       Clear all filters
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -237,7 +251,7 @@ def tail_command(state: AppState, args: list[str]) -> None:
     print("Press Ctrl+C to stop")
     print()
 
-    state.tailer = LogTailer(instance.log_path, state.active_levels)
+    state.tailer = LogTailer(instance.log_path, state.active_levels, state.regex_state)
     state.tailer.start()
 
 
@@ -300,6 +314,97 @@ def levels_command(state: AppState, args: list[str]) -> None:
     else:
         names = sorted(level.name for level in new_levels)
         print(f"Filter set: {' '.join(names)}")
+
+
+def filter_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'filter' command - set or display regex pattern filter.
+
+    Args:
+        state: Current application state.
+        args: Filter pattern or subcommand.
+    """
+    import re
+
+    # No args - show current filter status
+    if not args:
+        if not state.regex_state.has_filters():
+            print("No filters active")
+        else:
+            print("Active filters:")
+            for f in state.regex_state.includes:
+                cs = " (case-sensitive)" if f.case_sensitive else ""
+                print(f"  include: /{f.pattern}/{cs}")
+            for f in state.regex_state.excludes:
+                cs = " (case-sensitive)" if f.case_sensitive else ""
+                print(f"  exclude: /{f.pattern}/{cs}")
+            for f in state.regex_state.ands:
+                cs = " (case-sensitive)" if f.case_sensitive else ""
+                print(f"  and: /{f.pattern}/{cs}")
+        print()
+        print("Usage: filter /pattern/       Include only matching lines")
+        print("       filter -/pattern/      Exclude matching lines")
+        print("       filter +/pattern/      Add OR pattern")
+        print("       filter &/pattern/      Add AND pattern")
+        print("       filter /pattern/c      Case-sensitive match")
+        print("       filter clear           Clear all filters")
+        return
+
+    arg = args[0]
+
+    # Handle 'clear' subcommand
+    if arg.lower() == "clear":
+        state.regex_state.clear_filters()
+        print("Filters cleared")
+        return
+
+    # Determine filter type based on prefix
+    if arg.startswith("-/"):
+        filter_type = FilterType.EXCLUDE
+        pattern_arg = arg[1:]  # Remove '-' prefix, keep the /pattern/
+    elif arg.startswith("+/"):
+        filter_type = FilterType.INCLUDE
+        pattern_arg = arg[1:]  # Remove '+' prefix
+    elif arg.startswith("&/"):
+        filter_type = FilterType.AND
+        pattern_arg = arg[1:]  # Remove '&' prefix
+    elif arg.startswith("/"):
+        filter_type = FilterType.INCLUDE
+        pattern_arg = arg
+    else:
+        print(f"Invalid filter syntax: {arg}")
+        print("Use /pattern/ syntax (e.g., filter /error/)")
+        return
+
+    # Parse the pattern
+    try:
+        pattern, case_sensitive = parse_filter_arg(pattern_arg)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
+    # Validate regex
+    try:
+        regex_filter = RegexFilter.create(pattern, filter_type, case_sensitive)
+    except re.error as e:
+        print(f"Invalid regex pattern: {e}")
+        return
+
+    # Apply the filter
+    if filter_type == FilterType.INCLUDE and arg.startswith("/"):
+        # Plain /pattern/ sets single include filter (replaces previous includes)
+        state.regex_state.set_include(regex_filter)
+        cs = " (case-sensitive)" if case_sensitive else ""
+        print(f"Filter set: /{pattern}/{cs}")
+    else:
+        # +, -, & add to existing filters
+        state.regex_state.add_filter(regex_filter)
+        type_label = filter_type.value
+        cs = " (case-sensitive)" if case_sensitive else ""
+        print(f"Filter added ({type_label}): /{pattern}/{cs}")
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_regex_state(state.regex_state)
 
 
 def enable_logging_command(state: AppState, args: list[str]) -> None:
@@ -412,6 +517,8 @@ def handle_command(state: AppState, line: str) -> bool:
         tail_command(state, args)
     elif cmd == "levels":
         levels_command(state, args)
+    elif cmd == "filter":
+        filter_command(state, args)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":

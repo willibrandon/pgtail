@@ -17,6 +17,7 @@ COMMANDS: dict[str, str] = {
     "list": "Show detected PostgreSQL instances",
     "tail": "Tail logs for an instance (by ID or path)",
     "levels": "Set log level filter (e.g., 'levels ERROR WARNING')",
+    "filter": "Set regex filter (e.g., 'filter /pattern/')",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
     "enable-logging": "Enable logging_collector for an instance",

@@ -58,14 +58,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Add regex_state: FilterState field to AppState dataclass in pgtail_py/cli.py
-- [ ] T014 [US1] Add "filter" to COMMANDS dict with description in pgtail_py/commands.py
-- [ ] T015 [US1] Implement filter_command() handler for `filter /pattern/` syntax in pgtail_py/cli.py
-- [ ] T016 [US1] Implement filter status display when `filter` called with no args in pgtail_py/cli.py
-- [ ] T017 [US1] Add filter command dispatch to handle_command() in pgtail_py/cli.py
-- [ ] T018 [US1] Integrate FilterState.should_show() into log line processing in pgtail_py/tailer.py
-- [ ] T019 [US1] Add error handling for invalid regex patterns with helpful messages in pgtail_py/cli.py
-- [ ] T020 [US1] Update help_command() to include filter command documentation in pgtail_py/cli.py
+- [x] T013 [US1] Add regex_state: FilterState field to AppState dataclass in pgtail_py/cli.py
+- [x] T014 [US1] Add "filter" to COMMANDS dict with description in pgtail_py/commands.py
+- [x] T015 [US1] Implement filter_command() handler for `filter /pattern/` syntax in pgtail_py/cli.py
+- [x] T016 [US1] Implement filter status display when `filter` called with no args in pgtail_py/cli.py
+- [x] T017 [US1] Add filter command dispatch to handle_command() in pgtail_py/cli.py
+- [x] T018 [US1] Integrate FilterState.should_show() into log line processing in pgtail_py/tailer.py
+- [x] T019 [US1] Add error handling for invalid regex patterns with helpful messages in pgtail_py/cli.py
+- [x] T020 [US1] Update help_command() to include filter command documentation in pgtail_py/cli.py
 
 **Checkpoint**: `filter /pattern/` works - shows only matching lines, `filter` shows status
 

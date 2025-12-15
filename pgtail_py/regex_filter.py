@@ -180,21 +180,16 @@ class FilterState:
         2. If any exclude matches, hide the line
         3. If ANDs exist, all must match
         """
-        # Check includes (OR logic)
-        if self.includes:
-            if not any(f.matches(text) for f in self.includes):
-                return False
+        # Check includes (OR logic) - at least one must match
+        if self.includes and not any(f.matches(text) for f in self.includes):
+            return False
 
         # Check excludes (any match hides)
         if any(f.matches(text) for f in self.excludes):
             return False
 
         # Check ANDs (all must match)
-        if self.ands:
-            if not all(f.matches(text) for f in self.ands):
-                return False
-
-        return True
+        return not (self.ands and not all(f.matches(text) for f in self.ands))
 
 
 def parse_filter_arg(arg: str) -> tuple[str, bool]:

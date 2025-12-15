@@ -9,6 +9,7 @@ from queue import Empty, Queue
 from pgtail_py.colors import print_log_entry
 from pgtail_py.filter import LogLevel
 from pgtail_py.parser import LogEntry, parse_log_line
+from pgtail_py.regex_filter import FilterState
 
 
 class LogTailer:
@@ -22,6 +23,7 @@ class LogTailer:
         self,
         log_path: Path,
         active_levels: set[LogLevel] | None = None,
+        regex_state: FilterState | None = None,
         poll_interval: float = 0.1,
     ) -> None:
         """Initialize the log tailer.
@@ -29,10 +31,12 @@ class LogTailer:
         Args:
             log_path: Path to the log file to tail.
             active_levels: Set of log levels to display. None means all.
+            regex_state: Regex filter state. None means no regex filtering.
             poll_interval: How often to check for new content (seconds).
         """
         self._log_path = log_path
         self._active_levels = active_levels
+        self._regex_state = regex_state
         self._poll_interval = poll_interval
         self._position = 0
         self._inode: int | None = None
@@ -87,10 +91,17 @@ class LogTailer:
             pass
 
     def _should_show(self, entry: LogEntry) -> bool:
-        """Check if a log entry should be displayed based on active levels."""
-        if self._active_levels is None:
-            return True
-        return entry.level in self._active_levels
+        """Check if a log entry should be displayed based on active levels and regex filters."""
+        # Check level filter
+        if self._active_levels is not None and entry.level not in self._active_levels:
+            return False
+
+        # Check regex filter (applied to raw line)
+        return not (
+            self._regex_state is not None
+            and self._regex_state.has_filters()
+            and not self._regex_state.should_show(entry.raw)
+        )
 
     def _poll_loop(self) -> None:
         """Background thread that polls the file for changes."""
@@ -151,6 +162,14 @@ class LogTailer:
             levels: New set of levels to display. None means all.
         """
         self._active_levels = levels
+
+    def update_regex_state(self, regex_state: FilterState | None) -> None:
+        """Update the regex filter state.
+
+        Args:
+            regex_state: New regex filter state. None means no regex filtering.
+        """
+        self._regex_state = regex_state
 
     @property
     def is_running(self) -> bool:
