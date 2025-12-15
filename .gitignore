@@ -7,32 +7,14 @@
 *.swp
 *.swo
 
-# Go build artifacts
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-*.prof*
-
-# Go vendor (if not checked in)
-vendor/
-
 # Binary output
 /pgtail
-/cmd/pgtail/pgtail
-/build/
+*.exe
 
 # Environment files
 .env
 .env.local
 .env.*
-
-# Coverage
-coverage.out
-coverage.html
 
 # Temporary files
 *.tmp

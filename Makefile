@@ -1,116 +1,36 @@
-# pgtail Makefile
-# Cross-platform build targets for macOS, Linux, and Windows
+.PHONY: help run test lint format build clean shell
 
-VERSION := 0.1.0
-
-# Detect Windows and add .exe extension
-ifeq ($(OS),Windows_NT)
-    BINARY := pgtail.exe
-    RM := del /q
-    RMDIR := rmdir /s /q
-    RUN_PREFIX := .\
-    MKDIR := mkdir
-else
-    BINARY := pgtail
-    RM := rm -f
-    RMDIR := rm -rf
-    RUN_PREFIX := ./
-    MKDIR := mkdir -p
-endif
-BUILD_DIR := build
-CMD_DIR := ./cmd/pgtail
-
-# Build flags
-LDFLAGS := -ldflags "-s -w -X main.Version=$(VERSION)"
-
-# Default target
-.PHONY: all
-all: build
-
-# Build for current platform
-.PHONY: build
-build:
-	go build $(LDFLAGS) -o $(BINARY) $(CMD_DIR)
-
-# Run tests
-.PHONY: test
-test:
-	go test -v ./...
-
-# Run linter
-.PHONY: lint
-lint:
-	golangci-lint run ./...
-
-# Clean build artifacts
-.PHONY: clean
-clean:
-	-$(RM) $(BINARY)
-	-$(RMDIR) $(BUILD_DIR)
-
-# Cross-compile for all platforms
-.PHONY: release
-release: clean build-darwin-arm64 build-darwin-amd64 build-linux-amd64 build-windows-amd64
-
-# macOS ARM64 (Apple Silicon)
-.PHONY: build-darwin-arm64
-build-darwin-arm64:
-	-@$(MKDIR) $(BUILD_DIR)
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-darwin-arm64 $(CMD_DIR)
-
-# macOS AMD64 (Intel)
-.PHONY: build-darwin-amd64
-build-darwin-amd64:
-	-@$(MKDIR) $(BUILD_DIR)
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-darwin-amd64 $(CMD_DIR)
-
-# Linux AMD64
-.PHONY: build-linux-amd64
-build-linux-amd64:
-	-@$(MKDIR) $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-linux-amd64 $(CMD_DIR)
-
-# Windows AMD64
-.PHONY: build-windows-amd64
-build-windows-amd64:
-	-@$(MKDIR) $(BUILD_DIR)
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/pgtail-windows-amd64.exe $(CMD_DIR)
-
-# Install to GOBIN
-.PHONY: install
-install:
-	go install $(LDFLAGS) $(CMD_DIR)
-
-# Development helpers
-.PHONY: run
-run: build
-	$(RUN_PREFIX)$(BINARY)
-
-.PHONY: fmt
-fmt:
-	go fmt ./...
-
-.PHONY: tidy
-tidy:
-	go mod tidy
-
-# Show help
-.PHONY: help
 help:
-	@echo "pgtail build targets:"
+	@echo "Usage: make [target]"
 	@echo ""
-	@echo "  make build    - Build for current platform"
-	@echo "  make test     - Run tests"
-	@echo "  make lint     - Run golangci-lint"
-	@echo "  make clean    - Remove build artifacts"
-	@echo "  make release  - Cross-compile for all platforms"
-	@echo "  make install  - Install to GOBIN"
-	@echo "  make run      - Build and run"
-	@echo "  make fmt      - Format code"
-	@echo "  make tidy     - Tidy go.mod"
-	@echo ""
-	@echo "Cross-compile targets:"
-	@echo "  make build-darwin-arm64   - macOS ARM64"
-	@echo "  make build-darwin-amd64   - macOS AMD64"
-	@echo "  make build-linux-amd64    - Linux AMD64"
-	@echo "  make build-windows-amd64  - Windows AMD64"
+	@echo "Targets:"
+	@echo "  run     Run pgtail from source"
+	@echo "  test    Run pytest"
+	@echo "  lint    Run ruff linter"
+	@echo "  format  Format code with ruff"
+	@echo "  build   Build standalone executable"
+	@echo "  clean   Remove build artifacts"
+	@echo "  shell   Enter virtual environment shell"
+
+shell:
+	@echo "Entering venv shell (type 'exit' to leave)"
+	@bash -c "source .venv/bin/activate && exec bash"
+
+run:
+	uv run python -m pgtail_py
+
+test:
+	uv run python -m pytest tests/ -v
+
+lint:
+	uv run ruff check pgtail_py/
+
+format:
+	uv run ruff format pgtail_py/
+
+build:
+	uv run pyinstaller --onefile --name pgtail pgtail_py/__main__.py
+
+clean:
+	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
