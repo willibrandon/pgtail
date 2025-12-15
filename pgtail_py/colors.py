@@ -1,0 +1,91 @@
+"""Color output for PostgreSQL log entries using prompt_toolkit styles."""
+
+import os
+
+from prompt_toolkit import print_formatted_text
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.styles import Style
+
+from pgtail_py.filter import LogLevel
+from pgtail_py.parser import LogEntry
+
+# Style definitions for each log level
+# Using ANSI color names that work across terminals
+LEVEL_STYLES = {
+    LogLevel.PANIC: "bold fg:white bg:red",
+    LogLevel.FATAL: "bold fg:red",
+    LogLevel.ERROR: "fg:red",
+    LogLevel.WARNING: "fg:yellow",
+    LogLevel.NOTICE: "fg:cyan",
+    LogLevel.LOG: "fg:ansidefault",
+    LogLevel.INFO: "fg:green",
+    LogLevel.DEBUG1: "fg:ansibrightblack",
+    LogLevel.DEBUG2: "fg:ansibrightblack",
+    LogLevel.DEBUG3: "fg:ansibrightblack",
+    LogLevel.DEBUG4: "fg:ansibrightblack",
+    LogLevel.DEBUG5: "fg:ansibrightblack",
+}
+
+# Build the style object from level styles
+# Note: Style keys don't have "class:" prefix - that's only for FormattedText tuples
+_STYLE_RULES = [(level.name.lower(), style) for level, style in LEVEL_STYLES.items()]
+_STYLE_RULES.extend([
+    ("timestamp", "fg:ansibrightblack"),
+    ("pid", "fg:ansibrightblack"),
+])
+LOG_STYLE = Style(_STYLE_RULES)
+
+
+def _is_color_disabled() -> bool:
+    """Check if color output should be disabled.
+
+    Respects NO_COLOR environment variable (https://no-color.org/).
+    """
+    return "NO_COLOR" in os.environ
+
+
+def format_log_entry(entry: LogEntry) -> FormattedText:
+    """Format a log entry with appropriate styling.
+
+    Args:
+        entry: The log entry to format.
+
+    Returns:
+        FormattedText suitable for print_formatted_text().
+    """
+    level_class = f"class:{entry.level.name.lower()}"
+    parts = []
+
+    # Timestamp
+    if entry.timestamp:
+        ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]  # HH:MM:SS.mmm
+        parts.append(("class:timestamp", f"{ts_str} "))
+
+    # PID
+    if entry.pid:
+        parts.append(("class:pid", f"[{entry.pid}] "))
+
+    # Level and message
+    level_name = entry.level.name.ljust(7)  # Align level names
+    parts.append((level_class, f"{level_name}: {entry.message}"))
+
+    return FormattedText(parts)
+
+
+def print_log_entry(entry: LogEntry, style: Style | None = None) -> None:
+    """Print a log entry with color-coded styling.
+
+    Uses prompt_toolkit's print_formatted_text for proper terminal handling.
+    Respects NO_COLOR environment variable.
+
+    Args:
+        entry: The log entry to print.
+        style: Optional custom style. Uses LOG_STYLE if not provided.
+    """
+    if _is_color_disabled():
+        # Plain output when NO_COLOR is set
+        print(entry.raw)
+        return
+
+    formatted = format_log_entry(entry)
+    print_formatted_text(formatted, style=style or LOG_STYLE)

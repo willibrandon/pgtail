@@ -2,17 +2,20 @@
 
 import os
 import sys
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.history import FileHistory
 
+from pgtail_py.colors import print_log_entry
 from pgtail_py.config import ensure_history_dir, get_history_path
 from pgtail_py.detector import detect_all
 from pgtail_py.filter import LogLevel
 from pgtail_py.instance import Instance
+from pgtail_py.tailer import LogTailer
 
 
 @dataclass
@@ -25,13 +28,27 @@ class AppState:
         active_levels: Set of log levels to display (all by default)
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
+        tailer: Active log tailer instance
+        stop_event: Event to signal tail stop
     """
 
     instances: list[Instance] = field(default_factory=list)
-    current_instance: Optional[Instance] = None
+    current_instance: Instance | None = None
     active_levels: set[LogLevel] = field(default_factory=LogLevel.all_levels)
     tailing: bool = False
     history_path: Path = field(default_factory=get_history_path)
+    tailer: LogTailer | None = None
+    stop_event: threading.Event = field(default_factory=threading.Event)
+
+
+def _shorten_path(path: Path) -> str:
+    """Replace home directory with ~ for display."""
+    home = Path.home()
+    path_str = str(path)
+    home_str = str(home)
+    if path_str.startswith(home_str):
+        return "~" + path_str[len(home_str):]
+    return path_str
 
 
 def format_instances_table(instances: list[Instance]) -> str:
@@ -41,46 +58,26 @@ def format_instances_table(instances: list[Instance]) -> str:
         instances: List of instances to format.
 
     Returns:
-        Formatted table string with ID, Version, Status, Path, and Log columns.
+        Formatted table string matching Go version format.
     """
     if not instances:
-        return "No PostgreSQL instances found."
+        return """No PostgreSQL instances found.
 
-    # Calculate column widths
-    headers = ["ID", "Version", "Status", "Path", "Log"]
-    rows = []
+Suggestions:
+  - Start a PostgreSQL instance
+  - Set PGDATA environment variable to your data directory
+  - Run 'refresh' after starting PostgreSQL
+  - Check ~/.pgrx/ for pgrx development instances"""
+
+    # Header matches Go version: #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY
+    lines = ["  #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY"]
     for inst in instances:
-        log_str = str(inst.log_path) if inst.log_path else "disabled"
-        # Truncate long paths
-        path_str = str(inst.data_dir)
-        if len(path_str) > 40:
-            path_str = "..." + path_str[-37:]
-        if len(log_str) > 30:
-            log_str = "..." + log_str[-27:]
-
-        rows.append([
-            str(inst.id),
-            inst.version,
-            inst.status_str,
-            path_str,
-            log_str,
-        ])
-
-    # Calculate max width for each column
-    widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], len(cell))
-
-    # Build table
-    lines = []
-    header_line = "  ".join(h.ljust(widths[i]) for i, h in enumerate(headers))
-    lines.append(header_line)
-    lines.append("-" * len(header_line))
-
-    for row in rows:
-        line = "  ".join(cell.ljust(widths[i]) for i, cell in enumerate(row))
-        lines.append(line)
+        data_dir = _shorten_path(inst.data_dir)
+        source = inst.source.value  # process, pgrx, pgdata, known
+        lines.append(
+            f"  {inst.id}  {inst.version:<8} {inst.port_str:<6} {inst.status_str:<8} "
+            f"{inst.log_status:<4} {source:<7} {data_dir}"
+        )
 
     return "\n".join(lines)
 
@@ -133,6 +130,105 @@ def refresh_command(state: AppState) -> None:
         print(f"Found {count} PostgreSQL instances.")
 
 
+def _find_instance(state: AppState, arg: str) -> Instance | None:
+    """Find an instance by ID or path.
+
+    Args:
+        state: Current application state.
+        arg: Instance ID (number) or data directory path.
+
+    Returns:
+        Instance if found, None otherwise.
+    """
+    # Try as numeric ID first
+    try:
+        instance_id = int(arg)
+        for inst in state.instances:
+            if inst.id == instance_id:
+                return inst
+        return None
+    except ValueError:
+        pass
+
+    # Try as path
+    path = Path(arg).resolve()
+    for inst in state.instances:
+        if inst.data_dir.resolve() == path:
+            return inst
+
+    return None
+
+
+def tail_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'tail' command - tail logs for an instance.
+
+    Args:
+        state: Current application state.
+        args: Command arguments (instance ID or path).
+    """
+    if not args:
+        # If no arg given, use first instance or show error
+        if not state.instances:
+            print("No instances detected. Run 'refresh' to scan.")
+            return
+        if len(state.instances) == 1:
+            instance = state.instances[0]
+        else:
+            print("Multiple instances found. Specify an ID:")
+            print("  tail <id>")
+            print()
+            list_command(state)
+            return
+    else:
+        instance = _find_instance(state, args[0])
+        if instance is None:
+            print(f"Instance not found: {args[0]}")
+            print()
+            print("Available instances:")
+            for inst in state.instances:
+                print(f"  {inst.id}: {inst.data_dir}")
+            return
+
+    if not instance.log_path:
+        print(f"Logging not enabled for instance {instance.id}")
+        print(f"Data directory: {instance.data_dir}")
+        print()
+        print("Enable logging with: enable-logging {instance.id}")
+        return
+
+    if not instance.log_path.exists():
+        print(f"Log file not found: {instance.log_path}")
+        return
+
+    # Start tailing
+    state.current_instance = instance
+    state.tailing = True
+    state.stop_event.clear()
+
+    print(f"Tailing {instance.log_path}")
+    print("Press Ctrl+C to stop")
+    print()
+
+    state.tailer = LogTailer(instance.log_path, state.active_levels)
+    state.tailer.start()
+
+
+def stop_command(state: AppState) -> None:
+    """Handle the 'stop' command - stop tailing."""
+    if not state.tailing:
+        print("Not currently tailing.")
+        return
+
+    if state.tailer:
+        state.tailer.stop()
+        state.tailer = None
+
+    state.tailing = False
+    state.stop_event.set()
+    state.current_instance = None
+    print("Stopped tailing.")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -148,9 +244,12 @@ def handle_command(state: AppState, line: str) -> bool:
         return True
 
     cmd = parts[0].lower()
-    # args = parts[1:]
+    args = parts[1:]
 
     if cmd in ("quit", "exit", "q"):
+        # Stop tailing before exit
+        if state.tailing:
+            stop_command(state)
         return False
     elif cmd == "list":
         list_command(state)
@@ -161,11 +260,11 @@ def handle_command(state: AppState, line: str) -> bool:
     elif cmd == "refresh":
         refresh_command(state)
     elif cmd == "tail":
-        print("Tail command not yet implemented. Coming in Phase 4.")
+        tail_command(state, args)
     elif cmd == "levels":
         print("Levels command not yet implemented. Coming in Phase 5.")
     elif cmd == "stop":
-        print("Not currently tailing.")
+        stop_command(state)
     elif cmd == "enable-logging":
         print("Enable-logging command not yet implemented. Coming in Phase 7.")
     else:
@@ -173,6 +272,26 @@ def handle_command(state: AppState, line: str) -> bool:
         print("Type 'help' for available commands.")
 
     return True
+
+
+def _get_prompt(state: AppState) -> HTML:
+    """Get the prompt string based on current state."""
+    if state.tailing and state.current_instance:
+        return HTML(f"<style fg='#00aa00'>tailing</style> <style fg='#00aaaa'>[{state.current_instance.id}]</style><style fg='#666666'>&gt;</style> ")
+    return HTML("<style fg='#00aa00'>pgtail</style><style fg='#666666'>&gt;</style> ")
+
+
+def _process_tail_output(state: AppState) -> None:
+    """Process pending tail output and print entries."""
+    if not state.tailer:
+        return
+
+    # Process all available entries
+    while True:
+        entry = state.tailer.get_entry(timeout=0.01)
+        if entry is None:
+            break
+        print_log_entry(entry)
 
 
 def main() -> None:
@@ -205,16 +324,31 @@ def main() -> None:
     # REPL loop
     while True:
         try:
-            line = session.prompt("pgtail> ")
+            # When tailing, process output in a loop until Ctrl+C
+            if state.tailing:
+                try:
+                    while state.tailing:
+                        _process_tail_output(state)
+                except KeyboardInterrupt:
+                    # Ctrl+C stops tailing
+                    print()
+                    stop_command(state)
+                    continue
+
+            line = session.prompt(_get_prompt(state))
             if not handle_command(state, line):
                 break
         except KeyboardInterrupt:
-            # Ctrl+C - ignore and show new prompt
+            # Ctrl+C - if tailing, stop; otherwise ignore
             print()
+            if state.tailing:
+                stop_command(state)
             continue
         except EOFError:
             # Ctrl+D - exit
             print()
+            if state.tailing:
+                stop_command(state)
             break
 
     print("Goodbye!")

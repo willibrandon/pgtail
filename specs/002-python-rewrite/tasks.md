@@ -89,20 +89,20 @@
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] Create parser.py parse_log_line() function with regex for PostgreSQL default format
-- [ ] T032 [US2] Handle unparseable lines in parser.py: return LogEntry with level=LOG and raw line preserved
-- [ ] T033 [US2] Create colors.py with LEVEL_STYLES dict mapping LogLevel to prompt_toolkit style strings
-- [ ] T034 [US2] Create colors.py print_log_entry() using print_formatted_text() with level-based styling
-- [ ] T035 [US2] Add NO_COLOR environment check in colors.py to disable styling when set
-- [ ] T036 [US2] Create tailer.py LogTailer class using watchdog Observer for file monitoring
-- [ ] T037 [US2] Implement tailer.py on_modified() handler to read new lines from log file
-- [ ] T038 [US2] Add polling fallback in tailer.py for filesystems without native watching (NFS, etc.)
-- [ ] T039 [US2] Handle log rotation in tailer.py: detect file truncation/recreation and reopen
-- [ ] T040 [US2] Create tail_command() handler in cli.py accepting instance ID or path
-- [ ] T041 [US2] Implement tail loop in cli.py: start tailer, print entries, handle Ctrl+C to stop
-- [ ] T042 [US2] Add stop command in cli.py to halt active tail and return to prompt
-- [ ] T043 [US2] Update REPL to handle tailing state: different prompt or status indicator
-- [ ] T044 [US2] Handle instance not found error with helpful message suggesting valid IDs
+- [x] T031 [US2] Create parser.py parse_log_line() function with regex for PostgreSQL default format
+- [x] T032 [US2] Handle unparseable lines in parser.py: return LogEntry with level=LOG and raw line preserved
+- [x] T033 [US2] Create colors.py with LEVEL_STYLES dict mapping LogLevel to prompt_toolkit style strings
+- [x] T034 [US2] Create colors.py print_log_entry() using print_formatted_text() with level-based styling
+- [x] T035 [US2] Add NO_COLOR environment check in colors.py to disable styling when set
+- [x] T036 [US2] Create tailer.py LogTailer class using watchdog Observer for file monitoring
+- [x] T037 [US2] Implement tailer.py on_modified() handler to read new lines from log file
+- [x] T038 [US2] Add polling fallback in tailer.py for filesystems without native watching (NFS, etc.)
+- [x] T039 [US2] Handle log rotation in tailer.py: detect file truncation/recreation and reopen
+- [x] T040 [US2] Create tail_command() handler in cli.py accepting instance ID or path
+- [x] T041 [US2] Implement tail loop in cli.py: start tailer, print entries, handle Ctrl+C to stop
+- [x] T042 [US2] Add stop command in cli.py to halt active tail and return to prompt
+- [x] T043 [US2] Update REPL to handle tailing state: different prompt or status indicator
+- [x] T044 [US2] Handle instance not found error with helpful message suggesting valid IDs
 
 **Checkpoint**: User Story 2 complete - can tail logs with colors
 
