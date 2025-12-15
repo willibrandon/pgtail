@@ -58,24 +58,24 @@
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Create detector_unix.py with detect_from_processes() using psutil to find postgres processes
-- [ ] T014 [P] [US1] Create detector_unix.py detect_from_pgrx() scanning ~/.pgrx/data-* directories
-- [ ] T015 [P] [US1] Create detector_unix.py detect_from_pgdata() checking PGDATA environment variable
-- [ ] T016 [P] [US1] Create detector_unix.py detect_from_known_paths() for /usr/local/var/postgres, /var/lib/postgresql, etc.
-- [ ] T017 [US1] Create detector_windows.py with Windows-specific paths (Program Files, etc.) and process detection
-- [ ] T018 [US1] Create detector.py with detect_all() that calls platform-specific module and returns list[Instance]
-- [ ] T019 [US1] Add get_version() helper in detector.py to read PG_VERSION file from data directory
-- [ ] T020 [US1] Add get_log_path() helper in detector.py to find log file from postgresql.conf or log_directory
-- [ ] T021 [US1] Create format_instances_table() in cli.py to render instances as aligned table (ID, Version, Status, Path, Log)
-- [ ] T022 [US1] Create list_command() handler in cli.py that calls detect_all() and prints table
-- [ ] T023 [US1] Implement basic REPL loop in cli.py using PromptSession with 'pgtail> ' prompt
-- [ ] T024 [US1] Wire list command into REPL command dispatcher in cli.py
-- [ ] T025 [US1] Add startup detection: call detect_all() on launch and show instance count
-- [ ] T026 [US1] Add help command showing available commands in cli.py
-- [ ] T027 [US1] Add quit/exit commands and Ctrl+D handling in cli.py
-- [ ] T028 [US1] Add clear command to clear terminal screen in cli.py
-- [ ] T029 [US1] Add refresh command to re-run detection in cli.py
-- [ ] T030 [US1] Handle graceful degradation: skip unreadable directories, continue on permission errors
+- [x] T013 [US1] Create detector_unix.py with detect_from_processes() using psutil to find postgres processes
+- [x] T014 [P] [US1] Create detector_unix.py detect_from_pgrx() scanning ~/.pgrx/data-* directories
+- [x] T015 [P] [US1] Create detector_unix.py detect_from_pgdata() checking PGDATA environment variable
+- [x] T016 [P] [US1] Create detector_unix.py detect_from_known_paths() for /usr/local/var/postgres, /var/lib/postgresql, etc.
+- [x] T017 [US1] Create detector_windows.py with Windows-specific paths (Program Files, etc.) and process detection
+- [x] T018 [US1] Create detector.py with detect_all() that calls platform-specific module and returns list[Instance]
+- [x] T019 [US1] Add get_version() helper in detector.py to read PG_VERSION file from data directory
+- [x] T020 [US1] Add get_log_path() helper in detector.py to find log file from postgresql.conf or log_directory
+- [x] T021 [US1] Create format_instances_table() in cli.py to render instances as aligned table (ID, Version, Status, Path, Log)
+- [x] T022 [US1] Create list_command() handler in cli.py that calls detect_all() and prints table
+- [x] T023 [US1] Implement basic REPL loop in cli.py using PromptSession with 'pgtail> ' prompt
+- [x] T024 [US1] Wire list command into REPL command dispatcher in cli.py
+- [x] T025 [US1] Add startup detection: call detect_all() on launch and show instance count
+- [x] T026 [US1] Add help command showing available commands in cli.py
+- [x] T027 [US1] Add quit/exit commands and Ctrl+D handling in cli.py
+- [x] T028 [US1] Add clear command to clear terminal screen in cli.py
+- [x] T029 [US1] Add refresh command to re-run detection in cli.py
+- [x] T030 [US1] Handle graceful degradation: skip unreadable directories, continue on permission errors
 
 **Checkpoint**: User Story 1 complete - can launch, list, help, quit
 
