@@ -1,6 +1,7 @@
 """REPL loop and command handlers for pgtail."""
 
 import os
+import subprocess
 import sys
 import threading
 from dataclasses import dataclass, field
@@ -9,6 +10,7 @@ from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 
 from pgtail_py.colors import print_log_entry
 from pgtail_py.config import ensure_history_dir, get_history_path
@@ -30,6 +32,7 @@ class AppState:
         history_path: Path to command history file
         tailer: Active log tailer instance
         stop_event: Event to signal tail stop
+        shell_mode: Whether in shell mode (next input runs as shell command)
     """
 
     instances: list[Instance] = field(default_factory=list)
@@ -39,6 +42,7 @@ class AppState:
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None
     stop_event: threading.Event = field(default_factory=threading.Event)
+    shell_mode: bool = False
 
 
 def _shorten_path(path: Path) -> str:
@@ -49,6 +53,26 @@ def _shorten_path(path: Path) -> str:
     if path_str.startswith(home_str):
         return "~" + path_str[len(home_str):]
     return path_str
+
+
+def run_shell(cmd_line: str) -> None:
+    """Run a shell command.
+
+    Args:
+        cmd_line: The command to run.
+    """
+    if not cmd_line:
+        return
+
+    if sys.platform == "win32":
+        shell_cmd = ["cmd", "/c", cmd_line]
+    else:
+        shell_cmd = ["sh", "-c", cmd_line]
+
+    try:
+        subprocess.run(shell_cmd, check=False)
+    except Exception as e:
+        print(f"Shell error: {e}")
 
 
 def format_instances_table(instances: list[Instance]) -> str:
@@ -102,6 +126,8 @@ Available commands:
   clear             Clear the screen
   help              Show this help message
   quit / exit       Exit pgtail
+  !<command>        Run a shell command (e.g., '!ls -la')
+  !                 Enter shell mode (next input runs as shell command)
 
 Keyboard shortcuts:
   Tab       Autocomplete commands and arguments
@@ -239,10 +265,31 @@ def handle_command(state: AppState, line: str) -> bool:
     Returns:
         True to continue the REPL loop, False to exit.
     """
-    parts = line.strip().split()
-    if not parts:
+    line = line.strip()
+
+    # Handle empty input
+    if not line:
+        state.shell_mode = False
         return True
 
+    # Handle shell mode
+    if state.shell_mode:
+        state.shell_mode = False
+        run_shell(line)
+        return True
+
+    # Handle ! prefix for shell commands
+    if line.startswith("!"):
+        cmd_line = line[1:].strip()
+        if cmd_line:
+            # !command - run immediately
+            run_shell(cmd_line)
+        else:
+            # ! alone - enter shell mode
+            state.shell_mode = True
+        return True
+
+    parts = line.split()
     cmd = parts[0].lower()
     args = parts[1:]
 
@@ -276,6 +323,8 @@ def handle_command(state: AppState, line: str) -> bool:
 
 def _get_prompt(state: AppState) -> HTML:
     """Get the prompt string based on current state."""
+    if state.shell_mode:
+        return HTML("<style fg='#ff6688'>!</style> ")
     if state.tailing and state.current_instance:
         return HTML(f"<style fg='#00aa00'>tailing</style> <style fg='#00aaaa'>[{state.current_instance.id}]</style><style fg='#666666'>&gt;</style> ")
     return HTML("<style fg='#00aa00'>pgtail</style><style fg='#666666'>&gt;</style> ")
@@ -292,6 +341,48 @@ def _process_tail_output(state: AppState) -> None:
         if entry is None:
             break
         print_log_entry(entry)
+
+
+def _create_key_bindings(state: AppState) -> KeyBindings:
+    """Create key bindings for the REPL.
+
+    Args:
+        state: Application state (captured in closure).
+
+    Returns:
+        KeyBindings instance with shell mode handling.
+    """
+    bindings = KeyBindings()
+
+    @bindings.add("!")
+    def handle_exclamation(event: object) -> None:
+        """Handle ! key - enter shell mode if buffer is empty."""
+        app = event.app  # type: ignore[attr-defined]
+        buf = app.current_buffer
+        if buf.text == "":
+            state.shell_mode = True
+            app.invalidate()  # Force prompt refresh
+        else:
+            buf.insert_text("!")
+
+    @bindings.add("escape")
+    def handle_escape(event: object) -> None:
+        """Handle Escape key - exit shell mode."""
+        state.shell_mode = False
+        event.app.invalidate()  # type: ignore[attr-defined]
+
+    @bindings.add("backspace")
+    def handle_backspace(event: object) -> None:
+        """Handle Backspace - exit shell mode if buffer empty."""
+        app = event.app  # type: ignore[attr-defined]
+        buf = app.current_buffer
+        if state.shell_mode and buf.text == "":
+            state.shell_mode = False
+            app.invalidate()  # Force prompt refresh
+        elif buf.text:
+            buf.delete_before_cursor(1)
+
+    return bindings
 
 
 def main() -> None:
@@ -315,10 +406,12 @@ def main() -> None:
     print("Type 'help' for available commands, 'quit' to exit.")
     print()
 
-    # Set up prompt session with history
+    # Set up prompt session with history and key bindings
     history_path = ensure_history_dir()
+    bindings = _create_key_bindings(state)
     session: PromptSession[str] = PromptSession(
         history=FileHistory(str(history_path)),
+        key_bindings=bindings,
     )
 
     # REPL loop
@@ -335,7 +428,7 @@ def main() -> None:
                     stop_command(state)
                     continue
 
-            line = session.prompt(_get_prompt(state))
+            line = session.prompt(lambda: _get_prompt(state))
             if not handle_command(state, line):
                 break
         except KeyboardInterrupt:
