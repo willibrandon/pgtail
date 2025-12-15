@@ -1,21 +1,23 @@
 <!--
 Sync Impact Report
 ==================
-Version Change: 1.1.0 → 1.2.0
-Bump Rationale: MINOR - Added reference source location for go-prompt library
+Version Change: 1.2.0 → 2.0.0
+Bump Rationale: MAJOR - Language change from Go to Python, replacement of core REPL dependency
 
 Modified Principles:
-- VI. Minimal Dependencies: Added local reference path for go-prompt
+- II. Cross-Platform Parity: Updated examples to Python conventions (modules instead of Go files, stdlib modules)
+- VI. Minimal Dependencies: Complete rewrite - go-prompt → python-prompt-toolkit, lipgloss/fsnotify/gopsutil → watchdog/psutil
 
 Added Sections: None
 
 Removed Sections: None
 
 Templates Requiring Updates:
-- .specify/templates/plan-template.md: ✅ Compatible (Constitution Check section exists)
-- .specify/templates/spec-template.md: ✅ Compatible (no constitution-specific references)
-- .specify/templates/tasks-template.md: ✅ Compatible (no constitution-specific references)
-- .specify/templates/commands/*.md: No command templates found
+- .specify/templates/plan-template.md: ✅ Compatible (language-agnostic placeholders)
+- .specify/templates/spec-template.md: ✅ Compatible (no language-specific references)
+- .specify/templates/tasks-template.md: ✅ Compatible (language-agnostic placeholders)
+- .specify/templates/checklist-template.md: ✅ Compatible (no language-specific references)
+- .specify/templates/agent-file-template.md: ✅ Compatible (no language-specific references)
 
 Follow-up TODOs: None
 -->
@@ -39,9 +41,9 @@ pgtail MUST prioritize simplicity in all design decisions:
 pgtail MUST behave identically on macOS, Linux, and Windows:
 
 - **Feature Equivalence**: Every feature available on one platform MUST be available on all platforms (or gracefully degrade with clear messaging)
-- **Isolation of Platform Code**: Platform-specific code MUST be isolated in dedicated files/modules (e.g., `process_unix.go`, `process_windows.go`)
-- **Path Handling**: All file path operations MUST use `filepath` package; never hardcode path separators
-- **Cross-Platform Libraries**: Use only dependencies that support all three platforms (e.g., `gopsutil`, `fatih/color`)
+- **Isolation of Platform Code**: Platform-specific code MUST be isolated in dedicated modules (e.g., `detector_unix.py`, `detector_windows.py`)
+- **Path Handling**: All file path operations MUST use `pathlib` or `os.path`; never hardcode path separators
+- **Cross-Platform Libraries**: Use only dependencies that support all three platforms (e.g., `psutil`, `watchdog`)
 
 **Rationale**: PostgreSQL developers work across platforms. A tool that only works on one OS provides limited value.
 
@@ -83,15 +85,14 @@ pgtail MUST NOT expand beyond its core purpose:
 pgtail MUST minimize external dependencies:
 
 - **Justified Additions**: Each dependency MUST provide clear cross-platform value that would be expensive to replicate
-- **Standard Library Preference**: Prefer Go standard library when functionality is adequate
-- **Mandatory REPL Library**: The REPL MUST use `github.com/c-bata/go-prompt` for autocomplete and history; no custom or simplified implementations. Reference source: `../go-prompt/`
+- **Standard Library Preference**: Prefer Python standard library when functionality is adequate
+- **Mandatory REPL Library**: The REPL MUST use `prompt_toolkit` for autocomplete and history; no custom or simplified implementations. Reference source: `../python-prompt-toolkit/`
 - **Approved Dependencies**: Core approved dependencies are:
-  - `github.com/c-bata/go-prompt` (REPL with autocomplete/history - REQUIRED) - Local reference: `../go-prompt/`
-  - `github.com/charmbracelet/lipgloss` (terminal styling)
-  - `github.com/fsnotify/fsnotify` (file watching)
-  - `github.com/shirou/gopsutil/v3` (process detection)
+  - `prompt_toolkit` (REPL with autocomplete/history - REQUIRED) - Local reference: `../python-prompt-toolkit/`
+  - `psutil` (cross-platform process detection)
+  - `watchdog` (file system monitoring)
 
-**Rationale**: Fewer dependencies mean easier maintenance, faster builds, and fewer security vulnerabilities. go-prompt is mandatory because autocomplete and history are core UX requirements, not optional polish.
+**Rationale**: Fewer dependencies mean easier maintenance, faster builds, and fewer security vulnerabilities. prompt_toolkit is mandatory because autocomplete and history are core UX requirements, not optional polish. python-prompt-toolkit has superior terminal color detection compared to alternatives.
 
 ### VII. Developer Workflow Priority
 
@@ -105,17 +106,18 @@ pgtail MUST optimize for the developer experience, especially pgrx workflows:
 
 ## Technical Constraints
 
-- **Language**: Go (latest stable version)
-- **Build Target**: Single static binary for each platform
+- **Language**: Python 3.10+
+- **Build Target**: Single executable via PyInstaller or similar for each platform
 - **Terminal Support**: MUST work in standard terminals (iTerm2, Terminal.app, Windows Terminal, GNOME Terminal, etc.)
 - **Minimum Terminal Width**: 80 columns; gracefully truncate wider output
 
 ## Quality Standards
 
 - **Test Coverage**: Core detection and parsing logic MUST have unit tests
-- **Error Handling**: All errors MUST be handled; no panics except for truly unrecoverable situations
-- **Documentation**: Each Go package MUST have a doc comment explaining its purpose
-- **Linting**: Code MUST pass `golangci-lint` with default configuration
+- **Error Handling**: All errors MUST be handled; no unhandled exceptions except for truly unrecoverable situations
+- **Documentation**: Each Python module MUST have a docstring explaining its purpose
+- **Linting**: Code MUST pass `ruff` or equivalent linter with default configuration
+- **Type Hints**: All public functions MUST have type annotations
 
 ## Governance
 
@@ -135,4 +137,4 @@ This constitution supersedes all other project guidelines. All contributions MUS
 - All PRs MUST be verified against these principles before merge
 - Complexity additions MUST be justified against Simplicity First and Minimal Dependencies principles
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
+**Version**: 2.0.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
