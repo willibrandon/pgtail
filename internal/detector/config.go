@@ -30,7 +30,7 @@ func ParsePostgresConfig(dataDir string) Config {
 	if err != nil {
 		return config
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -109,7 +109,7 @@ func ParsePostmasterPID(dataDir string) *PostmasterInfo {
 	if err != nil {
 		return nil
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	info := &PostmasterInfo{
 		DataDir: dataDir,

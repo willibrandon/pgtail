@@ -23,6 +23,7 @@ vendor/
 # Binary output
 /pgtail
 /cmd/pgtail/pgtail
+/build/
 
 # Environment files
 .env

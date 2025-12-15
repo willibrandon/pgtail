@@ -175,16 +175,16 @@ This project uses Go conventions:
 
 **Purpose**: Final integration, documentation, and quality assurance
 
-- [ ] T065 Wire all components together in main.go entry point in cmd/pgtail/main.go
-- [ ] T066 [P] Ensure all error messages follow actionable format per CLI contract in internal/repl/executor.go
-- [ ] T067 [P] Verify 80-column output formatting for list table in internal/repl/executor.go
-- [ ] T068 Add package-level doc comments to all internal/ packages
-- [ ] T069 [P] Run golangci-lint and fix any issues
-- [ ] T070 [P] Build and test on macOS (ARM64)
+- [X] T065 Wire all components together in main.go entry point in cmd/pgtail/main.go
+- [X] T066 [P] Ensure all error messages follow actionable format per CLI contract in internal/repl/executor.go
+- [X] T067 [P] Verify 80-column output formatting for list table in internal/repl/executor.go
+- [X] T068 Add package-level doc comments to all internal/ packages
+- [X] T069 [P] Run golangci-lint and fix any issues
+- [X] T070 [P] Build and test on macOS (ARM64)
 - [ ] T071 [P] Build and test on Linux (AMD64 via Docker or VM)
 - [ ] T072 [P] Build and test on Windows (AMD64 via VM or cross-compile test)
-- [ ] T073 Run quickstart.md validation steps to verify all workflows
-- [ ] T074 Create Makefile or build script for cross-platform builds
+- [X] T073 Run quickstart.md validation steps to verify all workflows
+- [X] T074 Create Makefile or build script for cross-platform builds
 
 ---
 

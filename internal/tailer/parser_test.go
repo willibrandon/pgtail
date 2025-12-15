@@ -108,12 +108,12 @@ func TestParseLogLine_StandardFormat(t *testing.T) {
 
 func TestParseLogLine_SimpleFormat(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantTS   string
-		wantPID  int
-		wantLvl  LogLevel
-		wantMsg  string
+		name    string
+		input   string
+		wantTS  string
+		wantPID int
+		wantLvl LogLevel
+		wantMsg string
 	}{
 		{
 			name:    "simple format without timezone",
@@ -240,9 +240,9 @@ func TestParseLogLine_UnparseableLines(t *testing.T) {
 
 func TestParseLogLevel(t *testing.T) {
 	tests := []struct {
-		input   string
-		want    LogLevel
-		wantOK  bool
+		input  string
+		want   LogLevel
+		wantOK bool
 	}{
 		{"DEBUG5", LevelDebug5, true},
 		{"DEBUG4", LevelDebug4, true},

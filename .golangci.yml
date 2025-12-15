@@ -1,5 +1,6 @@
 # golangci-lint configuration for pgtail
 # Default configuration per constitution - minimal, practical defaults
+version: "2"
 
 run:
   timeout: 5m
@@ -8,7 +9,6 @@ run:
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck

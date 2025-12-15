@@ -90,8 +90,8 @@ func splitCommandLine(cmdline string) []string {
 	quoteChar := rune(0)
 
 	for _, r := range cmdline {
-		switch {
-		case r == '"' || r == '\'':
+		switch r {
+		case '"', '\'':
 			if inQuote && r == quoteChar {
 				inQuote = false
 				quoteChar = 0
@@ -101,7 +101,7 @@ func splitCommandLine(cmdline string) []string {
 			} else {
 				current.WriteRune(r)
 			}
-		case r == ' ' || r == '\t':
+		case ' ', '\t':
 			if inQuote {
 				current.WriteRune(r)
 			} else if current.Len() > 0 {

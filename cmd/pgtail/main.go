@@ -55,7 +55,7 @@ func loadHistory() []string {
 	if err != nil {
 		return nil
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var history []string
 	scanner := bufio.NewScanner(file)
@@ -101,8 +101,13 @@ func saveHistory(cmd string) {
 	if err != nil {
 		return
 	}
-	file.WriteString(cmd + "\n")
-	file.Close()
+	_, err = file.WriteString(cmd + "\n")
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return
+	}
 
 	// Trim history if needed.
 	trimHistory()
@@ -125,7 +130,7 @@ func trimHistory() {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	file.Close()
+	_ = file.Close()
 
 	// Only trim if over limit.
 	if len(lines) <= historyMaxLines {
@@ -140,10 +145,13 @@ func trimHistory() {
 	if err != nil {
 		return
 	}
-	defer file.Close()
 	for _, line := range lines {
-		file.WriteString(line + "\n")
+		if _, err = file.WriteString(line + "\n"); err != nil {
+			_ = file.Close()
+			return
+		}
 	}
+	_ = file.Close()
 }
 
 func main() {
@@ -802,5 +810,5 @@ func runShell(cmdLine string) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
+	_ = cmd.Run() // Error shown via stderr
 }

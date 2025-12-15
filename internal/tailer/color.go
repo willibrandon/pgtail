@@ -38,22 +38,22 @@ func initColors() {
 
 	if colorEnabled {
 		// High severity - Red tones
-		stylePanic = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)   // Bright red, bold
-		styleFatal = lipgloss.NewStyle().Foreground(lipgloss.Color("160")).Bold(true)   // Dark red, bold
-		styleError = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))              // Bright red
+		stylePanic = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true) // Bright red, bold
+		styleFatal = lipgloss.NewStyle().Foreground(lipgloss.Color("160")).Bold(true) // Dark red, bold
+		styleError = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))            // Bright red
 
 		// Medium severity - Yellow/Orange tones
-		styleWarning = lipgloss.NewStyle().Foreground(lipgloss.Color("214"))            // Orange
-		styleNotice = lipgloss.NewStyle().Foreground(lipgloss.Color("227"))             // Yellow
+		styleWarning = lipgloss.NewStyle().Foreground(lipgloss.Color("214")) // Orange
+		styleNotice = lipgloss.NewStyle().Foreground(lipgloss.Color("227"))  // Yellow
 
 		// Low severity - Blue/Cyan/Green tones
-		styleLog = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))                // Light gray
-		styleInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))                // Cyan
-		styleDebug = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))              // Gray
+		styleLog = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))   // Light gray
+		styleInfo = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))   // Cyan
+		styleDebug = lipgloss.NewStyle().Foreground(lipgloss.Color("245")) // Gray
 
 		// Metadata styles
-		styleTimestamp = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))          // Dim gray
-		stylePID = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))                // Gray
+		styleTimestamp = lipgloss.NewStyle().Foreground(lipgloss.Color("243")) // Dim gray
+		stylePID = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))       // Gray
 	} else {
 		// No colors - use empty styles
 		stylePanic = lipgloss.NewStyle()
@@ -90,11 +90,7 @@ func detectColorSupport() bool {
 
 	// Check TERM environment variable.
 	termEnv := os.Getenv("TERM")
-	if termEnv == "dumb" {
-		return false
-	}
-
-	return true
+	return termEnv != "dumb"
 }
 
 // ColorEnabled returns whether colors are currently enabled.

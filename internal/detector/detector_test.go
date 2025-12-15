@@ -116,7 +116,7 @@ func TestDetectInstances_Deduplication(t *testing.T) {
 
 	// Test that normalizePath handles deduplication correctly.
 	path1 := dataDir
-	path2 := dataDir + "/" // With trailing slash.
+	path2 := dataDir + "/"  // With trailing slash.
 	path3 := dataDir + "/." // With dot component.
 
 	normalized1 := normalizePath(path1)

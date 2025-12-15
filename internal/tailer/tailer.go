@@ -121,7 +121,7 @@ func (t *Tailer) Start(ctx context.Context) error {
 	// Seek to end of file to only show new entries.
 	_, err = t.currentFile.Seek(0, io.SeekEnd)
 	if err != nil {
-		t.currentFile.Close()
+		_ = t.currentFile.Close()
 		return fmt.Errorf("cannot seek to end of file: %w", err)
 	}
 
@@ -138,11 +138,11 @@ func (t *Tailer) Start(ctx context.Context) error {
 // Stop stops the tailer and cleans up resources.
 func (t *Tailer) Stop() {
 	if t.currentFile != nil {
-		t.currentFile.Close()
+		_ = t.currentFile.Close()
 		t.currentFile = nil
 	}
 	if t.watcher != nil {
-		t.watcher.Close()
+		_ = t.watcher.Close()
 		t.watcher = nil
 	}
 	close(t.entries)
@@ -223,19 +223,19 @@ func convertLogPatternToGlob(pattern string) string {
 	// PostgreSQL uses strftime patterns like %Y-%m-%d_%H%M%S
 	// Convert to glob wildcards.
 	replacements := map[string]string{
-		"%Y": "????",  // 4-digit year
-		"%m": "??",    // 2-digit month
-		"%d": "??",    // 2-digit day
-		"%H": "??",    // 2-digit hour
-		"%M": "??",    // 2-digit minute
-		"%S": "??",    // 2-digit second
-		"%j": "???",   // 3-digit day of year
-		"%W": "??",    // 2-digit week number
-		"%w": "?",     // 1-digit day of week
-		"%a": "???",   // abbreviated weekday name
-		"%A": "*",     // full weekday name
-		"%b": "???",   // abbreviated month name
-		"%B": "*",     // full month name
+		"%Y": "????", // 4-digit year
+		"%m": "??",   // 2-digit month
+		"%d": "??",   // 2-digit day
+		"%H": "??",   // 2-digit hour
+		"%M": "??",   // 2-digit minute
+		"%S": "??",   // 2-digit second
+		"%j": "???",  // 3-digit day of year
+		"%W": "??",   // 2-digit week number
+		"%w": "?",    // 1-digit day of week
+		"%a": "???",  // abbreviated weekday name
+		"%A": "*",    // full weekday name
+		"%b": "???",  // abbreviated month name
+		"%B": "*",    // full month name
 	}
 
 	result := pattern
@@ -387,7 +387,7 @@ func (t *Tailer) switchToNewFile(newPath string, reader *bufio.Reader) {
 
 	// Close current file.
 	if t.currentFile != nil {
-		t.currentFile.Close()
+		_ = t.currentFile.Close()
 	}
 
 	// Open new file.
@@ -410,7 +410,7 @@ func (t *Tailer) switchToNewFile(newPath string, reader *bufio.Reader) {
 // cleanup releases resources.
 func (t *Tailer) cleanup() {
 	if t.currentFile != nil {
-		t.currentFile.Close()
+		_ = t.currentFile.Close()
 		t.currentFile = nil
 	}
 }
