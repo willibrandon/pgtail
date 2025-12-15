@@ -2,15 +2,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/willibrandon/pgtail/internal/detector"
 	"github.com/willibrandon/pgtail/internal/repl"
+	"github.com/willibrandon/pgtail/internal/tailer"
 )
 
 var shellMode bool
@@ -79,9 +82,8 @@ func main() {
 				Fn: func(buf *prompt.Buffer) {
 					if shellMode && buf.Text() == "" {
 						shellMode = false
-					} else {
-						buf.DeleteBeforeCursor(1)
 					}
+					// Otherwise let default handler do the delete
 				},
 			},
 		),
@@ -122,8 +124,13 @@ Keyboard Shortcuts:
 func makeExecutor(state *repl.AppState) func(string) {
 	return func(input string) {
 		input = strings.TrimSpace(input)
+
+		// Empty input or 'q' stops tailing if active.
 		if input == "" {
 			shellMode = false
+			if state.Tailing {
+				stopTailing(state)
+			}
 			return
 		}
 
@@ -136,6 +143,12 @@ func makeExecutor(state *repl.AppState) func(string) {
 		parts := strings.Fields(input)
 		cmd := strings.ToLower(parts[0])
 		args := parts[1:]
+
+		// 'q' stops tailing (like less/top).
+		if cmd == "q" && state.Tailing {
+			stopTailing(state)
+			return
+		}
 
 		switch cmd {
 		case "quit", "exit":
@@ -161,8 +174,13 @@ func makeExecutor(state *repl.AppState) func(string) {
 		case "refresh":
 			executeRefresh(state)
 
-		case "stop":
-			executeStop(state)
+		case "stop", "q":
+			if state.Tailing {
+				stopTailing(state)
+			}
+
+		case "enable-logging":
+			executeEnableLogging(state, args)
 
 		default:
 			fmt.Printf("Unknown command: %s. Type 'help' for available commands.\n", cmd)
@@ -174,14 +192,15 @@ func printREPLHelp() {
 	fmt.Println(`pgtail - PostgreSQL log tailer
 
 Commands:
-  list              Show detected PostgreSQL instances
-  tail <id|path>    Tail logs for an instance (alias: follow)
-  levels [LEVEL...] Set log level filter (no args = clear)
-  refresh           Re-scan for instances
-  stop              Stop current tail
-  clear             Clear screen
-  help              Show this help
-  quit              Exit pgtail (alias: exit)
+  list               Show detected PostgreSQL instances
+  tail <id|path>     Tail logs for an instance (alias: follow)
+  levels [LEVEL...]  Set log level filter (no args = clear)
+  enable-logging <id> Enable logging_collector for an instance
+  refresh            Re-scan for instances
+  stop               Stop current tail
+  clear              Clear screen
+  help               Show this help
+  quit               Exit pgtail (alias: exit)
 
 Keyboard Shortcuts:
   Tab       Autocomplete
@@ -215,8 +234,10 @@ func makeCompleter(state *repl.AppState) func(prompt.Document) []prompt.Suggest 
 				{Text: "tail", Description: "Tail logs for an instance"},
 				{Text: "follow", Description: "Alias for tail"},
 				{Text: "levels", Description: "Set log level filter"},
+				{Text: "enable-logging", Description: "Enable logging for an instance"},
 				{Text: "refresh", Description: "Re-scan for instances"},
 				{Text: "stop", Description: "Stop current tail"},
+				{Text: "q", Description: "Stop current tail"},
 				{Text: "clear", Description: "Clear screen"},
 				{Text: "help", Description: "Show help"},
 				{Text: "quit", Description: "Exit pgtail"},
@@ -228,7 +249,7 @@ func makeCompleter(state *repl.AppState) func(prompt.Document) []prompt.Suggest 
 		// Context-aware suggestions based on the command.
 		cmd := strings.ToLower(words[0])
 		switch cmd {
-		case "tail", "follow":
+		case "tail", "follow", "enable-logging":
 			return suggestInstances(state)
 		case "levels":
 			return suggestLevels(words[1:])
@@ -318,7 +339,7 @@ func executeList(state *repl.AppState) {
 		return
 	}
 
-	fmt.Println("  #  VERSION  PORT   STATUS   SOURCE  DATA DIRECTORY")
+	fmt.Println("  #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY")
 	for i, inst := range state.Instances {
 		status := "stopped"
 		if inst.Running {
@@ -328,10 +349,14 @@ func executeList(state *repl.AppState) {
 		if inst.Port > 0 {
 			port = fmt.Sprintf("%d", inst.Port)
 		}
+		logStatus := "off"
+		if inst.LoggingEnabled {
+			logStatus = "on"
+		}
 		// Shorten home directory to ~ for display.
 		dataDir := shortenPath(inst.DataDir)
-		fmt.Printf("  %d  %-8s %-6s %-8s %-7s %s\n",
-			i, inst.Version, port, status, inst.Source.String(), dataDir)
+		fmt.Printf("  %d  %-8s %-6s %-8s %-4s %-7s %s\n",
+			i, inst.Version, port, status, logStatus, inst.Source.String(), dataDir)
 	}
 }
 
@@ -347,6 +372,9 @@ func shortenPath(path string) string {
 	return path
 }
 
+// activeTailer holds the current tailer for background tailing.
+var activeTailer *tailer.Tailer
+
 func executeTail(state *repl.AppState, args []string) {
 	if len(args) == 0 {
 		fmt.Println("Error: Missing instance identifier.")
@@ -355,8 +383,146 @@ func executeTail(state *repl.AppState, args []string) {
 		return
 	}
 
-	// TODO: Implement in Phase 4 (User Story 2).
-	fmt.Printf("Tailing logs for: %s (not yet implemented)\n", args[0])
+	if len(state.Instances) == 0 {
+		fmt.Println("Error: No instances available.")
+		fmt.Println("Run 'refresh' to scan for PostgreSQL instances.")
+		return
+	}
+
+	// Stop any existing tail first.
+	if state.Tailing {
+		stopTailing(state)
+	}
+
+	// Find the instance by index or path substring.
+	instIndex := findInstanceIndex(state, args[0])
+	if instIndex < 0 {
+		fmt.Printf("Error: Instance not found: %s\n", args[0])
+		fmt.Println("Use a numeric index (0, 1, ...) or a path substring.")
+		fmt.Println("Run 'list' to see available instances.")
+		return
+	}
+
+	inst := state.Instances[instIndex]
+
+	// Check if instance has a log directory.
+	if inst.LogDir == "" {
+		fmt.Printf("Error: Instance has no log directory configured.\n")
+		fmt.Printf("Check postgresql.conf for log_directory setting.\n")
+		return
+	}
+
+	// Create tailer configuration.
+	cfg := tailer.TailerConfig{
+		LogDir:     inst.LogDir,
+		LogPattern: inst.LogPattern,
+		Filter:     state.Filter,
+	}
+
+	// Create tailer.
+	t, err := tailer.NewTailer(cfg)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+		if strings.Contains(err.Error(), "does not exist") {
+			fmt.Println("The log directory may not exist because logging_collector is disabled.")
+			fmt.Println("Enable logging in postgresql.conf and restart PostgreSQL.")
+		} else if strings.Contains(err.Error(), "permission") {
+			fmt.Println("Check file permissions on the log directory.")
+		}
+		return
+	}
+
+	// Create context for cancellation.
+	ctx, cancel := context.WithCancel(context.Background())
+	state.StartTailing(cancel)
+	state.SelectInstance(instIndex)
+	activeTailer = t
+
+	// Start tailing.
+	err = t.Start(ctx)
+	if err != nil {
+		state.StopTailing()
+		activeTailer = nil
+		fmt.Printf("Error: %s\n", err.Error())
+		if strings.Contains(err.Error(), "no log files") {
+			fmt.Println("No log files found matching the pattern.")
+			fmt.Println("PostgreSQL may not have written any logs yet.")
+		}
+		return
+	}
+
+	fmt.Printf("[Tailing %s]\n", t.CurrentFile())
+	fmt.Println("[Press 'q' or Enter to stop]")
+
+	// Read and display log entries in background.
+	go func() {
+		for {
+			select {
+			case entry, ok := <-t.Entries():
+				if !ok {
+					return
+				}
+				displayLogEntry(entry)
+			case err, ok := <-t.Errors():
+				if !ok {
+					return
+				}
+				fmt.Printf("[Error: %s]\n", err.Error())
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// Non-blocking - return to prompt immediately.
+	// User types 'q', 'stop', or Enter to stop.
+}
+
+func stopTailing(state *repl.AppState) {
+	if activeTailer != nil {
+		activeTailer.Stop()
+		activeTailer = nil
+	}
+	state.StopTailing()
+	state.ClearSelection()
+	fmt.Println("[Stopped]")
+}
+
+// findInstanceIndex finds an instance by numeric index or path substring.
+// Returns -1 if not found.
+func findInstanceIndex(state *repl.AppState, identifier string) int {
+	// Try numeric index first.
+	if idx, err := strconv.Atoi(identifier); err == nil {
+		if idx >= 0 && idx < len(state.Instances) {
+			return idx
+		}
+		return -1
+	}
+
+	// Try path substring match (case-insensitive).
+	identifier = strings.ToLower(identifier)
+	for i, inst := range state.Instances {
+		if strings.Contains(strings.ToLower(inst.DataDir), identifier) {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// displayLogEntry prints a log entry to stdout.
+func displayLogEntry(entry tailer.LogEntry) {
+	if entry.IsContinuation {
+		fmt.Printf("    %s\n", entry.Message)
+		return
+	}
+
+	// Format: TIMESTAMP [PID] LEVEL: MESSAGE
+	if entry.Timestamp != "" {
+		fmt.Printf("%s [%d] %s: %s\n", entry.Timestamp, entry.PID, entry.Level.String(), entry.Message)
+	} else {
+		fmt.Println(entry.Raw)
+	}
 }
 
 func executeLevels(state *repl.AppState, args []string) {
@@ -378,9 +544,108 @@ func executeRefresh(state *repl.AppState) {
 	fmt.Printf("[Found %d instance(s)]\n", len(state.Instances))
 }
 
-func executeStop(state *repl.AppState) {
-	state.StopTailing()
-	// Returns to prompt silently.
+func executeEnableLogging(state *repl.AppState, args []string) {
+	if len(args) == 0 {
+		fmt.Println("Error: Missing instance identifier.")
+		fmt.Println("Usage: enable-logging <index|path>")
+		fmt.Println("Run 'list' to see available instances.")
+		return
+	}
+
+	if len(state.Instances) == 0 {
+		fmt.Println("Error: No instances available.")
+		fmt.Println("Run 'refresh' to scan for PostgreSQL instances.")
+		return
+	}
+
+	// Find the instance.
+	instIndex := findInstanceIndex(state, args[0])
+	if instIndex < 0 {
+		fmt.Printf("Error: Instance not found: %s\n", args[0])
+		fmt.Println("Use a numeric index (0, 1, ...) or a path substring.")
+		fmt.Println("Run 'list' to see available instances.")
+		return
+	}
+
+	inst := state.Instances[instIndex]
+
+	if inst.LoggingEnabled {
+		fmt.Println("Logging is already enabled for this instance.")
+		return
+	}
+
+	configPath := inst.DataDir + "/postgresql.conf"
+
+	// Read current config.
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		fmt.Printf("Error: Cannot read %s: %s\n", configPath, err.Error())
+		return
+	}
+
+	// Prepare the settings to add/modify.
+	settings := map[string]string{
+		"logging_collector": "on",
+		"log_directory":     "'log'",
+		"log_filename":      "'postgresql-%Y-%m-%d_%H%M%S.log'",
+	}
+
+	lines := strings.Split(string(content), "\n")
+	modified := make(map[string]bool)
+
+	// Update existing settings or uncomment them.
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		for key, value := range settings {
+			// Check for commented or uncommented setting.
+			if strings.HasPrefix(trimmed, "#"+key) || strings.HasPrefix(trimmed, key) {
+				lines[i] = key + " = " + value
+				modified[key] = true
+				break
+			}
+		}
+	}
+
+	// Append any settings that weren't found.
+	var toAppend []string
+	for key, value := range settings {
+		if !modified[key] {
+			toAppend = append(toAppend, key+" = "+value)
+		}
+	}
+
+	if len(toAppend) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, "# Added by pgtail")
+		lines = append(lines, toAppend...)
+	}
+
+	// Write back.
+	newContent := strings.Join(lines, "\n")
+	err = os.WriteFile(configPath, []byte(newContent), 0644)
+	if err != nil {
+		fmt.Printf("Error: Cannot write %s: %s\n", configPath, err.Error())
+		return
+	}
+
+	fmt.Println("[Logging enabled in postgresql.conf]")
+	fmt.Println()
+	fmt.Println("Settings added:")
+	fmt.Println("  logging_collector = on")
+	fmt.Println("  log_directory = 'log'")
+	logFilenameExample := "  log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'"
+	fmt.Println(logFilenameExample)
+	fmt.Println()
+
+	if inst.Running {
+		fmt.Println("Restart PostgreSQL for changes to take effect:")
+		fmt.Printf("  pg_ctl restart -D %s\n", inst.DataDir)
+	} else {
+		fmt.Println("Start PostgreSQL to begin logging.")
+	}
+
+	// Update instance state.
+	inst.LoggingEnabled = true
 }
 
 func runShell(cmdLine string) {

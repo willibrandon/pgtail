@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/c-bata/go-prompt v0.2.6
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 )
 

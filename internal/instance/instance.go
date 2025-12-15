@@ -57,4 +57,7 @@ type Instance struct {
 
 	// Source indicates how this instance was detected.
 	Source DetectionSource
+
+	// LoggingEnabled indicates whether logging_collector is enabled.
+	LoggingEnabled bool
 }

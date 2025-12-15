@@ -90,19 +90,19 @@ This project uses Go conventions:
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Implement log file path resolution from Instance.LogDir and LogPattern in internal/tailer/tailer.go
-- [ ] T029 [US2] Implement most-recent log file finder when multiple files match pattern in internal/tailer/tailer.go
-- [ ] T030 [US2] Implement file tailing with fsnotify (cross-platform: inotify/kqueue/ReadDirectoryChangesW) in internal/tailer/tailer.go
-- [ ] T031 [US2] Implement polling-based file tailing fallback for edge cases (network fs, permission issues) in internal/tailer/tailer.go
-- [ ] T032 [US2] Implement PostgreSQL log line parser (timestamp, PID, level extraction) in internal/tailer/parser.go
-- [ ] T033 [US2] Implement multi-line log entry handling (continuation detection) in internal/tailer/parser.go
-- [ ] T034 [US2] Implement `tail` command with numeric index argument in internal/repl/executor.go
-- [ ] T035 [US2] Implement `tail` command with path substring fuzzy matching in internal/repl/executor.go
-- [ ] T036 [US2] Implement `follow` as alias for `tail` in internal/repl/executor.go
-- [ ] T037 [US2] Implement Ctrl+C handling to stop tail and return to prompt in internal/repl/executor.go
-- [ ] T038 [US2] Implement `stop` command to halt active tail in internal/repl/executor.go
-- [ ] T039 [US2] Add actionable error messages for: invalid index, no log file, permission denied in internal/repl/executor.go
-- [ ] T040 [P] [US2] Add unit tests for log line parser in internal/tailer/parser_test.go
+- [X] T028 [US2] Implement log file path resolution from Instance.LogDir and LogPattern in internal/tailer/tailer.go
+- [X] T029 [US2] Implement most-recent log file finder when multiple files match pattern in internal/tailer/tailer.go
+- [X] T030 [US2] Implement file tailing with fsnotify (cross-platform: inotify/kqueue/ReadDirectoryChangesW) in internal/tailer/tailer.go
+- [X] T031 [US2] Implement polling-based file tailing fallback for edge cases (network fs, permission issues) in internal/tailer/tailer.go
+- [X] T032 [US2] Implement PostgreSQL log line parser (timestamp, PID, level extraction) in internal/tailer/parser.go
+- [X] T033 [US2] Implement multi-line log entry handling (continuation detection) in internal/tailer/parser.go
+- [X] T034 [US2] Implement `tail` command with numeric index argument in cmd/pgtail/main.go
+- [X] T035 [US2] Implement `tail` command with path substring fuzzy matching in cmd/pgtail/main.go
+- [X] T036 [US2] Implement `follow` as alias for `tail` in cmd/pgtail/main.go
+- [X] T037 [US2] Implement Ctrl+C handling to stop tail and return to prompt in cmd/pgtail/main.go
+- [X] T038 [US2] Implement `stop` command to halt active tail in cmd/pgtail/main.go
+- [X] T039 [US2] Add actionable error messages for: invalid index, no log file, permission denied in cmd/pgtail/main.go
+- [X] T040 [P] [US2] Add unit tests for log line parser in internal/tailer/parser_test.go
 
 **Checkpoint**: User Stories 1 AND 2 complete - can discover instances and tail their logs
 

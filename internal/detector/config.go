@@ -11,10 +11,11 @@ import (
 
 // Config holds parsed postgresql.conf settings relevant to pgtail.
 type Config struct {
-	LogDirectory  string // log_directory setting
-	LogFilename   string // log_filename setting
-	Port          int    // port setting
-	LogDestination string // log_destination setting
+	LogDirectory     string // log_directory setting
+	LogFilename      string // log_filename setting
+	Port             int    // port setting
+	LogDestination   string // log_destination setting
+	LoggingCollector bool   // logging_collector setting
 }
 
 // ParsePostgresConfig reads postgresql.conf and extracts relevant settings.
@@ -68,6 +69,8 @@ func ParsePostgresConfig(dataDir string) Config {
 			}
 		case "log_destination":
 			config.LogDestination = value
+		case "logging_collector":
+			config.LoggingCollector = value == "on" || value == "true" || value == "1"
 		}
 	}
 

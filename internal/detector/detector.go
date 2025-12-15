@@ -147,13 +147,14 @@ func buildInstance(dataDir string, source instance.DetectionSource) *instance.In
 	}
 
 	return &instance.Instance{
-		DataDir:    dataDir,
-		Version:    version,
-		Port:       port,
-		Running:    running,
-		LogDir:     logDir,
-		LogPattern: config.LogFilename,
-		Source:     source,
+		DataDir:        dataDir,
+		Version:        version,
+		Port:           port,
+		Running:        running,
+		LogDir:         logDir,
+		LogPattern:     config.LogFilename,
+		Source:         source,
+		LoggingEnabled: config.LoggingCollector,
 	}
 }
 
