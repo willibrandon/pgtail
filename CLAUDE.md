@@ -38,3 +38,10 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 **Key dependencies:**
 - `prompt_toolkit` - REPL with autocomplete and history
 - `psutil` - Cross-platform process detection
+
+## Active Technologies
+- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib) (003-regex-filter)
+- N/A (session state only) (003-regex-filter)
+
+## Recent Changes
+- 003-regex-filter: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib)
