@@ -116,14 +116,14 @@ This project uses Go conventions:
 
 ### Implementation for User Story 3
 
-- [ ] T041 [US3] Implement Filter struct with Allow(), Set(), Clear(), String() methods in internal/tailer/filter.go
-- [ ] T042 [US3] Implement LogLevel parsing from string (case-insensitive) in internal/tailer/filter.go
-- [ ] T043 [US3] Implement `levels` command with multiple level arguments in internal/repl/executor.go
-- [ ] T044 [US3] Implement `levels` with no arguments to clear filter in internal/repl/executor.go
-- [ ] T045 [US3] Integrate filter with tailer to suppress non-matching entries in internal/tailer/tailer.go
-- [ ] T046 [US3] Add filter state display in prompt (e.g., "ERR,WARN") in internal/repl/repl.go
-- [ ] T047 [US3] Add error message for invalid level names in internal/repl/executor.go
-- [ ] T048 [P] [US3] Add unit tests for filter logic in internal/tailer/filter_test.go
+- [X] T041 [US3] Implement Filter struct with Allow(), Set(), Clear(), String() methods in internal/tailer/filter.go
+- [X] T042 [US3] Implement LogLevel parsing from string (case-insensitive) in internal/tailer/filter.go
+- [X] T043 [US3] Implement `levels` command with multiple level arguments in internal/repl/executor.go
+- [X] T044 [US3] Implement `levels` with no arguments to clear filter in internal/repl/executor.go
+- [X] T045 [US3] Integrate filter with tailer to suppress non-matching entries in internal/tailer/tailer.go
+- [X] T046 [US3] Add filter state display in prompt (e.g., "ERR,WARN") in internal/repl/repl.go
+- [X] T047 [US3] Add error message for invalid level names in internal/repl/executor.go
+- [X] T048 [P] [US3] Add unit tests for filter logic in internal/tailer/filter_test.go
 
 **Checkpoint**: User Stories 1-3 complete - can discover, tail, and filter logs
 

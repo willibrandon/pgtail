@@ -526,14 +526,36 @@ func displayLogEntry(entry tailer.LogEntry) {
 }
 
 func executeLevels(state *repl.AppState, args []string) {
+	// No arguments: clear the filter.
 	if len(args) == 0 {
 		state.Filter.Clear()
 		fmt.Println("[Filter cleared - showing all levels]")
 		return
 	}
 
-	// TODO: Implement in Phase 5 (User Story 3).
-	fmt.Printf("[Filter set: %s] (not yet implemented)\n", strings.Join(args, ", "))
+	// Parse level arguments.
+	var levels []tailer.LogLevel
+	var invalidLevels []string
+
+	for _, arg := range args {
+		level, valid := tailer.ParseLogLevel(arg)
+		if valid {
+			levels = append(levels, level)
+		} else {
+			invalidLevels = append(invalidLevels, arg)
+		}
+	}
+
+	// Report invalid levels.
+	if len(invalidLevels) > 0 {
+		fmt.Printf("Error: Invalid log level(s): %s\n", strings.Join(invalidLevels, ", "))
+		fmt.Println("Valid levels: PANIC FATAL ERROR WARNING NOTICE LOG INFO DEBUG1-5")
+		return
+	}
+
+	// Set the filter.
+	state.Filter.Set(levels...)
+	fmt.Printf("[Filter set: %s]\n", state.Filter.String())
 }
 
 func executeRefresh(state *repl.AppState) {
