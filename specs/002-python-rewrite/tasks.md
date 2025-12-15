@@ -38,13 +38,13 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create LogLevel enum in pgtail_py/filter.py with all PostgreSQL levels (PANIC through DEBUG5)
-- [ ] T007 [P] Create DetectionSource enum in pgtail_py/instance.py
-- [ ] T008 Create Instance dataclass in pgtail_py/instance.py with id, version, data_dir, log_path, source, running, pid
-- [ ] T009 [P] Create LogEntry dataclass in pgtail_py/parser.py with timestamp, level, message, raw, pid
-- [ ] T010 Create config.py with get_history_path() returning platform-appropriate path (XDG/Library/APPDATA)
-- [ ] T011 [P] Create AppState dataclass in pgtail_py/cli.py with instances, current_instance, active_levels, tailing, history_path
-- [ ] T012 Create pgtail_py/__main__.py entry point that imports and runs main() from cli.py
+- [x] T006 Create LogLevel enum in pgtail_py/filter.py with all PostgreSQL levels (PANIC through DEBUG5)
+- [x] T007 [P] Create DetectionSource enum in pgtail_py/instance.py
+- [x] T008 Create Instance dataclass in pgtail_py/instance.py with id, version, data_dir, log_path, source, running, pid
+- [x] T009 [P] Create LogEntry dataclass in pgtail_py/parser.py with timestamp, level, message, raw, pid
+- [x] T010 Create config.py with get_history_path() returning platform-appropriate path (XDG/Library/APPDATA)
+- [x] T011 [P] Create AppState dataclass in pgtail_py/cli.py with instances, current_instance, active_levels, tailing, history_path
+- [x] T012 Create pgtail_py/__main__.py entry point that imports and runs main() from cli.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
