@@ -171,18 +171,18 @@
 
 **Purpose**: Final quality improvements and distribution
 
-- [ ] T065 Add module docstrings to all pgtail_py/*.py files
-- [ ] T066 [P] Add type hints to all public functions
-- [ ] T067 [P] Run ruff check and fix any linting issues
-- [ ] T068 [P] Create tests/__init__.py
-- [ ] T069 [P] Create tests/test_parser.py with tests for parse_log_line()
-- [ ] T070 [P] Create tests/test_filter.py with tests for should_show()
-- [ ] T071 [P] Create tests/test_detector.py with tests for get_version(), get_log_path()
-- [ ] T072 Run pytest and ensure all tests pass
-- [ ] T073 Create PyInstaller spec or use --onefile to build single executable
-- [ ] T074 Test executable on macOS, Linux, Windows
-- [ ] T075 Verify quickstart.md checklist passes
-- [ ] T076 Update CLAUDE.md with Python-specific commands if needed
+- [x] T065 Add module docstrings to all pgtail_py/*.py files
+- [x] T066 [P] Add type hints to all public functions
+- [x] T067 [P] Run ruff check and fix any linting issues
+- [x] T068 [P] Create tests/__init__.py
+- [x] T069 [P] Create tests/test_parser.py with tests for parse_log_line()
+- [x] T070 [P] Create tests/test_filter.py with tests for should_show()
+- [x] T071 [P] Create tests/test_detector.py with tests for get_version(), get_log_path()
+- [x] T072 Run pytest and ensure all tests pass
+- [x] T073 Create PyInstaller spec or use --onefile to build single executable
+- [x] T074 Test executable on macOS, Linux, Windows
+- [x] T075 Verify quickstart.md checklist passes
+- [x] T076 Update CLAUDE.md with Python-specific commands if needed
 
 ---
 
