@@ -135,9 +135,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T038 [US5] Enhance filter status display to show pattern, type, and case sensitivity in pgtail_py/cli.py
-- [ ] T039 [US5] Enhance highlight status display to show pattern and case sensitivity in pgtail_py/cli.py
-- [ ] T040 [US5] Add completion for highlight subcommands (clear) in pgtail_py/commands.py
+- [x] T038 [US5] Enhance filter status display to show pattern, type, and case sensitivity in pgtail_py/cli.py
+- [x] T039 [US5] Enhance highlight status display to show pattern and case sensitivity in pgtail_py/cli.py
+- [x] T040 [US5] Add completion for highlight subcommands (clear) in pgtail_py/commands.py
 
 **Checkpoint**: Status commands show complete filter/highlight information
 
@@ -147,14 +147,14 @@
 
 **Purpose**: Final improvements and validation
 
-- [ ] T041 [P] Run ruff check pgtail_py/ and fix any lint issues
-- [ ] T042 [P] Verify all new functions have type hints
-- [ ] T043 Run full test suite: pytest tests/ -v
-- [ ] T044 Manual test: filter /pattern/, filter -/pattern/, filter +/pattern/, filter &/pattern/
-- [ ] T045 Manual test: highlight /pattern/, filter and highlight interaction
-- [ ] T046 Manual test: filter clear, highlight clear, status display
-- [ ] T047 Manual test: Invalid regex patterns show helpful error messages
-- [ ] T048 Run quickstart.md validation checklist
+- [x] T041 [P] Run ruff check pgtail_py/ and fix any lint issues
+- [x] T042 [P] Verify all new functions have type hints
+- [x] T043 Run full test suite: pytest tests/ -v
+- [x] T044 Manual test: filter /pattern/, filter -/pattern/, filter +/pattern/, filter &/pattern/
+- [x] T045 Manual test: highlight /pattern/, filter and highlight interaction
+- [x] T046 Manual test: filter clear, highlight clear, status display
+- [x] T047 Manual test: Invalid regex patterns show helpful error messages
+- [x] T048 Run quickstart.md validation checklist
 
 ---
 

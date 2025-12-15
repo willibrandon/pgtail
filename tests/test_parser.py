@@ -1,11 +1,9 @@
 """Tests for pgtail_py.parser module."""
 
-from datetime import datetime
 
-import pytest
 
 from pgtail_py.filter import LogLevel
-from pgtail_py.parser import LogEntry, parse_log_line
+from pgtail_py.parser import parse_log_line
 
 
 class TestParseLogLine:

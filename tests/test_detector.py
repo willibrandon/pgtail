@@ -3,8 +3,6 @@
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from pgtail_py.detector import get_log_info, get_port, get_version
 
 

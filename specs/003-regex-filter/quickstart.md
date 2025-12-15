@@ -2,6 +2,7 @@
 
 **Feature**: 003-regex-filter
 **Date**: 2025-12-14
+**Status**: COMPLETE
 
 ## Developer Setup
 
@@ -39,40 +40,40 @@ make run  # or: uv run python -m pgtail_py
 
 ### Phase 1: Core Module (regex_filter.py)
 
-- [ ] Create `pgtail_py/regex_filter.py`
-- [ ] Implement `FilterType` enum
-- [ ] Implement `RegexFilter` dataclass with `create()` and `matches()`
-- [ ] Implement `Highlight` dataclass with `create()` and `find_spans()`
-- [ ] Implement `FilterState` dataclass with filter management methods
-- [ ] Implement `parse_filter_arg()` to parse `/pattern/` syntax
-- [ ] Add unit tests in `tests/test_regex_filter.py`
+- [x] Create `pgtail_py/regex_filter.py`
+- [x] Implement `FilterType` enum
+- [x] Implement `RegexFilter` dataclass with `create()` and `matches()`
+- [x] Implement `Highlight` dataclass with `create()` and `find_spans()`
+- [x] Implement `FilterState` dataclass with filter management methods
+- [x] Implement `parse_filter_arg()` to parse `/pattern/` syntax
+- [x] Add unit tests in `tests/test_regex_filter.py`
 
 ### Phase 2: CLI Integration (cli.py)
 
-- [ ] Add `regex_state: FilterState` to `AppState`
-- [ ] Implement `filter_command()` handler
-- [ ] Implement `highlight_command()` handler
-- [ ] Update `handle_command()` to dispatch filter/highlight
-- [ ] Update help text with new commands
+- [x] Add `regex_state: FilterState` to `AppState`
+- [x] Implement `filter_command()` handler
+- [x] Implement `highlight_command()` handler
+- [x] Update `handle_command()` to dispatch filter/highlight
+- [x] Update help text with new commands
 
 ### Phase 3: Commands & Completion (commands.py)
 
-- [ ] Add "filter" and "highlight" to `COMMANDS` dict
-- [ ] Add completion for filter subcommands (`clear`, pattern prefixes)
-- [ ] Add completion for highlight subcommands
+- [x] Add "filter" and "highlight" to `COMMANDS` dict
+- [x] Add completion for filter subcommands (`clear`, pattern prefixes)
+- [x] Add completion for highlight subcommands
 
 ### Phase 4: Output Integration (colors.py, tailer.py)
 
-- [ ] Add `HIGHLIGHT_STYLE` to `colors.py`
-- [ ] Implement `format_log_entry_with_highlights()`
-- [ ] Update `tailer.py` to check `FilterState.should_show()`
-- [ ] Update `tailer.py` to pass highlights to formatting
+- [x] Add `HIGHLIGHT_STYLE` to `colors.py`
+- [x] Implement `format_log_entry_with_highlights()`
+- [x] Update `tailer.py` to check `FilterState.should_show()`
+- [x] Update `cli.py` to pass highlights to formatting
 
 ### Phase 5: Testing & Documentation
 
-- [ ] Integration tests for command flow
-- [ ] Update help command output
-- [ ] Manual testing with real PostgreSQL logs
+- [x] Unit tests for all new functions (47 tests in test_regex_filter.py)
+- [x] Update help command output
+- [x] Manual testing with real PostgreSQL logs
 
 ## Key Files
 
@@ -83,7 +84,7 @@ make run  # or: uv run python -m pgtail_py
 | `pgtail_py/commands.py` | MODIFY | Add commands to COMMANDS dict |
 | `pgtail_py/colors.py` | MODIFY | Add highlight rendering |
 | `pgtail_py/tailer.py` | MODIFY | Integrate filter checking |
-| `tests/test_regex_filter.py` | NEW | Unit tests |
+| `tests/test_regex_filter.py` | NEW | Unit tests (47 tests) |
 
 ## Testing Commands
 
