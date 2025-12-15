@@ -24,11 +24,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create package directory structure: pgtail_py/, tests/
-- [ ] T002 Create pgtail_py/__init__.py with version string
-- [ ] T003 Create pyproject.toml with dependencies (prompt_toolkit, psutil, watchdog) and dev dependencies (pytest, ruff, pyinstaller)
-- [ ] T004 [P] Create .gitignore entries for Python: __pycache__/, .venv/, dist/, build/, *.egg-info/
-- [ ] T005 [P] Create ruff.toml with Python 3.10+ target and default rules
+- [x] T001 Create package directory structure: pgtail_py/, tests/
+- [x] T002 Create pgtail_py/__init__.py with version string
+- [x] T003 Create pyproject.toml with dependencies (prompt_toolkit, psutil, watchdog) and dev dependencies (pytest, ruff, pyinstaller)
+- [x] T004 [P] Create .gitignore entries for Python: __pycache__/, .venv/, dist/, build/, *.egg-info/
+- [x] T005 [P] Create ruff.toml with Python 3.10+ target and default rules
 
 ---
 
