@@ -16,6 +16,7 @@ from pgtail_py.colors import print_log_entry
 from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import ensure_history_dir, get_history_path
 from pgtail_py.detector import detect_all
+from pgtail_py.enable_logging import enable_logging
 from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.instance import Instance
 from pgtail_py.tailer import LogTailer
@@ -301,6 +302,61 @@ def levels_command(state: AppState, args: list[str]) -> None:
         print(f"Filter set: {' '.join(names)}")
 
 
+def enable_logging_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'enable-logging' command - enable logging_collector for an instance.
+
+    Args:
+        state: Current application state.
+        args: Instance ID or path.
+    """
+    if not args:
+        print("Usage: enable-logging <id|path>")
+        print()
+        print("Enables logging_collector in postgresql.conf")
+        print("After running, you must restart PostgreSQL for changes to take effect.")
+        return
+
+    instance = _find_instance(state, args[0])
+    if instance is None:
+        print(f"Instance not found: {args[0]}")
+        print()
+        print("Available instances:")
+        for inst in state.instances:
+            print(f"  {inst.id}: {inst.data_dir}")
+        return
+
+    # Check if logging is already enabled
+    if instance.log_path and instance.log_path.exists():
+        print(f"Logging is already enabled for instance {instance.id}")
+        print(f"Log file: {instance.log_path}")
+        return
+
+    print(f"Enabling logging for instance {instance.id}...")
+    print(f"Data directory: {instance.data_dir}")
+    print()
+
+    result = enable_logging(instance.data_dir)
+
+    if result.changes:
+        print("Changes made:")
+        for change in result.changes:
+            print(f"  • {change}")
+        print()
+
+    if result.success:
+        print(result.message)
+        print()
+        print("⚠️  PostgreSQL must be restarted for changes to take effect:")
+        if instance.running:
+            print(f"    pg_ctl restart -D {instance.data_dir}")
+        else:
+            print(f"    pg_ctl start -D {instance.data_dir}")
+        print()
+        print("After restarting, run 'refresh' to update instance list.")
+    else:
+        print(f"Error: {result.message}")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -359,7 +415,7 @@ def handle_command(state: AppState, line: str) -> bool:
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":
-        print("Enable-logging command not yet implemented. Coming in Phase 7.")
+        enable_logging_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")

@@ -156,12 +156,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T059 [US5] Create enable_logging_command() handler in cli.py
-- [ ] T060 [US5] Implement read_postgresql_conf() helper to parse existing config
-- [ ] T061 [US5] Implement write_postgresql_conf() to update logging_collector = on
-- [ ] T062 [US5] Add log_directory and log_filename defaults if not set
-- [ ] T063 [US5] Handle permission errors with actionable message suggesting sudo
-- [ ] T064 [US5] Print success message prompting user to restart PostgreSQL
+- [x] T059 [US5] Create enable_logging_command() handler in cli.py
+- [x] T060 [US5] Implement read_postgresql_conf() helper to parse existing config
+- [x] T061 [US5] Implement write_postgresql_conf() to update logging_collector = on
+- [x] T062 [US5] Add log_directory and log_filename defaults if not set
+- [x] T063 [US5] Handle permission errors with actionable message suggesting sudo
+- [x] T064 [US5] Print success message prompting user to restart PostgreSQL
 
 **Checkpoint**: User Story 5 complete - can enable logging
 
