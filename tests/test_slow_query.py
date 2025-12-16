@@ -152,6 +152,7 @@ class TestSlowQueryConfigGetLevel:
 class TestValidateThresholds:
     """Tests for validate_thresholds() function."""
 
+    # T017: Unit test for threshold validation (positive numbers, ascending order)
     def test_validate_thresholds_valid(self) -> None:
         """Should return None for valid thresholds."""
         assert validate_thresholds(100.0, 500.0, 1000.0) is None
@@ -181,6 +182,35 @@ class TestValidateThresholds:
         assert validate_thresholds(100.0, 100.0, 1000.0) is not None
         assert validate_thresholds(100.0, 500.0, 500.0) is not None
         assert validate_thresholds(100.0, 100.0, 100.0) is not None
+
+
+class TestSlowQueryConfigFormatThresholds:
+    """Tests for SlowQueryConfig.format_thresholds() method."""
+
+    # T018: Unit test for SlowQueryConfig.format_thresholds() output
+    def test_format_thresholds_default(self) -> None:
+        """Should format default thresholds correctly."""
+        config = SlowQueryConfig(enabled=True)
+        output = config.format_thresholds()
+        assert "Warning (yellow):" in output
+        assert "> 100ms" in output
+        assert "Slow (yellow bold):" in output
+        assert "> 500ms" in output
+        assert "Critical (red bold):" in output
+        assert "> 1000ms" in output
+
+    def test_format_thresholds_custom(self) -> None:
+        """Should format custom thresholds correctly."""
+        config = SlowQueryConfig(
+            enabled=True,
+            warning_ms=50.0,
+            slow_ms=200.0,
+            critical_ms=500.0,
+        )
+        output = config.format_thresholds()
+        assert "> 50ms" in output
+        assert "> 200ms" in output
+        assert "> 500ms" in output
 
 
 class TestDurationStats:

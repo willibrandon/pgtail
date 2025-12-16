@@ -68,19 +68,19 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Unit test for threshold validation (positive numbers, ascending order) in tests/test_slow_query.py
-- [ ] T018 [P] [US2] Unit test for SlowQueryConfig.format_thresholds() output in tests/test_slow_query.py
+- [x] T017 [P] [US2] Unit test for threshold validation (positive numbers, ascending order) in tests/test_slow_query.py
+- [x] T018 [P] [US2] Unit test for SlowQueryConfig.format_thresholds() output in tests/test_slow_query.py
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement validate_thresholds() function in pgtail_py/slow_query.py
-- [ ] T020 [US2] Implement SlowQueryConfig.format_thresholds() method in pgtail_py/slow_query.py
-- [ ] T021 [US2] Implement slow_command() handler in pgtail_py/cli.py
-- [ ] T022 [US2] Handle slow command with three numeric args (enable with thresholds) in pgtail_py/cli.py
-- [ ] T023 [US2] Handle slow command with no args (display current config) in pgtail_py/cli.py
-- [ ] T024 [US2] Handle slow off command (disable highlighting) in pgtail_py/cli.py
-- [ ] T025 [US2] Add error handling for invalid threshold input in pgtail_py/cli.py
-- [ ] T026 [US2] Add slow command completion for 'off' argument in pgtail_py/commands.py
+- [x] T019 [US2] Implement validate_thresholds() function in pgtail_py/slow_query.py
+- [x] T020 [US2] Implement SlowQueryConfig.format_thresholds() method in pgtail_py/slow_query.py
+- [x] T021 [US2] Implement slow_command() handler in pgtail_py/cli.py
+- [x] T022 [US2] Handle slow command with three numeric args (enable with thresholds) in pgtail_py/cli.py
+- [x] T023 [US2] Handle slow command with no args (display current config) in pgtail_py/cli.py
+- [x] T024 [US2] Handle slow off command (disable highlighting) in pgtail_py/cli.py
+- [x] T025 [US2] Add error handling for invalid threshold input in pgtail_py/cli.py
+- [x] T026 [US2] Add slow command completion for 'off' argument in pgtail_py/commands.py
 
 **Checkpoint**: User Story 2 complete - users can configure, view, and disable slow query thresholds
 

@@ -31,7 +31,12 @@ from pgtail_py.regex_filter import (
     RegexFilter,
     parse_filter_arg,
 )
-from pgtail_py.slow_query import DurationStats, SlowQueryConfig, extract_duration
+from pgtail_py.slow_query import (
+    DurationStats,
+    SlowQueryConfig,
+    extract_duration,
+    validate_thresholds,
+)
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode, reset_terminal
 
@@ -151,6 +156,10 @@ Available commands:
   highlight /pattern/  Highlight matching text (yellow background)
                     /pattern/c  Case-sensitive highlight
                     clear       Clear all highlights
+  slow [w s c]      Configure slow query highlighting (thresholds in ms)
+                    With no args, shows current settings
+                    'slow off' disables highlighting
+  stats             Show query duration statistics
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -486,6 +495,85 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         state.tailer.update_regex_state(state.regex_state)
 
 
+def slow_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'slow' command - configure slow query highlighting.
+
+    Args:
+        state: Current application state.
+        args: Command arguments:
+            - No args: Display current configuration
+            - 'off': Disable slow query highlighting
+            - Three numbers: Set warning/slow/critical thresholds in ms
+    """
+    # T023: No args - display current configuration
+    if not args:
+        if state.slow_query_config.enabled:
+            print("Slow query highlighting: ENABLED")
+            print()
+            print("Thresholds:")
+            print(state.slow_query_config.format_thresholds())
+        else:
+            print("Slow query highlighting: DISABLED")
+            print()
+            print("Usage:")
+            print("  slow <warning> <slow> <critical>  Enable with thresholds (in ms)")
+            print("  slow off                          Disable highlighting")
+            print()
+            print("Example: slow 100 500 1000")
+        return
+
+    # T024: Handle 'off' subcommand
+    if args[0].lower() == "off":
+        state.slow_query_config.enabled = False
+        print("Slow query highlighting disabled")
+        return
+
+    # T022, T025: Three numeric arguments - set custom thresholds
+    if len(args) != 3:
+        print("Error: Expected 3 threshold values or 'off'")
+        print("Usage: slow <warning> <slow> <critical>")
+        print("Example: slow 100 500 1000")
+        return
+
+    # Parse threshold values
+    try:
+        warning = float(args[0])
+        slow = float(args[1])
+        critical = float(args[2])
+    except ValueError:
+        print("Error: Thresholds must be numbers")
+        print("Usage: slow <warning> <slow> <critical>")
+        print("Example: slow 100 500 1000")
+        return
+
+    # Validate thresholds
+    error = validate_thresholds(warning, slow, critical)
+    if error:
+        print(f"Error: {error}")
+        return
+
+    # Apply new configuration
+    state.slow_query_config = SlowQueryConfig(
+        enabled=True,
+        warning_ms=warning,
+        slow_ms=slow,
+        critical_ms=critical,
+    )
+
+    print("Slow query highlighting enabled")
+    print()
+    print("Thresholds:")
+    print(state.slow_query_config.format_thresholds())
+    print()
+    print("Note: PostgreSQL must have log_min_duration_statement enabled to log query durations.")
+    if state.current_instance and state.current_instance.port:
+        port = state.current_instance.port
+        print(f"  psql -p {port} -c \"ALTER SYSTEM SET log_min_duration_statement = 0; SELECT pg_reload_conf();\"")
+    else:
+        print("  psql -p <port> -c \"ALTER SYSTEM SET log_min_duration_statement = 0; SELECT pg_reload_conf();\"")
+        print("  (Use 'list' to see instance ports)")
+
+
 def enable_logging_command(state: AppState, args: list[str]) -> None:
     """Handle the 'enable-logging' command - enable logging_collector for an instance.
 
@@ -600,6 +688,8 @@ def handle_command(state: AppState, line: str) -> bool:
         filter_command(state, args)
     elif cmd == "highlight":
         highlight_command(state, args)
+    elif cmd == "slow":
+        slow_command(state, args)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":
