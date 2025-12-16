@@ -22,6 +22,7 @@ from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import (
     SETTINGS_SCHEMA,
     ConfigSchema,
+    create_default_config,
     ensure_history_dir,
     get_config_path,
     get_default_value,
@@ -758,9 +759,7 @@ def config_command(state: AppState, args: list[str]) -> None:
             config_path_command()
             return
         elif subcommand == "edit":
-            # Will be implemented in Phase 5 (US3)
-            print("'config edit' will be implemented in a future update.")
-            print(f"For now, edit directly: {get_config_path()}")
+            config_edit_command(state)
             return
         elif subcommand == "reset":
             # Will be implemented in Phase 6 (US4)
@@ -823,6 +822,56 @@ def config_path_command() -> None:
         print("  (file exists)")
     else:
         print("  (file not created yet - use 'set' to create)")
+
+
+def config_edit_command(state: AppState) -> None:
+    """Handle the 'config edit' command - open config in $EDITOR (T029-T033).
+
+    Args:
+        state: Current application state.
+    """
+    # T030: Check $EDITOR environment variable
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
+    if not editor:
+        print("No editor configured.")
+        print()
+        print("Set the EDITOR environment variable:")
+        print("  export EDITOR=vim")
+        print("  export EDITOR=nano")
+        print("  export EDITOR='code --wait'")
+        print()
+        print(f"Or edit directly: {get_config_path()}")
+        return
+
+    config_path = get_config_path()
+
+    # T031: Create config file with template if it doesn't exist
+    if not config_path.exists():
+        print(f"Creating config file: {config_path}")
+        if not create_default_config():
+            print("Error: Could not create config file")
+            return
+
+    # T032: Open editor and wait for exit
+    print(f"Opening {config_path} in {editor}...")
+    try:
+        # Use shell=True to handle editors with arguments like "code --wait"
+        result = subprocess.run(
+            f'{editor} "{config_path}"',
+            shell=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"Editor exited with code {result.returncode}")
+    except Exception as e:
+        print(f"Error launching editor: {e}")
+        return
+
+    # T033: Reload config after editor closes
+    print("Reloading configuration...")
+    state.config = load_config(warn_func=_warn)
+    state._apply_config()
+    print("Configuration reloaded.")
 
 
 def enable_logging_command(state: AppState, args: list[str]) -> None:

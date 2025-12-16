@@ -100,11 +100,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Implement cmd_config_edit() handler in pgtail_py/cli.py
-- [ ] T030 [US3] Check $EDITOR environment variable and show helpful error if not set in pgtail_py/cli.py
-- [ ] T031 [US3] Create config file with DEFAULT_CONFIG_TEMPLATE if it doesn't exist in pgtail_py/cli.py
-- [ ] T032 [US3] Open editor using subprocess and wait for exit in pgtail_py/cli.py
-- [ ] T033 [US3] Reload config after editor closes and apply changes in pgtail_py/cli.py
+- [x] T029 [US3] Implement cmd_config_edit() handler in pgtail_py/cli.py
+- [x] T030 [US3] Check $EDITOR environment variable and show helpful error if not set in pgtail_py/cli.py
+- [x] T031 [US3] Create config file with DEFAULT_CONFIG_TEMPLATE if it doesn't exist in pgtail_py/cli.py
+- [x] T032 [US3] Open editor using subprocess and wait for exit in pgtail_py/cli.py
+- [x] T033 [US3] Reload config after editor closes and apply changes in pgtail_py/cli.py
 
 **Checkpoint**: User Story 3 complete - users can edit config in $EDITOR
 
