@@ -24,8 +24,8 @@
 
 **Purpose**: Add tomlkit dependency and prepare project for configuration support
 
-- [ ] T001 Add tomlkit>=0.12.0 to dependencies in pyproject.toml
-- [ ] T002 Run `uv sync` or `pip install -e .` to install new dependency
+- [x] T001 Add tomlkit>=0.12.0 to dependencies in pyproject.toml
+- [x] T002 Run `uv sync` or `pip install -e .` to install new dependency
 
 ---
 
@@ -35,17 +35,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Define ConfigSchema dataclass with all sections and defaults in pgtail_py/config.py
-- [ ] T004 Implement get_config_path() for platform-specific config locations in pgtail_py/config.py
-- [ ] T005 Implement load_config() with graceful degradation (warn and continue) in pgtail_py/config.py
-- [ ] T006 Implement save_config() with comment preservation using tomlkit in pgtail_py/config.py
-- [ ] T007 Implement per-key validation with helpful error messages in pgtail_py/config.py
-- [ ] T008 Add SETTINGS_SCHEMA dict with validators for all config keys in pgtail_py/config.py
-- [ ] T009 Implement get_nested() and set_nested() helpers for dotted key paths in pgtail_py/config.py
-- [ ] T010 Define DEFAULT_CONFIG_TEMPLATE string with commented sections in pgtail_py/config.py
-- [ ] T011 Load config in AppState.__init__() and store in self.config in pgtail_py/cli.py
-- [ ] T012 Apply config.slow.* thresholds to SlowQueryTracker on startup in pgtail_py/cli.py
-- [ ] T013 Apply config.default.levels to level_filter on startup in pgtail_py/cli.py
+- [x] T003 Define ConfigSchema dataclass with all sections and defaults in pgtail_py/config.py
+- [x] T004 Implement get_config_path() for platform-specific config locations in pgtail_py/config.py
+- [x] T005 Implement load_config() with graceful degradation (warn and continue) in pgtail_py/config.py
+- [x] T006 Implement save_config() with comment preservation using tomlkit in pgtail_py/config.py
+- [x] T007 Implement per-key validation with helpful error messages in pgtail_py/config.py
+- [x] T008 Add SETTINGS_SCHEMA dict with validators for all config keys in pgtail_py/config.py
+- [x] T009 Implement get_nested() and set_nested() helpers for dotted key paths in pgtail_py/config.py
+- [x] T010 Define DEFAULT_CONFIG_TEMPLATE string with commented sections in pgtail_py/config.py
+- [x] T011 Load config in AppState.__init__() and store in self.config in pgtail_py/cli.py
+- [x] T012 Apply config.slow.* thresholds to SlowQueryTracker on startup in pgtail_py/cli.py
+- [x] T013 Apply config.default.levels to level_filter on startup in pgtail_py/cli.py
 
 **Checkpoint**: Foundation ready - config loads on startup and applies settings
 

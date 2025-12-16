@@ -19,7 +19,12 @@ from pgtail_py.colors import (
     print_log_entry,
 )
 from pgtail_py.commands import PgtailCompleter
-from pgtail_py.config import ensure_history_dir, get_history_path
+from pgtail_py.config import (
+    ConfigSchema,
+    ensure_history_dir,
+    get_history_path,
+    load_config,
+)
 from pgtail_py.detector import detect_all
 from pgtail_py.enable_logging import enable_logging
 from pgtail_py.filter import LogLevel, parse_levels
@@ -41,6 +46,11 @@ from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode, reset_terminal
 
 
+def _warn(msg: str) -> None:
+    """Print a warning message."""
+    print(f"Warning: {msg}")
+
+
 @dataclass
 class AppState:
     """Runtime state for the REPL session.
@@ -57,11 +67,12 @@ class AppState:
         tailer: Active log tailer instance
         stop_event: Event to signal tail stop
         shell_mode: Whether in shell mode (next input runs as shell command)
+        config: Loaded configuration from config file
     """
 
     instances: list[Instance] = field(default_factory=list)
     current_instance: Instance | None = None
-    active_levels: set[LogLevel] = field(default_factory=LogLevel.all_levels)
+    active_levels: set[LogLevel] | None = field(default_factory=LogLevel.all_levels)
     regex_state: FilterState = field(default_factory=FilterState.empty)
     slow_query_config: SlowQueryConfig = field(default_factory=SlowQueryConfig)
     duration_stats: DurationStats = field(default_factory=DurationStats)
@@ -70,6 +81,33 @@ class AppState:
     tailer: LogTailer | None = None
     stop_event: threading.Event = field(default_factory=threading.Event)
     shell_mode: bool = False
+    config: ConfigSchema = field(default_factory=ConfigSchema)
+
+    def __post_init__(self) -> None:
+        """Load config and apply settings after initialization."""
+        self.config = load_config(warn_func=_warn)
+        self._apply_config()
+
+    def _apply_config(self) -> None:
+        """Apply configuration settings to state."""
+        # Apply default.levels if configured
+        if self.config.default.levels:
+            import contextlib
+
+            valid_levels: set[LogLevel] = set()
+            for level_name in self.config.default.levels:
+                with contextlib.suppress(ValueError):
+                    valid_levels.add(LogLevel.from_string(level_name))
+            if valid_levels:
+                self.active_levels = valid_levels
+
+        # Apply slow.* thresholds
+        self.slow_query_config = SlowQueryConfig(
+            enabled=True,
+            warning_ms=self.config.slow.warn,
+            slow_ms=self.config.slow.error,
+            critical_ms=self.config.slow.critical,
+        )
 
 
 def _shorten_path(path: Path) -> str:
