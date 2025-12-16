@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from pgtail_py.filter import LogLevel
     from pgtail_py.parser import LogEntry
     from pgtail_py.regex_filter import FilterState
+    from pgtail_py.tailer import LogTailer
 
 
 class ExportFormat(str, Enum):
@@ -290,6 +291,78 @@ def export_to_file(
         for entry in entries:
             f.write(format_entry(entry, fmt) + "\n")
             count += 1
+
+    return count
+
+
+@dataclass
+class FollowExportResult:
+    """Result from a follow export session."""
+
+    count: int
+    path: Path
+
+
+def follow_export(
+    tailer: "LogTailer",
+    path: Path,
+    fmt: ExportFormat = ExportFormat.TEXT,
+    levels: "set[LogLevel] | None" = None,
+    regex_state: "FilterState | None" = None,
+    on_entry: "callable[[LogEntry], None] | None" = None,
+) -> int:
+    """Export entries in real-time as they arrive from tailer.
+
+    Runs until KeyboardInterrupt (Ctrl+C). Writes each entry to file
+    as it arrives, optionally calling on_entry callback for tee behavior.
+
+    Args:
+        tailer: Active LogTailer instance.
+        path: Output file path.
+        fmt: Output format.
+        levels: Log levels to filter by.
+        regex_state: Regex filter state.
+        on_entry: Optional callback for each entry (for tee display).
+
+    Returns:
+        Number of entries written when KeyboardInterrupt is caught.
+    """
+    from pgtail_py.filter import should_show as level_should_show
+
+    # Ensure parent directories exist
+    ensure_parent_dirs(path)
+
+    count = 0
+    try:
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            # Write CSV header
+            if fmt == ExportFormat.CSV:
+                f.write(CSV_HEADER + "\n")
+
+            # Process entries until interrupted
+            while True:
+                entry = tailer.get_entry(timeout=0.1)
+                if entry is None:
+                    continue
+
+                # Apply level filter
+                if levels is not None and not level_should_show(entry.level, levels):
+                    continue
+
+                # Apply regex filter
+                if regex_state is not None and not regex_state.should_show(entry.raw):
+                    continue
+
+                # Write to file
+                f.write(format_entry(entry, fmt) + "\n")
+                f.flush()  # Flush immediately for real-time export
+                count += 1
+
+                # Call tee callback if provided
+                if on_entry is not None:
+                    on_entry(entry)
+    except KeyboardInterrupt:
+        pass
 
     return count
 

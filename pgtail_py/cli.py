@@ -40,6 +40,7 @@ from pgtail_py.export import (
     ExportFormat,
     confirm_overwrite,
     export_to_file,
+    follow_export,
     get_filtered_entries,
     parse_since,
     pipe_to_command,
@@ -224,6 +225,7 @@ Available commands:
                     --format <fmt>  Output format (text, json, csv)
                     --since <time>  Only entries after time (1h, 30m, 2d)
                     --append        Append to existing file
+                    --follow        Continuous export (like tail -f | tee)
   pipe <cmd>        Pipe filtered logs to external command
                     --format <fmt>  Output format (text, json, csv)
   stop              Stop current tail and return to prompt
@@ -1050,8 +1052,9 @@ def export_command(state: AppState, args: list[str]) -> None:
         print("No log file loaded. Use 'tail <instance>' first.")
         return
 
-    # Parse arguments: export [--append] [--format fmt] [--since time] <filename>
+    # Parse arguments: export [--append] [--format fmt] [--since time] [--follow] <filename>
     append = False
+    follow = False
     fmt = ExportFormat.TEXT
     since = None
     filename = None
@@ -1061,6 +1064,9 @@ def export_command(state: AppState, args: list[str]) -> None:
         arg = args[i]
         if arg == "--append":
             append = True
+            i += 1
+        elif arg == "--follow":
+            follow = True
             i += 1
         elif arg == "--format" and i + 1 < len(args):
             try:
@@ -1084,7 +1090,7 @@ def export_command(state: AppState, args: list[str]) -> None:
             i += 1
 
     if not filename:
-        print("Usage: export [--append] [--format text|json|csv] [--since time] <filename>")
+        print("Usage: export [options] <filename>")
         print()
         print("Export filtered log entries to a file.")
         print()
@@ -1092,6 +1098,16 @@ def export_command(state: AppState, args: list[str]) -> None:
         print("  --append         Append to existing file")
         print("  --format <fmt>   Output format (text, json, csv)")
         print("  --since <time>   Only entries after time (e.g., 1h, 30m, 2d)")
+        print("  --follow         Continuous export (like tail -f | tee)")
+        return
+
+    # Validate options
+    if follow and append:
+        print("Error: Cannot use --follow with --append")
+        return
+
+    if follow and since:
+        print("Error: Cannot use --follow with --since")
         return
 
     path = Path(filename)
@@ -1099,6 +1115,11 @@ def export_command(state: AppState, args: list[str]) -> None:
     # Confirm overwrite if file exists and not appending
     if not append and not confirm_overwrite(path):
         print("Export cancelled.")
+        return
+
+    # Handle follow mode
+    if follow:
+        _export_follow_mode(state, path, fmt)
         return
 
     # Get filtered entries from the tailer's buffer
@@ -1118,6 +1139,34 @@ def export_command(state: AppState, args: list[str]) -> None:
         print("Try a different location or check permissions.")
     except OSError as e:
         print(f"Error writing to file: {e}")
+
+
+def _export_follow_mode(state: AppState, path: Path, fmt: ExportFormat) -> None:
+    """Handle continuous export mode (--follow).
+
+    Args:
+        state: Current application state.
+        path: Output file path.
+        fmt: Output format.
+    """
+    # Restart tailer if it was stopped
+    if not state.tailer.is_running:
+        state.tailer.start()
+
+    print(f"Exporting to {path} (Ctrl+C to stop)")
+    print()
+
+    count = follow_export(
+        state.tailer,
+        path,
+        fmt,
+        state.active_levels,
+        state.regex_state,
+        on_entry=print_log_entry,  # Tee behavior - display on screen
+    )
+
+    print()
+    print(f"Exported {count} entries to {path}")
 
 
 def pipe_command(state: AppState, args: list[str]) -> None:

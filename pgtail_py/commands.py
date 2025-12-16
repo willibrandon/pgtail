@@ -315,6 +315,7 @@ class PgtailCompleter(Completer):
         """
         options = {
             "--append": "Append to existing file",
+            "--follow": "Continuous export (like tail -f | tee)",
             "--format": "Output format (text, json, csv)",
             "--since": "Only entries after time (1h, 30m, 2d)",
         }

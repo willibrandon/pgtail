@@ -119,13 +119,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T035 [US4] Add --follow argument parsing to export_command in pgtail_py/cli.py
-- [ ] T036 [US4] Implement follow_export() that loops with tailer and writes entries in pgtail_py/export.py
-- [ ] T037 [US4] Display "Exporting to file (Ctrl+C to stop)" message when follow mode starts in pgtail_py/cli.py
-- [ ] T038 [US4] Handle KeyboardInterrupt to stop follow mode and report total count in pgtail_py/cli.py
-- [ ] T039 [US4] Display entries on screen while writing to file (tee behavior) in pgtail_py/cli.py
-- [ ] T040 [US4] Add --follow completion to export completer in pgtail_py/commands.py
-- [ ] T041 [US4] Update help text with --follow option in pgtail_py/cli.py
+- [x] T035 [US4] Add --follow argument parsing to export_command in pgtail_py/cli.py
+- [x] T036 [US4] Implement follow_export() that loops with tailer and writes entries in pgtail_py/export.py
+- [x] T037 [US4] Display "Exporting to file (Ctrl+C to stop)" message when follow mode starts in pgtail_py/cli.py
+- [x] T038 [US4] Handle KeyboardInterrupt to stop follow mode and report total count in pgtail_py/cli.py
+- [x] T039 [US4] Display entries on screen while writing to file (tee behavior) in pgtail_py/cli.py
+- [x] T040 [US4] Add --follow completion to export completer in pgtail_py/commands.py
+- [x] T041 [US4] Update help text with --follow option in pgtail_py/cli.py
 
 **Checkpoint**: User Story 4 complete - `export --follow test.log` captures logs in real-time with screen echo
 
