@@ -313,6 +313,7 @@ class PgtailCompleter(Completer):
         options = {
             "--append": "Append to existing file",
             "--format": "Output format (text, json, csv)",
+            "--since": "Only entries after time (1h, 30m, 2d)",
         }
         prefix_lower = prefix.lower()
         for name, description in options.items():

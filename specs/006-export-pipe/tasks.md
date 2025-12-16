@@ -77,13 +77,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Add --format argument parsing to export_command in pgtail_py/cli.py
-- [ ] T020 [US2] Pass format parameter through to export_to_file() in pgtail_py/cli.py
-- [ ] T021 [US2] Write CSV header row when format=csv and not append mode in pgtail_py/export.py
-- [ ] T022 [US2] Add --format completion (text, json, csv values) to export completer in pgtail_py/commands.py
-- [ ] T023 [US2] Add --since argument parsing to export_command in pgtail_py/cli.py
-- [ ] T024 [US2] Filter entries by since timestamp in get_filtered_entries() in pgtail_py/export.py
-- [ ] T025 [US2] Update help text with --format and --since options in pgtail_py/cli.py
+- [x] T019 [US2] Add --format argument parsing to export_command in pgtail_py/cli.py
+- [x] T020 [US2] Pass format parameter through to export_to_file() in pgtail_py/cli.py
+- [x] T021 [US2] Write CSV header row when format=csv and not append mode in pgtail_py/export.py
+- [x] T022 [US2] Add --format completion (text, json, csv values) to export completer in pgtail_py/commands.py
+- [x] T023 [US2] Add --since argument parsing to export_command in pgtail_py/cli.py
+- [x] T024 [US2] Filter entries by since timestamp in get_filtered_entries() in pgtail_py/export.py
+- [x] T025 [US2] Update help text with --format and --since options in pgtail_py/cli.py
 
 **Checkpoint**: User Story 2 complete - `export --format json logs.json` and `export --format csv --since 1h data.csv` work
 

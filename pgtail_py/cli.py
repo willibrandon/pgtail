@@ -41,6 +41,7 @@ from pgtail_py.export import (
     confirm_overwrite,
     export_to_file,
     get_filtered_entries,
+    parse_since,
 )
 from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.instance import Instance
@@ -220,6 +221,7 @@ Available commands:
                     Subcommands: path, edit, reset
   export <file>     Export filtered logs to file
                     --format <fmt>  Output format (text, json, csv)
+                    --since <time>  Only entries after time (1h, 30m, 2d)
                     --append        Append to existing file
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
@@ -1045,9 +1047,10 @@ def export_command(state: AppState, args: list[str]) -> None:
         print("No log file loaded. Use 'tail <instance>' first.")
         return
 
-    # Parse arguments: export [--append] [--format fmt] <filename>
+    # Parse arguments: export [--append] [--format fmt] [--since time] <filename>
     append = False
     fmt = ExportFormat.TEXT
+    since = None
     filename = None
 
     i = 0
@@ -1063,6 +1066,13 @@ def export_command(state: AppState, args: list[str]) -> None:
                 print(f"Error: {e}")
                 return
             i += 2
+        elif arg == "--since" and i + 1 < len(args):
+            try:
+                since = parse_since(args[i + 1])
+            except ValueError as e:
+                print(f"Error: {e}")
+                return
+            i += 2
         elif arg.startswith("--"):
             print(f"Unknown option: {arg}")
             return
@@ -1071,13 +1081,14 @@ def export_command(state: AppState, args: list[str]) -> None:
             i += 1
 
     if not filename:
-        print("Usage: export [--append] [--format text|json|csv] <filename>")
+        print("Usage: export [--append] [--format text|json|csv] [--since time] <filename>")
         print()
         print("Export filtered log entries to a file.")
         print()
         print("Options:")
         print("  --append         Append to existing file")
         print("  --format <fmt>   Output format (text, json, csv)")
+        print("  --since <time>   Only entries after time (e.g., 1h, 30m, 2d)")
         return
 
     path = Path(filename)
@@ -1092,6 +1103,7 @@ def export_command(state: AppState, args: list[str]) -> None:
         state.tailer.get_buffer(),
         state.active_levels,
         state.regex_state,
+        since,
     )
 
     # Export to file
