@@ -73,7 +73,7 @@ Or reference the file directly when planning.
 ### Phase 1: Quick Wins (Low complexity, high value)
 1. regex-filtering - completed
 2. slow-query-detection - completed
-3. config-file
+3. config-file - completed
 4. export-and-pipe
 
 ### Phase 2: Enhanced Filtering
