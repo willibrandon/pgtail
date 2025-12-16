@@ -49,6 +49,10 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - re (stdlib, regex filtering)
 
 ## Recent Changes
+- 005-config-file: Added Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomli (Python 3.10), tomllib (Python 3.11+), tomlkit (for preserving comments)
 - Added slow query detection with configurable thresholds (slow command)
 - Added query duration statistics (stats command)
-- Color-coded highlighting: yellow (warning), yellow bold (slow), red bold (critical)
+
+## Active Technologies
+- Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomli (Python 3.10), tomllib (Python 3.11+), tomlkit (for preserving comments) (005-config-file)
+- TOML file at platform-specific config directories (005-config-file)
