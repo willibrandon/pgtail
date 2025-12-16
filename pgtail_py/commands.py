@@ -23,6 +23,7 @@ COMMANDS: dict[str, str] = {
     "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
     "stats": "Show query duration statistics",
     "set": "Set a config value (e.g., 'set slow.warn 50')",
+    "config": "Show current configuration (subcommands: path, edit, reset)",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
     "enable-logging": "Enable logging_collector for an instance",
@@ -88,6 +89,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_slow(arg_text)
         elif cmd == "set":
             yield from self._complete_set(arg_text, len(parts))
+        elif cmd == "config":
+            yield from self._complete_config(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -240,4 +243,27 @@ class PgtailCompleter(Completer):
                     key,
                     start_position=-len(prefix),
                     display_meta=f"{section} setting",
+                )
+
+    def _complete_config(self, prefix: str) -> list[Completion]:
+        """Complete config subcommands.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for config subcommands.
+        """
+        subcommands = {
+            "path": "Show config file location",
+            "edit": "Open config in $EDITOR",
+            "reset": "Reset config to defaults (with backup)",
+        }
+        prefix_lower = prefix.lower()
+        for name, description in subcommands.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
                 )

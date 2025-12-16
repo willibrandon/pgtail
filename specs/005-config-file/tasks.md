@@ -81,12 +81,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Register `config` command with subcommands in COMMANDS dict in pgtail_py/commands.py
-- [ ] T024 [US2] Update PgtailCompleter to complete `edit`, `reset`, `path` after `config` in pgtail_py/commands.py
-- [ ] T025 [US2] Implement cmd_config() handler to display current config in pgtail_py/cli.py
-- [ ] T026 [US2] Format output as TOML with config file path header in pgtail_py/cli.py
-- [ ] T027 [US2] Show default values when config file doesn't exist in pgtail_py/cli.py
-- [ ] T028 [US2] Implement cmd_config_path() to show config file location in pgtail_py/cli.py
+- [x] T023 [US2] Register `config` command with subcommands in COMMANDS dict in pgtail_py/commands.py
+- [x] T024 [US2] Update PgtailCompleter to complete `edit`, `reset`, `path` after `config` in pgtail_py/commands.py
+- [x] T025 [US2] Implement cmd_config() handler to display current config in pgtail_py/cli.py
+- [x] T026 [US2] Format output as TOML with config file path header in pgtail_py/cli.py
+- [x] T027 [US2] Show default values when config file doesn't exist in pgtail_py/cli.py
+- [x] T028 [US2] Implement cmd_config_path() to show config file location in pgtail_py/cli.py
 
 **Checkpoint**: User Story 2 complete - users can view configuration
 

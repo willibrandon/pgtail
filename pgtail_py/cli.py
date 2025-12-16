@@ -206,6 +206,8 @@ Available commands:
   stats             Show query duration statistics
   set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
                     With no value, shows current setting
+  config            Show current configuration as TOML
+                    Subcommands: path, edit, reset
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -742,6 +744,87 @@ def _apply_setting(state: AppState, key: str) -> None:
         )
 
 
+def config_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'config' command - display or manage configuration.
+
+    Args:
+        state: Current application state.
+        args: Subcommand (path, edit, reset) or empty to show config.
+    """
+    # Handle subcommands
+    if args:
+        subcommand = args[0].lower()
+        if subcommand == "path":
+            config_path_command()
+            return
+        elif subcommand == "edit":
+            # Will be implemented in Phase 5 (US3)
+            print("'config edit' will be implemented in a future update.")
+            print(f"For now, edit directly: {get_config_path()}")
+            return
+        elif subcommand == "reset":
+            # Will be implemented in Phase 6 (US4)
+            print("'config reset' will be implemented in a future update.")
+            return
+        else:
+            print(f"Unknown subcommand: {subcommand}")
+            print("Available: path, edit, reset")
+            return
+
+    # No subcommand - display current configuration (T025, T026, T027)
+    config_path = get_config_path()
+    file_exists = config_path.exists()
+
+    # Header with file path
+    if file_exists:
+        print(f"# Config file: {config_path}")
+    else:
+        print(f"# Config file: {config_path} (not created yet)")
+        print("# Showing default values")
+    print()
+
+    # Format as TOML-like output
+    print("[default]")
+    levels = state.config.default.levels
+    print(f"levels = {levels!r}")
+    print(f"follow = {str(state.config.default.follow).lower()}")
+    print()
+
+    print("[slow]")
+    print(f"warn = {state.config.slow.warn}")
+    print(f"error = {state.config.slow.error}")
+    print(f"critical = {state.config.slow.critical}")
+    print()
+
+    print("[display]")
+    print(f'timestamp_format = "{state.config.display.timestamp_format}"')
+    print(f"show_pid = {str(state.config.display.show_pid).lower()}")
+    print(f"show_level = {str(state.config.display.show_level).lower()}")
+    print()
+
+    print("[theme]")
+    print(f'name = "{state.config.theme.name}"')
+    print()
+
+    print("[notifications]")
+    print(f"enabled = {str(state.config.notifications.enabled).lower()}")
+    print(f"levels = {state.config.notifications.levels!r}")
+    if state.config.notifications.quiet_hours:
+        print(f'quiet_hours = "{state.config.notifications.quiet_hours}"')
+    else:
+        print("# quiet_hours = \"22:00-08:00\"")
+
+
+def config_path_command() -> None:
+    """Handle the 'config path' command - show config file location (T028)."""
+    config_path = get_config_path()
+    print(config_path)
+    if config_path.exists():
+        print("  (file exists)")
+    else:
+        print("  (file not created yet - use 'set' to create)")
+
+
 def enable_logging_command(state: AppState, args: list[str]) -> None:
     """Handle the 'enable-logging' command - enable logging_collector for an instance.
 
@@ -862,6 +945,8 @@ def handle_command(state: AppState, line: str) -> bool:
         stats_command(state)
     elif cmd == "set":
         set_command(state, args)
+    elif cmd == "config":
+        config_command(state, args)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":
