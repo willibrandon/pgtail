@@ -74,7 +74,7 @@ Or reference the file directly when planning.
 1. regex-filtering - completed
 2. slow-query-detection - completed
 3. config-file - completed
-4. export-and-pipe
+4. export-and-pipe - completed
 
 ### Phase 2: Enhanced Filtering
 5. time-based-filtering
