@@ -26,14 +26,24 @@ class LogEntry:
     pid: int | None = None
 
 
-# PostgreSQL default log line format:
+# PostgreSQL default log line format (with PID):
 # 2024-01-15 10:30:45.123 UTC [12345] LOG:  database system is ready
 # Timestamp format: YYYY-MM-DD HH:MM:SS.mmm TZ [PID] LEVEL: message
-_LOG_PATTERN = re.compile(
+_LOG_PATTERN_WITH_PID = re.compile(
     r"^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+"  # timestamp
     r"(\w+)?\s*"  # timezone (optional)
     r"\[(\d+)\]\s+"  # PID
     r"(\w+):\s*"  # level
+    r"(.*)$"  # message
+)
+
+# PostgreSQL log format without PID (common on Windows):
+# 2024-01-15 10:30:45.123 PST LOG:  database system is ready
+# Timestamp format: YYYY-MM-DD HH:MM:SS.mmm TZ LEVEL: message
+_LOG_PATTERN_NO_PID = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+"  # timestamp
+    r"(\w+)\s+"  # timezone
+    r"(\w+):\s+"  # level
     r"(.*)$"  # message
 )
 
@@ -63,8 +73,9 @@ _LEVEL_MAP = {
 def parse_log_line(line: str) -> LogEntry:
     """Parse a PostgreSQL log line into a LogEntry.
 
-    Handles the default PostgreSQL log format:
-    YYYY-MM-DD HH:MM:SS.mmm TZ [PID] LEVEL: message
+    Handles PostgreSQL log formats:
+    - With PID: YYYY-MM-DD HH:MM:SS.mmm TZ [PID] LEVEL: message
+    - Without PID: YYYY-MM-DD HH:MM:SS.mmm TZ LEVEL: message (common on Windows)
 
     For unparseable lines, returns a LogEntry with level=LOG and
     the raw line preserved in both message and raw fields.
@@ -76,19 +87,27 @@ def parse_log_line(line: str) -> LogEntry:
         LogEntry with parsed fields, or fallback entry for unparseable lines.
     """
     line = line.rstrip("\n\r")
-    match = _LOG_PATTERN.match(line)
 
-    if not match:
-        # Unparseable line - return as LOG level with raw preserved
-        return LogEntry(
-            timestamp=None,
-            level=LogLevel.LOG,
-            message=line,
-            raw=line,
-            pid=None,
-        )
-
-    timestamp_str, _tz, pid_str, level_str, message = match.groups()
+    # Try format with PID first
+    match = _LOG_PATTERN_WITH_PID.match(line)
+    if match:
+        timestamp_str, _tz, pid_str, level_str, message = match.groups()
+        pid = int(pid_str) if pid_str else None
+    else:
+        # Try format without PID
+        match = _LOG_PATTERN_NO_PID.match(line)
+        if match:
+            timestamp_str, _tz, level_str, message = match.groups()
+            pid = None
+        else:
+            # Unparseable line - return as LOG level with raw preserved
+            return LogEntry(
+                timestamp=None,
+                level=LogLevel.LOG,
+                message=line,
+                raw=line,
+                pid=None,
+            )
 
     # Parse timestamp
     timestamp = None
@@ -103,9 +122,6 @@ def parse_log_line(line: str) -> LogEntry:
 
     # Parse level
     level = _LEVEL_MAP.get(level_str.upper(), LogLevel.LOG)
-
-    # Parse PID
-    pid = int(pid_str) if pid_str else None
 
     return LogEntry(
         timestamp=timestamp,

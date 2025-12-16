@@ -3,8 +3,10 @@
 # Detect OS for platform-specific commands
 ifeq ($(OS),Windows_NT)
     DETECTED_OS := Windows
+    UV := $(USERPROFILE)\.local\bin\uv.exe
 else
     DETECTED_OS := $(shell uname -s)
+    UV := uv
 endif
 
 help:
@@ -29,19 +31,19 @@ else
 endif
 
 run:
-	uv run python -m pgtail_py
+	$(UV) run python -m pgtail_py
 
 test:
-	uv run python -m pytest tests/ -v
+	$(UV) run python -m pytest tests/ -v
 
 lint:
-	uv run ruff check pgtail_py/
+	$(UV) run ruff check pgtail_py/
 
 format:
-	uv run ruff format pgtail_py/
+	$(UV) run ruff format pgtail_py/
 
 build:
-	uv run pyinstaller --onefile --name pgtail pgtail_py/__main__.py
+	$(UV) run pyinstaller --onefile --name pgtail pgtail_py/__main__.py
 
 clean:
 ifeq ($(DETECTED_OS),Windows)

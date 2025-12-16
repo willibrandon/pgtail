@@ -31,6 +31,7 @@ from pgtail_py.regex_filter import (
     parse_filter_arg,
 )
 from pgtail_py.tailer import LogTailer
+from pgtail_py.terminal import enable_vt100_mode, reset_terminal
 
 
 @dataclass
@@ -276,6 +277,9 @@ def stop_command(state: AppState) -> None:
     state.tailing = False
     state.stop_event.set()
     state.current_instance = None
+
+    # Reset terminal state to prevent mangled output
+    reset_terminal()
     print("Stopped tailing.")
 
 
@@ -681,6 +685,9 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
 
 def main() -> None:
     """Main entry point for pgtail."""
+    # Enable VT100 mode for colors on Windows
+    enable_vt100_mode()
+
     print("pgtail - PostgreSQL log tailer")
     print()
 
