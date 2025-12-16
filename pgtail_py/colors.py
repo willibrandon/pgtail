@@ -8,6 +8,7 @@ from prompt_toolkit.styles import Style
 
 from pgtail_py.filter import LogLevel
 from pgtail_py.parser import LogEntry
+from pgtail_py.slow_query import SlowQueryLevel
 
 # Style definitions for each log level
 # Using ANSI color names that work across terminals
@@ -33,11 +34,22 @@ _STYLE_RULES.extend([
     ("timestamp", "fg:ansibrightblack"),
     ("pid", "fg:ansibrightblack"),
     ("highlight", "fg:black bg:yellow"),  # Yellow background for highlights
+    ("slow_warning", "fg:yellow"),
+    ("slow_slow", "fg:yellow bold"),
+    ("slow_critical", "fg:red bold"),
 ])
 LOG_STYLE = Style(_STYLE_RULES)
 
 # Standalone highlight style for direct use
 HIGHLIGHT_STYLE = "fg:black bg:yellow"
+
+# Slow query severity styles
+# Using ANSI colors for maximum terminal compatibility
+SLOW_QUERY_STYLES = {
+    SlowQueryLevel.WARNING: "fg:yellow",
+    SlowQueryLevel.SLOW: "fg:yellow bold",
+    SlowQueryLevel.CRITICAL: "fg:red bold",
+}
 
 
 def _is_color_disabled() -> bool:
@@ -134,6 +146,38 @@ def format_log_entry_with_highlights(
         # Remaining text after last highlight
         if pos < len(message):
             parts.append((level_class, message[pos:]))
+
+    return FormattedText(parts)
+
+
+def format_slow_query_entry(entry: LogEntry, level: SlowQueryLevel) -> FormattedText:
+    """Format a log entry with slow query styling.
+
+    Applies the appropriate slow query color to the entire line based on
+    the severity level (warning, slow, or critical).
+
+    Args:
+        entry: The log entry to format.
+        level: The slow query severity level.
+
+    Returns:
+        FormattedText suitable for print_formatted_text().
+    """
+    style_class = f"class:slow_{level.value}"
+    parts = []
+
+    # Timestamp
+    if entry.timestamp:
+        ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]  # HH:MM:SS.mmm
+        parts.append(("class:timestamp", f"{ts_str} "))
+
+    # PID
+    if entry.pid:
+        parts.append(("class:pid", f"[{entry.pid}] "))
+
+    # Level name and message - all in slow query style
+    level_name = entry.level.name.ljust(7)
+    parts.append((style_class, f"{level_name}: {entry.message}"))
 
     return FormattedText(parts)
 

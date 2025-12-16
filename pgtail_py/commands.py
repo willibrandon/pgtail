@@ -19,6 +19,8 @@ COMMANDS: dict[str, str] = {
     "levels": "Set log level filter (e.g., 'levels ERROR WARNING')",
     "filter": "Set regex filter (e.g., 'filter /pattern/')",
     "highlight": "Highlight text matching regex (e.g., 'highlight /pattern/')",
+    "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
+    "stats": "Show query duration statistics",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
     "enable-logging": "Enable logging_collector for an instance",
@@ -80,6 +82,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_filter(arg_text)
         elif cmd == "highlight":
             yield from self._complete_highlight(arg_text)
+        elif cmd == "slow":
+            yield from self._complete_slow(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -191,4 +195,20 @@ class PgtailCompleter(Completer):
                 "clear",
                 start_position=-len(prefix),
                 display_meta="Clear all highlights",
+            )
+
+    def _complete_slow(self, prefix: str) -> list[Completion]:
+        """Complete slow query subcommands.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for slow query subcommands.
+        """
+        if "off".startswith(prefix.lower()):
+            yield Completion(
+                "off",
+                start_position=-len(prefix),
+                display_meta="Disable slow query highlighting",
             )

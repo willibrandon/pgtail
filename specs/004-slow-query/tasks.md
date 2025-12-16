@@ -23,13 +23,13 @@
 
 **Purpose**: Create the new module and shared entities used by all user stories
 
-- [ ] T001 Create slow_query.py module with SlowQueryLevel enum in pgtail_py/slow_query.py
-- [ ] T002 [P] Add SlowQueryConfig dataclass with default thresholds (100/500/1000ms) in pgtail_py/slow_query.py
-- [ ] T003 [P] Add DurationStats dataclass with samples list and running counters in pgtail_py/slow_query.py
-- [ ] T004 [P] Implement extract_duration() function with regex parsing in pgtail_py/slow_query.py
-- [ ] T005 Add slow query styles (warning/slow/critical) to LEVEL_STYLES in pgtail_py/colors.py
-- [ ] T006 [P] Add 'slow' and 'stats' commands to COMMANDS dict in pgtail_py/commands.py
-- [ ] T007 Add slow_query_config and duration_stats fields to AppState in pgtail_py/cli.py
+- [x] T001 Create slow_query.py module with SlowQueryLevel enum in pgtail_py/slow_query.py
+- [x] T002 [P] Add SlowQueryConfig dataclass with default thresholds (100/500/1000ms) in pgtail_py/slow_query.py
+- [x] T003 [P] Add DurationStats dataclass with samples list and running counters in pgtail_py/slow_query.py
+- [x] T004 [P] Implement extract_duration() function with regex parsing in pgtail_py/slow_query.py
+- [x] T005 Add slow query styles (warning/slow/critical) to LEVEL_STYLES in pgtail_py/colors.py
+- [x] T006 [P] Add 'slow' and 'stats' commands to COMMANDS dict in pgtail_py/commands.py
+- [x] T007 Add slow_query_config and duration_stats fields to AppState in pgtail_py/cli.py
 
 **Checkpoint**: Foundation ready - all user stories share these components
 
@@ -43,18 +43,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Unit test for extract_duration() with ms format in tests/test_slow_query.py
-- [ ] T009 [P] [US1] Unit test for extract_duration() with seconds format in tests/test_slow_query.py
-- [ ] T010 [P] [US1] Unit test for extract_duration() with malformed input in tests/test_slow_query.py
-- [ ] T011 [P] [US1] Unit test for SlowQueryConfig.get_level() threshold logic in tests/test_slow_query.py
+- [x] T008 [P] [US1] Unit test for extract_duration() with ms format in tests/test_slow_query.py
+- [x] T009 [P] [US1] Unit test for extract_duration() with seconds format in tests/test_slow_query.py
+- [x] T010 [P] [US1] Unit test for extract_duration() with malformed input in tests/test_slow_query.py
+- [x] T011 [P] [US1] Unit test for SlowQueryConfig.get_level() threshold logic in tests/test_slow_query.py
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement SlowQueryConfig.get_level(duration_ms) method in pgtail_py/slow_query.py
-- [ ] T013 [US1] Add format_slow_query_entry() function for styled output in pgtail_py/colors.py
-- [ ] T014 [US1] Modify tailer display loop to check slow query config and apply styling in pgtail_py/cli.py
-- [ ] T015 [US1] Implement slow query precedence over regex highlighting in pgtail_py/cli.py
-- [ ] T016 [US1] Add duration collection to DurationStats when log entry has duration in pgtail_py/cli.py
+- [x] T012 [US1] Implement SlowQueryConfig.get_level(duration_ms) method in pgtail_py/slow_query.py
+- [x] T013 [US1] Add format_slow_query_entry() function for styled output in pgtail_py/colors.py
+- [x] T014 [US1] Modify tailer display loop to check slow query config and apply styling in pgtail_py/cli.py
+- [x] T015 [US1] Implement slow query precedence over regex highlighting in pgtail_py/cli.py
+- [x] T016 [US1] Add duration collection to DurationStats when log entry has duration in pgtail_py/cli.py
 
 **Checkpoint**: User Story 1 complete - slow queries are visually highlighted during log tailing
 
