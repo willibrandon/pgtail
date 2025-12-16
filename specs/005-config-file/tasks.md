@@ -137,13 +137,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T040 [US5] Register `unset` command in COMMANDS dict in pgtail_py/commands.py
-- [ ] T041 [US5] Update PgtailCompleter to complete setting keys after `unset` in pgtail_py/commands.py
-- [ ] T042 [US5] Implement cmd_unset() handler in pgtail_py/cli.py
-- [ ] T043 [US5] Validate key exists in schema in pgtail_py/cli.py
-- [ ] T044 [US5] Remove key from config file using tomlkit in pgtail_py/config.py
-- [ ] T045 [US5] Revert in-memory value to default and apply in pgtail_py/cli.py
-- [ ] T046 [US5] Show confirmation with default value in pgtail_py/cli.py
+- [x] T040 [US5] Register `unset` command in COMMANDS dict in pgtail_py/commands.py
+- [x] T041 [US5] Update PgtailCompleter to complete setting keys after `unset` in pgtail_py/commands.py
+- [x] T042 [US5] Implement cmd_unset() handler in pgtail_py/cli.py
+- [x] T043 [US5] Validate key exists in schema in pgtail_py/cli.py
+- [x] T044 [US5] Remove key from config file using tomlkit in pgtail_py/config.py
+- [x] T045 [US5] Revert in-memory value to default and apply in pgtail_py/cli.py
+- [x] T046 [US5] Show confirmation with default value in pgtail_py/cli.py
 
 **Checkpoint**: User Story 5 complete - users can unset individual settings
 

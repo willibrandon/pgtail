@@ -23,6 +23,7 @@ from pgtail_py.config import (
     SETTINGS_SCHEMA,
     ConfigSchema,
     create_default_config,
+    delete_config_key,
     ensure_history_dir,
     get_config_path,
     get_default_value,
@@ -208,6 +209,7 @@ Available commands:
   stats             Show query duration statistics
   set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
                     With no value, shows current setting
+  unset <key>       Remove a setting to revert to default
   config            Show current configuration as TOML
                     Subcommands: path, edit, reset
   stop              Stop current tail and return to prompt
@@ -715,6 +717,62 @@ def set_command(state: AppState, args: list[str]) -> None:
     print(f"Saved to {get_config_path()}")
 
 
+def unset_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'unset' command - remove a config setting.
+
+    Args:
+        state: Current application state.
+        args: Command arguments: [key].
+    """
+    # T042: No args - show usage
+    if not args:
+        print("Usage: unset <key>")
+        print()
+        print("Remove a setting to revert to its default value.")
+        print()
+        print("Available settings:")
+        for key in SETTINGS_SCHEMA:
+            default = get_default_value(key)
+            print(f"  {key} (default: {default!r})")
+        return
+
+    key = args[0]
+
+    # T043: Validate key exists in schema
+    if not validate_key(key):
+        print(f"Unknown setting: {key}")
+        print()
+        print("Available settings:")
+        for k in SETTINGS_SCHEMA:
+            print(f"  {k}")
+        return
+
+    # Get default value for confirmation message
+    default = get_default_value(key)
+
+    # T044: Remove key from config file
+    config_path = get_config_path()
+    if config_path.exists():
+        deleted = delete_config_key(key, warn_func=_warn)
+        if not deleted:
+            print(f"{key} is not set in config file.")
+            print(f"Current value is already the default: {default!r}")
+            return
+    else:
+        print(f"{key} is not set (no config file exists).")
+        print(f"Already using default: {default!r}")
+        return
+
+    # T045: Revert in-memory value to default and apply
+    parts = key.split(".")
+    section = getattr(state.config, parts[0])
+    setattr(section, parts[1], default)
+    _apply_setting(state, key)
+
+    # T046: Show confirmation with default value
+    print(f"{key} reset to default: {default!r}")
+
+
 def _apply_setting(state: AppState, key: str) -> None:
     """Apply a single setting change to runtime state.
 
@@ -1027,6 +1085,8 @@ def handle_command(state: AppState, line: str) -> bool:
         stats_command(state)
     elif cmd == "set":
         set_command(state, args)
+    elif cmd == "unset":
+        unset_command(state, args)
     elif cmd == "config":
         config_command(state, args)
     elif cmd == "stop":

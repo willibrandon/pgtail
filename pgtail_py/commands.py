@@ -23,6 +23,7 @@ COMMANDS: dict[str, str] = {
     "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
     "stats": "Show query duration statistics",
     "set": "Set a config value (e.g., 'set slow.warn 50')",
+    "unset": "Remove a config setting (e.g., 'unset slow.warn')",
     "config": "Show current configuration (subcommands: path, edit, reset)",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
@@ -89,6 +90,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_slow(arg_text)
         elif cmd == "set":
             yield from self._complete_set(arg_text, len(parts))
+        elif cmd == "unset":
+            yield from self._complete_unset(arg_text, len(parts))
         elif cmd == "config":
             yield from self._complete_config(arg_text)
 
@@ -243,6 +246,31 @@ class PgtailCompleter(Completer):
                     key,
                     start_position=-len(prefix),
                     display_meta=f"{section} setting",
+                )
+
+    def _complete_unset(self, prefix: str, num_parts: int) -> list[Completion]:
+        """Complete setting keys for 'unset' command.
+
+        Args:
+            prefix: The prefix to match.
+            num_parts: Number of parts in the command so far.
+
+        Yields:
+            Completions for matching setting keys.
+        """
+        # Only complete first argument (the key)
+        if num_parts > 2:
+            return
+
+        prefix_lower = prefix.lower()
+        for key in SETTING_KEYS:
+            if key.startswith(prefix_lower):
+                # Extract section and description from key
+                section = key.split(".")[0]
+                yield Completion(
+                    key,
+                    start_position=-len(prefix),
+                    display_meta=f"reset {section} setting to default",
                 )
 
     def _complete_config(self, prefix: str) -> list[Completion]:
