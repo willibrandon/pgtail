@@ -71,9 +71,16 @@ class TestExtractDuration:
 
     def test_extract_duration_first_match_only(self) -> None:
         """Should return first duration when multiple patterns exist."""
-        # This tests edge case of multiple duration patterns
+        # T035: Edge case - multiple duration patterns in single line
         text = "duration: 100 ms followed by duration: 200 ms"
         assert extract_duration(text) == 100.0
+
+    def test_extract_duration_negative_value(self) -> None:
+        """Should return None for negative duration values."""
+        # T036: Edge case - negative duration values
+        # Note: The regex doesn't match negative values (no minus sign in pattern)
+        # This test documents the expected behavior
+        assert extract_duration("duration: -100 ms") is None
 
 
 class TestSlowQueryConfigGetLevel:

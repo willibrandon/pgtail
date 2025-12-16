@@ -114,12 +114,12 @@
 
 **Purpose**: Edge cases, integration verification, and documentation
 
-- [ ] T035 [P] Handle edge case: multiple "duration:" patterns in single line in pgtail_py/slow_query.py
-- [ ] T036 [P] Handle edge case: negative duration values in pgtail_py/slow_query.py
-- [ ] T037 [P] Unit test for edge cases (multiple patterns, negative values) in tests/test_slow_query.py
-- [ ] T038 Run make lint and fix any issues
-- [ ] T039 Run make test and ensure all tests pass
-- [ ] T040 Validate quickstart.md scenarios work as documented
+- [x] T035 [P] Handle edge case: multiple "duration:" patterns in single line in pgtail_py/slow_query.py
+- [x] T036 [P] Handle edge case: negative duration values in pgtail_py/slow_query.py
+- [x] T037 [P] Unit test for edge cases (multiple patterns, negative values) in tests/test_slow_query.py
+- [x] T038 Run make lint and fix any issues
+- [x] T039 Run make test and ensure all tests pass
+- [x] T040 Validate quickstart.md scenarios work as documented
 
 ---
 
