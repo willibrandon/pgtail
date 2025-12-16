@@ -9,6 +9,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
 - Regex pattern filtering (include, exclude, AND/OR logic)
 - Highlight matching text with yellow background
+- Slow query detection with configurable thresholds
+- Query duration statistics (count, average, percentiles)
 - Color-coded output by severity
 - REPL with autocomplete and command history
 - Cross-platform (macOS, Linux, Windows)
@@ -47,6 +49,8 @@ tail <id|path>     Tail logs for an instance
 levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
 filter /pattern/   Regex filter (see Filtering below)
 highlight /pattern/ Highlight matching text (yellow background)
+slow [w s c]       Configure slow query highlighting (thresholds in ms)
+stats              Show query duration statistics
 enable-logging <id> Enable logging_collector for an instance
 refresh            Re-scan for instances
 stop               Stop current tail
@@ -81,6 +85,21 @@ highlight clear       Remove all highlights
 highlight             Show current highlights
 ```
 
+### Slow Query Detection
+
+```
+slow 100 500 1000    Set thresholds: warning >100ms, slow >500ms, critical >1000ms
+slow                 Show current settings
+slow off             Disable slow query highlighting
+stats                Show duration statistics (count, avg, p50, p95, p99, max)
+```
+
+Requires PostgreSQL `log_min_duration_statement` to be enabled:
+```sql
+ALTER SYSTEM SET log_min_duration_statement = 0;
+SELECT pg_reload_conf();
+```
+
 ### Example
 
 ```
@@ -103,6 +122,17 @@ Filter set: /SELECT/
 
 pgtail> highlight /users/
 Highlight added: /users/
+
+pgtail> slow 100 500 1000
+Slow query highlighting enabled
+# Queries >100ms yellow, >500ms bold yellow, >1000ms red bold
+
+pgtail> stats
+Query Duration Statistics
+─────────────────────────
+  Queries:  42
+  Average:  234.5ms
+  p50: 150.2ms  p95: 890.1ms  p99: 1205.3ms  max: 1501.2ms
 ```
 
 ## Keyboard Shortcuts

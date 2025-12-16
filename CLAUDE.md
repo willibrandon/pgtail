@@ -28,6 +28,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/parser.py` - PostgreSQL log line parsing, LogEntry dataclass
 - `pgtail_py/filter.py` - LogLevel enum, level filtering logic
 - `pgtail_py/regex_filter.py` - Regex pattern filtering and highlighting
+- `pgtail_py/slow_query.py` - Slow query detection, thresholds, duration stats
 - `pgtail_py/tailer.py` - Log file tailing with polling (handles rotation)
 - `pgtail_py/colors.py` - Color output using prompt_toolkit styles
 - `pgtail_py/commands.py` - Command definitions, PgtailCompleter for autocomplete
@@ -47,9 +48,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - psutil >=5.9.0 (process detection)
 - re (stdlib, regex filtering)
 
-## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0 (REPL/colors), psutil >=5.9.0 (process detection) (004-slow-query)
-- N/A (session-scoped in-memory only) (004-slow-query)
-
 ## Recent Changes
-- 004-slow-query: Added Python 3.10+ + prompt_toolkit >=3.0.0 (REPL/colors), psutil >=5.9.0 (process detection)
+- Added slow query detection with configurable thresholds (slow command)
+- Added query duration statistics (stats command)
+- Color-coded highlighting: yellow (warning), yellow bold (slow), red bold (critical)
