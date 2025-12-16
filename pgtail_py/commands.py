@@ -26,6 +26,7 @@ COMMANDS: dict[str, str] = {
     "unset": "Remove a config setting (e.g., 'unset slow.warn')",
     "config": "Show current configuration (subcommands: path, edit, reset)",
     "export": "Export filtered logs to file (e.g., 'export errors.log')",
+    "pipe": "Pipe filtered logs to command (e.g., 'pipe wc -l')",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
     "enable-logging": "Enable logging_collector for an instance",
@@ -99,6 +100,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_config(arg_text)
         elif cmd == "export":
             yield from self._complete_export(arg_text)
+        elif cmd == "pipe":
+            yield from self._complete_pipe(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -314,6 +317,44 @@ class PgtailCompleter(Completer):
             "--append": "Append to existing file",
             "--format": "Output format (text, json, csv)",
             "--since": "Only entries after time (1h, 30m, 2d)",
+        }
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )
+
+        # Complete format values after --format
+        if prefix_lower in ("text", "json", "csv") or any(
+            fmt.startswith(prefix_lower) for fmt in ("text", "json", "csv")
+        ):
+            formats = {
+                "text": "Raw log lines",
+                "json": "JSON Lines format",
+                "csv": "CSV with headers",
+            }
+            for name, description in formats.items():
+                if name.startswith(prefix_lower):
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=description,
+                    )
+
+    def _complete_pipe(self, prefix: str) -> list[Completion]:
+        """Complete pipe command options.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for pipe options.
+        """
+        options = {
+            "--format": "Output format (text, json, csv)",
         }
         prefix_lower = prefix.lower()
         for name, description in options.items():

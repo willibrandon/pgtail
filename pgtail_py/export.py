@@ -3,6 +3,9 @@
 import csv
 import json
 import re
+import shlex
+import subprocess
+import sys
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -289,3 +292,73 @@ def export_to_file(
             count += 1
 
     return count
+
+
+@dataclass
+class PipeResult:
+    """Result from piping entries to a command."""
+
+    count: int
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+def pipe_to_command(
+    entries: Iterable["LogEntry"],
+    command: str,
+    fmt: ExportFormat = ExportFormat.TEXT,
+) -> PipeResult:
+    """Pipe entries to an external command.
+
+    Streams formatted entries to the command's stdin and captures output.
+    Handles BrokenPipeError for commands that exit early (like head).
+
+    Args:
+        entries: Log entries to pipe.
+        command: Shell command string to execute.
+        fmt: Output format for entries.
+
+    Returns:
+        PipeResult with count, return code, stdout, and stderr.
+
+    Raises:
+        FileNotFoundError: If command is not found.
+        OSError: If command cannot be executed.
+    """
+    # Parse command - use shell on Windows, shlex on Unix
+    if sys.platform == "win32":
+        args = command
+        shell = True
+    else:
+        args = shlex.split(command)
+        shell = False
+
+    proc = subprocess.Popen(
+        args,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=shell,
+        text=True,
+    )
+
+    count = 0
+    try:
+        for entry in entries:
+            line = format_entry(entry, fmt)
+            proc.stdin.write(line + "\n")  # type: ignore[union-attr]
+            count += 1
+        proc.stdin.close()  # type: ignore[union-attr]
+        # Read output after closing stdin (don't use communicate - stdin is already closed)
+        stdout = proc.stdout.read() if proc.stdout else ""  # type: ignore[union-attr]
+        stderr = proc.stderr.read() if proc.stderr else ""  # type: ignore[union-attr]
+        proc.wait()
+        return PipeResult(count, proc.returncode, stdout, stderr)
+    except BrokenPipeError:
+        # Command exited early (e.g., head -n 10) - this is normal
+        proc.kill()
+        proc.wait()
+        stdout = proc.stdout.read() if proc.stdout else ""  # type: ignore[union-attr]
+        stderr = proc.stderr.read() if proc.stderr else ""  # type: ignore[union-attr]
+        return PipeResult(count, 0, stdout, stderr)

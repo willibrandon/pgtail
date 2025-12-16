@@ -97,15 +97,15 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Implement pipe_to_command() using subprocess.Popen with stdin pipe in pgtail_py/export.py
-- [ ] T027 [US3] Handle BrokenPipeError for commands that exit early (head, etc.) in pgtail_py/export.py
-- [ ] T028 [US3] Add pipe_command() handler in pgtail_py/cli.py
-- [ ] T029 [US3] Parse pipe arguments (extract --format and command string) in pgtail_py/cli.py
-- [ ] T030 [US3] Display subprocess stdout and handle stderr/exit code errors in pgtail_py/cli.py
-- [ ] T031 [US3] Integrate pipe_command into handle_command() dispatch in pgtail_py/cli.py
-- [ ] T032 [US3] Add 'pipe' to COMMANDS dict with description in pgtail_py/commands.py
-- [ ] T033 [P] [US3] Add pipe command completion (--format flag) in pgtail_py/commands.py
-- [ ] T034 [US3] Add pipe to help_command() output in pgtail_py/cli.py
+- [x] T026 [US3] Implement pipe_to_command() using subprocess.Popen with stdin pipe in pgtail_py/export.py
+- [x] T027 [US3] Handle BrokenPipeError for commands that exit early (head, etc.) in pgtail_py/export.py
+- [x] T028 [US3] Add pipe_command() handler in pgtail_py/cli.py
+- [x] T029 [US3] Parse pipe arguments (extract --format and command string) in pgtail_py/cli.py
+- [x] T030 [US3] Display subprocess stdout and handle stderr/exit code errors in pgtail_py/cli.py
+- [x] T031 [US3] Integrate pipe_command into handle_command() dispatch in pgtail_py/cli.py
+- [x] T032 [US3] Add 'pipe' to COMMANDS dict with description in pgtail_py/commands.py
+- [x] T033 [P] [US3] Add pipe command completion (--format flag) in pgtail_py/commands.py
+- [x] T034 [US3] Add pipe to help_command() output in pgtail_py/cli.py
 
 **Checkpoint**: User Story 3 complete - `pipe grep pattern` and `pipe --format json jq '.message'` work
 

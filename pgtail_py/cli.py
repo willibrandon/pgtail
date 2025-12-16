@@ -42,6 +42,7 @@ from pgtail_py.export import (
     export_to_file,
     get_filtered_entries,
     parse_since,
+    pipe_to_command,
 )
 from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.instance import Instance
@@ -223,6 +224,8 @@ Available commands:
                     --format <fmt>  Output format (text, json, csv)
                     --since <time>  Only entries after time (1h, 30m, 2d)
                     --append        Append to existing file
+  pipe <cmd>        Pipe filtered logs to external command
+                    --format <fmt>  Output format (text, json, csv)
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -1117,6 +1120,88 @@ def export_command(state: AppState, args: list[str]) -> None:
         print(f"Error writing to file: {e}")
 
 
+def pipe_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'pipe' command - pipe filtered logs to an external command.
+
+    Args:
+        state: Current application state.
+        args: Command arguments (format option, command).
+    """
+    # Check if we have a tailer with entries
+    if not state.tailer:
+        print("No log file loaded. Use 'tail <instance>' first.")
+        return
+
+    # Parse arguments: pipe [--format fmt] <command...>
+    fmt = ExportFormat.TEXT
+    command_start = 0
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--format" and i + 1 < len(args):
+            try:
+                fmt = ExportFormat.from_string(args[i + 1])
+            except ValueError as e:
+                print(f"Error: {e}")
+                return
+            i += 2
+            command_start = i
+        elif arg.startswith("--"):
+            print(f"Unknown option: {arg}")
+            return
+        else:
+            # First non-option arg starts the command
+            command_start = i
+            break
+
+    # Join remaining args as the command
+    command_args = args[command_start:]
+    if not command_args:
+        print("Usage: pipe [--format text|json|csv] <command...>")
+        print()
+        print("Pipe filtered log entries to an external command.")
+        print()
+        print("Options:")
+        print("  --format <fmt>   Output format (text, json, csv)")
+        print()
+        print("Examples:")
+        print("  pipe wc -l              Count filtered entries")
+        print("  pipe grep ERROR         Search for ERROR in entries")
+        print("  pipe --format json jq   Process JSON with jq")
+        return
+
+    command = " ".join(command_args)
+
+    # Get filtered entries from the tailer's buffer
+    entries = get_filtered_entries(
+        state.tailer.get_buffer(),
+        state.active_levels,
+        state.regex_state,
+    )
+
+    # Pipe to command
+    try:
+        result = pipe_to_command(entries, command, fmt)
+
+        # Display stdout if any
+        if result.stdout:
+            print(result.stdout.rstrip())
+
+        # Display stderr if any
+        if result.stderr:
+            print(f"stderr: {result.stderr.rstrip()}")
+
+        # Report non-zero exit code
+        if result.returncode != 0:
+            print(f"Command exited with code {result.returncode}")
+    except FileNotFoundError:
+        cmd_name = command.split()[0]
+        print(f"Error: Command not found: {cmd_name}")
+    except OSError as e:
+        print(f"Error running command: {e}")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -1192,6 +1277,8 @@ def handle_command(state: AppState, line: str) -> bool:
         enable_logging_command(state, args)
     elif cmd == "export":
         export_command(state, args)
+    elif cmd == "pipe":
+        pipe_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")
