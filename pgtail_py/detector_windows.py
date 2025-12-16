@@ -108,11 +108,13 @@ def detect_from_known_paths() -> Iterator[tuple[Path, DetectionSource]]:
 
     # User home locations
     home = Path.home()
-    known_paths.extend([
-        home / "postgres",
-        home / "postgresql",
-        home / "PostgreSQL" / "data",
-    ])
+    known_paths.extend(
+        [
+            home / "postgres",
+            home / "postgresql",
+            home / "PostgreSQL" / "data",
+        ]
+    )
 
     for path in known_paths:
         try:

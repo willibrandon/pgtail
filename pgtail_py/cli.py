@@ -125,7 +125,7 @@ def _shorten_path(path: Path) -> str:
     path_str = str(path)
     home_str = str(home)
     if path_str.startswith(home_str):
-        return "~" + path_str[len(home_str):]
+        return "~" + path_str[len(home_str) :]
     return path_str
 
 
@@ -620,9 +620,13 @@ def slow_command(state: AppState, args: list[str]) -> None:
     print("Note: PostgreSQL must have log_min_duration_statement enabled to log query durations.")
     if state.current_instance and state.current_instance.port:
         port = state.current_instance.port
-        print(f"  psql -p {port} -c \"ALTER SYSTEM SET log_min_duration_statement = 0; SELECT pg_reload_conf();\"")
+        print(
+            f'  psql -p {port} -c "ALTER SYSTEM SET log_min_duration_statement = 0; SELECT pg_reload_conf();"'
+        )
     else:
-        print("  psql -p <port> -c \"ALTER SYSTEM SET log_min_duration_statement = 0; SELECT pg_reload_conf();\"")
+        print(
+            '  psql -p <port> -c "ALTER SYSTEM SET log_min_duration_statement = 0; SELECT pg_reload_conf();"'
+        )
         print("  (Use 'list' to see instance ports)")
 
 
@@ -869,7 +873,7 @@ def config_command(state: AppState, args: list[str]) -> None:
     if state.config.notifications.quiet_hours:
         print(f'quiet_hours = "{state.config.notifications.quiet_hours}"')
     else:
-        print("# quiet_hours = \"22:00-08:00\"")
+        print('# quiet_hours = "22:00-08:00"')
 
 
 def config_path_command() -> None:
@@ -1105,7 +1109,9 @@ def _get_prompt(state: AppState) -> HTML:
     if state.shell_mode:
         return HTML("<style fg='#ff6688'>!</style> ")
     if state.tailing and state.current_instance:
-        return HTML(f"<style fg='#00aa00'>tailing</style> <style fg='#00aaaa'>[{state.current_instance.id}]</style><style fg='#666666'>&gt;</style> ")
+        return HTML(
+            f"<style fg='#00aa00'>tailing</style> <style fg='#00aaaa'>[{state.current_instance.id}]</style><style fg='#666666'>&gt;</style> "
+        )
     return HTML("<style fg='#00aa00'>pgtail</style><style fg='#666666'>&gt;</style> ")
 
 

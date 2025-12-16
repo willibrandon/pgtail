@@ -46,7 +46,12 @@ def read_postgresql_conf(conf_path: Path) -> dict[str, str]:
                 value = value.strip()
 
                 # Strip quotes from value
-                if value.startswith("'") and value.endswith("'") or value.startswith('"') and value.endswith('"'):
+                if (
+                    value.startswith("'")
+                    and value.endswith("'")
+                    or value.startswith('"')
+                    and value.endswith('"')
+                ):
                     value = value[1:-1]
 
                 settings[name] = value
@@ -54,9 +59,7 @@ def read_postgresql_conf(conf_path: Path) -> dict[str, str]:
     return settings
 
 
-def write_postgresql_conf(
-    conf_path: Path, settings: dict[str, str]
-) -> list[str]:
+def write_postgresql_conf(conf_path: Path, settings: dict[str, str]) -> list[str]:
     """Update postgresql.conf with new settings.
 
     Preserves existing file structure, only modifying/adding specified settings.

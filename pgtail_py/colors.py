@@ -30,14 +30,16 @@ LEVEL_STYLES = {
 # Build the style object from level styles
 # Note: Style keys don't have "class:" prefix - that's only for FormattedText tuples
 _STYLE_RULES = [(level.name.lower(), style) for level, style in LEVEL_STYLES.items()]
-_STYLE_RULES.extend([
-    ("timestamp", "fg:ansibrightblack"),
-    ("pid", "fg:ansibrightblack"),
-    ("highlight", "fg:black bg:yellow"),  # Yellow background for highlights
-    ("slow_warning", "fg:yellow"),
-    ("slow_slow", "fg:yellow bold"),
-    ("slow_critical", "fg:red bold"),
-])
+_STYLE_RULES.extend(
+    [
+        ("timestamp", "fg:ansibrightblack"),
+        ("pid", "fg:ansibrightblack"),
+        ("highlight", "fg:black bg:yellow"),  # Yellow background for highlights
+        ("slow_warning", "fg:yellow"),
+        ("slow_slow", "fg:yellow bold"),
+        ("slow_critical", "fg:red bold"),
+    ]
+)
 LOG_STYLE = Style(_STYLE_RULES)
 
 # Standalone highlight style for direct use

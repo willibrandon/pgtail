@@ -147,8 +147,19 @@ class ConfigSchema:
 
 # Valid log level names for validation
 VALID_LOG_LEVELS = {
-    "DEBUG", "DEBUG1", "DEBUG2", "DEBUG3", "DEBUG4", "DEBUG5",
-    "LOG", "INFO", "NOTICE", "WARNING", "ERROR", "FATAL", "PANIC"
+    "DEBUG",
+    "DEBUG1",
+    "DEBUG2",
+    "DEBUG3",
+    "DEBUG4",
+    "DEBUG5",
+    "LOG",
+    "INFO",
+    "NOTICE",
+    "WARNING",
+    "ERROR",
+    "FATAL",
+    "PANIC",
 }
 
 
@@ -215,6 +226,7 @@ def validate_quiet_hours(value: Any) -> str | None:
     if not isinstance(value, str):
         raise ValueError("must be a time range like '22:00-08:00'")
     import re
+
     if not re.match(r"^\d{2}:\d{2}-\d{2}:\d{2}$", value):
         raise ValueError("must be in format 'HH:MM-HH:MM'")
     return value
@@ -410,9 +422,7 @@ def _apply_to_config(config: ConfigSchema, key: str, value: Any) -> None:
     setattr(section, attr_name, value)
 
 
-def save_config(
-    key: str, value: Any, warn_func: Callable[[str], None] | None = None
-) -> bool:
+def save_config(key: str, value: Any, warn_func: Callable[[str], None] | None = None) -> bool:
     """Save a configuration value, preserving comments.
 
     Args:
@@ -464,9 +474,7 @@ def save_config(
         return False
 
 
-def delete_config_key(
-    key: str, warn_func: Callable[[str], None] | None = None
-) -> bool:
+def delete_config_key(key: str, warn_func: Callable[[str], None] | None = None) -> bool:
     """Delete a configuration key from the file.
 
     Args:

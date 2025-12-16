@@ -24,10 +24,10 @@
 
 **Purpose**: Create the new export module and foundational types
 
-- [ ] T001 Create export module with ExportFormat enum in pgtail_py/export.py
-- [ ] T002 Add ExportOptions dataclass with path, format, follow, append, since fields in pgtail_py/export.py
-- [ ] T003 [P] Add PipeOptions dataclass with command and format fields in pgtail_py/export.py
-- [ ] T004 [P] Add parse_since() function for relative time parsing (1h, 30m, 2d) in pgtail_py/export.py
+- [x] T001 Create export module with ExportFormat enum in pgtail_py/export.py
+- [x] T002 Add ExportOptions dataclass with path, format, follow, append, since fields in pgtail_py/export.py
+- [x] T003 [P] Add PipeOptions dataclass with command and format fields in pgtail_py/export.py
+- [x] T004 [P] Add parse_since() function for relative time parsing (1h, 30m, 2d) in pgtail_py/export.py
 
 ---
 
@@ -37,12 +37,12 @@
 
 **⚠️ CRITICAL**: User story implementation cannot begin until these formatting functions exist
 
-- [ ] T005 Implement format_text_entry() returning raw log line in pgtail_py/export.py
-- [ ] T006 [P] Implement format_json_entry() returning JSONL with ISO 8601 timestamps in pgtail_py/export.py
-- [ ] T007 [P] Implement format_csv_row() using csv module with QUOTE_MINIMAL in pgtail_py/export.py
-- [ ] T008 Implement format_entry() dispatcher that routes to format-specific functions in pgtail_py/export.py
-- [ ] T009 Implement get_filtered_entries() generator applying level/regex filters in pgtail_py/export.py
-- [ ] T010 Add ensure_parent_dirs() using Path.mkdir(parents=True) in pgtail_py/export.py
+- [x] T005 Implement format_text_entry() returning raw log line in pgtail_py/export.py
+- [x] T006 [P] Implement format_json_entry() returning JSONL with ISO 8601 timestamps in pgtail_py/export.py
+- [x] T007 [P] Implement format_csv_row() using csv module with QUOTE_MINIMAL in pgtail_py/export.py
+- [x] T008 Implement format_entry() dispatcher that routes to format-specific functions in pgtail_py/export.py
+- [x] T009 Implement get_filtered_entries() generator applying level/regex filters in pgtail_py/export.py
+- [x] T010 Add ensure_parent_dirs() using Path.mkdir(parents=True) in pgtail_py/export.py
 
 **Checkpoint**: Foundation ready - export formatting and filtering infrastructure complete
 

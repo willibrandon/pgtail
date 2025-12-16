@@ -81,7 +81,9 @@ class PgtailCompleter(Completer):
         if cmd == "tail" or cmd == "enable-logging":
             yield from self._complete_instances(arg_text)
         elif cmd == "levels":
-            yield from self._complete_levels(arg_text, parts[1:] if text.endswith(" ") else parts[1:-1])
+            yield from self._complete_levels(
+                arg_text, parts[1:] if text.endswith(" ") else parts[1:-1]
+            )
         elif cmd == "filter":
             yield from self._complete_filter(arg_text)
         elif cmd == "highlight":
