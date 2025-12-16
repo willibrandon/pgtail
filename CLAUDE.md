@@ -73,10 +73,10 @@ Settings persist in a TOML config file at platform-specific locations:
 - `notifications.enabled`, `notifications.levels`, `notifications.quiet_hours`
 
 ## Recent Changes
+- 006-export-pipe: Added Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomlkit>=0.12.0 (existing)
 - 005-config-file: Added persistent configuration file support with `set`, `unset`, and `config` commands
 - Added slow query detection with configurable thresholds (slow command)
-- Added query duration statistics (stats command)
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomlkit>=0.12.0
-- TOML file at platform-specific config directories
+- Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomlkit>=0.12.0 (existing) (006-export-pipe)
+- Local filesystem for export files (006-export-pipe)
