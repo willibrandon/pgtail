@@ -56,14 +56,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement confirm_overwrite() prompt using prompt_toolkit in pgtail_py/export.py
-- [ ] T012 [US1] Implement export_to_file() core function (opens file, streams entries, returns count) in pgtail_py/export.py
-- [ ] T013 [US1] Add export_command() handler in pgtail_py/cli.py parsing filename and --append flag
-- [ ] T014 [US1] Add argument parsing for export command (extract filename, detect --append) in pgtail_py/cli.py
-- [ ] T015 [US1] Integrate export_command into handle_command() dispatch in pgtail_py/cli.py
-- [ ] T016 [US1] Add 'export' to COMMANDS dict with description in pgtail_py/commands.py
-- [ ] T017 [P] [US1] Add export command completion (--append flag) in pgtail_py/commands.py
-- [ ] T018 [US1] Add export to help_command() output in pgtail_py/cli.py
+- [x] T011 [US1] Implement confirm_overwrite() prompt using prompt_toolkit in pgtail_py/export.py
+- [x] T012 [US1] Implement export_to_file() core function (opens file, streams entries, returns count) in pgtail_py/export.py
+- [x] T013 [US1] Add export_command() handler in pgtail_py/cli.py parsing filename and --append flag
+- [x] T014 [US1] Add argument parsing for export command (extract filename, detect --append) in pgtail_py/cli.py
+- [x] T015 [US1] Integrate export_command into handle_command() dispatch in pgtail_py/cli.py
+- [x] T016 [US1] Add 'export' to COMMANDS dict with description in pgtail_py/commands.py
+- [x] T017 [P] [US1] Add export command completion (--append flag) in pgtail_py/commands.py
+- [x] T018 [US1] Add export to help_command() output in pgtail_py/cli.py
 
 **Checkpoint**: User Story 1 complete - `export file.log` works with level/regex filters and overwrite confirmation
 

@@ -236,3 +236,56 @@ def ensure_parent_dirs(path: Path) -> None:
 
 # CSV header for export
 CSV_HEADER = "timestamp,level,pid,message"
+
+
+def confirm_overwrite(path: Path) -> bool:
+    """Prompt user to confirm overwriting an existing file.
+
+    Args:
+        path: File path to check.
+
+    Returns:
+        True if file doesn't exist or user confirms overwrite, False otherwise.
+    """
+    from prompt_toolkit import prompt
+
+    if not path.exists():
+        return True
+
+    response = prompt(f"File {path} exists. Overwrite? [y/N] ")
+    return response.lower() in ("y", "yes")
+
+
+def export_to_file(
+    entries: Iterable["LogEntry"],
+    path: Path,
+    fmt: ExportFormat = ExportFormat.TEXT,
+    append: bool = False,
+) -> int:
+    """Export entries to a file.
+
+    Args:
+        entries: Log entries to export.
+        path: Output file path.
+        fmt: Output format.
+        append: If True, append to existing file.
+
+    Returns:
+        Number of entries written.
+    """
+    mode = "a" if append else "w"
+    count = 0
+
+    # Ensure parent directories exist
+    ensure_parent_dirs(path)
+
+    with open(path, mode, encoding="utf-8", newline="") as f:
+        # Write CSV header if not appending
+        if fmt == ExportFormat.CSV and not append:
+            f.write(CSV_HEADER + "\n")
+
+        for entry in entries:
+            f.write(format_entry(entry, fmt) + "\n")
+            count += 1
+
+    return count

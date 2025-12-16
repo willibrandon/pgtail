@@ -36,6 +36,12 @@ from pgtail_py.config import (
 )
 from pgtail_py.detector import detect_all
 from pgtail_py.enable_logging import enable_logging
+from pgtail_py.export import (
+    ExportFormat,
+    confirm_overwrite,
+    export_to_file,
+    get_filtered_entries,
+)
 from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.instance import Instance
 from pgtail_py.regex_filter import (
@@ -212,6 +218,9 @@ Available commands:
   unset <key>       Remove a setting to revert to default
   config            Show current configuration as TOML
                     Subcommands: path, edit, reset
+  export <file>     Export filtered logs to file
+                    --format <fmt>  Output format (text, json, csv)
+                    --append        Append to existing file
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -339,7 +348,7 @@ def stop_command(state: AppState) -> None:
 
     if state.tailer:
         state.tailer.stop()
-        state.tailer = None
+        # Keep tailer reference so buffer is available for export
 
     state.tailing = False
     state.stop_event.set()
@@ -1024,6 +1033,78 @@ def enable_logging_command(state: AppState, args: list[str]) -> None:
         print(f"Error: {result.message}")
 
 
+def export_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'export' command - export filtered logs to a file.
+
+    Args:
+        state: Current application state.
+        args: Command arguments (filename, options).
+    """
+    # Check if we have a tailer with entries
+    if not state.tailer:
+        print("No log file loaded. Use 'tail <instance>' first.")
+        return
+
+    # Parse arguments: export [--append] [--format fmt] <filename>
+    append = False
+    fmt = ExportFormat.TEXT
+    filename = None
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--append":
+            append = True
+            i += 1
+        elif arg == "--format" and i + 1 < len(args):
+            try:
+                fmt = ExportFormat.from_string(args[i + 1])
+            except ValueError as e:
+                print(f"Error: {e}")
+                return
+            i += 2
+        elif arg.startswith("--"):
+            print(f"Unknown option: {arg}")
+            return
+        else:
+            filename = arg
+            i += 1
+
+    if not filename:
+        print("Usage: export [--append] [--format text|json|csv] <filename>")
+        print()
+        print("Export filtered log entries to a file.")
+        print()
+        print("Options:")
+        print("  --append         Append to existing file")
+        print("  --format <fmt>   Output format (text, json, csv)")
+        return
+
+    path = Path(filename)
+
+    # Confirm overwrite if file exists and not appending
+    if not append and not confirm_overwrite(path):
+        print("Export cancelled.")
+        return
+
+    # Get filtered entries from the tailer's buffer
+    entries = get_filtered_entries(
+        state.tailer.get_buffer(),
+        state.active_levels,
+        state.regex_state,
+    )
+
+    # Export to file
+    try:
+        count = export_to_file(entries, path, fmt, append)
+        print(f"Exported {count} entries to {path}")
+    except PermissionError:
+        print(f"Error: Permission denied: {path}")
+        print("Try a different location or check permissions.")
+    except OSError as e:
+        print(f"Error writing to file: {e}")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -1097,6 +1178,8 @@ def handle_command(state: AppState, line: str) -> bool:
         stop_command(state)
     elif cmd == "enable-logging":
         enable_logging_command(state, args)
+    elif cmd == "export":
+        export_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")

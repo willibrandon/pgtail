@@ -44,6 +44,7 @@ class LogTailer:
         self._queue: Queue[LogEntry] = Queue()
         self._stop_event = threading.Event()
         self._poll_thread: threading.Thread | None = None
+        self._buffer: list[LogEntry] = []  # Store entries for export
 
     def _get_file_inode(self) -> int | None:
         """Get the inode of the log file for rotation detection."""
@@ -86,6 +87,7 @@ class LogTailer:
                         entry = parse_log_line(line)
                         if self._should_show(entry):
                             self._queue.put(entry)
+                            self._buffer.append(entry)
                 self._position = f.tell()
         except OSError:
             pass
@@ -178,6 +180,18 @@ class LogTailer:
     def is_running(self) -> bool:
         """Check if the tailer is currently running."""
         return self._running
+
+    def get_buffer(self) -> list[LogEntry]:
+        """Get all entries collected during tailing.
+
+        Returns:
+            List of log entries in chronological order.
+        """
+        return list(self._buffer)
+
+    def clear_buffer(self) -> None:
+        """Clear the buffer of collected entries."""
+        self._buffer.clear()
 
 
 def tail_file(
