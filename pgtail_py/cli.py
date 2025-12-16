@@ -20,10 +20,16 @@ from pgtail_py.colors import (
 )
 from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import (
+    SETTINGS_SCHEMA,
     ConfigSchema,
     ensure_history_dir,
+    get_config_path,
+    get_default_value,
     get_history_path,
     load_config,
+    parse_value,
+    save_config,
+    validate_key,
 )
 from pgtail_py.detector import detect_all
 from pgtail_py.enable_logging import enable_logging
@@ -198,6 +204,8 @@ Available commands:
                     With no args, shows current settings
                     'slow off' disables highlighting
   stats             Show query duration statistics
+  set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
+                    With no value, shows current setting
   stop              Stop current tail and return to prompt
   refresh           Re-scan for PostgreSQL instances
   enable-logging <id>  Enable logging_collector for an instance
@@ -630,6 +638,110 @@ def stats_command(state: AppState) -> None:
     print(state.duration_stats.format_summary())
 
 
+def set_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'set' command - set or display a config value.
+
+    Args:
+        state: Current application state.
+        args: Command arguments: [key] or [key, value...].
+    """
+    # No args - show usage
+    if not args:
+        print("Usage: set <key> [value]")
+        print()
+        print("Available settings:")
+        for key in SETTINGS_SCHEMA:
+            default = get_default_value(key)
+            print(f"  {key} (default: {default!r})")
+        return
+
+    key = args[0]
+
+    # Validate key
+    if not validate_key(key):
+        print(f"Unknown setting: {key}")
+        print()
+        print("Available settings:")
+        for k in SETTINGS_SCHEMA:
+            print(f"  {k}")
+        return
+
+    # No value - display current value (T019)
+    if len(args) == 1:
+        # Get current value from config
+        parts = key.split(".")
+        section = getattr(state.config, parts[0])
+        current = getattr(section, parts[1])
+        default = get_default_value(key)
+        print(f"{key} = {current!r}")
+        if current != default:
+            print(f"  (default: {default!r})")
+        return
+
+    # Parse and validate value (T018, T020)
+    raw_value = args[1:]
+    try:
+        value = parse_value(key, raw_value if len(raw_value) > 1 else raw_value[0])
+    except ValueError as e:
+        print(f"Invalid value for {key}: {e}")
+        return
+
+    # Validate the value using schema validator
+    _, validator, _ = SETTINGS_SCHEMA[key]
+    try:
+        validated = validator(value)
+    except ValueError as e:
+        print(f"Invalid value for {key}: {e}")
+        return
+
+    # Save to config file (T021 - creates file/dirs if needed)
+    if not save_config(key, validated, warn_func=_warn):
+        print("Failed to save configuration")
+        return
+
+    # Update in-memory config
+    parts = key.split(".")
+    section = getattr(state.config, parts[0])
+    setattr(section, parts[1], validated)
+
+    # Apply changes immediately (T022)
+    _apply_setting(state, key)
+
+    print(f"{key} = {validated!r}")
+    print(f"Saved to {get_config_path()}")
+
+
+def _apply_setting(state: AppState, key: str) -> None:
+    """Apply a single setting change to runtime state.
+
+    Args:
+        state: Current application state.
+        key: The setting key that was changed.
+    """
+    import contextlib
+
+    if key == "default.levels":
+        levels = state.config.default.levels
+        if not levels:
+            state.active_levels = LogLevel.all_levels()
+        else:
+            valid_levels: set[LogLevel] = set()
+            for level_name in levels:
+                with contextlib.suppress(ValueError):
+                    valid_levels.add(LogLevel.from_string(level_name))
+            state.active_levels = valid_levels if valid_levels else LogLevel.all_levels()
+        # Update tailer if tailing
+        if state.tailer:
+            state.tailer.update_levels(state.active_levels)
+    elif key.startswith("slow."):
+        state.slow_query_config = SlowQueryConfig(
+            enabled=True,
+            warning_ms=state.config.slow.warn,
+            slow_ms=state.config.slow.error,
+            critical_ms=state.config.slow.critical,
+        )
+
+
 def enable_logging_command(state: AppState, args: list[str]) -> None:
     """Handle the 'enable-logging' command - enable logging_collector for an instance.
 
@@ -748,6 +860,8 @@ def handle_command(state: AppState, line: str) -> bool:
         slow_command(state, args)
     elif cmd == "stats":
         stats_command(state)
+    elif cmd == "set":
+        set_command(state, args)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":

@@ -59,15 +59,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Register `set` command in COMMANDS dict in pgtail_py/commands.py
-- [ ] T015 [US1] Add SETTING_KEYS list for autocomplete in pgtail_py/commands.py
-- [ ] T016 [US1] Update PgtailCompleter to complete setting keys after `set` in pgtail_py/commands.py
-- [ ] T017 [US1] Implement cmd_set() handler in pgtail_py/cli.py
-- [ ] T018 [US1] Implement parse_value() for type conversion (bool, int, list, str) in pgtail_py/config.py
-- [ ] T019 [US1] Handle `set <key>` (no value) to display current value in pgtail_py/cli.py
-- [ ] T020 [US1] Handle `set <key> <value>` to validate, save, and apply setting in pgtail_py/cli.py
-- [ ] T021 [US1] Create config file and parent dirs on first set if needed in pgtail_py/config.py
-- [ ] T022 [US1] Update in-memory state immediately after set (slow thresholds, level filter) in pgtail_py/cli.py
+- [x] T014 [US1] Register `set` command in COMMANDS dict in pgtail_py/commands.py
+- [x] T015 [US1] Add SETTING_KEYS list for autocomplete in pgtail_py/commands.py
+- [x] T016 [US1] Update PgtailCompleter to complete setting keys after `set` in pgtail_py/commands.py
+- [x] T017 [US1] Implement cmd_set() handler in pgtail_py/cli.py
+- [x] T018 [US1] Implement parse_value() for type conversion (bool, int, list, str) in pgtail_py/config.py
+- [x] T019 [US1] Handle `set <key>` (no value) to display current value in pgtail_py/cli.py
+- [x] T020 [US1] Handle `set <key> <value>` to validate, save, and apply setting in pgtail_py/cli.py
+- [x] T021 [US1] Create config file and parent dirs on first set if needed in pgtail_py/config.py
+- [x] T022 [US1] Update in-memory state immediately after set (slow thresholds, level filter) in pgtail_py/cli.py
 
 **Checkpoint**: User Story 1 complete - settings persist across sessions
 

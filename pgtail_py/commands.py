@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
 
+from pgtail_py.config import SETTING_KEYS
 from pgtail_py.filter import LogLevel
 
 if TYPE_CHECKING:
@@ -21,6 +22,7 @@ COMMANDS: dict[str, str] = {
     "highlight": "Highlight text matching regex (e.g., 'highlight /pattern/')",
     "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
     "stats": "Show query duration statistics",
+    "set": "Set a config value (e.g., 'set slow.warn 50')",
     "stop": "Stop current tail and return to prompt",
     "refresh": "Re-scan for PostgreSQL instances",
     "enable-logging": "Enable logging_collector for an instance",
@@ -84,6 +86,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_highlight(arg_text)
         elif cmd == "slow":
             yield from self._complete_slow(arg_text)
+        elif cmd == "set":
+            yield from self._complete_set(arg_text, len(parts))
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -212,3 +216,28 @@ class PgtailCompleter(Completer):
                 start_position=-len(prefix),
                 display_meta="Disable slow query highlighting",
             )
+
+    def _complete_set(self, prefix: str, num_parts: int) -> list[Completion]:
+        """Complete setting keys for 'set' command.
+
+        Args:
+            prefix: The prefix to match.
+            num_parts: Number of parts in the command so far.
+
+        Yields:
+            Completions for matching setting keys.
+        """
+        # Only complete first argument (the key)
+        if num_parts > 2:
+            return
+
+        prefix_lower = prefix.lower()
+        for key in SETTING_KEYS:
+            if key.startswith(prefix_lower):
+                # Extract section and description from key
+                section = key.split(".")[0]
+                yield Completion(
+                    key,
+                    start_position=-len(prefix),
+                    display_meta=f"{section} setting",
+                )
