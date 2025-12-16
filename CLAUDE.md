@@ -46,3 +46,10 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - prompt_toolkit >=3.0.0 (REPL, autocomplete, styled output)
 - psutil >=5.9.0 (process detection)
 - re (stdlib, regex filtering)
+
+## Active Technologies
+- Python 3.10+ + prompt_toolkit >=3.0.0 (REPL/colors), psutil >=5.9.0 (process detection) (004-slow-query)
+- N/A (session-scoped in-memory only) (004-slow-query)
+
+## Recent Changes
+- 004-slow-query: Added Python 3.10+ + prompt_toolkit >=3.0.0 (REPL/colors), psutil >=5.9.0 (process detection)
