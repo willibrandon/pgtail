@@ -1133,7 +1133,10 @@ def export_command(state: AppState, args: list[str]) -> None:
     # Export to file
     try:
         count = export_to_file(entries, path, fmt, append)
-        print(f"Exported {count} entries to {path}")
+        if count == 0:
+            print("No entries to export (buffer is empty or all filtered out).")
+        else:
+            print(f"Exported {count} entries to {path}")
     except PermissionError:
         print(f"Error: Permission denied: {path}")
         print("Try a different location or check permissions.")

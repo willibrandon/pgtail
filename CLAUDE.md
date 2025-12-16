@@ -34,6 +34,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/commands.py` - Command definitions, PgtailCompleter for autocomplete
 - `pgtail_py/config.py` - Configuration file support, platform-specific paths, config schema
 - `pgtail_py/enable_logging.py` - Enable logging_collector in postgresql.conf
+- `pgtail_py/export.py` - Export formatting, file writing, pipe to external commands
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
 
@@ -73,10 +74,6 @@ Settings persist in a TOML config file at platform-specific locations:
 - `notifications.enabled`, `notifications.levels`, `notifications.quiet_hours`
 
 ## Recent Changes
-- 006-export-pipe: Added Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomlkit>=0.12.0 (existing)
+- 006-export-pipe: Added `export` and `pipe` commands for saving logs to files and streaming to external tools
 - 005-config-file: Added persistent configuration file support with `set`, `unset`, and `config` commands
 - Added slow query detection with configurable thresholds (slow command)
-
-## Active Technologies
-- Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomlkit>=0.12.0 (existing) (006-export-pipe)
-- Local filesystem for export files (006-export-pipe)

@@ -135,14 +135,14 @@
 
 **Purpose**: Error handling, edge cases, and documentation
 
-- [ ] T042 [P] Add error handling for permission denied (catch PermissionError) in pgtail_py/export.py
-- [ ] T043 [P] Add error handling for disk full (catch OSError with ENOSPC) in pgtail_py/export.py
-- [ ] T044 [P] Add error handling for command not found in pipe_to_command() in pgtail_py/export.py
-- [ ] T045 Handle empty export (0 entries) with clear message in pgtail_py/cli.py
-- [ ] T046 Validate --follow and --append are mutually exclusive in export_command in pgtail_py/cli.py
-- [ ] T047 Run make lint and fix any linting issues
-- [ ] T048 Run make test to verify existing tests still pass
-- [ ] T049 Manual test: quickstart.md scenarios validation
+- [x] T042 [P] Add error handling for permission denied (catch PermissionError) in pgtail_py/export.py
+- [x] T043 [P] Add error handling for disk full (catch OSError with ENOSPC) in pgtail_py/export.py
+- [x] T044 [P] Add error handling for command not found in pipe_to_command() in pgtail_py/export.py
+- [x] T045 Handle empty export (0 entries) with clear message in pgtail_py/cli.py
+- [x] T046 Validate --follow and --append are mutually exclusive in export_command in pgtail_py/cli.py
+- [x] T047 Run make lint and fix any linting issues
+- [x] T048 Run make test to verify existing tests still pass
+- [x] T049 Manual test: quickstart.md scenarios validation
 
 ---
 

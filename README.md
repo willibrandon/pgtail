@@ -11,6 +11,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Highlight matching text with yellow background
 - Slow query detection with configurable thresholds
 - Query duration statistics (count, average, percentiles)
+- Export logs to files (text, JSON, CSV formats)
+- Pipe logs to external commands (grep, jq, wc, etc.)
 - Color-coded output by severity
 - REPL with autocomplete and command history
 - Cross-platform (macOS, Linux, Windows)
@@ -51,6 +53,8 @@ filter /pattern/   Regex filter (see Filtering below)
 highlight /pattern/ Highlight matching text (yellow background)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
+export <file>      Export filtered logs to file (see Export below)
+pipe <cmd>         Pipe filtered logs to external command (see Pipe below)
 set <key> [val]    Set/view a config value (persists across sessions)
 unset <key>        Remove a setting, revert to default
 config             Show current configuration (subcommands: path, edit, reset)
@@ -101,6 +105,35 @@ Requires PostgreSQL `log_min_duration_statement` to be enabled:
 ```sql
 ALTER SYSTEM SET log_min_duration_statement = 0;
 SELECT pg_reload_conf();
+```
+
+### Export
+
+Export filtered log entries to a file:
+
+```
+export errors.log              Save to text file
+export --format json logs.json Save as JSON Lines
+export --format csv data.csv   Save as CSV with headers
+export --since 1h recent.log   Only entries from last hour
+export --append errors.log     Append to existing file
+export --follow test.log       Continuous export (like tail -f | tee)
+```
+
+Formats:
+- **text**: Raw log lines (default)
+- **json**: JSON Lines format, one object per line
+- **csv**: CSV with timestamp, level, pid, message columns
+
+### Pipe
+
+Pipe filtered log entries to external commands:
+
+```
+pipe wc -l                     Count matching entries
+pipe grep "SELECT"             Filter with grep
+pipe --format json jq '.message'  Process JSON with jq
+pipe head -20                  First 20 entries
 ```
 
 ### Configuration
