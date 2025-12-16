@@ -118,12 +118,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Implement cmd_config_reset() handler in pgtail_py/cli.py
-- [ ] T035 [US4] Check if config file exists, show message if not in pgtail_py/cli.py
-- [ ] T036 [US4] Create timestamped backup file (.bak.YYYYMMDD-HHMMSS) in pgtail_py/cli.py
-- [ ] T037 [US4] Delete original config file after backup in pgtail_py/cli.py
-- [ ] T038 [US4] Reset in-memory config to defaults in pgtail_py/cli.py
-- [ ] T039 [US4] Display confirmation with backup file path in pgtail_py/cli.py
+- [x] T034 [US4] Implement cmd_config_reset() handler in pgtail_py/cli.py
+- [x] T035 [US4] Check if config file exists, show message if not in pgtail_py/cli.py
+- [x] T036 [US4] Create timestamped backup file (.bak.YYYYMMDD-HHMMSS) in pgtail_py/cli.py
+- [x] T037 [US4] Delete original config file after backup in pgtail_py/cli.py
+- [x] T038 [US4] Reset in-memory config to defaults in pgtail_py/cli.py
+- [x] T039 [US4] Display confirmation with backup file path in pgtail_py/cli.py
 
 **Checkpoint**: User Story 4 complete - users can reset with backup
 

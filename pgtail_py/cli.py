@@ -29,6 +29,7 @@ from pgtail_py.config import (
     get_history_path,
     load_config,
     parse_value,
+    reset_config,
     save_config,
     validate_key,
 )
@@ -762,8 +763,7 @@ def config_command(state: AppState, args: list[str]) -> None:
             config_edit_command(state)
             return
         elif subcommand == "reset":
-            # Will be implemented in Phase 6 (US4)
-            print("'config reset' will be implemented in a future update.")
+            config_reset_command(state)
             return
         else:
             print(f"Unknown subcommand: {subcommand}")
@@ -872,6 +872,39 @@ def config_edit_command(state: AppState) -> None:
     state.config = load_config(warn_func=_warn)
     state._apply_config()
     print("Configuration reloaded.")
+
+
+def config_reset_command(state: AppState) -> None:
+    """Handle the 'config reset' command - reset to defaults with backup (T034-T039).
+
+    Args:
+        state: Current application state.
+    """
+    config_path = get_config_path()
+
+    # T035: Check if config file exists
+    if not config_path.exists():
+        print("No config file to reset.")
+        print(f"Config path: {config_path}")
+        print()
+        print("Already using default settings.")
+        return
+
+    # T036, T037: Create backup and delete original (handled by reset_config)
+    backup_path = reset_config(warn_func=_warn)
+
+    if backup_path is None:
+        print("Error: Could not reset config file")
+        return
+
+    # T038: Reset in-memory config to defaults
+    state.config = ConfigSchema()
+    state._apply_config()
+
+    # T039: Display confirmation
+    print("Configuration reset to defaults.")
+    print()
+    print(f"Backup saved: {backup_path}")
 
 
 def enable_logging_command(state: AppState, args: list[str]) -> None:
