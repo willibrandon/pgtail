@@ -94,17 +94,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Unit test for DurationStats.add() and basic stats (count, avg, min, max) in tests/test_slow_query.py
-- [ ] T028 [P] [US3] Unit test for DurationStats percentile calculations (p50, p95, p99) in tests/test_slow_query.py
-- [ ] T029 [P] [US3] Unit test for DurationStats.is_empty() and edge cases in tests/test_slow_query.py
+- [x] T027 [P] [US3] Unit test for DurationStats.add() and basic stats (count, avg, min, max) in tests/test_slow_query.py
+- [x] T028 [P] [US3] Unit test for DurationStats percentile calculations (p50, p95, p99) in tests/test_slow_query.py
+- [x] T029 [P] [US3] Unit test for DurationStats.is_empty() and edge cases in tests/test_slow_query.py
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Implement DurationStats.add() method with running counters in pgtail_py/slow_query.py
-- [ ] T031 [US3] Implement DurationStats percentile properties (p50, p95, p99) using statistics.quantiles in pgtail_py/slow_query.py
-- [ ] T032 [US3] Implement DurationStats.format_summary() method in pgtail_py/slow_query.py
-- [ ] T033 [US3] Implement stats_command() handler in pgtail_py/cli.py
-- [ ] T034 [US3] Handle stats command with no data (display helpful message) in pgtail_py/cli.py
+- [x] T030 [US3] Implement DurationStats.add() method with running counters in pgtail_py/slow_query.py
+- [x] T031 [US3] Implement DurationStats percentile properties (p50, p95, p99) using statistics.quantiles in pgtail_py/slow_query.py
+- [x] T032 [US3] Implement DurationStats.format_summary() method in pgtail_py/slow_query.py
+- [x] T033 [US3] Implement stats_command() handler in pgtail_py/cli.py
+- [x] T034 [US3] Handle stats command with no data (display helpful message) in pgtail_py/cli.py
 
 **Checkpoint**: User Story 3 complete - users can view query duration statistics
 

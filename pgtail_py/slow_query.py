@@ -202,7 +202,7 @@ class DurationStats:
             return 0.0
         if self.count == 1:
             return self.samples[0]
-        quantiles = statistics.quantiles(self.samples, n=100)
+        quantiles = statistics.quantiles(self.samples, n=100, method="inclusive")
         return quantiles[49]  # 50th percentile
 
     @property
@@ -212,7 +212,7 @@ class DurationStats:
             return 0.0
         if self.count == 1:
             return self.samples[0]
-        quantiles = statistics.quantiles(self.samples, n=100)
+        quantiles = statistics.quantiles(self.samples, n=100, method="inclusive")
         return quantiles[94]  # 95th percentile
 
     @property
@@ -222,7 +222,7 @@ class DurationStats:
             return 0.0
         if self.count == 1:
             return self.samples[0]
-        quantiles = statistics.quantiles(self.samples, n=100)
+        quantiles = statistics.quantiles(self.samples, n=100, method="inclusive")
         return quantiles[98]  # 99th percentile
 
     def format_summary(self) -> str:

@@ -574,6 +574,24 @@ def slow_command(state: AppState, args: list[str]) -> None:
         print("  (Use 'list' to see instance ports)")
 
 
+def stats_command(state: AppState) -> None:
+    """Handle the 'stats' command - display query duration statistics.
+
+    Args:
+        state: Current application state.
+    """
+    # T034: Handle empty stats
+    if state.duration_stats.is_empty():
+        print("No query duration data collected yet.")
+        print()
+        print("Duration statistics are collected automatically while tailing logs.")
+        print("PostgreSQL must have log_min_duration_statement enabled to log query durations.")
+        return
+
+    # T033: Display statistics summary
+    print(state.duration_stats.format_summary())
+
+
 def enable_logging_command(state: AppState, args: list[str]) -> None:
     """Handle the 'enable-logging' command - enable logging_collector for an instance.
 
@@ -690,6 +708,8 @@ def handle_command(state: AppState, line: str) -> bool:
         highlight_command(state, args)
     elif cmd == "slow":
         slow_command(state, args)
+    elif cmd == "stats":
+        stats_command(state)
     elif cmd == "stop":
         stop_command(state)
     elif cmd == "enable-logging":
