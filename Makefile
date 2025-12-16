@@ -1,5 +1,12 @@
 .PHONY: help run test lint format build clean shell
 
+# Detect OS for platform-specific commands
+ifeq ($(OS),Windows_NT)
+    DETECTED_OS := Windows
+else
+    DETECTED_OS := $(shell uname -s)
+endif
+
 help:
 	@echo "Usage: make [target]"
 	@echo ""
@@ -13,8 +20,13 @@ help:
 	@echo "  shell   Enter virtual environment shell"
 
 shell:
+ifeq ($(DETECTED_OS),Windows)
+	@echo "Entering venv shell (type 'exit' to leave)"
+	@cmd /k ".venv\Scripts\activate.bat"
+else
 	@echo "Entering venv shell (type 'exit' to leave)"
 	@bash -c "source .venv/bin/activate && exec bash"
+endif
 
 run:
 	uv run python -m pgtail_py
@@ -32,5 +44,14 @@ build:
 	uv run pyinstaller --onefile --name pgtail pgtail_py/__main__.py
 
 clean:
+ifeq ($(DETECTED_OS),Windows)
+	-@if exist build rd /s /q build
+	-@if exist dist rd /s /q dist
+	-@if exist .pytest_cache rd /s /q .pytest_cache
+	-@if exist .ruff_cache rd /s /q .ruff_cache
+	-@if exist pgtail_py\__pycache__ rd /s /q pgtail_py\__pycache__
+	-@if exist tests\__pycache__ rd /s /q tests\__pycache__
+else
 	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+endif

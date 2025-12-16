@@ -42,3 +42,6 @@ build/
 htmlcov/
 .coverage
 .coverage.*
+
+# Distribution / Packaging
+pgtail.spec
