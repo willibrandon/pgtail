@@ -51,6 +51,9 @@ filter /pattern/   Regex filter (see Filtering below)
 highlight /pattern/ Highlight matching text (yellow background)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
+set <key> [val]    Set/view a config value (persists across sessions)
+unset <key>        Remove a setting, revert to default
+config             Show current configuration (subcommands: path, edit, reset)
 enable-logging <id> Enable logging_collector for an instance
 refresh            Re-scan for instances
 stop               Stop current tail
@@ -99,6 +102,30 @@ Requires PostgreSQL `log_min_duration_statement` to be enabled:
 ALTER SYSTEM SET log_min_duration_statement = 0;
 SELECT pg_reload_conf();
 ```
+
+### Configuration
+
+Settings persist in a TOML config file:
+- **macOS**: `~/Library/Application Support/pgtail/config.toml`
+- **Linux**: `~/.config/pgtail/config.toml`
+- **Windows**: `%APPDATA%/pgtail/config.toml`
+
+```
+set slow.warn 50           Save a setting (creates config file)
+set slow.warn              Show current value
+unset slow.warn            Remove setting, use default
+config                     Show all settings as TOML
+config path                Show config file location
+config edit                Open in $EDITOR
+config reset               Reset to defaults (creates backup)
+```
+
+Available settings:
+- `default.levels` - Default log level filter (e.g., `ERROR WARNING`)
+- `slow.warn`, `slow.error`, `slow.critical` - Threshold values in ms
+- `display.timestamp_format` - strftime format for timestamps
+- `display.show_pid`, `display.show_level` - Toggle output fields
+- `theme.name` - Color theme (`dark` or `light`)
 
 ### Example
 
@@ -149,6 +176,7 @@ Query Duration Statistics
 - Python 3.10+
 - prompt_toolkit
 - psutil
+- tomlkit
 
 ## License
 

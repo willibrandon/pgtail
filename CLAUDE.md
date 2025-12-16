@@ -32,7 +32,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/tailer.py` - Log file tailing with polling (handles rotation)
 - `pgtail_py/colors.py` - Color output using prompt_toolkit styles
 - `pgtail_py/commands.py` - Command definitions, PgtailCompleter for autocomplete
-- `pgtail_py/config.py` - Platform-specific paths (history file)
+- `pgtail_py/config.py` - Configuration file support, platform-specific paths, config schema
 - `pgtail_py/enable_logging.py` - Enable logging_collector in postgresql.conf
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
@@ -48,11 +48,35 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - psutil >=5.9.0 (process detection)
 - re (stdlib, regex filtering)
 
+## Configuration
+
+Settings persist in a TOML config file at platform-specific locations:
+- **macOS**: `~/Library/Application Support/pgtail/config.toml`
+- **Linux**: `~/.config/pgtail/config.toml` (XDG_CONFIG_HOME)
+- **Windows**: `%APPDATA%/pgtail/config.toml`
+
+**Config commands:**
+- `set <key> [value]` - Set a config value (e.g., `set slow.warn 50`)
+- `unset <key>` - Remove a setting, revert to default
+- `config` - Show current configuration as TOML
+- `config path` - Show config file location
+- `config edit` - Open in $EDITOR
+- `config reset` - Reset to defaults (creates backup)
+
+**Available settings:**
+- `default.levels` - Default log level filter (e.g., `["ERROR", "WARNING"]`)
+- `default.follow` - Auto-follow new entries (bool)
+- `slow.warn`, `slow.error`, `slow.critical` - Threshold values in ms
+- `display.timestamp_format` - strftime format string
+- `display.show_pid`, `display.show_level` - Toggle output fields
+- `theme.name` - Color theme (`dark` or `light`)
+- `notifications.enabled`, `notifications.levels`, `notifications.quiet_hours`
+
 ## Recent Changes
-- 005-config-file: Added Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomli (Python 3.10), tomllib (Python 3.11+), tomlkit (for preserving comments)
+- 005-config-file: Added persistent configuration file support with `set`, `unset`, and `config` commands
 - Added slow query detection with configurable thresholds (slow command)
 - Added query duration statistics (stats command)
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomli (Python 3.10), tomllib (Python 3.11+), tomlkit (for preserving comments) (005-config-file)
-- TOML file at platform-specific config directories (005-config-file)
+- Python 3.10+ + prompt_toolkit>=3.0.0, psutil>=5.9.0, tomlkit>=0.12.0
+- TOML file at platform-specific config directories

@@ -153,12 +153,12 @@
 
 **Purpose**: Final integration and documentation
 
-- [ ] T047 Verify all edge cases from spec (invalid TOML, invalid values, permissions) in pgtail_py/config.py
-- [ ] T048 Add config-related entries to help command output in pgtail_py/commands.py
-- [ ] T049 Update CLAUDE.md with new commands documentation
-- [ ] T050 Run `make lint` and fix any issues
-- [ ] T051 Run `make test` and verify existing tests pass
-- [ ] T052 Manual testing: run quickstart.md validation scenarios
+- [x] T047 Verify all edge cases from spec (invalid TOML, invalid values, permissions) in pgtail_py/config.py
+- [x] T048 Add config-related entries to help command output in pgtail_py/commands.py
+- [x] T049 Update CLAUDE.md with new commands documentation
+- [x] T050 Run `make lint` and fix any issues
+- [x] T051 Run `make test` and verify existing tests pass
+- [x] T052 Manual testing: run quickstart.md validation scenarios
 
 ---
 
