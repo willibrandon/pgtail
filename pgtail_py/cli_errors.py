@@ -23,47 +23,128 @@ def errors_command(state: AppState, args: list[str]) -> None:
 
     Args:
         state: Current application state.
-        args: Command arguments (e.g., --trend, --live, --code, clear).
+        args: Command arguments (e.g., --trend, --live, --code, --since, clear).
     """
-    if not args:
-        _show_summary(state)
-    elif args[0] == "clear":
+    from pgtail_py.time_filter import parse_time
+
+    # Parse arguments
+    since_time: datetime | None = None
+    code_filter: str | None = None
+    show_trend = False
+    show_live = False
+    do_clear = False
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "clear":
+            do_clear = True
+        elif arg == "--trend":
+            show_trend = True
+        elif arg == "--live":
+            show_live = True
+        elif arg == "--code" and i + 1 < len(args):
+            code_filter = args[i + 1]
+            i += 1
+        elif arg == "--since" and i + 1 < len(args):
+            try:
+                since_time = parse_time(args[i + 1])
+            except ValueError as e:
+                print_formatted_text(
+                    HTML(f"<ansiyellow>Invalid time format: {e}</ansiyellow>")
+                )
+                return
+            i += 1
+        else:
+            print_formatted_text(
+                HTML(
+                    "<ansiyellow>Usage: errors [--trend] [--code CODE] "
+                    "[--since TIME] [--live] [clear]</ansiyellow>"
+                )
+            )
+            return
+        i += 1
+
+    # Handle clear first (ignores other flags)
+    if do_clear:
         _clear_stats(state)
-    elif args[0] == "--trend":
-        _show_trend(state)
-    elif args[0] == "--live":
+        return
+
+    # Handle --live (doesn't combine with other flags)
+    if show_live:
         _show_live(state)
-    elif args[0] == "--code" and len(args) > 1:
-        _show_by_code(state, args[1])
-    else:
-        print_formatted_text(
-            HTML("<ansiyellow>Usage: errors [--trend|--live|--code CODE|clear]</ansiyellow>")
-        )
+        return
+
+    # Handle --code (can combine with --since)
+    if code_filter:
+        _show_by_code(state, code_filter, since_time)
+        return
+
+    # Handle --trend (can combine with --since)
+    if show_trend:
+        _show_trend(state, since_time)
+        return
+
+    # Default: show summary (can use --since)
+    _show_summary(state, since_time)
 
 
-def _show_summary(state: AppState) -> None:
-    """Display error summary."""
+def _show_summary(state: AppState, since: datetime | None = None) -> None:
+    """Display error summary.
+
+    Args:
+        state: Current application state.
+        since: Optional time filter - only count events after this time.
+    """
+    from collections import defaultdict
+
+    from pgtail_py.error_stats import ERROR_LEVELS
+    from pgtail_py.filter import LogLevel
+
     stats = state.error_stats
 
     if stats.is_empty():
         print_formatted_text("No errors recorded in this session.")
         return
 
-    # Header
+    # Get events (filtered by time if specified)
+    if since:
+        events = stats.get_events_since(since)
+        if not events:
+            time_desc = _format_since_description(since)
+            print_formatted_text(f"No errors recorded {time_desc}.")
+            return
+    else:
+        events = list(stats._events)
+
+    # Calculate counts from filtered events
+    error_count = sum(1 for e in events if e.level in ERROR_LEVELS)
+    warning_count = len(events) - error_count
+
+    # Header with optional time window
+    time_header = ""
+    if since:
+        time_header = f" ({_format_since_description(since)})"
+
     print_formatted_text(
         HTML(
-            f"<b>Error Statistics</b>\n"
+            f"<b>Error Statistics{time_header}</b>\n"
             f"─────────────────────────────\n"
-            f"Errors: <ansired>{stats.error_count}</ansired>  "
-            f"Warnings: <ansiyellow>{stats.warning_count}</ansiyellow>"
+            f"Errors: <ansired>{error_count}</ansired>  "
+            f"Warnings: <ansiyellow>{warning_count}</ansiyellow>"
         )
     )
 
     # By type (SQLSTATE code)
-    by_code = stats.get_by_code()
-    if by_code:
+    by_code: dict[str, int] = defaultdict(int)
+    for event in events:
+        code = event.sql_state or "UNKNOWN"
+        by_code[code] += 1
+    by_code_sorted = dict(sorted(by_code.items(), key=lambda x: -x[1]))
+
+    if by_code_sorted:
         print_formatted_text("\nBy type:")
-        for code, count in list(by_code.items())[:10]:  # Top 10
+        for code, count in list(by_code_sorted.items())[:10]:  # Top 10
             name = get_sqlstate_name(code)
             if name != code:
                 print_formatted_text(f"  {code} {name:<25} {count:>5}")
@@ -71,12 +152,30 @@ def _show_summary(state: AppState) -> None:
                 print_formatted_text(f"  {code:<31} {count:>5}")
 
     # By level
-    by_level = stats.get_by_level()
+    by_level: dict[LogLevel, int] = defaultdict(int)
+    for event in events:
+        by_level[event.level] += 1
+
     if by_level:
         print_formatted_text("\nBy level:")
         for level in sorted(by_level.keys(), key=lambda x: x.value):
             count = by_level[level]
             print_formatted_text(f"  {level.name:<9} {count:>5}")
+
+
+def _format_since_description(since: datetime) -> str:
+    """Format a since time as a human-readable description."""
+    delta = datetime.now() - since
+    seconds = int(delta.total_seconds())
+
+    if seconds < 60:
+        return f"last {seconds}s"
+    elif seconds < 3600:
+        return f"last {seconds // 60}m"
+    elif seconds < 86400:
+        return f"last {seconds // 3600}h"
+    else:
+        return f"since {since.strftime('%Y-%m-%d %H:%M')}"
 
 
 def _clear_stats(state: AppState) -> None:
@@ -85,9 +184,14 @@ def _clear_stats(state: AppState) -> None:
     print_formatted_text("Error statistics cleared.")
 
 
-def _show_trend(state: AppState) -> None:
-    """Display error rate trend with sparkline."""
-    from pgtail_py.error_trend import sparkline
+def _show_trend(state: AppState, since: datetime | None = None) -> None:
+    """Display error rate trend with sparkline.
+
+    Args:
+        state: Current application state.
+        since: Optional time filter - only show trend for events after this time.
+    """
+    from pgtail_py.error_trend import bucket_events, sparkline
 
     stats = state.error_stats
 
@@ -95,7 +199,23 @@ def _show_trend(state: AppState) -> None:
         print_formatted_text("No errors recorded in this session.")
         return
 
-    buckets = stats.get_trend_buckets(60)
+    # Get events (filtered by time if specified)
+    if since:
+        events = stats.get_events_since(since)
+        if not events:
+            time_desc = _format_since_description(since)
+            print_formatted_text(f"No errors recorded {time_desc}.")
+            return
+        # Calculate minutes for bucketing based on time filter
+        delta = datetime.now() - since
+        minutes = max(1, min(60, int(delta.total_seconds() / 60)))
+        buckets = bucket_events(events, minutes)
+        time_label = _format_since_description(since)
+    else:
+        buckets = stats.get_trend_buckets(60)
+        minutes = 60
+        time_label = "Last 60 min"
+
     total = sum(buckets)
     avg = total / len(buckets) if buckets else 0
 
@@ -106,12 +226,12 @@ def _show_trend(state: AppState) -> None:
         if max_val > avg * 2:
             # Find when the spike occurred
             spike_idx = buckets.index(max_val)
-            minutes_ago = 60 - spike_idx - 1
+            minutes_ago = len(buckets) - spike_idx - 1
             spike_info = f"  ← spike {minutes_ago}m ago ({max_val}/min)"
 
     print_formatted_text("Error rate (per minute):\n")
     print_formatted_text(
-        f"Last 60 min: {sparkline(buckets)}  total {total}, avg {avg:.1f}/min{spike_info}"
+        f"{time_label}: {sparkline(buckets)}  total {total}, avg {avg:.1f}/min{spike_info}"
     )
 
 
@@ -232,8 +352,14 @@ def _show_live(state: AppState) -> None:
         print_formatted_text("Exited live mode.")
 
 
-def _show_by_code(state: AppState, code: str) -> None:
-    """Display errors filtered by SQLSTATE code."""
+def _show_by_code(state: AppState, code: str, since: datetime | None = None) -> None:
+    """Display errors filtered by SQLSTATE code.
+
+    Args:
+        state: Current application state.
+        code: SQLSTATE code to filter by.
+        since: Optional time filter - only show events after this time.
+    """
     # Validate code format
     if len(code) != 5:
         print_formatted_text(
@@ -247,15 +373,22 @@ def _show_by_code(state: AppState, code: str) -> None:
     stats = state.error_stats
     events = stats.get_events_by_code(code)
 
+    # Apply time filter if specified
+    if since:
+        events = [e for e in events if e.timestamp >= since]
+
     if not events:
-        print_formatted_text(f"No errors with code {code} recorded.")
+        time_info = f" {_format_since_description(since)}" if since else ""
+        print_formatted_text(f"No errors with code {code} recorded{time_info}.")
         return
 
     name = get_sqlstate_name(code)
+    time_header = f" ({_format_since_description(since)})" if since else ""
+
     if name != code:
-        print_formatted_text(f"{code} {name}: {len(events)} occurrences\n")
+        print_formatted_text(f"{code} {name}{time_header}: {len(events)} occurrences\n")
     else:
-        print_formatted_text(f"{code}: {len(events)} occurrences\n")
+        print_formatted_text(f"{code}{time_header}: {len(events)} occurrences\n")
 
     # Show recent examples
     print_formatted_text("Recent examples:")

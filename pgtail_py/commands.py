@@ -152,7 +152,7 @@ class PgtailCompleter(Completer):
         elif cmd == "output":
             yield from self._complete_output(arg_text)
         elif cmd == "errors":
-            yield from self._complete_errors(arg_text)
+            yield from self._complete_errors(arg_text, parts)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -642,33 +642,23 @@ class PgtailCompleter(Completer):
                             display_meta=f"Show {field} field",
                         )
 
-    def _complete_errors(self, prefix: str) -> list[Completion]:
+    def _complete_errors(self, prefix: str, parts: list[str]) -> list[Completion]:
         """Complete errors command options.
 
         Args:
             prefix: The prefix to match.
+            parts: All command parts so far.
 
         Yields:
             Completions for errors subcommands and options.
         """
-        options = {
-            "clear": "Reset all error statistics",
-            "--trend": "Show error rate sparkline",
-            "--live": "Live updating counter",
-            "--code": "Filter by SQLSTATE code",
-            "--since": "Filter by time window",
-        }
-        prefix_lower = prefix.lower()
-        for name, description in options.items():
-            if name.startswith(prefix_lower):
-                yield Completion(
-                    name,
-                    start_position=-len(prefix),
-                    display_meta=description,
-                )
+        # If previous arg was --since, complete with time values
+        if len(parts) >= 2 and parts[-2] == "--since":
+            yield from self._complete_since(prefix)
+            return
 
-        # Complete common SQLSTATE codes after --code
-        if prefix_lower and not prefix_lower.startswith("-"):
+        # If previous arg was --code, complete with SQLSTATE codes
+        if len(parts) >= 2 and parts[-2] == "--code":
             sqlstate_codes = {
                 "23505": "unique_violation",
                 "23503": "foreign_key_violation",
@@ -685,3 +675,30 @@ class PgtailCompleter(Completer):
                         start_position=-len(prefix),
                         display_meta=name,
                     )
+            return
+
+        # Check what options are already used
+        has_since = "--since" in parts
+        has_code = "--code" in parts
+        has_trend = "--trend" in parts
+        has_live = "--live" in parts
+
+        options = {}
+        if not has_trend and not has_live:
+            options["--trend"] = "Show error rate sparkline"
+        if not has_live and not has_trend:
+            options["--live"] = "Live updating counter"
+        if not has_code:
+            options["--code"] = "Filter by SQLSTATE code"
+        if not has_since:
+            options["--since"] = "Filter by time window"
+        options["clear"] = "Reset all error statistics"
+
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )

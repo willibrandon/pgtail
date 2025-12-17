@@ -139,13 +139,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Implement ErrorStats.get_events_by_code() method in pgtail_py/error_stats.py
-- [ ] T050 [US4] Implement _show_by_code() handler in pgtail_py/cli_errors.py
-- [ ] T051 [US4] Display recent examples with timestamp and message excerpt in pgtail_py/cli_errors.py
-- [ ] T052 [US4] Add validation for 5-character SQLSTATE format in pgtail_py/cli_errors.py
-- [ ] T053 [US4] Add "no errors with code" message when no matches in pgtail_py/cli_errors.py
-- [ ] T054 [US4] Handle --code flag in errors_command() dispatcher in pgtail_py/cli_errors.py
-- [ ] T055 [US4] Add --code to completion with common SQLSTATE codes in pgtail_py/commands.py
+- [x] T049 [US4] Implement ErrorStats.get_events_by_code() method in pgtail_py/error_stats.py
+- [x] T050 [US4] Implement _show_by_code() handler in pgtail_py/cli_errors.py
+- [x] T051 [US4] Display recent examples with timestamp and message excerpt in pgtail_py/cli_errors.py
+- [x] T052 [US4] Add validation for 5-character SQLSTATE format in pgtail_py/cli_errors.py
+- [x] T053 [US4] Add "no errors with code" message when no matches in pgtail_py/cli_errors.py
+- [x] T054 [US4] Handle --code flag in errors_command() dispatcher in pgtail_py/cli_errors.py
+- [x] T055 [US4] Add --code to completion with common SQLSTATE codes in pgtail_py/commands.py
 
 **Checkpoint**: User Story 4 complete - `errors --code CODE` filters by SQLSTATE
 
@@ -159,13 +159,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T056 [US5] Implement ErrorStats.get_events_since() method in pgtail_py/error_stats.py
-- [ ] T057 [US5] Integrate with existing time_filter.parse_time() in pgtail_py/cli_errors.py
-- [ ] T058 [US5] Update _show_summary() to accept time filter in pgtail_py/cli_errors.py
-- [ ] T059 [US5] Display time window in output header in pgtail_py/cli_errors.py
-- [ ] T060 [US5] Handle --since flag in errors_command() dispatcher in pgtail_py/cli_errors.py
-- [ ] T061 [US5] Allow --since to combine with --code and --trend in pgtail_py/cli_errors.py
-- [ ] T062 [US5] Add --since to completion with time examples in pgtail_py/commands.py
+- [x] T056 [US5] Implement ErrorStats.get_events_since() method in pgtail_py/error_stats.py
+- [x] T057 [US5] Integrate with existing time_filter.parse_time() in pgtail_py/cli_errors.py
+- [x] T058 [US5] Update _show_summary() to accept time filter in pgtail_py/cli_errors.py
+- [x] T059 [US5] Display time window in output header in pgtail_py/cli_errors.py
+- [x] T060 [US5] Handle --since flag in errors_command() dispatcher in pgtail_py/cli_errors.py
+- [x] T061 [US5] Allow --since to combine with --code and --trend in pgtail_py/cli_errors.py
+- [x] T062 [US5] Add --since to completion with time examples in pgtail_py/commands.py
 
 **Checkpoint**: User Story 5 complete - `errors --since TIME` filters by time window
 
