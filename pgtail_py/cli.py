@@ -44,6 +44,7 @@ from pgtail_py.config import (
     get_history_path,
     load_config,
 )
+from pgtail_py.connection_stats import ConnectionStats
 from pgtail_py.detector import detect_all
 from pgtail_py.display import DisplayState, OutputFormat, format_entry
 from pgtail_py.error_stats import ErrorStats
@@ -71,6 +72,7 @@ class AppState:
         slow_query_config: Configuration for slow query highlighting
         duration_stats: Session-scoped query duration statistics
         error_stats: Session-scoped error statistics
+        connection_stats: Session-scoped connection statistics
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
         tailer: Active log tailer instance
@@ -89,6 +91,7 @@ class AppState:
     slow_query_config: SlowQueryConfig = field(default_factory=SlowQueryConfig)
     duration_stats: DurationStats = field(default_factory=DurationStats)
     error_stats: ErrorStats = field(default_factory=ErrorStats)
+    connection_stats: ConnectionStats = field(default_factory=ConnectionStats)
     tailing: bool = False
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None

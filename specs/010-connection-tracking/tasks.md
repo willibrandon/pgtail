@@ -24,7 +24,7 @@
 
 **Purpose**: No new project setup needed - adding to existing pgtail_py package
 
-- [ ] T001 Verify existing project structure matches plan.md in pgtail_py/
+- [x] T001 Verify existing project structure matches plan.md in pgtail_py/
 
 ---
 
@@ -36,20 +36,20 @@
 
 ### Tests for Foundational
 
-- [ ] T002 [P] Create test file for connection event parsing in tests/test_connection_parser.py
-- [ ] T003 [P] Create test file for connection event dataclass in tests/test_connection_event.py
-- [ ] T004 [P] Create test file for connection stats aggregator in tests/test_connection_stats.py
+- [x] T002 [P] Create test file for connection event parsing in tests/test_connection_parser.py
+- [x] T003 [P] Create test file for connection event dataclass in tests/test_connection_event.py
+- [x] T004 [P] Create test file for connection stats aggregator in tests/test_connection_stats.py
 
 ### Implementation for Foundational
 
-- [ ] T005 [P] Create ConnectionEventType enum in pgtail_py/connection_event.py
-- [ ] T006 [P] Create ConnectionEvent frozen dataclass with from_log_entry() factory in pgtail_py/connection_event.py
-- [ ] T007 Create connection message regex patterns (authorized, disconnection, received) in pgtail_py/connection_parser.py
-- [ ] T008 Implement parse_connection_message() function in pgtail_py/connection_parser.py
-- [ ] T009 Create ConnectionStats dataclass with _events deque and _active dict in pgtail_py/connection_stats.py
-- [ ] T010 Implement ConnectionStats.add() method for processing LogEntry in pgtail_py/connection_stats.py
-- [ ] T011 Implement ConnectionStats.clear() and is_empty() methods in pgtail_py/connection_stats.py
-- [ ] T012 Add connection_stats field to AppState in pgtail_py/cli.py
+- [x] T005 [P] Create ConnectionEventType enum in pgtail_py/connection_event.py
+- [x] T006 [P] Create ConnectionEvent frozen dataclass with from_log_entry() factory in pgtail_py/connection_event.py
+- [x] T007 Create connection message regex patterns (authorized, disconnection, received) in pgtail_py/connection_parser.py
+- [x] T008 Implement parse_connection_message() function in pgtail_py/connection_parser.py
+- [x] T009 Create ConnectionStats dataclass with _events deque and _active dict in pgtail_py/connection_stats.py
+- [x] T010 Implement ConnectionStats.add() method for processing LogEntry in pgtail_py/connection_stats.py
+- [x] T011 Implement ConnectionStats.clear() and is_empty() methods in pgtail_py/connection_stats.py
+- [x] T012 Add connection_stats field to AppState in pgtail_py/cli.py
 
 **Checkpoint**: Foundation ready - all connection tracking infrastructure in place
 
