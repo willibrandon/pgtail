@@ -5,16 +5,20 @@ Interactive PostgreSQL log tailer with auto-detection.
 ## Features
 
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
+- Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
 - Real-time log tailing with polling (handles log rotation)
 - Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
+- Filter by field values (app=, db=, user=) for CSV/JSON logs
 - Time-based filtering (since, until, between)
 - Regex pattern filtering (include, exclude, AND/OR logic)
+- Display modes: compact (default), full (all fields), custom fields
+- Output formats: colored text or JSON Lines for piping to jq
 - Highlight matching text with yellow background
 - Slow query detection with configurable thresholds
 - Query duration statistics (count, average, percentiles)
 - Export logs to files (text, JSON, CSV formats)
 - Pipe logs to external commands (grep, jq, wc, etc.)
-- Color-coded output by severity
+- Color-coded output by severity with SQL state codes
 - REPL with autocomplete and command history
 - Cross-platform (macOS, Linux, Windows)
 
@@ -54,6 +58,9 @@ since <time>       Filter logs since time (e.g., 5m, 14:30, 2024-01-15T14:30)
 until <time>       Filter logs until time
 between <s> <e>    Filter logs in time range (e.g., between 14:30 15:00)
 filter /pattern/   Regex filter (see Filtering below)
+filter field=value Filter by field (app=, db=, user=) for CSV/JSON logs
+display [mode]     Set display mode (compact, full, fields <f1,f2,...>)
+output [format]    Set output format (text, json)
 highlight /pattern/ Highlight matching text (yellow background)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
@@ -96,6 +103,57 @@ Supported time formats:
 - **Time only**: `14:30`, `14:30:45` (today at specified time)
 - **ISO 8601**: `2024-01-15T14:30`, `2024-01-15T14:30:00Z`
 
+### Log Format Support
+
+pgtail auto-detects and parses three PostgreSQL log formats:
+
+| Format | Config Setting | Fields |
+|--------|---------------|--------|
+| TEXT   | `log_destination = 'stderr'` | Basic (timestamp, pid, level, message) |
+| CSV    | `log_destination = 'csvlog'` | 26 fields (user, database, query, SQL state, etc.) |
+| JSON   | `log_destination = 'jsonlog'` | 29 fields (PostgreSQL 15+) |
+
+When tailing, the detected format is displayed:
+```
+pgtail> tail 0
+Detected format: jsonlog
+```
+
+### Display Modes
+
+Control how log entries are displayed:
+
+```
+display              Show current display mode
+display compact      Single line per entry (default)
+display full         All fields with labels
+display fields timestamp,level,message,sql_state  Custom fields
+```
+
+Full mode example:
+```
+10:23:45.123 [12345] ERROR 42P01: relation "foo" does not exist
+  Database: mydb
+  User: postgres
+  Application: psql
+  Query: SELECT * FROM foo
+```
+
+### Output Formats
+
+Switch between human-readable and machine-readable output:
+
+```
+output              Show current output format
+output text         Colored terminal output (default)
+output json         JSON Lines format (one object per line)
+```
+
+JSON output can be piped to `jq`:
+```bash
+./pgtail | jq '.message'
+```
+
 ### Filtering
 
 ```
@@ -104,9 +162,14 @@ filter -/pattern/    Exclude lines matching pattern
 filter +/pattern/    Add OR pattern (match any)
 filter &/pattern/    Add AND pattern (must match all)
 filter /pattern/c    Case-sensitive match
+filter app=myapp     Filter by application name (CSV/JSON only)
+filter db=prod       Filter by database name
+filter user=postgres Filter by user name
 filter clear         Remove all filters
 filter               Show current filters
 ```
+
+Available field filters: `app`/`application`, `db`/`database`, `user`, `pid`, `backend`
 
 ### Highlighting
 
@@ -193,20 +256,30 @@ pgtail> list
   0  16       5432   running  on   process ~/.pgrx/data-16
 
 pgtail> tail 0
-Tailing ~/.pgrx/data-16/log/postgresql-2024-01-15.log
+Tailing ~/.pgrx/data-16/log/postgresql-2024-01-15.json
 Press Ctrl+C to stop
 
+Detected format: jsonlog
 10:23:45.123 [12345] LOG    : statement: SELECT 1
-10:23:46.456 [12345] ERROR  : relation "foo" does not exist
+10:23:46.456 [12345] ERROR   42P01: relation "foo" does not exist
+
+pgtail> display full
+Display mode: full
+10:23:46.456 [12345] ERROR 42P01: relation "foo" does not exist
+  Database: mydb
+  User: postgres
+  Application: psql
+  Query: SELECT * FROM foo
+
+pgtail> filter app=myapp
+Field filter set: application=myapp
+
+pgtail> output json
+Output format: json
+{"timestamp":"2024-01-15T10:23:46.456","level":"ERROR","message":"relation \"foo\" does not exist",...}
 
 pgtail> levels ERROR WARNING
 Filter set: ERROR WARNING
-
-pgtail> filter /SELECT/
-Filter set: /SELECT/
-
-pgtail> highlight /users/
-Highlight added: /users/
 
 pgtail> slow 100 500 1000
 Slow query highlighting enabled
