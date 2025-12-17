@@ -105,16 +105,10 @@ def parse_connection_message(
             },
         )
 
-    # Check for "connection received" pattern
-    match = PATTERN_CONNECTION_RECEIVED.search(message)
-    if match:
-        return (
-            ConnectionEventType.CONNECT,
-            {
-                "host": match.group("host"),
-                "port": match.group("port"),
-            },
-        )
+    # Note: "connection received" messages are intentionally NOT tracked.
+    # They occur before authentication and don't include user/database info.
+    # The "connection authorized" message is the meaningful connection event.
+    # Failed auth attempts are tracked via FATAL messages instead.
 
     # Check for FATAL connection failures
     if is_fatal:

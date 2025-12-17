@@ -118,12 +118,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] Implement _show_watch() function with live event display in pgtail_py/cli_connections.py
-- [ ] T037 [US3] Add color-coded event indicators ([+] green, [-] yellow, [!] red) in pgtail_py/cli_connections.py
-- [ ] T038 [US3] Add Ctrl+C handling for clean exit from watch mode in pgtail_py/cli_connections.py
-- [ ] T039 [US3] Add --watch flag parsing in connections_command() in pgtail_py/cli_connections.py
-- [ ] T040 [US3] Add invalid combination check for --watch + --history in pgtail_py/cli_connections.py
-- [ ] T041 [US3] Add --watch to PgtailCompleter subcompletions in pgtail_py/commands.py
+- [x] T036 [US3] Implement _show_watch() function with live event display in pgtail_py/cli_connections.py
+- [x] T037 [US3] Add color-coded event indicators ([+] green, [-] yellow, [!] red) in pgtail_py/cli_connections.py
+- [x] T038 [US3] Add Ctrl+C handling for clean exit from watch mode in pgtail_py/cli_connections.py
+- [x] T039 [US3] Add --watch flag parsing in connections_command() in pgtail_py/cli_connections.py
+- [x] T040 [US3] Add invalid combination check for --watch + --history in pgtail_py/cli_connections.py
+- [x] T041 [US3] Add --watch to PgtailCompleter subcompletions in pgtail_py/commands.py
 
 **Checkpoint**: User Story 3 complete - `connections --watch` streams live events
 

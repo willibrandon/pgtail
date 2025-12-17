@@ -74,10 +74,9 @@ def connections_command(state: AppState, args: list[str]) -> None:
         _show_history(state, db_filter, user_filter, app_filter)
         return
 
+    # Show watch mode (live event stream)
     if show_watch:
-        print_formatted_text(
-            HTML("<ansiyellow>--watch not yet implemented. Coming in Phase 5.</ansiyellow>")
-        )
+        _show_watch(state, db_filter, user_filter, app_filter)
         return
 
     # Show summary (default view)
@@ -272,6 +271,158 @@ def _show_history(
 
     # Current active count
     print_formatted_text(HTML(f"\n  Active now: <ansigreen>{stats.active_count()}</ansigreen>"))
+
+
+def _show_watch(
+    state: AppState,
+    db_filter: str | None = None,
+    user_filter: str | None = None,
+    app_filter: str | None = None,
+) -> None:
+    """Display live connection events as they occur.
+
+    Shows real-time stream of connection events with color-coded indicators:
+    - [+] green: New connection
+    - [-] yellow: Disconnection
+    - [!] red: Connection failure
+
+    Args:
+        state: Current application state.
+        db_filter: Optional database name filter (not yet applied).
+        user_filter: Optional user name filter (not yet applied).
+        app_filter: Optional application name filter (not yet applied).
+    """
+    import signal
+    import time
+
+    from pgtail_py.connection_event import ConnectionEvent, ConnectionEventType
+    from pgtail_py.tailer import LogTailer
+
+    # Need a log file to track - check current or last instance
+    instance = state.current_instance
+    if instance is None and state.instances:
+        # Try first instance with logs
+        for inst in state.instances:
+            if inst.log_path and inst.log_path.exists():
+                instance = inst
+                break
+
+    if instance is None or not instance.log_path:
+        print_formatted_text(
+            HTML(
+                "<ansiyellow>No log file available. "
+                "Use 'tail' first to select an instance.</ansiyellow>"
+            )
+        )
+        return
+
+    if not instance.log_path.exists():
+        print_formatted_text(
+            HTML(f"<ansiyellow>Log file not found: {instance.log_path}</ansiyellow>")
+        )
+        return
+
+    # Note: Filters will be applied in Phase 6
+    if any([db_filter, user_filter, app_filter]):
+        filter_parts = []
+        if db_filter:
+            filter_parts.append(f"db='{db_filter}'")
+        if user_filter:
+            filter_parts.append(f"user='{user_filter}'")
+        if app_filter:
+            filter_parts.append(f"app='{app_filter}'")
+        print_formatted_text(
+            HTML(
+                f"<ansiyellow>Note: Filter ({', '.join(filter_parts)}) "
+                "not yet applied to watch. Coming in Phase 6.</ansiyellow>\n"
+            )
+        )
+
+    # Track events seen count for display
+    events_seen = 0
+
+    def format_event(event: ConnectionEvent) -> str:
+        """Format a connection event for display."""
+        ts = event.timestamp.strftime("%H:%M:%S")
+        user = event.user or "?"
+        db = event.database or "?"
+        app = event.application if event.application != "unknown" else ""
+        host = event.host or ""
+
+        details = f"{user}@{db}"
+        if app:
+            details += f" ({app})"
+        if host:
+            details += f" from {host}"
+
+        if event.event_type == ConnectionEventType.CONNECT:
+            return f"\033[92m[+]\033[0m {ts}  {details}"  # Green
+        elif event.event_type == ConnectionEventType.DISCONNECT:
+            duration = ""
+            if event.duration_seconds is not None:
+                if event.duration_seconds < 60:
+                    duration = f" ({event.duration_seconds:.1f}s)"
+                elif event.duration_seconds < 3600:
+                    mins = int(event.duration_seconds / 60)
+                    secs = int(event.duration_seconds % 60)
+                    duration = f" ({mins}m{secs}s)"
+                else:
+                    hours = int(event.duration_seconds / 3600)
+                    mins = int((event.duration_seconds % 3600) / 60)
+                    duration = f" ({hours}h{mins}m)"
+            return f"\033[93m[-]\033[0m {ts}  {details}{duration}"  # Yellow
+        else:  # CONNECTION_FAILED
+            return f"\033[91m[!]\033[0m {ts}  {details} FAILED"  # Red
+
+    def on_entry(entry):
+        """Handle incoming log entries."""
+        nonlocal events_seen
+        event = ConnectionEvent.from_log_entry(entry)
+        if event is not None:
+            # Also track in stats
+            state.connection_stats.add(entry)
+            # Display the event
+            print(format_event(event))
+            events_seen += 1
+
+    # Create tailer for connection event tracking
+    watch_tailer = LogTailer(
+        instance.log_path,
+        active_levels=None,  # Track all levels
+        regex_state=None,
+        time_filter=None,
+        field_filter=None,
+        on_entry=on_entry,
+    )
+
+    print_formatted_text(
+        HTML(
+            f"<b>Watching connections</b> - {instance.log_path.name} (Ctrl+C to exit)\n"
+            "<ansigreen>[+]</ansigreen> connect  "
+            "<ansiyellow>[-]</ansiyellow> disconnect  "
+            "<ansired>[!]</ansired> failed\n"
+        )
+    )
+
+    # Use signal handler for reliable Ctrl+C detection
+    # (prompt_toolkit may intercept KeyboardInterrupt)
+    stop_requested = False
+
+    def handle_sigint(signum: int, frame: object) -> None:
+        nonlocal stop_requested
+        stop_requested = True
+
+    old_handler = signal.signal(signal.SIGINT, handle_sigint)
+
+    watch_tailer.start()
+
+    try:
+        while not stop_requested:
+            time.sleep(0.1)
+    finally:
+        signal.signal(signal.SIGINT, old_handler)
+        watch_tailer.stop()
+        print_formatted_text(f"\nExited watch mode. {events_seen} events seen.")
 
 
 def _clear_stats(state: AppState) -> None:

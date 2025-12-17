@@ -95,15 +95,15 @@ class TestParseConnectionMessage:
         assert data["host"] == "[local]"
         assert data["duration"] == "1:23:45.678"
 
-    def test_parse_connection_received_message(self) -> None:
-        """Test parsing connection received message."""
+    def test_parse_connection_received_message_ignored(self) -> None:
+        """Test that connection received messages are ignored.
+
+        'connection received' messages occur before authentication and don't
+        include user/database info. We only track 'connection authorized'.
+        """
         msg = "connection received: host=192.168.1.100 port=54321"
         result = parse_connection_message(msg)
-        assert result is not None
-        event_type, data = result
-        assert event_type == ConnectionEventType.CONNECT
-        assert data["host"] == "192.168.1.100"
-        assert data["port"] == "54321"
+        assert result is None  # Intentionally not tracked
 
     def test_parse_unrelated_message(self) -> None:
         """Test that unrelated messages return None."""
