@@ -209,8 +209,13 @@ def tail_command(state: AppState, args: list[str]) -> None:
     state.stop_event.clear()
 
     print(f"Tailing {instance.log_path}")
+    # Show active filters and settings
     if state.time_filter.is_active():
         print(f"Time filter: {state.time_filter.format_description()}")
+    if state.field_filter.is_active():
+        print(state.field_filter.format_status())
+    if state.display_state.mode.value != "compact" or state.display_state.output_format.value != "text":
+        print(state.display_state.format_status())
     print("Press Ctrl+C to stop")
     print()
 

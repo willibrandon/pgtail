@@ -155,15 +155,17 @@
 
 **Purpose**: Integration, status display, and edge case handling
 
-- [ ] T051 Update status line formatting to show detected format in pgtail_py/cli.py
-- [ ] T052 Update status line formatting to show active field filters in pgtail_py/cli.py
-- [ ] T053 Update status line formatting to show display mode and output format in pgtail_py/cli.py
-- [ ] T054 Handle malformed CSV lines gracefully in pgtail_py/parser_csv.py (return raw entry with warning)
-- [ ] T055 Handle malformed JSON lines gracefully in pgtail_py/parser_json.py (return raw entry with warning)
-- [ ] T056 Add truncation indicator for long field values in compact mode in pgtail_py/display.py
-- [ ] T057 Run make lint and fix any linting issues
-- [ ] T058 Run make test and verify existing tests still pass
-- [ ] T059 Manual validation: test with sample CSV and JSON log files per quickstart.md
+- [x] T051 Update status line formatting to show detected format in pgtail_py/cli.py
+- [x] T052 Update status line formatting to show active field filters in pgtail_py/cli.py
+- [x] T053 Update status line formatting to show display mode and output format in pgtail_py/cli.py
+- [x] T054 Handle malformed CSV lines gracefully in pgtail_py/parser_csv.py (return raw entry with warning)
+- [x] T055 Handle malformed JSON lines gracefully in pgtail_py/parser_json.py (return raw entry with warning)
+- [x] T056 Add truncation indicator for long field values in compact mode in pgtail_py/display.py
+- [x] T057 Run make lint and fix any linting issues
+- [x] T058 Run make test and verify existing tests still pass
+- [x] T059 Manual validation: test with sample CSV and JSON log files per quickstart.md
+
+**Checkpoint**: Phase 8 complete - polish and cross-cutting concerns addressed ✅
 
 ---
 
