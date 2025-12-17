@@ -69,12 +69,9 @@ def connections_command(state: AppState, args: list[str]) -> None:
         )
         return
 
-    # For MVP (Phase 3), only summary is implemented
-    # --history and --watch will be added in Phase 4 and 5
+    # Show history view (trend visualization)
     if show_history:
-        print_formatted_text(
-            HTML("<ansiyellow>--history not yet implemented. Coming in Phase 4.</ansiyellow>")
-        )
+        _show_history(state, db_filter, user_filter, app_filter)
         return
 
     if show_watch:
@@ -168,6 +165,113 @@ def _show_summary(
     if stats.failed_count > 0:
         totals += f", {stats.failed_count} failed"
     print_formatted_text(totals)
+
+
+def _show_history(
+    state: AppState,
+    db_filter: str | None = None,
+    user_filter: str | None = None,
+    app_filter: str | None = None,
+) -> None:
+    """Display connection history with trend visualization.
+
+    Shows connection rate trends using sparklines, including:
+    - Connection rate over time (15-minute buckets)
+    - Disconnection rate over time
+    - Net change detection (leak detection)
+
+    Args:
+        state: Current application state.
+        db_filter: Optional database name filter (not yet applied).
+        user_filter: Optional user name filter (not yet applied).
+        app_filter: Optional application name filter (not yet applied).
+    """
+    from pgtail_py.error_trend import sparkline
+
+    stats = state.connection_stats
+
+    if stats.is_empty():
+        print_formatted_text(
+            "No connection data available.\n"
+            "Start tailing a log with `tail` to begin tracking connections.\n"
+            "Note: PostgreSQL must have log_connections=on and log_disconnections=on"
+        )
+        return
+
+    # Note: Filters will be applied in Phase 6
+    if any([db_filter, user_filter, app_filter]):
+        filter_parts = []
+        if db_filter:
+            filter_parts.append(f"db='{db_filter}'")
+        if user_filter:
+            filter_parts.append(f"user='{user_filter}'")
+        if app_filter:
+            filter_parts.append(f"app='{app_filter}'")
+        print_formatted_text(
+            HTML(
+                f"<ansiyellow>Note: Filter ({', '.join(filter_parts)}) "
+                "not yet applied to history. Coming in Phase 6.</ansiyellow>\n"
+            )
+        )
+
+    # Get trend buckets (last 60 minutes, 15-minute intervals)
+    buckets = stats.get_trend_buckets(minutes=60, bucket_size=15)
+
+    # Extract connects and disconnects
+    connects = [b[0] for b in buckets]
+    disconnects = [b[1] for b in buckets]
+
+    total_connects = sum(connects)
+    total_disconnects = sum(disconnects)
+    net_change = total_connects - total_disconnects
+
+    print_formatted_text(HTML("<b>Connection History (last 60 min, 15-min buckets)</b>"))
+    print_formatted_text("─────────────────────────────────────────────────\n")
+
+    # Sparklines
+    print_formatted_text(
+        HTML(
+            f"  <ansigreen>Connects:</ansigreen>    {sparkline(connects)}  "
+            f"total {total_connects}"
+        )
+    )
+    print_formatted_text(
+        HTML(
+            f"  <ansiyellow>Disconnects:</ansiyellow> {sparkline(disconnects)}  "
+            f"total {total_disconnects}"
+        )
+    )
+
+    # Net change indicator
+    if net_change > 0:
+        print_formatted_text(
+            HTML(f"\n  Net change: <ansigreen>+{net_change}</ansigreen> (connections growing)")
+        )
+    elif net_change < 0:
+        print_formatted_text(
+            HTML(f"\n  Net change: <ansiyellow>{net_change}</ansiyellow> (connections decreasing)")
+        )
+    else:
+        print_formatted_text("\n  Net change: 0 (stable)")
+
+    # Detect potential connection leak (many connects, few disconnects)
+    if total_connects > 10 and total_disconnects == 0:
+        print_formatted_text(
+            HTML(
+                "\n  <ansired>⚠ Possible connection leak detected:</ansired> "
+                "connections without disconnections"
+            )
+        )
+    elif total_connects > 20 and total_disconnects < total_connects * 0.1:
+        print_formatted_text(
+            HTML(
+                "\n  <ansiyellow>⚠ Low disconnect rate:</ansiyellow> "
+                f"only {total_disconnects} disconnects for {total_connects} connects"
+            )
+        )
+
+    # Current active count
+    print_formatted_text(HTML(f"\n  Active now: <ansigreen>{stats.active_count()}</ansigreen>"))
 
 
 def _clear_stats(state: AppState) -> None:

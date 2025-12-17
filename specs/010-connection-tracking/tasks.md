@@ -94,17 +94,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T028 [P] [US2] Add test for get_trend_buckets() with 15-minute intervals in tests/test_connection_stats.py
-- [ ] T029 [P] [US2] Add test for get_events_since() time filtering in tests/test_connection_stats.py
+- [x] T028 [P] [US2] Add test for get_trend_buckets() with 15-minute intervals in tests/test_connection_stats.py
+- [x] T029 [P] [US2] Add test for get_events_since() time filtering in tests/test_connection_stats.py
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] Implement ConnectionStats.get_events_since() method in pgtail_py/connection_stats.py
-- [ ] T031 [US2] Implement ConnectionStats.get_trend_buckets() returning (connects, disconnects) per bucket in pgtail_py/connection_stats.py
-- [ ] T032 [US2] Implement _show_history() function with timeline display in pgtail_py/cli_connections.py
-- [ ] T033 [US2] Add sparkline visualization for connection trends in pgtail_py/cli_connections.py
-- [ ] T034 [US2] Add --history flag parsing in connections_command() in pgtail_py/cli_connections.py
-- [ ] T035 [US2] Add --history to PgtailCompleter subcompletions in pgtail_py/commands.py
+- [x] T030 [US2] Implement ConnectionStats.get_events_since() method in pgtail_py/connection_stats.py
+- [x] T031 [US2] Implement ConnectionStats.get_trend_buckets() returning (connects, disconnects) per bucket in pgtail_py/connection_stats.py
+- [x] T032 [US2] Implement _show_history() function with timeline display in pgtail_py/cli_connections.py
+- [x] T033 [US2] Add sparkline visualization for connection trends in pgtail_py/cli_connections.py
+- [x] T034 [US2] Add --history flag parsing in connections_command() in pgtail_py/cli_connections.py
+- [x] T035 [US2] Add --history to PgtailCompleter subcompletions in pgtail_py/commands.py
 
 **Checkpoint**: User Story 2 complete - `connections --history` shows connection trends
 
