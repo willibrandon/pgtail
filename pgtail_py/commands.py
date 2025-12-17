@@ -109,6 +109,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_since(arg_text)
         elif cmd == "between":
             yield from self._complete_between(arg_text, len(parts))
+        elif cmd == "until":
+            yield from self._complete_until(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -443,6 +445,31 @@ class PgtailCompleter(Completer):
                 "16:00": "4 PM today (end)",
             }
 
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )
+
+    def _complete_until(self, prefix: str) -> list[Completion]:
+        """Complete until command options.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for until options and time examples.
+        """
+        options = {
+            "clear": "Remove time filter",
+            "15:00": "3 PM today",
+            "15:30": "3:30 PM today",
+            "16:00": "4 PM today",
+            "17:00": "5 PM today",
+        }
         prefix_lower = prefix.lower()
         for name, description in options.items():
             if name.startswith(prefix_lower):

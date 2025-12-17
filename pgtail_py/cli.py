@@ -249,6 +249,9 @@ Available commands:
                     clear       Clear all highlights
   since <time>      Filter logs since time (e.g., 'since 5m', 'since 14:30')
                     clear       Remove time filter
+  until <time>      Filter logs until time (e.g., 'until 15:00')
+                    Disables live tailing (upper bound set)
+  between <s> <e>   Filter logs in time range (e.g., 'between 14:30 15:00')
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting
@@ -1415,6 +1418,59 @@ def between_command(state: AppState, args: list[str]) -> None:
     print(f"Showing logs {state.time_filter.format_description()}")
 
 
+def until_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'until' command - filter logs up to a specific time.
+
+    Args:
+        state: Current application state.
+        args: Command arguments:
+            - No args: Display usage
+            - Time value: Set upper bound filter
+    """
+    # No args - show usage
+    if not args:
+        if state.time_filter.is_active():
+            print(f"Time filter: {state.time_filter.format_description()}")
+            print()
+        print("Usage: until <time>")
+        print()
+        print("Time formats:")
+        print("  5m, 30s, 2h, 1d       Relative (from now)")
+        print("  14:30, 14:30:45       Time today")
+        print("  2024-01-15T14:30      ISO 8601 datetime")
+        print()
+        print("Example: until 15:00")
+        print()
+        print("Note: until disables live tailing (no new entries will appear)")
+        return
+
+    # Handle 'clear' subcommand
+    if args[0].lower() == "clear":
+        state.time_filter = TimeFilter.empty()
+        if state.tailer:
+            state.tailer.update_time_filter(None)
+        print("Time filter cleared")
+        return
+
+    # Parse time value
+    try:
+        until_time = parse_time(args[0])
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
+    # Create and apply time filter (until only, no since)
+    state.time_filter = TimeFilter(until=until_time, original_input=args[0])
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_time_filter(state.time_filter)
+
+    # Display feedback
+    print(f"Showing logs {state.time_filter.format_description()}")
+    print("Note: Live tailing disabled (until sets an upper bound)")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -1496,6 +1552,8 @@ def handle_command(state: AppState, line: str) -> bool:
         since_command(state, args)
     elif cmd == "between":
         between_command(state, args)
+    elif cmd == "until":
+        until_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")

@@ -115,10 +115,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Implement `handle_until()` command handler in pgtail_py/cli.py
-- [ ] T031 [US4] Ensure `until` disables follow mode (no tailing) in pgtail_py/cli.py
-- [ ] T032 [US4] Display feedback ("Showing logs until 15:00:00") in pgtail_py/cli.py
-- [ ] T033 [US4] Add completions for `until` command in pgtail_py/commands.py
+- [x] T030 [US4] Implement `handle_until()` command handler in pgtail_py/cli.py
+- [x] T031 [US4] Ensure `until` disables follow mode (no tailing) in pgtail_py/cli.py
+- [x] T032 [US4] Display feedback ("Showing logs until 15:00:00") in pgtail_py/cli.py
+- [x] T033 [US4] Add completions for `until` command in pgtail_py/commands.py
 
 **Checkpoint**: User Story 4 complete - `until` command works
 
