@@ -138,6 +138,34 @@ def _shorten_path(path: Path) -> str:
     return path_str
 
 
+def _detect_windows_shell() -> str:
+    """Detect the parent shell on Windows.
+
+    Returns:
+        'powershell' if running from PowerShell, 'cmd' otherwise.
+    """
+    import psutil
+
+    try:
+        proc = psutil.Process()
+        # Walk up the process tree to find the shell
+        for _ in range(5):  # Check up to 5 levels
+            parent = proc.parent()
+            if parent is None:
+                break
+            name = parent.name().lower()
+            if "powershell" in name or "pwsh" in name:
+                return "powershell"
+            if name == "cmd.exe":
+                return "cmd"
+            proc = parent
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+    # Default to PowerShell on modern Windows
+    return "powershell"
+
+
 def run_shell(cmd_line: str) -> None:
     """Run a shell command.
 
@@ -148,7 +176,11 @@ def run_shell(cmd_line: str) -> None:
         return
 
     if sys.platform == "win32":
-        shell_cmd = ["cmd", "/c", cmd_line]
+        shell = _detect_windows_shell()
+        if shell == "powershell":
+            shell_cmd = ["powershell", "-NoProfile", "-Command", cmd_line]
+        else:
+            shell_cmd = ["cmd", "/c", cmd_line]
     else:
         shell_cmd = ["sh", "-c", cmd_line]
 
