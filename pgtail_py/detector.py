@@ -77,7 +77,10 @@ def get_log_info(data_dir: Path) -> tuple[Path | None, bool]:
 
 
 def get_port(data_dir: Path) -> int | None:
-    """Read the PostgreSQL port from postgresql.conf.
+    """Read the PostgreSQL port from postgresql.conf or postmaster.pid.
+
+    First tries postgresql.conf, then falls back to postmaster.pid
+    (useful when port is passed via command line, e.g., pgrx).
 
     Args:
         data_dir: Path to the PostgreSQL data directory.
@@ -85,21 +88,28 @@ def get_port(data_dir: Path) -> int | None:
     Returns:
         Port number, or None if not configured.
     """
+    # Try postgresql.conf first
     conf_file = data_dir / "postgresql.conf"
-    if not conf_file.exists():
-        return None
-
-    try:
-        conf_content = conf_file.read_text()
-    except (OSError, PermissionError):
-        return None
-
-    port_str = _get_conf_value(conf_content, "port")
-    if port_str:
+    if conf_file.exists():
         try:
-            return int(port_str)
-        except ValueError:
+            conf_content = conf_file.read_text()
+            port_str = _get_conf_value(conf_content, "port")
+            if port_str:
+                return int(port_str)
+        except (OSError, PermissionError, ValueError):
             pass
+
+    # Fall back to postmaster.pid (line 4 contains port)
+    postmaster_pid = data_dir / "postmaster.pid"
+    if postmaster_pid.exists():
+        try:
+            content = postmaster_pid.read_text()
+            lines = content.splitlines()
+            if len(lines) >= 4:
+                return int(lines[3].strip())
+        except (OSError, ValueError, IndexError):
+            pass
+
     return None
 
 
@@ -132,9 +142,41 @@ def _find_latest_log(log_dir: Path) -> Path | None:
 
 
 def _is_process_running(data_dir: Path, known_pids: dict[Path, int]) -> tuple[bool, int | None]:
-    """Check if a PostgreSQL process is running for this data directory."""
+    """Check if a PostgreSQL process is running for this data directory.
+
+    First checks if we found a running process with this data_dir.
+    Falls back to checking postmaster.pid file and verifying the PID is alive.
+    """
+    import psutil
+
+    # Check if we found this data_dir from process detection
     pid = known_pids.get(data_dir)
-    return (pid is not None, pid)
+    if pid is not None:
+        return (True, pid)
+
+    # Fall back to postmaster.pid file check
+    # This file exists when PostgreSQL is running and contains the PID
+    postmaster_pid = data_dir / "postmaster.pid"
+    if postmaster_pid.exists():
+        try:
+            # First line of postmaster.pid is the PID
+            content = postmaster_pid.read_text()
+            pid_line = content.splitlines()[0].strip()
+            pid = int(pid_line)
+
+            # Verify the process is actually running
+            if psutil.pid_exists(pid):
+                try:
+                    proc = psutil.Process(pid)
+                    # Check if it's actually a postgres process
+                    if "postgres" in proc.name().lower():
+                        return (True, pid)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except (OSError, ValueError, IndexError):
+            pass
+
+    return (False, None)
 
 
 def detect_all() -> list[Instance]:
