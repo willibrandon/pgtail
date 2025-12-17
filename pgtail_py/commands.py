@@ -30,6 +30,7 @@ COMMANDS: dict[str, str] = {
     "set": "Set a config value (e.g., 'set slow.warn 50')",
     "unset": "Remove a config setting (e.g., 'unset slow.warn')",
     "config": "Show current configuration (subcommands: path, edit, reset)",
+    "errors": "Show error statistics (--trend, --live, --code, --since, clear)",
     "export": "Export filtered logs to file (e.g., 'export errors.log')",
     "pipe": "Pipe filtered logs to command (e.g., 'pipe wc -l')",
     "stop": "Stop current tail and return to prompt",

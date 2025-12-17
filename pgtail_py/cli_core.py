@@ -225,6 +225,7 @@ def tail_command(state: AppState, args: list[str]) -> None:
         state.regex_state,
         state.time_filter if state.time_filter.is_active() else None,
         state.field_filter if state.field_filter.is_active() else None,
+        on_entry=state.error_stats.add,
     )
 
     # Set callback to display format when detected

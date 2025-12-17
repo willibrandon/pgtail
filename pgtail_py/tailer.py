@@ -33,6 +33,7 @@ class LogTailer:
         time_filter: TimeFilter | None = None,
         field_filter: FieldFilterState | None = None,
         poll_interval: float = 0.1,
+        on_entry: Callable[[LogEntry], None] | None = None,
     ) -> None:
         """Initialize the log tailer.
 
@@ -43,6 +44,7 @@ class LogTailer:
             time_filter: Time filter state. None means no time filtering.
             field_filter: Field filter state. None means no field filtering.
             poll_interval: How often to check for new content (seconds).
+            on_entry: Callback for ALL parsed entries (before filtering).
         """
         self._log_path = log_path
         self._active_levels = active_levels
@@ -59,6 +61,7 @@ class LogTailer:
         self._buffer: list[LogEntry] = []  # Store entries for export
         self._detected_format: LogFormat | None = None
         self._format_callback: Callable[[LogFormat], None] | None = None
+        self._on_entry = on_entry
 
     def _get_file_inode(self) -> int | None:
         """Get the inode of the log file for rotation detection."""
@@ -115,6 +118,9 @@ class LogTailer:
                         self._detect_format_if_needed(line)
                         # Parse with detected format
                         entry = parse_log_line(line, self._detected_format or LogFormat.TEXT)
+                        # Call on_entry callback for ALL entries (before filtering)
+                        if self._on_entry:
+                            self._on_entry(entry)
                         if self._should_show(entry):
                             self._queue.put(entry)
                             self._buffer.append(entry)

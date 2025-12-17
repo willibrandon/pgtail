@@ -26,6 +26,7 @@ from pgtail_py.cli_core import (
     stop_command,
     tail_command,
 )
+from pgtail_py.cli_errors import errors_command
 from pgtail_py.cli_export import export_command, pipe_command
 from pgtail_py.cli_filter import filter_command, highlight_command, levels_command
 from pgtail_py.cli_slow import slow_command, stats_command
@@ -45,6 +46,7 @@ from pgtail_py.config import (
 )
 from pgtail_py.detector import detect_all
 from pgtail_py.display import DisplayState, OutputFormat, format_entry
+from pgtail_py.error_stats import ErrorStats
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
 from pgtail_py.instance import Instance
@@ -68,6 +70,7 @@ class AppState:
         time_filter: Time-based filter state
         slow_query_config: Configuration for slow query highlighting
         duration_stats: Session-scoped query duration statistics
+        error_stats: Session-scoped error statistics
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
         tailer: Active log tailer instance
@@ -85,6 +88,7 @@ class AppState:
     time_filter: TimeFilter = field(default_factory=TimeFilter.empty)
     slow_query_config: SlowQueryConfig = field(default_factory=SlowQueryConfig)
     duration_stats: DurationStats = field(default_factory=DurationStats)
+    error_stats: ErrorStats = field(default_factory=ErrorStats)
     tailing: bool = False
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None
@@ -181,6 +185,8 @@ def handle_command(state: AppState, line: str) -> bool:
         slow_command(state, args)
     elif cmd == "stats":
         stats_command(state)
+    elif cmd == "errors":
+        errors_command(state, args)
     elif cmd == "set":
         set_command(state, args)
     elif cmd == "unset":
