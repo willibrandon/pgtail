@@ -22,9 +22,9 @@
 
 **Purpose**: Create new module files and shared enums
 
-- [ ] T001 Create LogFormat enum in pgtail_py/format_detector.py with TEXT, CSV, JSON values
-- [ ] T002 [P] Create empty parser_csv.py module in pgtail_py/parser_csv.py with docstring and CSV_FIELD_ORDER constant
-- [ ] T003 [P] Create empty parser_json.py module in pgtail_py/parser_json.py with docstring and JSON_FIELD_MAP constant
+- [x] T001 Create LogFormat enum in pgtail_py/format_detector.py with TEXT, CSV, JSON values
+- [x] T002 [P] Create empty parser_csv.py module in pgtail_py/parser_csv.py with docstring and CSV_FIELD_ORDER constant
+- [x] T003 [P] Create empty parser_json.py module in pgtail_py/parser_json.py with docstring and JSON_FIELD_MAP constant
 
 ---
 
@@ -34,14 +34,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Extend LogEntry dataclass in pgtail_py/parser.py with format field and all 26+ extended fields from data-model.md
-- [ ] T005 Add get_field(), available_fields(), and to_dict() methods to LogEntry in pgtail_py/parser.py
-- [ ] T006 Implement detect_format() function in pgtail_py/format_detector.py per contracts/format_detector.md
-- [ ] T007 Implement is_valid_csv_log() helper function in pgtail_py/format_detector.py
-- [ ] T008 Implement is_valid_json_log() helper function in pgtail_py/format_detector.py
-- [ ] T009 Implement detect_format_from_file() function in pgtail_py/format_detector.py
+- [x] T004 Extend LogEntry dataclass in pgtail_py/parser.py with format field and all 26+ extended fields from data-model.md
+- [x] T005 Add get_field(), available_fields(), and to_dict() methods to LogEntry in pgtail_py/parser.py
+- [x] T006 Implement detect_format() function in pgtail_py/format_detector.py per contracts/format_detector.md
+- [x] T007 Implement is_valid_csv_log() helper function in pgtail_py/format_detector.py
+- [x] T008 Implement is_valid_json_log() helper function in pgtail_py/format_detector.py
+- [x] T009 Implement detect_format_from_file() function in pgtail_py/format_detector.py
 
-**Checkpoint**: Foundation ready - LogEntry extended and format detection working
+**Checkpoint**: Foundation ready - LogEntry extended and format detection working ✅
 
 ---
 

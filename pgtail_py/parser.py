@@ -1,15 +1,35 @@
-"""PostgreSQL log line parsing."""
+"""PostgreSQL log line parsing.
+
+Supports TEXT (stderr), CSV (csvlog), and JSON (jsonlog) log formats.
+"""
+
+from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from pgtail_py.filter import LogLevel
+from pgtail_py.format_detector import LogFormat
+
+if TYPE_CHECKING:
+    pass
+
+# Canonical field aliases for LogEntry.get_field()
+_FIELD_ALIASES: dict[str, str] = {
+    "app": "application_name",
+    "application": "application_name",
+    "db": "database_name",
+    "database": "database_name",
+    "user": "user_name",
+    "backend": "backend_type",
+}
 
 
 @dataclass
 class LogEntry:
-    """A parsed PostgreSQL log line.
+    """A parsed PostgreSQL log entry supporting text, CSV, and JSON formats.
 
     Attributes:
         timestamp: Parsed timestamp, or None if unparseable
@@ -17,13 +37,165 @@ class LogEntry:
         message: The log message content
         raw: Original line (preserved for fallback display)
         pid: Process ID from log line, if present
+        format: Detected format of this entry (TEXT, CSV, JSON)
+
+    Extended fields (structured formats only):
+        user_name: Database user name
+        database_name: Database name
+        application_name: Client application name
+        sql_state: SQLSTATE error code (e.g., 42P01)
+        detail: Error detail message
+        hint: Error hint message
+        context: Error context
+        query: User query that caused the error
+        internal_query: Internal query that caused the error
+        location: PostgreSQL source code location
+        session_id: Session identifier
+        session_line_num: Line number within session
+        command_tag: Command tag (SELECT, INSERT, etc.) - CSV only
+        virtual_transaction_id: Virtual transaction ID
+        transaction_id: Transaction ID
+        backend_type: Backend type (client backend, autovacuum, etc.)
+        leader_pid: Parallel group leader PID
+        query_id: Query ID
+        connection_from: Client host:port - CSV only
+        remote_host: Client host - JSON only
+        remote_port: Client port - JSON only
+        session_start: Session start time
+        query_pos: Error position in query
+        internal_query_pos: Error position in internal query
+        func_name: Error location function name - JSON only
+        file_name: Error location file name - JSON only
+        file_line_num: Error location line number - JSON only
     """
 
+    # Core fields (always present)
     timestamp: datetime | None
     level: LogLevel
     message: str
     raw: str
     pid: int | None = None
+    format: LogFormat = field(default=LogFormat.TEXT)
+
+    # Extended fields (structured formats only)
+    user_name: str | None = None
+    database_name: str | None = None
+    application_name: str | None = None
+    sql_state: str | None = None
+    detail: str | None = None
+    hint: str | None = None
+    context: str | None = None
+    query: str | None = None
+    internal_query: str | None = None
+    location: str | None = None
+    session_id: str | None = None
+    session_line_num: int | None = None
+    command_tag: str | None = None
+    virtual_transaction_id: str | None = None
+    transaction_id: str | None = None
+    backend_type: str | None = None
+    leader_pid: int | None = None
+    query_id: int | None = None
+    connection_from: str | None = None
+    remote_host: str | None = None
+    remote_port: int | None = None
+    session_start: datetime | None = None
+    query_pos: int | None = None
+    internal_query_pos: int | None = None
+    func_name: str | None = None
+    file_name: str | None = None
+    file_line_num: int | None = None
+
+    def get_field(self, name: str) -> str | int | datetime | None:
+        """Get a field value by canonical name.
+
+        Supports aliases like 'app' for 'application_name', 'db' for
+        'database_name', etc.
+
+        Args:
+            name: Canonical field name (e.g., "app", "db", "user")
+
+        Returns:
+            Field value or None if not available.
+        """
+        # Resolve alias to actual field name
+        field_name = _FIELD_ALIASES.get(name, name)
+
+        # Get the attribute value
+        return getattr(self, field_name, None)
+
+    def available_fields(self) -> list[str]:
+        """Get list of field names that have non-None values.
+
+        Returns:
+            Sorted list of field names with values set.
+        """
+        result = []
+        for field_name in [
+            "timestamp",
+            "level",
+            "message",
+            "raw",
+            "pid",
+            "format",
+            "user_name",
+            "database_name",
+            "application_name",
+            "sql_state",
+            "detail",
+            "hint",
+            "context",
+            "query",
+            "internal_query",
+            "location",
+            "session_id",
+            "session_line_num",
+            "command_tag",
+            "virtual_transaction_id",
+            "transaction_id",
+            "backend_type",
+            "leader_pid",
+            "query_id",
+            "connection_from",
+            "remote_host",
+            "remote_port",
+            "session_start",
+            "query_pos",
+            "internal_query_pos",
+            "func_name",
+            "file_name",
+            "file_line_num",
+        ]:
+            value = getattr(self, field_name, None)
+            if value is not None:
+                result.append(field_name)
+        return result
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert entry to dictionary for JSON serialization.
+
+        Returns:
+            Dictionary with all non-None fields.
+            datetime values are converted to ISO 8601 strings.
+            LogLevel and LogFormat enums are converted to their string values.
+        """
+        result: dict[str, Any] = {}
+
+        for field_name in self.available_fields():
+            value = getattr(self, field_name)
+
+            # Convert datetime to ISO 8601 string
+            if isinstance(value, datetime):
+                result[field_name] = value.isoformat()
+            # Convert enums to their string values
+            elif isinstance(value, LogLevel):
+                result[field_name] = value.name
+            elif isinstance(value, LogFormat):
+                result[field_name] = value.value
+            else:
+                result[field_name] = value
+
+        return result
 
 
 # PostgreSQL default log line format (with PID):
