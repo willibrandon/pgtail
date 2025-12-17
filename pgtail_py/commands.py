@@ -105,6 +105,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_export(arg_text)
         elif cmd == "pipe":
             yield from self._complete_pipe(arg_text)
+        elif cmd == "since":
+            yield from self._complete_since(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -385,3 +387,29 @@ class PgtailCompleter(Completer):
                         start_position=-len(prefix),
                         display_meta=description,
                     )
+
+    def _complete_since(self, prefix: str) -> list[Completion]:
+        """Complete since command options.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for since options and time examples.
+        """
+        options = {
+            "clear": "Remove time filter",
+            "5m": "Last 5 minutes",
+            "30m": "Last 30 minutes",
+            "1h": "Last hour",
+            "2h": "Last 2 hours",
+            "1d": "Last day",
+        }
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )

@@ -62,7 +62,7 @@ from pgtail_py.slow_query import (
 )
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode, reset_terminal
-from pgtail_py.time_filter import TimeFilter
+from pgtail_py.time_filter import TimeFilter, is_future_time, parse_time
 
 
 def _warn(msg: str) -> None:
@@ -247,6 +247,8 @@ Available commands:
   highlight /pattern/  Highlight matching text (yellow background)
                     /pattern/c  Case-sensitive highlight
                     clear       Clear all highlights
+  since <time>      Filter logs since time (e.g., 'since 5m', 'since 14:30')
+                    clear       Remove time filter
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting
@@ -378,7 +380,12 @@ def tail_command(state: AppState, args: list[str]) -> None:
     print("Press Ctrl+C to stop")
     print()
 
-    state.tailer = LogTailer(instance.log_path, state.active_levels, state.regex_state)
+    state.tailer = LogTailer(
+        instance.log_path,
+        state.active_levels,
+        state.regex_state,
+        state.time_filter if state.time_filter.is_active() else None,
+    )
     state.tailer.start()
 
 
@@ -1289,6 +1296,64 @@ def pipe_command(state: AppState, args: list[str]) -> None:
         print(f"Error running command: {e}")
 
 
+def since_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'since' command - filter logs by time.
+
+    Args:
+        state: Current application state.
+        args: Command arguments:
+            - No args: Display current time filter status
+            - 'clear': Remove time filter
+            - Time value: Set filter (e.g., 5m, 2h, 14:30, 2024-01-15T14:30)
+    """
+    # No args - show current time filter status
+    if not args:
+        if not state.time_filter.is_active():
+            print("No time filter active")
+        else:
+            print(f"Time filter: {state.time_filter.format_description()}")
+        print()
+        print("Usage: since <time>     Show logs since time")
+        print("       since clear      Remove time filter")
+        print()
+        print("Time formats:")
+        print("  5m, 30s, 2h, 1d       Relative (from now)")
+        print("  14:30, 14:30:45       Time today")
+        print("  2024-01-15T14:30      ISO 8601 datetime")
+        return
+
+    arg = args[0].lower()
+
+    # Handle 'clear' subcommand
+    if arg == "clear":
+        state.time_filter = TimeFilter.empty()
+        if state.tailer:
+            state.tailer.update_time_filter(None)
+        print("Time filter cleared")
+        return
+
+    # Parse time value
+    try:
+        since_time = parse_time(args[0])
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
+    # Warn if time is in the future
+    if is_future_time(since_time):
+        print(f"Warning: {args[0]} is in the future, no entries will match yet")
+
+    # Create and apply time filter
+    state.time_filter = TimeFilter(since=since_time, original_input=args[0])
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_time_filter(state.time_filter)
+
+    # Display feedback
+    print(f"Showing logs {state.time_filter.format_description()}")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -1366,6 +1431,8 @@ def handle_command(state: AppState, line: str) -> bool:
         export_command(state, args)
     elif cmd == "pipe":
         pipe_command(state, args)
+    elif cmd == "since":
+        since_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")

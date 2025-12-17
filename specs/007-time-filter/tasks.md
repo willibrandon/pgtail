@@ -61,12 +61,12 @@ Based on plan.md structure:
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement `handle_since()` command handler in pgtail_py/cli.py
-- [ ] T016 [US1] Add `since clear` subcommand handling to clear time filter in pgtail_py/cli.py
-- [ ] T017 [US1] Display time range feedback when filter is set ("Showing logs from last 5 minutes") in pgtail_py/cli.py
-- [ ] T018 [US1] Handle "no entries in range" case with informative message in pgtail_py/cli.py
-- [ ] T019 [US1] Add time filter to status display in existing status output in pgtail_py/cli.py
-- [ ] T020 [US1] Add completions for `since` command (clear, time examples) in pgtail_py/commands.py
+- [x] T015 [US1] Implement `handle_since()` command handler in pgtail_py/cli.py
+- [x] T016 [US1] Add `since clear` subcommand handling to clear time filter in pgtail_py/cli.py
+- [x] T017 [US1] Display time range feedback when filter is set ("Showing logs from last 5 minutes") in pgtail_py/cli.py
+- [x] T018 [US1] Handle "no entries in range" case with informative message in pgtail_py/cli.py
+- [x] T019 [US1] Add time filter to status display in existing status output in pgtail_py/cli.py
+- [x] T020 [US1] Add completions for `since` command (clear, time examples) in pgtail_py/commands.py
 
 **Checkpoint**: User Story 1 complete - `since 5m`, `since 2h`, `since 1d`, `since clear` all work
 

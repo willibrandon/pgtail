@@ -128,7 +128,8 @@ class LogTailer:
     def start(self) -> None:
         """Start tailing the log file.
 
-        Seeks to the end of the file and begins monitoring for changes.
+        If a time filter is active, reads from the beginning to show
+        historical entries first. Otherwise, seeks to the end.
         """
         if self._running:
             return
@@ -136,9 +137,13 @@ class LogTailer:
         self._running = True
         self._stop_event.clear()
 
-        # Initialize position to end of file
+        # If time filter is active, start from beginning to show historical entries
+        # Otherwise, start from end (only new entries)
         try:
-            self._position = os.path.getsize(self._log_path)
+            if self._time_filter is not None and self._time_filter.is_active():
+                self._position = 0
+            else:
+                self._position = os.path.getsize(self._log_path)
             self._inode = self._get_file_inode()
         except OSError:
             self._position = 0
