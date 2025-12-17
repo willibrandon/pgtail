@@ -16,6 +16,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Highlight matching text with yellow background
 - Slow query detection with configurable thresholds
 - Query duration statistics (count, average, percentiles)
+- Error statistics with trend visualization and live counter
 - Export logs to files (text, JSON, CSV formats)
 - Pipe logs to external commands (grep, jq, wc, etc.)
 - Color-coded output by severity with SQL state codes
@@ -64,6 +65,7 @@ output [format]    Set output format (text, json)
 highlight /pattern/ Highlight matching text (yellow background)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
+errors             Show error statistics (see Error Statistics below)
 export <file>      Export filtered logs to file (see Export below)
 pipe <cmd>         Pipe filtered logs to external command (see Pipe below)
 set <key> [val]    Set/view a config value (persists across sessions)
@@ -193,6 +195,41 @@ Requires PostgreSQL `log_min_duration_statement` to be enabled:
 ```sql
 ALTER SYSTEM SET log_min_duration_statement = 0;
 SELECT pg_reload_conf();
+```
+
+### Error Statistics
+
+Track and analyze ERROR, FATAL, PANIC, and WARNING entries:
+
+```
+errors                     Show summary by SQLSTATE code and level
+errors --trend             Sparkline of error rate (last 60 minutes)
+errors --live              Real-time counter (Ctrl+C to exit)
+errors --code 23505        Filter by SQLSTATE code
+errors --since 30m         Only errors from last 30 minutes
+errors --trend --since 1h  Combine time filter with trend
+errors clear               Reset all statistics
+```
+
+Example output:
+```
+pgtail> errors
+Error Statistics
+─────────────────────────────
+Errors: 5  Warnings: 2
+
+By type:
+  23505 unique_violation           3
+  42P01 undefined_table            2
+
+By level:
+  ERROR         5
+  WARNING       2
+
+pgtail> errors --trend
+Error rate (per minute):
+
+Last 60 min: ▁▁▁▂▁▁▃▁▅▁▁▁▁▁▂▁▁▁▁▁  total 12, avg 0.2/min
 ```
 
 ### Export

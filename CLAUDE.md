@@ -41,6 +41,9 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/config.py` - Configuration file support, platform-specific paths, config schema
 - `pgtail_py/enable_logging.py` - Enable logging_collector in postgresql.conf
 - `pgtail_py/export.py` - Export formatting, file writing, pipe to external commands
+- `pgtail_py/error_stats.py` - Error event tracking, SQLSTATE lookups, session statistics
+- `pgtail_py/error_trend.py` - Sparkline visualization and per-minute bucketing
+- `pgtail_py/cli_errors.py` - errors command handlers (summary, trend, live, code filter)
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
 
@@ -93,6 +96,28 @@ Commands:
 - `tail <id> --since <time>` - Start tailing with time filter
 
 Filter order (cheapest first): time → level → field → regex
+
+## Error Statistics
+
+The `errors` command tracks ERROR, FATAL, PANIC, and WARNING entries during tailing:
+
+**Commands:**
+- `errors` - Summary with counts by SQLSTATE code and severity level
+- `errors --trend` - Sparkline visualization of error rate (last 60 minutes)
+- `errors --live` - Real-time updating counter (Ctrl+C to exit)
+- `errors --code CODE` - Filter by 5-character SQLSTATE code (e.g., 23505)
+- `errors --since TIME` - Time-scoped statistics (e.g., `errors --since 30m`)
+- `errors clear` - Reset all statistics
+
+**Flag combinations:**
+- `--since` can combine with `--trend` or `--code`
+- `--live` cannot combine with other flags
+- `--trend` and `--code` are mutually exclusive
+
+**Implementation:**
+- Session-scoped, in-memory only (deque with maxlen=10000)
+- Tracks via `on_entry` callback in LogTailer (before filtering)
+- SQLSTATE lookups for ~23 common codes and 45 category classes
 
 ## Log Format Support
 

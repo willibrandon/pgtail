@@ -81,7 +81,7 @@ Or reference the file directly when planning.
 6. csvlog-jsonlog-support - completed
 
 ### Phase 3: Monitoring
-7. error-stats-dashboard
+7. error-stats-dashboard - completed
 8. connection-tracking
 9. desktop-notifications
 
