@@ -77,7 +77,7 @@ Or reference the file directly when planning.
 4. export-and-pipe - completed
 
 ### Phase 2: Enhanced Filtering
-5. time-based-filtering
+5. time-based-filtering - completed
 6. csvlog-jsonlog-support
 
 ### Phase 3: Monitoring

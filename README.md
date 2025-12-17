@@ -7,6 +7,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
 - Real-time log tailing with polling (handles log rotation)
 - Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
+- Time-based filtering (since, until, between)
 - Regex pattern filtering (include, exclude, AND/OR logic)
 - Highlight matching text with yellow background
 - Slow query detection with configurable thresholds
@@ -47,8 +48,11 @@ python -m pgtail_py
 
 ```
 list               Show detected PostgreSQL instances
-tail <id|path>     Tail logs for an instance
+tail <id|path>     Tail logs for an instance (supports --since flag)
 levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
+since <time>       Filter logs since time (e.g., 5m, 14:30, 2024-01-15T14:30)
+until <time>       Filter logs until time
+between <s> <e>    Filter logs in time range (e.g., between 14:30 15:00)
 filter /pattern/   Regex filter (see Filtering below)
 highlight /pattern/ Highlight matching text (yellow background)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
@@ -70,6 +74,27 @@ quit               Exit (alias: exit, q)
 ### Log Levels
 
 `PANIC` `FATAL` `ERROR` `WARNING` `NOTICE` `LOG` `INFO` `DEBUG1-5`
+
+### Time Filtering
+
+Filter logs by time using relative durations, absolute times, or ISO 8601:
+
+```
+since 5m                   Show entries from last 5 minutes
+since 14:30                Show entries since 2:30 PM today
+since 2024-01-15T14:30     Show entries since specific datetime
+until 15:00                Show entries until 3 PM today
+between 14:30 15:00        Show entries between 2:30 PM and 3 PM
+between 14:30 and 15:00    "and" keyword is optional
+since clear                Remove time filter
+until clear                Remove time filter
+tail 0 --since 1h          Start tailing with time filter
+```
+
+Supported time formats:
+- **Relative**: `5m`, `30s`, `2h`, `1d` (minutes, seconds, hours, days from now)
+- **Time only**: `14:30`, `14:30:45` (today at specified time)
+- **ISO 8601**: `2024-01-15T14:30`, `2024-01-15T14:30:00Z`
 
 ### Filtering
 

@@ -28,6 +28,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/parser.py` - PostgreSQL log line parsing, LogEntry dataclass
 - `pgtail_py/filter.py` - LogLevel enum, level filtering logic
 - `pgtail_py/regex_filter.py` - Regex pattern filtering and highlighting
+- `pgtail_py/time_filter.py` - Time-based filtering (since, until, between)
 - `pgtail_py/slow_query.py` - Slow query detection, thresholds, duration stats
 - `pgtail_py/tailer.py` - Log file tailing with polling (handles rotation)
 - `pgtail_py/colors.py` - Color output using prompt_toolkit styles
@@ -73,11 +74,25 @@ Settings persist in a TOML config file at platform-specific locations:
 - `theme.name` - Color theme (`dark` or `light`)
 - `notifications.enabled`, `notifications.levels`, `notifications.quiet_hours`
 
+## Time Filtering
+
+Time-based filtering commands support multiple formats:
+- **Relative**: `5m`, `30s`, `2h`, `1d` (duration from now)
+- **Time only**: `14:30`, `14:30:45` (today at specified time)
+- **ISO 8601**: `2024-01-15T14:30`, `2024-01-15T14:30:00Z`
+
+Commands:
+- `since <time>` - Show entries from time onward
+- `until <time>` - Show entries up to time
+- `between <start> <end>` - Show entries in time range
+- `tail <id> --since <time>` - Start tailing with time filter
+
+Filter order (cheapest first): time → level → regex
+
 ## Recent Changes
-- 007-time-filter: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib), datetime (stdlib)
+- 007-time-filter: Added `since`, `until`, `between` commands and `tail --since` flag for time-based log filtering
 - 006-export-pipe: Added `export` and `pipe` commands for saving logs to files and streaming to external tools
 - 005-config-file: Added persistent configuration file support with `set`, `unset`, and `config` commands
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib), datetime (stdlib) (007-time-filter)
-- N/A (local log file reading only) (007-time-filter)
+- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib), datetime (stdlib)
