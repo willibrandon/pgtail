@@ -69,6 +69,7 @@ Available commands:
                     +/pattern/  Add OR pattern
                     &/pattern/  Add AND pattern
                     /pattern/c  Case-sensitive match
+                    field=value Filter by field (CSV/JSON only)
                     clear       Clear all filters
   highlight /pattern/  Highlight matching text (yellow background)
                     /pattern/c  Case-sensitive highlight
@@ -215,6 +216,7 @@ def tail_command(state: AppState, args: list[str]) -> None:
         state.active_levels,
         state.regex_state,
         state.time_filter if state.time_filter.is_active() else None,
+        state.field_filter if state.field_filter.is_active() else None,
     )
 
     # Set callback to display format when detected

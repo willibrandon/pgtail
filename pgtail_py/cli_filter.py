@@ -1,11 +1,17 @@
-"""Log filtering commands for level and regex patterns."""
+"""Log filtering commands for level, regex, and field patterns."""
 
 from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
 
+from pgtail_py.field_filter import (
+    FIELD_ALIASES,
+    get_available_field_names,
+    resolve_field_name,
+)
 from pgtail_py.filter import LogLevel, parse_levels
+from pgtail_py.format_detector import LogFormat
 from pgtail_py.regex_filter import (
     FilterType,
     Highlight,
@@ -62,8 +68,66 @@ def levels_command(state: AppState, args: list[str]) -> None:
         print(f"Filter set: {' '.join(names)}")
 
 
+def _is_field_filter_arg(arg: str) -> bool:
+    """Check if arg looks like a field filter (field=value syntax).
+
+    Args:
+        arg: The argument to check
+
+    Returns:
+        True if arg contains = and the part before = is a valid field name
+    """
+    if "=" not in arg:
+        return False
+
+    field_part = arg.split("=", 1)[0].lower()
+    return field_part in FIELD_ALIASES
+
+
+def handle_filter_field(state: AppState, arg: str) -> None:
+    """Handle field=value filter syntax.
+
+    Args:
+        state: Current application state.
+        arg: Filter argument in field=value format.
+    """
+    # Check if tailing and warn about text format
+    if state.tailer and state.tailer.format == LogFormat.TEXT:
+        print("Warning: Field filtering is only effective for CSV/JSON log formats.")
+        print("Text format logs don't have structured fields.")
+        print()
+
+    # Parse field=value
+    parts = arg.split("=", 1)
+    if len(parts) != 2:
+        print(f"Invalid field filter syntax: {arg}")
+        print("Use field=value syntax (e.g., filter app=myapp)")
+        return
+
+    field_name, value = parts
+    value = value.strip()
+
+    if not value:
+        print(f"Empty value for field filter: {arg}")
+        return
+
+    # Resolve and add the filter
+    try:
+        state.field_filter.add(field_name, value)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_field_filter(state.field_filter)
+
+    resolved = resolve_field_name(field_name)
+    print(f"Field filter set: {resolved}={value}")
+
+
 def filter_command(state: AppState, args: list[str]) -> None:
-    """Handle the 'filter' command - set or display regex pattern filter.
+    """Handle the 'filter' command - set or display regex and field filters.
 
     Args:
         state: Current application state.
@@ -71,26 +135,35 @@ def filter_command(state: AppState, args: list[str]) -> None:
     """
     # No args - show current filter status
     if not args:
-        if not state.regex_state.has_filters():
+        has_regex = state.regex_state.has_filters()
+        has_field = state.field_filter.is_active()
+
+        if not has_regex and not has_field:
             print("No filters active")
         else:
-            print("Active filters:")
-            for f in state.regex_state.includes:
-                cs = " (case-sensitive)" if f.case_sensitive else ""
-                print(f"  include: /{f.pattern}/{cs}")
-            for f in state.regex_state.excludes:
-                cs = " (case-sensitive)" if f.case_sensitive else ""
-                print(f"  exclude: /{f.pattern}/{cs}")
-            for f in state.regex_state.ands:
-                cs = " (case-sensitive)" if f.case_sensitive else ""
-                print(f"  and: /{f.pattern}/{cs}")
+            if has_regex:
+                print("Active regex filters:")
+                for f in state.regex_state.includes:
+                    cs = " (case-sensitive)" if f.case_sensitive else ""
+                    print(f"  include: /{f.pattern}/{cs}")
+                for f in state.regex_state.excludes:
+                    cs = " (case-sensitive)" if f.case_sensitive else ""
+                    print(f"  exclude: /{f.pattern}/{cs}")
+                for f in state.regex_state.ands:
+                    cs = " (case-sensitive)" if f.case_sensitive else ""
+                    print(f"  and: /{f.pattern}/{cs}")
+            if has_field:
+                print(state.field_filter.format_status())
         print()
-        print("Usage: filter /pattern/       Include only matching lines")
+        print("Usage: filter /pattern/       Include only matching lines (regex)")
         print("       filter -/pattern/      Exclude matching lines")
         print("       filter +/pattern/      Add OR pattern")
         print("       filter &/pattern/      Add AND pattern")
         print("       filter /pattern/c      Case-sensitive match")
+        print("       filter field=value     Filter by field (CSV/JSON only)")
         print("       filter clear           Clear all filters")
+        print()
+        print(f"Available fields: {', '.join(get_available_field_names())}")
         return
 
     arg = args[0]
@@ -98,7 +171,15 @@ def filter_command(state: AppState, args: list[str]) -> None:
     # Handle 'clear' subcommand
     if arg.lower() == "clear":
         state.regex_state.clear_filters()
-        print("Filters cleared")
+        state.field_filter.clear()
+        if state.tailer:
+            state.tailer.update_field_filter(state.field_filter)
+        print("All filters cleared")
+        return
+
+    # Check if this is a field filter (field=value syntax)
+    if _is_field_filter_arg(arg):
+        handle_filter_field(state, arg)
         return
 
     # Determine filter type based on prefix

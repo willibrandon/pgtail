@@ -61,6 +61,17 @@ DISPLAY_FIELDS: list[str] = [
     "command_tag",
 ]
 
+# Field names for filter command autocomplete (canonical + aliases)
+FILTER_FIELDS: list[str] = [
+    "app",
+    "application",
+    "db",
+    "database",
+    "user",
+    "pid",
+    "backend",
+]
+
 
 class PgtailCompleter(Completer):
     """Completer for pgtail REPL commands.
@@ -247,20 +258,33 @@ class PgtailCompleter(Completer):
                 )
 
     def _complete_filter(self, prefix: str) -> list[Completion]:
-        """Complete filter subcommands.
+        """Complete filter subcommands and field names.
 
         Args:
             prefix: The prefix to match.
 
         Yields:
-            Completions for filter subcommands.
+            Completions for filter subcommands and field filters.
         """
-        if "clear".startswith(prefix.lower()):
+        prefix_lower = prefix.lower()
+
+        if "clear".startswith(prefix_lower):
             yield Completion(
                 "clear",
                 start_position=-len(prefix),
                 display_meta="Clear all filters",
             )
+
+        # Complete field names for field=value syntax
+        # Check if user is typing a field name (before the =)
+        if "=" not in prefix:
+            for field in FILTER_FIELDS:
+                if field.startswith(prefix_lower):
+                    yield Completion(
+                        f"{field}=",
+                        start_position=-len(prefix),
+                        display_meta=f"Filter by {field}",
+                    )
 
     def _complete_highlight(self, prefix: str) -> list[Completion]:
         """Complete highlight subcommands.

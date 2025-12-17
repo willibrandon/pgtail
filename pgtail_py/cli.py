@@ -44,6 +44,7 @@ from pgtail_py.config import (
 )
 from pgtail_py.detector import detect_all
 from pgtail_py.display import DisplayState, OutputFormat, format_entry
+from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
 from pgtail_py.instance import Instance
 from pgtail_py.regex_filter import FilterState
@@ -62,6 +63,7 @@ class AppState:
         current_instance: Currently selected instance for tailing
         active_levels: Set of log levels to display (all by default)
         regex_state: Regex pattern filter state
+        field_filter: Field-based filter state for structured logs
         time_filter: Time-based filter state
         slow_query_config: Configuration for slow query highlighting
         duration_stats: Session-scoped query duration statistics
@@ -78,6 +80,7 @@ class AppState:
     current_instance: Instance | None = None
     active_levels: set[LogLevel] | None = field(default_factory=LogLevel.all_levels)
     regex_state: FilterState = field(default_factory=FilterState.empty)
+    field_filter: FieldFilterState = field(default_factory=FieldFilterState)
     time_filter: TimeFilter = field(default_factory=TimeFilter.empty)
     slow_query_config: SlowQueryConfig = field(default_factory=SlowQueryConfig)
     duration_stats: DurationStats = field(default_factory=DurationStats)

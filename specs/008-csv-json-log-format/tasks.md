@@ -115,21 +115,21 @@
 
 ### Implementation for User Story 4
 
-- [ ] T033 [P] [US4] Create FieldFilter frozen dataclass in pgtail_py/field_filter.py per contracts/field_filter.md
-- [ ] T034 [P] [US4] Add FIELD_ALIASES and FIELD_ATTRIBUTES constants in pgtail_py/field_filter.py
-- [ ] T035 [US4] Implement resolve_field_name() function in pgtail_py/field_filter.py
-- [ ] T036 [US4] Implement FieldFilterState class with add/remove/clear/matches methods in pgtail_py/field_filter.py
-- [ ] T037 [US4] Implement format_status() method in FieldFilterState in pgtail_py/field_filter.py
-- [ ] T038 [US4] Add _field_filter attribute to LogTailer in pgtail_py/tailer.py
-- [ ] T039 [US4] Update LogTailer._should_show() in pgtail_py/tailer.py to include field filter check after level filter
-- [ ] T040 [US4] Add update_field_filter() method to LogTailer in pgtail_py/tailer.py
-- [ ] T041 [US4] Add field_filter attribute to AppState in pgtail_py/cli.py
-- [ ] T042 [US4] Implement handle_filter_field() function in pgtail_py/cli_filter.py for field=value syntax
-- [ ] T043 [US4] Update existing filter command handler in pgtail_py/cli_filter.py to detect and route field filters
-- [ ] T044 [US4] Add FILTER_FIELDS constant to pgtail_py/commands.py for autocomplete
-- [ ] T045 [US4] Show informative error when field filtering attempted on text format logs in pgtail_py/cli_filter.py
+- [x] T033 [P] [US4] Create FieldFilter frozen dataclass in pgtail_py/field_filter.py per contracts/field_filter.md
+- [x] T034 [P] [US4] Add FIELD_ALIASES and FIELD_ATTRIBUTES constants in pgtail_py/field_filter.py
+- [x] T035 [US4] Implement resolve_field_name() function in pgtail_py/field_filter.py
+- [x] T036 [US4] Implement FieldFilterState class with add/remove/clear/matches methods in pgtail_py/field_filter.py
+- [x] T037 [US4] Implement format_status() method in FieldFilterState in pgtail_py/field_filter.py
+- [x] T038 [US4] Add _field_filter attribute to LogTailer in pgtail_py/tailer.py
+- [x] T039 [US4] Update LogTailer._should_show() in pgtail_py/tailer.py to include field filter check after level filter
+- [x] T040 [US4] Add update_field_filter() method to LogTailer in pgtail_py/tailer.py
+- [x] T041 [US4] Add field_filter attribute to AppState in pgtail_py/cli.py
+- [x] T042 [US4] Implement handle_filter_field() function in pgtail_py/cli_filter.py for field=value syntax
+- [x] T043 [US4] Update existing filter command handler in pgtail_py/cli_filter.py to detect and route field filters
+- [x] T044 [US4] Add FILTER_FIELDS constant to pgtail_py/commands.py for autocomplete
+- [x] T045 [US4] Show informative error when field filtering attempted on text format logs in pgtail_py/cli_filter.py
 
-**Checkpoint**: User Story 4 complete - field filtering works for CSV/JSON logs
+**Checkpoint**: User Story 4 complete - field filtering works for CSV/JSON logs ✅
 
 ---
 

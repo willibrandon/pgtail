@@ -10,6 +10,7 @@ from pathlib import Path
 from queue import Empty, Queue
 
 from pgtail_py.colors import print_log_entry
+from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
 from pgtail_py.format_detector import LogFormat, detect_format
 from pgtail_py.parser import LogEntry, parse_log_line
@@ -30,6 +31,7 @@ class LogTailer:
         active_levels: set[LogLevel] | None = None,
         regex_state: FilterState | None = None,
         time_filter: TimeFilter | None = None,
+        field_filter: FieldFilterState | None = None,
         poll_interval: float = 0.1,
     ) -> None:
         """Initialize the log tailer.
@@ -39,12 +41,14 @@ class LogTailer:
             active_levels: Set of log levels to display. None means all.
             regex_state: Regex filter state. None means no regex filtering.
             time_filter: Time filter state. None means no time filtering.
+            field_filter: Field filter state. None means no field filtering.
             poll_interval: How often to check for new content (seconds).
         """
         self._log_path = log_path
         self._active_levels = active_levels
         self._regex_state = regex_state
         self._time_filter = time_filter
+        self._field_filter = field_filter
         self._poll_interval = poll_interval
         self._position = 0
         self._inode: int | None = None
@@ -124,7 +128,8 @@ class LogTailer:
         Filter order (cheapest first):
         1. Time filter - datetime comparison is O(1)
         2. Level filter - set membership is O(1)
-        3. Regex filter - regex match is O(n) where n = line length
+        3. Field filter - string equality is O(1)
+        4. Regex filter - regex match is O(n) where n = line length
         """
         # Check time filter first (cheapest comparison)
         if self._time_filter is not None and not self._time_filter.matches(entry):
@@ -132,6 +137,10 @@ class LogTailer:
 
         # Check level filter
         if self._active_levels is not None and entry.level not in self._active_levels:
+            return False
+
+        # Check field filter
+        if self._field_filter is not None and not self._field_filter.matches(entry):
             return False
 
         # Check regex filter (applied to raw line)
@@ -224,6 +233,14 @@ class LogTailer:
             time_filter: New time filter. None means no time filtering.
         """
         self._time_filter = time_filter
+
+    def update_field_filter(self, field_filter: FieldFilterState | None) -> None:
+        """Update the field filter state.
+
+        Args:
+            field_filter: New field filter state. None means no field filtering.
+        """
+        self._field_filter = field_filter
 
     @property
     def is_running(self) -> bool:
