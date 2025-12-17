@@ -80,11 +80,11 @@ Based on plan.md structure:
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Ensure handle_since() works with HH:MM format in pgtail_py/cli.py
-- [ ] T022 [US2] Ensure handle_since() works with HH:MM:SS format in pgtail_py/cli.py
-- [ ] T023 [US2] Ensure handle_since() works with YYYY-MM-DDTHH:MM format in pgtail_py/cli.py
-- [ ] T024 [US2] Add future time warning (show warning but allow command) in pgtail_py/cli.py
-- [ ] T025 [US2] Format display to show resolved time ("since 14:30:00 today") in pgtail_py/cli.py
+- [x] T021 [US2] Ensure handle_since() works with HH:MM format in pgtail_py/cli.py
+- [x] T022 [US2] Ensure handle_since() works with HH:MM:SS format in pgtail_py/cli.py
+- [x] T023 [US2] Ensure handle_since() works with YYYY-MM-DDTHH:MM format in pgtail_py/cli.py
+- [x] T024 [US2] Add future time warning (show warning but allow command) in pgtail_py/cli.py
+- [x] T025 [US2] Format display to show resolved time ("since 14:30:00 today") in pgtail_py/cli.py
 
 **Checkpoint**: User Story 2 complete - All absolute time formats work with `since`
 

@@ -120,18 +120,19 @@ def format_time_range(
     time_fmt = "%H:%M:%S"
     date_time_fmt = "%Y-%m-%d %H:%M:%S"
 
-    def format_dt(dt: datetime) -> str:
+    def format_dt(dt: datetime, include_today: bool = False) -> str:
         """Format datetime, using time only if today."""
         if dt.date() == datetime.now().date():
-            return dt.strftime(time_fmt)
+            time_str = dt.strftime(time_fmt)
+            return f"{time_str} today" if include_today else time_str
         return dt.strftime(date_time_fmt)
 
     if since is not None and until is not None:
         return f"between {format_dt(since)} and {format_dt(until)}"
     elif since is not None:
-        return f"since {format_dt(since)}"
+        return f"since {format_dt(since, include_today=True)}"
     else:  # until is not None
-        return f"until {format_dt(until)}"
+        return f"until {format_dt(until, include_today=True)}"
 
 
 @dataclass
