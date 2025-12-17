@@ -106,7 +106,8 @@ def _show_summary(
     if stats.is_empty():
         print_formatted_text(
             "No connection data available.\n"
-            "Start tailing a log with `tail` to begin tracking connections."
+            "Start tailing a log with `tail` to begin tracking connections.\n"
+            "Note: PostgreSQL must have log_connections=on and log_disconnections=on"
         )
         return
 
@@ -163,9 +164,10 @@ def _show_summary(
         print()
 
     # Session totals
-    print_formatted_text(
-        f"Session totals: {stats.connect_count} connects, {stats.disconnect_count} disconnects"
-    )
+    totals = f"Session totals: {stats.connect_count} connects, {stats.disconnect_count} disconnects"
+    if stats.failed_count > 0:
+        totals += f", {stats.failed_count} failed"
+    print_formatted_text(totals)
 
 
 def _clear_stats(state: AppState) -> None:

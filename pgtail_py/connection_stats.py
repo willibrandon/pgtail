@@ -35,6 +35,7 @@ class ConnectionStats:
         session_start: When tracking started.
         connect_count: Total connections seen.
         disconnect_count: Total disconnections seen.
+        failed_count: Total connection failures seen.
     """
 
     _events: deque[ConnectionEvent] = field(default_factory=lambda: deque(maxlen=10000))
@@ -42,6 +43,7 @@ class ConnectionStats:
     session_start: datetime = field(default_factory=datetime.now)
     connect_count: int = 0
     disconnect_count: int = 0
+    failed_count: int = 0
 
     def add(self, entry: LogEntry) -> bool:
         """Process a LogEntry and track if it's a connection event.
@@ -72,7 +74,8 @@ class ConnectionStats:
             if event.pid is not None and event.pid in self._active:
                 del self._active[event.pid]
 
-        # CONNECTION_FAILED events are tracked but don't affect active count
+        elif event.event_type == ConnectionEventType.CONNECTION_FAILED:
+            self.failed_count += 1
 
         return True
 
@@ -82,6 +85,7 @@ class ConnectionStats:
         self._active.clear()
         self.connect_count = 0
         self.disconnect_count = 0
+        self.failed_count = 0
         self.session_start = datetime.now()
 
     def is_empty(self) -> bool:

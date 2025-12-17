@@ -357,3 +357,21 @@ class TestConnectionStatsEdgeCases:
         assert result is True
         # But shouldn't count as active connection
         assert stats.active_count() == 0
+        # Should increment failed_count
+        assert stats.failed_count == 1
+
+    def test_clear_resets_failed_count(self) -> None:
+        """Test that clear() resets failed_count."""
+        stats = ConnectionStats()
+        entry = LogEntry(
+            timestamp=datetime.now(),
+            level=LogLevel.FATAL,
+            message="sorry, too many clients already",
+            raw="...",
+            pid=12345,
+        )
+        stats.add(entry)
+        assert stats.failed_count == 1
+
+        stats.clear()
+        assert stats.failed_count == 0
