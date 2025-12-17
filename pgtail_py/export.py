@@ -2,17 +2,18 @@
 
 import csv
 import json
-import re
 import shlex
 import subprocess
 import sys
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from pgtail_py.time_filter import parse_time
 
 if TYPE_CHECKING:
     from pgtail_py.filter import LogLevel
@@ -84,7 +85,7 @@ class PipeOptions:
 def parse_since(value: str) -> datetime:
     """Parse --since value into datetime.
 
-    Supports relative times (1h, 30m, 2d, 10s) and ISO 8601 format.
+    Supports relative times (1h, 30m, 2d, 10s), time-only (14:30), and ISO 8601 format.
 
     Args:
         value: Time specification string.
@@ -95,26 +96,7 @@ def parse_since(value: str) -> datetime:
     Raises:
         ValueError: If value cannot be parsed.
     """
-    # Try relative time first (e.g., 1h, 30m, 2d, 10s)
-    match = re.match(r"^(\d+)([smhd])$", value.lower())
-    if match:
-        amount = int(match.group(1))
-        unit = match.group(2)
-        delta = {
-            "s": timedelta(seconds=amount),
-            "m": timedelta(minutes=amount),
-            "h": timedelta(hours=amount),
-            "d": timedelta(days=amount),
-        }[unit]
-        return datetime.now() - delta
-
-    # Try ISO format
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError:
-        raise ValueError(
-            f"Invalid time format '{value}'. Use relative (1h, 30m, 2d) or ISO 8601."
-        ) from None
+    return parse_time(value)
 
 
 def format_text_entry(entry: "LogEntry") -> str:

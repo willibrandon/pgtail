@@ -151,8 +151,8 @@ Based on plan.md structure:
 
 Already implemented in T016 (part of US1). This phase is for verification only.
 
-- [ ] T038 [US6] Verify `since clear` properly resets time_filter to TimeFilter.empty() in pgtail_py/cli.py
-- [ ] T039 [US6] Verify feedback message confirms filter was removed in pgtail_py/cli.py
+- [x] T038 [US6] Verify `since clear` properly resets time_filter to TimeFilter.empty() in pgtail_py/cli.py
+- [x] T039 [US6] Verify feedback message confirms filter was removed in pgtail_py/cli.py
 
 **Checkpoint**: User Story 6 complete - `since clear` works
 
@@ -168,9 +168,9 @@ Already implemented in T016 (part of US1). This phase is for verification only.
 
 Mostly implemented via LogTailer._should_show() integration (T014). This phase is for verification and status display.
 
-- [ ] T040 [US7] Verify time filter combines with level filter in LogTailer._should_show() in pgtail_py/tailer.py
-- [ ] T041 [US7] Verify time filter combines with regex filter in LogTailer._should_show() in pgtail_py/tailer.py
-- [ ] T042 [US7] Ensure status display shows all active filters (levels + regex + time) in pgtail_py/cli.py
+- [x] T040 [US7] Verify time filter combines with level filter in LogTailer._should_show() in pgtail_py/tailer.py
+- [x] T041 [US7] Verify time filter combines with regex filter in LogTailer._should_show() in pgtail_py/tailer.py
+- [x] T042 [US7] Ensure status display shows all active filters (levels + regex + time) in pgtail_py/cli.py
 
 **Checkpoint**: User Story 7 complete - All filter types combine correctly
 
@@ -180,12 +180,12 @@ Mostly implemented via LogTailer._should_show() integration (T014). This phase i
 
 **Purpose**: Error handling, edge cases, and documentation
 
-- [ ] T043 [P] Add comprehensive error messages for invalid time formats in pgtail_py/time_filter.py
-- [ ] T044 [P] Handle entries without timestamps gracefully (skip silently when filter active) in pgtail_py/time_filter.py
-- [ ] T045 [P] Update export.py to use new parse_time from time_filter.py (replace duplicate parse_since) in pgtail_py/export.py
-- [ ] T046 Run manual validation using quickstart.md scenarios
-- [ ] T047 Run `make lint` and fix any issues
-- [ ] T048 Run `make test` and verify all existing tests pass
+- [x] T043 [P] Add comprehensive error messages for invalid time formats in pgtail_py/time_filter.py
+- [x] T044 [P] Handle entries without timestamps gracefully (skip silently when filter active) in pgtail_py/time_filter.py
+- [x] T045 [P] Update export.py to use new parse_time from time_filter.py (replace duplicate parse_since) in pgtail_py/export.py
+- [x] T046 Run manual validation using quickstart.md scenarios
+- [x] T047 Run `make lint` and fix any issues
+- [x] T048 Run `make test` and verify all existing tests pass
 
 ---
 
