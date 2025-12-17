@@ -10,6 +10,7 @@ from pgtail_py.colors import print_log_entry
 from pgtail_py.filter import LogLevel
 from pgtail_py.parser import LogEntry, parse_log_line
 from pgtail_py.regex_filter import FilterState
+from pgtail_py.time_filter import TimeFilter
 
 
 class LogTailer:
@@ -24,6 +25,7 @@ class LogTailer:
         log_path: Path,
         active_levels: set[LogLevel] | None = None,
         regex_state: FilterState | None = None,
+        time_filter: TimeFilter | None = None,
         poll_interval: float = 0.1,
     ) -> None:
         """Initialize the log tailer.
@@ -32,11 +34,13 @@ class LogTailer:
             log_path: Path to the log file to tail.
             active_levels: Set of log levels to display. None means all.
             regex_state: Regex filter state. None means no regex filtering.
+            time_filter: Time filter state. None means no time filtering.
             poll_interval: How often to check for new content (seconds).
         """
         self._log_path = log_path
         self._active_levels = active_levels
         self._regex_state = regex_state
+        self._time_filter = time_filter
         self._poll_interval = poll_interval
         self._position = 0
         self._inode: int | None = None
@@ -93,7 +97,17 @@ class LogTailer:
             pass
 
     def _should_show(self, entry: LogEntry) -> bool:
-        """Check if a log entry should be displayed based on active levels and regex filters."""
+        """Check if a log entry should be displayed based on filters.
+
+        Filter order (cheapest first):
+        1. Time filter - datetime comparison is O(1)
+        2. Level filter - set membership is O(1)
+        3. Regex filter - regex match is O(n) where n = line length
+        """
+        # Check time filter first (cheapest comparison)
+        if self._time_filter is not None and not self._time_filter.matches(entry):
+            return False
+
         # Check level filter
         if self._active_levels is not None and entry.level not in self._active_levels:
             return False
@@ -175,6 +189,14 @@ class LogTailer:
             regex_state: New regex filter state. None means no regex filtering.
         """
         self._regex_state = regex_state
+
+    def update_time_filter(self, time_filter: TimeFilter | None) -> None:
+        """Update the time filter.
+
+        Args:
+            time_filter: New time filter. None means no time filtering.
+        """
+        self._time_filter = time_filter
 
     @property
     def is_running(self) -> bool:

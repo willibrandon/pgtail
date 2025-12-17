@@ -62,6 +62,7 @@ from pgtail_py.slow_query import (
 )
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode, reset_terminal
+from pgtail_py.time_filter import TimeFilter
 
 
 def _warn(msg: str) -> None:
@@ -78,6 +79,7 @@ class AppState:
         current_instance: Currently selected instance for tailing
         active_levels: Set of log levels to display (all by default)
         regex_state: Regex pattern filter state
+        time_filter: Time-based filter state
         slow_query_config: Configuration for slow query highlighting
         duration_stats: Session-scoped query duration statistics
         tailing: Whether actively tailing a log file
@@ -92,6 +94,7 @@ class AppState:
     current_instance: Instance | None = None
     active_levels: set[LogLevel] | None = field(default_factory=LogLevel.all_levels)
     regex_state: FilterState = field(default_factory=FilterState.empty)
+    time_filter: TimeFilter = field(default_factory=TimeFilter.empty)
     slow_query_config: SlowQueryConfig = field(default_factory=SlowQueryConfig)
     duration_stats: DurationStats = field(default_factory=DurationStats)
     tailing: bool = False

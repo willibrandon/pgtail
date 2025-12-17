@@ -25,8 +25,8 @@ Based on plan.md structure:
 
 **Purpose**: Create new time_filter module with core parsing and filtering logic
 
-- [ ] T001 [P] Create time_filter.py module skeleton with imports in pgtail_py/time_filter.py
-- [ ] T002 [P] Add `since`, `until`, `between` to COMMANDS dict in pgtail_py/commands.py
+- [x] T001 [P] Create time_filter.py module skeleton with imports in pgtail_py/time_filter.py
+- [x] T002 [P] Add `since`, `until`, `between` to COMMANDS dict in pgtail_py/commands.py
 
 ---
 
@@ -36,18 +36,18 @@ Based on plan.md structure:
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `parse_time()` function supporting relative times (5m, 2h, 1d, 30s) in pgtail_py/time_filter.py
-- [ ] T004 Extend `parse_time()` to support HH:MM and HH:MM:SS formats (today at time) in pgtail_py/time_filter.py
-- [ ] T005 Extend `parse_time()` to support ISO 8601 with T separator and Z suffix in pgtail_py/time_filter.py
-- [ ] T006 Implement TimeFilter dataclass with since/until/original_input fields in pgtail_py/time_filter.py
-- [ ] T007 Implement `TimeFilter.matches(entry)` method for entry filtering in pgtail_py/time_filter.py
-- [ ] T008 Implement `TimeFilter.is_active()` and `TimeFilter.empty()` methods in pgtail_py/time_filter.py
-- [ ] T009 Implement `is_future_time()` helper function in pgtail_py/time_filter.py
-- [ ] T010 Implement `format_time_range()` for human-readable display in pgtail_py/time_filter.py
-- [ ] T011 Add `time_filter: TimeFilter` field to AppState dataclass in pgtail_py/cli.py
-- [ ] T012 Add `_time_filter` parameter to LogTailer.__init__() in pgtail_py/tailer.py
-- [ ] T013 Implement `LogTailer.update_time_filter()` method in pgtail_py/tailer.py
-- [ ] T014 Integrate time filter into LogTailer._should_show() method (first in filter chain) in pgtail_py/tailer.py
+- [x] T003 Implement `parse_time()` function supporting relative times (5m, 2h, 1d, 30s) in pgtail_py/time_filter.py
+- [x] T004 Extend `parse_time()` to support HH:MM and HH:MM:SS formats (today at time) in pgtail_py/time_filter.py
+- [x] T005 Extend `parse_time()` to support ISO 8601 with T separator and Z suffix in pgtail_py/time_filter.py
+- [x] T006 Implement TimeFilter dataclass with since/until/original_input fields in pgtail_py/time_filter.py
+- [x] T007 Implement `TimeFilter.matches(entry)` method for entry filtering in pgtail_py/time_filter.py
+- [x] T008 Implement `TimeFilter.is_active()` and `TimeFilter.empty()` methods in pgtail_py/time_filter.py
+- [x] T009 Implement `is_future_time()` helper function in pgtail_py/time_filter.py
+- [x] T010 Implement `format_time_range()` for human-readable display in pgtail_py/time_filter.py
+- [x] T011 Add `time_filter: TimeFilter` field to AppState dataclass in pgtail_py/cli.py
+- [x] T012 Add `_time_filter` parameter to LogTailer.__init__() in pgtail_py/tailer.py
+- [x] T013 Implement `LogTailer.update_time_filter()` method in pgtail_py/tailer.py
+- [x] T014 Integrate time filter into LogTailer._should_show() method (first in filter chain) in pgtail_py/tailer.py
 
 **Checkpoint**: Foundation ready - TimeFilter module complete, LogTailer integration done
 
