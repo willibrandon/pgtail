@@ -33,7 +33,6 @@ from pgtail_py.colors import (
     LOG_STYLE,
     format_log_entry_with_highlights,
     format_slow_query_entry,
-    print_log_entry,
 )
 from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import (
@@ -43,6 +42,7 @@ from pgtail_py.config import (
     load_config,
 )
 from pgtail_py.detector import detect_all
+from pgtail_py.display import DisplayState, OutputFormat, format_entry
 from pgtail_py.filter import LogLevel
 from pgtail_py.instance import Instance
 from pgtail_py.regex_filter import FilterState
@@ -70,6 +70,7 @@ class AppState:
         stop_event: Event to signal tail stop
         shell_mode: Whether in shell mode (next input runs as shell command)
         config: Loaded configuration from config file
+        display_state: Display and output format settings
     """
 
     instances: list[Instance] = field(default_factory=list)
@@ -85,6 +86,7 @@ class AppState:
     stop_event: threading.Event = field(default_factory=threading.Event)
     shell_mode: bool = False
     config: ConfigSchema = field(default_factory=ConfigSchema)
+    display_state: DisplayState = field(default_factory=DisplayState)
 
     def __post_init__(self) -> None:
         """Load config and apply settings after initialization."""
@@ -230,6 +232,12 @@ def _process_tail_output(state: AppState) -> None:
         if duration_ms is not None:
             state.duration_stats.add(duration_ms)
 
+        # JSON output mode - no colors or special formatting
+        if state.display_state.output_format == OutputFormat.JSON:
+            formatted = format_entry(entry, state.display_state)
+            print(formatted)
+            continue
+
         # Check for slow query highlighting first (slow query takes precedence)
         if state.slow_query_config.enabled and duration_ms is not None:
             slow_level = state.slow_query_config.get_level(duration_ms)
@@ -239,7 +247,7 @@ def _process_tail_output(state: AppState) -> None:
                 print_formatted_text(formatted, style=LOG_STYLE)
                 continue
 
-        # Fall back to regex highlighting
+        # Fall back to regex highlighting (only in COMPACT mode)
         if state.regex_state.has_highlights():
             # Collect all highlight spans from all highlight patterns
             all_spans: list[tuple[int, int]] = []
@@ -249,10 +257,11 @@ def _process_tail_output(state: AppState) -> None:
             if all_spans:
                 formatted = format_log_entry_with_highlights(entry, all_spans)
                 print_formatted_text(formatted, style=LOG_STYLE)
-            else:
-                print_log_entry(entry)
-        else:
-            print_log_entry(entry)
+                continue
+
+        # Use display module formatting (compact, full, or custom mode)
+        formatted = format_entry(entry, state.display_state)
+        print_formatted_text(formatted, style=LOG_STYLE)
 
 
 def _create_key_bindings(state: AppState) -> KeyBindings:

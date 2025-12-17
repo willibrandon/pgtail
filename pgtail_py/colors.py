@@ -38,6 +38,7 @@ _STYLE_RULES.extend(
         ("slow_warning", "fg:yellow"),
         ("slow_slow", "fg:yellow bold"),
         ("slow_critical", "fg:red bold"),
+        ("detail", "fg:ansidefault"),  # Secondary fields in full mode
     ]
 )
 LOG_STYLE = Style(_STYLE_RULES)

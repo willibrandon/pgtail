@@ -74,16 +74,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create DisplayMode enum in pgtail_py/display.py with COMPACT, FULL, CUSTOM values
-- [ ] T019 [P] [US2] Create OutputFormat enum in pgtail_py/display.py with TEXT, JSON values
-- [ ] T020 [US2] Implement DisplayState class in pgtail_py/display.py per contracts/display.md
-- [ ] T021 [US2] Implement format_entry_compact() in pgtail_py/display.py with SQL state code support
-- [ ] T022 [US2] Implement format_entry_full() in pgtail_py/display.py showing all fields with labels
-- [ ] T023 [US2] Implement format_entry() dispatcher in pgtail_py/display.py
-- [ ] T024 [US2] Add display_state attribute to AppState in pgtail_py/cli.py
-- [ ] T025 [US2] Update entry printing in CLI to use new display formatting in pgtail_py/cli_core.py
+- [x] T018 [P] [US2] Create DisplayMode enum in pgtail_py/display.py with COMPACT, FULL, CUSTOM values
+- [x] T019 [P] [US2] Create OutputFormat enum in pgtail_py/display.py with TEXT, JSON values
+- [x] T020 [US2] Implement DisplayState class in pgtail_py/display.py per contracts/display.md
+- [x] T021 [US2] Implement format_entry_compact() in pgtail_py/display.py with SQL state code support
+- [x] T022 [US2] Implement format_entry_full() in pgtail_py/display.py showing all fields with labels
+- [x] T023 [US2] Implement format_entry() dispatcher in pgtail_py/display.py
+- [x] T024 [US2] Add display_state attribute to AppState in pgtail_py/cli.py
+- [x] T025 [US2] Update entry printing in CLI to use new display formatting in pgtail_py/cli_core.py
 
-**Checkpoint**: User Story 2 complete - rich error display works in compact and full modes
+**Checkpoint**: User Story 2 complete - rich error display works in compact and full modes ✅
 
 ---
 
