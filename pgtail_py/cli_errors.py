@@ -65,12 +65,37 @@ def errors_command(state: AppState, args: list[str]) -> None:
             return
         i += 1
 
+    # Check for invalid option combinations
+    if show_live and show_trend:
+        print_formatted_text(
+            HTML("<ansiyellow>Cannot use --live and --trend together.</ansiyellow>")
+        )
+        return
+
+    if show_live and code_filter:
+        print_formatted_text(
+            HTML("<ansiyellow>Cannot use --live and --code together.</ansiyellow>")
+        )
+        return
+
+    if show_live and since_time:
+        print_formatted_text(
+            HTML("<ansiyellow>Cannot use --live and --since together.</ansiyellow>")
+        )
+        return
+
+    if show_trend and code_filter:
+        print_formatted_text(
+            HTML("<ansiyellow>Cannot use --trend and --code together.</ansiyellow>")
+        )
+        return
+
     # Handle clear first (ignores other flags)
     if do_clear:
         _clear_stats(state)
         return
 
-    # Handle --live (doesn't combine with other flags)
+    # Handle --live
     if show_live:
         _show_live(state)
         return

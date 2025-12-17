@@ -179,10 +179,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T063 [US6] Implement _clear_stats() handler in pgtail_py/cli_errors.py
-- [ ] T064 [US6] Call ErrorStats.clear() and display confirmation in pgtail_py/cli_errors.py
-- [ ] T065 [US6] Handle `clear` subcommand in errors_command() dispatcher in pgtail_py/cli_errors.py
-- [ ] T066 [US6] Add `clear` to completion in _complete_errors() in pgtail_py/commands.py
+- [x] T063 [US6] Implement _clear_stats() handler in pgtail_py/cli_errors.py
+- [x] T064 [US6] Call ErrorStats.clear() and display confirmation in pgtail_py/cli_errors.py
+- [x] T065 [US6] Handle `clear` subcommand in errors_command() dispatcher in pgtail_py/cli_errors.py
+- [x] T066 [US6] Add `clear` to completion in _complete_errors() in pgtail_py/commands.py
 
 **Checkpoint**: User Story 6 complete - `errors clear` resets statistics
 
@@ -192,12 +192,12 @@
 
 **Purpose**: Validation, edge cases, and documentation
 
-- [ ] T067 [P] Add invalid option combination error messages in pgtail_py/cli_errors.py
-- [ ] T068 [P] Add module docstrings to error_stats.py, error_trend.py, cli_errors.py
-- [ ] T069 [P] Add type hints to all public functions in new modules
-- [ ] T070 Run `make lint` and fix any issues
-- [ ] T071 Run `make test` and ensure all tests pass
-- [ ] T072 Manual testing: verify all scenarios from contracts/errors-command.md
+- [x] T067 [P] Add invalid option combination error messages in pgtail_py/cli_errors.py
+- [x] T068 [P] Add module docstrings to error_stats.py, error_trend.py, cli_errors.py
+- [x] T069 [P] Add type hints to all public functions in new modules
+- [x] T070 Run `make lint` and fix any issues
+- [x] T071 Run `make test` and ensure all tests pass
+- [x] T072 Manual testing: verify all scenarios from contracts/errors-command.md
 
 ---
 
