@@ -1,13 +1,17 @@
 """Log file tailing with polling."""
 
+from __future__ import annotations
+
 import os
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 from queue import Empty, Queue
 
 from pgtail_py.colors import print_log_entry
 from pgtail_py.filter import LogLevel
+from pgtail_py.format_detector import LogFormat, detect_format
 from pgtail_py.parser import LogEntry, parse_log_line
 from pgtail_py.regex_filter import FilterState
 from pgtail_py.time_filter import TimeFilter
@@ -49,6 +53,8 @@ class LogTailer:
         self._stop_event = threading.Event()
         self._poll_thread: threading.Thread | None = None
         self._buffer: list[LogEntry] = []  # Store entries for export
+        self._detected_format: LogFormat | None = None
+        self._format_callback: Callable[[LogFormat], None] | None = None
 
     def _get_file_inode(self) -> int | None:
         """Get the inode of the log file for rotation detection."""
@@ -73,11 +79,24 @@ class LogTailer:
             if current_inode != self._inode or size < self._position:
                 self._inode = current_inode
                 self._position = 0
+                # Reset format detection on rotation - new file may have different format
+                self._detected_format = None
                 return True
         except OSError:
             pass
 
         return False
+
+    def _detect_format_if_needed(self, line: str) -> None:
+        """Detect format from first non-empty line.
+
+        Args:
+            line: First line to use for format detection
+        """
+        if self._detected_format is None:
+            self._detected_format = detect_format(line)
+            if self._format_callback:
+                self._format_callback(self._detected_format)
 
     def _read_new_lines(self) -> None:
         """Read new lines from the log file and queue them."""
@@ -88,7 +107,10 @@ class LogTailer:
                 f.seek(self._position)
                 for line in f:
                     if line.strip():
-                        entry = parse_log_line(line)
+                        # Detect format on first non-empty line
+                        self._detect_format_if_needed(line)
+                        # Parse with detected format
+                        entry = parse_log_line(line, self._detected_format or LogFormat.TEXT)
                         if self._should_show(entry):
                             self._queue.put(entry)
                             self._buffer.append(entry)
@@ -207,6 +229,19 @@ class LogTailer:
     def is_running(self) -> bool:
         """Check if the tailer is currently running."""
         return self._running
+
+    @property
+    def format(self) -> LogFormat:
+        """Get detected format. Returns TEXT if not yet detected."""
+        return self._detected_format or LogFormat.TEXT
+
+    def set_format_callback(self, callback: Callable[[LogFormat], None] | None) -> None:
+        """Set a callback to be called when format is detected.
+
+        Args:
+            callback: Function taking LogFormat as argument, or None to clear.
+        """
+        self._format_callback = callback
 
     def get_buffer(self) -> list[LogEntry]:
         """Get all entries collected during tailing.

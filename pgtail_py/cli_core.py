@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from pgtail_py.cli_utils import find_instance, shorten_path
 from pgtail_py.detector import detect_all
+from pgtail_py.format_detector import LogFormat
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import reset_terminal
 from pgtail_py.time_filter import TimeFilter, parse_time
@@ -210,6 +211,17 @@ def tail_command(state: AppState, args: list[str]) -> None:
         state.regex_state,
         state.time_filter if state.time_filter.is_active() else None,
     )
+
+    # Set callback to display format when detected
+    def on_format_detected(fmt: LogFormat) -> None:
+        format_names = {
+            LogFormat.TEXT: "text",
+            LogFormat.CSV: "csvlog",
+            LogFormat.JSON: "jsonlog",
+        }
+        print(f"Detected format: {format_names.get(fmt, fmt.value)}")
+
+    state.tailer.set_format_callback(on_format_detected)
     state.tailer.start()
 
 

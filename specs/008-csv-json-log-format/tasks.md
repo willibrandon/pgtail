@@ -53,16 +53,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Implement parse_csv_line() function in pgtail_py/parser_csv.py per contracts/parser.md
-- [ ] T011 [P] [US1] Implement parse_json_line() function in pgtail_py/parser_json.py per contracts/parser.md
-- [ ] T012 [US1] Update parse_log_line() in pgtail_py/parser.py to accept format parameter and dispatch to appropriate parser
-- [ ] T013 [US1] Add _detected_format attribute and _detect_format_if_needed() method to LogTailer class in pgtail_py/tailer.py
-- [ ] T014 [US1] Update LogTailer._read_new_lines() in pgtail_py/tailer.py to detect format on first line and pass to parser
-- [ ] T015 [US1] Add format property to LogTailer class in pgtail_py/tailer.py
-- [ ] T016 [US1] Handle format re-detection on log rotation in LogTailer._check_rotation() in pgtail_py/tailer.py
-- [ ] T017 [US1] Update CLI to display detected format message when tailing starts in pgtail_py/cli_core.py
+- [x] T010 [P] [US1] Implement parse_csv_line() function in pgtail_py/parser_csv.py per contracts/parser.md
+- [x] T011 [P] [US1] Implement parse_json_line() function in pgtail_py/parser_json.py per contracts/parser.md
+- [x] T012 [US1] Update parse_log_line() in pgtail_py/parser.py to accept format parameter and dispatch to appropriate parser
+- [x] T013 [US1] Add _detected_format attribute and _detect_format_if_needed() method to LogTailer class in pgtail_py/tailer.py
+- [x] T014 [US1] Update LogTailer._read_new_lines() in pgtail_py/tailer.py to detect format on first line and pass to parser
+- [x] T015 [US1] Add format property to LogTailer class in pgtail_py/tailer.py
+- [x] T016 [US1] Handle format re-detection on log rotation in LogTailer._check_rotation() in pgtail_py/tailer.py
+- [x] T017 [US1] Update CLI to display detected format message when tailing starts in pgtail_py/cli_core.py
 
-**Checkpoint**: User Story 1 complete - auto-detection works for all three formats
+**Checkpoint**: User Story 1 complete - auto-detection works for all three formats ✅
 
 ---
 

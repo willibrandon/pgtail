@@ -242,8 +242,8 @@ _LEVEL_MAP = {
 }
 
 
-def parse_log_line(line: str) -> LogEntry:
-    """Parse a PostgreSQL log line into a LogEntry.
+def _parse_text_line(line: str) -> LogEntry:
+    """Parse a PostgreSQL TEXT format log line.
 
     Handles PostgreSQL log formats:
     - With PID: YYYY-MM-DD HH:MM:SS.mmm TZ [PID] LEVEL: message
@@ -258,8 +258,6 @@ def parse_log_line(line: str) -> LogEntry:
     Returns:
         LogEntry with parsed fields, or fallback entry for unparseable lines.
     """
-    line = line.rstrip("\n\r")
-
     # Try format with PID first
     match = _LOG_PATTERN_WITH_PID.match(line)
     if match:
@@ -279,6 +277,7 @@ def parse_log_line(line: str) -> LogEntry:
                 message=line,
                 raw=line,
                 pid=None,
+                format=LogFormat.TEXT,
             )
 
     # Parse timestamp
@@ -301,4 +300,54 @@ def parse_log_line(line: str) -> LogEntry:
         message=message,
         raw=line,
         pid=pid,
+        format=LogFormat.TEXT,
     )
+
+
+def parse_log_line(line: str, format: LogFormat = LogFormat.TEXT) -> LogEntry:
+    """Parse a log line using the appropriate parser.
+
+    Args:
+        line: Raw log line
+        format: Expected format (TEXT, CSV, or JSON)
+
+    Returns:
+        LogEntry with fields populated according to format.
+        For unparseable lines, returns fallback entry with raw preserved.
+    """
+    line = line.rstrip("\n\r")
+
+    if format == LogFormat.CSV:
+        from pgtail_py.parser_csv import parse_csv_line
+
+        try:
+            return parse_csv_line(line)
+        except ValueError:
+            # Fallback to raw entry on parse error
+            return LogEntry(
+                timestamp=None,
+                level=LogLevel.LOG,
+                message=line,
+                raw=line,
+                pid=None,
+                format=LogFormat.CSV,
+            )
+
+    if format == LogFormat.JSON:
+        from pgtail_py.parser_json import parse_json_line
+
+        try:
+            return parse_json_line(line)
+        except ValueError:
+            # Fallback to raw entry on parse error
+            return LogEntry(
+                timestamp=None,
+                level=LogLevel.LOG,
+                message=line,
+                raw=line,
+                pid=None,
+                format=LogFormat.JSON,
+            )
+
+    # Default: TEXT format
+    return _parse_text_line(line)
