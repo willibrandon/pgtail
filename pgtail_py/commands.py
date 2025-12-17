@@ -151,6 +151,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_display(arg_text, parts)
         elif cmd == "output":
             yield from self._complete_output(arg_text)
+        elif cmd == "errors":
+            yield from self._complete_errors(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -639,3 +641,47 @@ class PgtailCompleter(Completer):
                             start_position=-len(prefix),
                             display_meta=f"Show {field} field",
                         )
+
+    def _complete_errors(self, prefix: str) -> list[Completion]:
+        """Complete errors command options.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for errors subcommands and options.
+        """
+        options = {
+            "clear": "Reset all error statistics",
+            "--trend": "Show error rate sparkline",
+            "--live": "Live updating counter",
+            "--code": "Filter by SQLSTATE code",
+            "--since": "Filter by time window",
+        }
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )
+
+        # Complete common SQLSTATE codes after --code
+        if prefix_lower and not prefix_lower.startswith("-"):
+            sqlstate_codes = {
+                "23505": "unique_violation",
+                "23503": "foreign_key_violation",
+                "42P01": "undefined_table",
+                "42601": "syntax_error",
+                "42703": "undefined_column",
+                "57014": "query_canceled",
+                "53300": "too_many_connections",
+            }
+            for code, name in sqlstate_codes.items():
+                if code.startswith(prefix):
+                    yield Completion(
+                        code,
+                        start_position=-len(prefix),
+                        display_meta=name,
+                    )

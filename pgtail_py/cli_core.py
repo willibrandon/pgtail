@@ -90,6 +90,12 @@ Available commands:
                     With no args, shows current settings
                     'slow off' disables highlighting
   stats             Show query duration statistics
+  errors            Show error statistics
+                    --trend     Show error rate sparkline
+                    --live      Live updating counter
+                    --code CODE Filter by SQLSTATE code
+                    --since TIME Filter by time window
+                    clear       Reset statistics
   set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
                     With no value, shows current setting
   unset <key>       Remove a setting to revert to default

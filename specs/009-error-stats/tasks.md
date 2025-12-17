@@ -24,10 +24,10 @@
 
 **Purpose**: Create new module files and register the command
 
-- [ ] T001 Create error_stats.py module skeleton in pgtail_py/error_stats.py
-- [ ] T002 [P] Create error_trend.py module skeleton in pgtail_py/error_trend.py
-- [ ] T003 [P] Create cli_errors.py module skeleton in pgtail_py/cli_errors.py
-- [ ] T004 Register `errors` command in pgtail_py/commands.py COMMANDS dict
+- [x] T001 Create error_stats.py module skeleton in pgtail_py/error_stats.py
+- [x] T002 [P] Create error_trend.py module skeleton in pgtail_py/error_trend.py
+- [x] T003 [P] Create cli_errors.py module skeleton in pgtail_py/cli_errors.py
+- [x] T004 Register `errors` command in pgtail_py/commands.py COMMANDS dict
 
 ---
 
@@ -37,15 +37,15 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Implement SQLSTATE_CATEGORIES dict with class codes (23, 42, 53, 57, 58) in pgtail_py/error_stats.py
-- [ ] T006 [P] Implement SQLSTATE_NAMES dict with ~15 common error codes in pgtail_py/error_stats.py
-- [ ] T007 Implement ErrorEvent frozen dataclass with from_entry() classmethod in pgtail_py/error_stats.py
-- [ ] T008 Implement ERROR_LEVELS, WARNING_LEVELS, TRACKED_LEVELS constants in pgtail_py/error_stats.py
-- [ ] T009 Implement ErrorStats dataclass with deque, add(), clear(), is_empty() in pgtail_py/error_stats.py
-- [ ] T010 Add error_stats field to AppState dataclass in pgtail_py/cli.py
-- [ ] T011 Add on_entry callback parameter to LogTailer.__init__() in pgtail_py/tailer.py
-- [ ] T012 Call on_entry callback in LogTailer._read_new_lines() for ALL entries (before filtering) in pgtail_py/tailer.py
-- [ ] T013 Wire up ErrorStats.add as on_entry callback when creating LogTailer in pgtail_py/cli.py
+- [x] T005 Implement SQLSTATE_CATEGORIES dict with class codes (23, 42, 53, 57, 58) in pgtail_py/error_stats.py
+- [x] T006 [P] Implement SQLSTATE_NAMES dict with ~15 common error codes in pgtail_py/error_stats.py
+- [x] T007 Implement ErrorEvent frozen dataclass with from_entry() classmethod in pgtail_py/error_stats.py
+- [x] T008 Implement ERROR_LEVELS, WARNING_LEVELS, TRACKED_LEVELS constants in pgtail_py/error_stats.py
+- [x] T009 Implement ErrorStats dataclass with deque, add(), clear(), is_empty() in pgtail_py/error_stats.py
+- [x] T010 Add error_stats field to AppState dataclass in pgtail_py/cli.py
+- [x] T011 Add on_entry callback parameter to LogTailer.__init__() in pgtail_py/tailer.py
+- [x] T012 Call on_entry callback in LogTailer._read_new_lines() for ALL entries (before filtering) in pgtail_py/tailer.py
+- [x] T013 Wire up ErrorStats.add as on_entry callback when creating LogTailer in pgtail_py/cli.py
 
 **Checkpoint**: Foundation ready - error events are now being tracked during tailing
 
@@ -59,25 +59,25 @@
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Create test file tests/test_error_stats.py with test fixtures
-- [ ] T015 [P] [US1] Test ErrorEvent.from_entry() creates correct fields in tests/test_error_stats.py
-- [ ] T016 [P] [US1] Test ErrorStats.add() increments counters correctly in tests/test_error_stats.py
-- [ ] T017 [P] [US1] Test ErrorStats.get_by_level() returns correct counts in tests/test_error_stats.py
-- [ ] T018 [P] [US1] Test ErrorStats.get_by_code() returns counts sorted by frequency in tests/test_error_stats.py
-- [ ] T019 [P] [US1] Test get_sqlstate_name() and get_sqlstate_category() lookups in tests/test_error_stats.py
+- [x] T014 [P] [US1] Create test file tests/test_error_stats.py with test fixtures
+- [x] T015 [P] [US1] Test ErrorEvent.from_entry() creates correct fields in tests/test_error_stats.py
+- [x] T016 [P] [US1] Test ErrorStats.add() increments counters correctly in tests/test_error_stats.py
+- [x] T017 [P] [US1] Test ErrorStats.get_by_level() returns correct counts in tests/test_error_stats.py
+- [x] T018 [P] [US1] Test ErrorStats.get_by_code() returns counts sorted by frequency in tests/test_error_stats.py
+- [x] T019 [P] [US1] Test get_sqlstate_name() and get_sqlstate_category() lookups in tests/test_error_stats.py
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Implement get_sqlstate_name() helper function in pgtail_py/error_stats.py
-- [ ] T021 [US1] Implement get_sqlstate_category() helper function in pgtail_py/error_stats.py
-- [ ] T022 [US1] Implement ErrorStats.get_by_level() method in pgtail_py/error_stats.py
-- [ ] T023 [US1] Implement ErrorStats.get_by_code() method in pgtail_py/error_stats.py
-- [ ] T024 [US1] Implement errors_command() dispatcher in pgtail_py/cli_errors.py
-- [ ] T025 [US1] Implement _show_summary() with formatted output in pgtail_py/cli_errors.py
-- [ ] T026 [US1] Add "no errors recorded" message when stats.is_empty() in pgtail_py/cli_errors.py
-- [ ] T027 [US1] Add "not tailing" error message when no active tail in pgtail_py/cli_errors.py
-- [ ] T028 [US1] Wire errors_command into REPL command dispatcher in pgtail_py/cli.py
-- [ ] T029 [US1] Add _complete_errors() method to PgtailCompleter in pgtail_py/commands.py
+- [x] T020 [US1] Implement get_sqlstate_name() helper function in pgtail_py/error_stats.py
+- [x] T021 [US1] Implement get_sqlstate_category() helper function in pgtail_py/error_stats.py
+- [x] T022 [US1] Implement ErrorStats.get_by_level() method in pgtail_py/error_stats.py
+- [x] T023 [US1] Implement ErrorStats.get_by_code() method in pgtail_py/error_stats.py
+- [x] T024 [US1] Implement errors_command() dispatcher in pgtail_py/cli_errors.py
+- [x] T025 [US1] Implement _show_summary() with formatted output in pgtail_py/cli_errors.py
+- [x] T026 [US1] Add "no errors recorded" message when stats.is_empty() in pgtail_py/cli_errors.py
+- [x] T027 [US1] Add "not tailing" error message when no active tail in pgtail_py/cli_errors.py
+- [x] T028 [US1] Wire errors_command into REPL command dispatcher in pgtail_py/cli.py
+- [x] T029 [US1] Add _complete_errors() method to PgtailCompleter in pgtail_py/commands.py
 
 **Checkpoint**: User Story 1 complete - `errors` command shows summary with type/level breakdowns
 
