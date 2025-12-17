@@ -132,10 +132,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 5
 
-- [ ] T034 [US5] Parse `--since <time>` flag in tail command arguments in pgtail_py/cli.py
-- [ ] T035 [US5] When --since provided, read historical entries from that time before starting live tail in pgtail_py/cli.py
-- [ ] T036 [US5] Ensure new entries during tail are displayed (since filter allows future entries) in pgtail_py/cli.py
-- [ ] T037 [US5] Add completions for `tail --since` in pgtail_py/commands.py
+- [x] T034 [US5] Parse `--since <time>` flag in tail command arguments in pgtail_py/cli.py
+- [x] T035 [US5] When --since provided, read historical entries from that time before starting live tail in pgtail_py/cli.py
+- [x] T036 [US5] Ensure new entries during tail are displayed (since filter allows future entries) in pgtail_py/cli.py
+- [x] T037 [US5] Add completions for `tail --since` in pgtail_py/commands.py
 
 **Checkpoint**: User Story 5 complete - `tail --since` works for historical + live tail
 

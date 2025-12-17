@@ -338,9 +338,29 @@ def tail_command(state: AppState, args: list[str]) -> None:
 
     Args:
         state: Current application state.
-        args: Command arguments (instance ID or path).
+        args: Command arguments (instance ID or path, optional --since flag).
     """
-    if not args:
+    # Parse --since flag from arguments
+    since_time = None
+    instance_arg = None
+    i = 0
+    while i < len(args):
+        if args[i] == "--since" and i + 1 < len(args):
+            try:
+                since_time = parse_time(args[i + 1])
+            except ValueError as e:
+                print(f"Error parsing --since time: {e}")
+                return
+            i += 2
+        elif args[i].startswith("--"):
+            print(f"Unknown option: {args[i]}")
+            return
+        else:
+            if instance_arg is None:
+                instance_arg = args[i]
+            i += 1
+
+    if instance_arg is None:
         # If no arg given, use first instance or show error
         if not state.instances:
             print("No instances detected. Run 'refresh' to scan.")
@@ -354,9 +374,9 @@ def tail_command(state: AppState, args: list[str]) -> None:
             list_command(state)
             return
     else:
-        instance = _find_instance(state, args[0])
+        instance = _find_instance(state, instance_arg)
         if instance is None:
-            print(f"Instance not found: {args[0]}")
+            print(f"Instance not found: {instance_arg}")
             print()
             print("Available instances:")
             for inst in state.instances:
@@ -374,12 +394,18 @@ def tail_command(state: AppState, args: list[str]) -> None:
         print(f"Log file not found: {instance.log_path}")
         return
 
+    # Apply --since as time filter if provided
+    if since_time is not None:
+        state.time_filter = TimeFilter(since=since_time)
+
     # Start tailing
     state.current_instance = instance
     state.tailing = True
     state.stop_event.clear()
 
     print(f"Tailing {instance.log_path}")
+    if state.time_filter.is_active():
+        print(f"Time filter: {state.time_filter.format_description()}")
     print("Press Ctrl+C to stop")
     print()
 

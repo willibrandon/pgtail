@@ -83,7 +83,9 @@ class PgtailCompleter(Completer):
         cmd = parts[0].lower()
         arg_text = parts[-1] if len(parts) > 1 and not text.endswith(" ") else ""
 
-        if cmd == "tail" or cmd == "enable-logging":
+        if cmd == "tail":
+            yield from self._complete_tail(arg_text, parts)
+        elif cmd == "enable-logging":
             yield from self._complete_instances(arg_text)
         elif cmd == "levels":
             yield from self._complete_levels(
@@ -128,6 +130,35 @@ class PgtailCompleter(Completer):
                     start_position=-len(prefix),
                     display_meta=description,
                 )
+
+    def _complete_tail(self, prefix: str, parts: list[str]) -> list[Completion]:
+        """Complete tail command arguments.
+
+        Args:
+            prefix: The prefix to match.
+            parts: All command parts so far.
+
+        Yields:
+            Completions for tail arguments (instances and --since flag).
+        """
+        # Check if --since already used
+        has_since = "--since" in parts
+
+        # If previous arg was --since, complete with time values
+        if len(parts) >= 2 and parts[-2] == "--since":
+            yield from self._complete_since(prefix)
+            return
+
+        # Complete --since option if not already used
+        if not has_since and prefix.startswith("-") and "--since".startswith(prefix):
+            yield Completion(
+                "--since",
+                start_position=-len(prefix),
+                display_meta="Filter from time (e.g., 5m, 14:30)",
+            )
+
+        # Complete instances
+        yield from self._complete_instances(prefix)
 
     def _complete_instances(self, prefix: str) -> list[Completion]:
         """Complete instance IDs and paths.
