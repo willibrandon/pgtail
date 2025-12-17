@@ -1354,6 +1354,67 @@ def since_command(state: AppState, args: list[str]) -> None:
     print(f"Showing logs {state.time_filter.format_description()}")
 
 
+def between_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'between' command - filter logs in a time range.
+
+    Args:
+        state: Current application state.
+        args: Command arguments:
+            - No args: Display usage
+            - Two time values: Set filter for start to end range
+    """
+    # Skip "and" if present (e.g., "between 14:30 and 15:00")
+    if len(args) >= 2 and args[1].lower() == "and":
+        args = [args[0]] + args[2:]
+
+    # No args or not enough args - show usage
+    if len(args) < 2:
+        if state.time_filter.is_active():
+            print(f"Time filter: {state.time_filter.format_description()}")
+            print()
+        print("Usage: between <start> <end>")
+        print()
+        print("Time formats:")
+        print("  5m, 30s, 2h, 1d       Relative (from now)")
+        print("  14:30, 14:30:45       Time today")
+        print("  2024-01-15T14:30      ISO 8601 datetime")
+        print()
+        print("Example: between 14:30 15:00")
+        return
+
+    # Parse start time
+    try:
+        start_time = parse_time(args[0])
+    except ValueError as e:
+        print(f"Error parsing start time: {e}")
+        return
+
+    # Parse end time
+    try:
+        end_time = parse_time(args[1])
+    except ValueError as e:
+        print(f"Error parsing end time: {e}")
+        return
+
+    # Validate start < end
+    if start_time >= end_time:
+        print("Error: Start time must be before end time")
+        print(f"  Start: {start_time.strftime('%H:%M:%S')}")
+        print(f"  End:   {end_time.strftime('%H:%M:%S')}")
+        return
+
+    # Create and apply time filter
+    original = f"{args[0]} {args[1]}"
+    state.time_filter = TimeFilter(since=start_time, until=end_time, original_input=original)
+
+    # Update tailer if currently tailing
+    if state.tailer:
+        state.tailer.update_time_filter(state.time_filter)
+
+    # Display feedback
+    print(f"Showing logs {state.time_filter.format_description()}")
+
+
 def handle_command(state: AppState, line: str) -> bool:
     """Process a command line and execute the appropriate handler.
 
@@ -1433,6 +1494,8 @@ def handle_command(state: AppState, line: str) -> bool:
         pipe_command(state, args)
     elif cmd == "since":
         since_command(state, args)
+    elif cmd == "between":
+        between_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")

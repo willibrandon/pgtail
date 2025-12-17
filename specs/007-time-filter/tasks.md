@@ -98,10 +98,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Implement `handle_between()` command handler in pgtail_py/cli.py
-- [ ] T027 [US3] Validate start time < end time with error message in pgtail_py/cli.py
-- [ ] T028 [US3] Display range feedback ("Showing logs between 14:30 and 15:00") in pgtail_py/cli.py
-- [ ] T029 [US3] Add completions for `between` command in pgtail_py/commands.py
+- [x] T026 [US3] Implement `handle_between()` command handler in pgtail_py/cli.py
+- [x] T027 [US3] Validate start time < end time with error message in pgtail_py/cli.py
+- [x] T028 [US3] Display range feedback ("Showing logs between 14:30 and 15:00") in pgtail_py/cli.py
+- [x] T029 [US3] Add completions for `between` command in pgtail_py/commands.py
 
 **Checkpoint**: User Story 3 complete - `between` command works for time ranges
 

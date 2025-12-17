@@ -107,6 +107,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_pipe(arg_text)
         elif cmd == "since":
             yield from self._complete_since(arg_text)
+        elif cmd == "between":
+            yield from self._complete_between(arg_text, len(parts))
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -405,6 +407,42 @@ class PgtailCompleter(Completer):
             "2h": "Last 2 hours",
             "1d": "Last day",
         }
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )
+
+    def _complete_between(self, prefix: str, num_parts: int) -> list[Completion]:
+        """Complete between command options.
+
+        Args:
+            prefix: The prefix to match.
+            num_parts: Number of parts in the command so far.
+
+        Yields:
+            Completions for between time examples.
+        """
+        # First arg: start time examples
+        if num_parts <= 2:
+            options = {
+                "5m": "5 minutes ago (start)",
+                "30m": "30 minutes ago (start)",
+                "1h": "1 hour ago (start)",
+                "14:00": "2 PM today (start)",
+                "14:30": "2:30 PM today (start)",
+            }
+        # Second arg: end time examples
+        else:
+            options = {
+                "15:00": "3 PM today (end)",
+                "15:30": "3:30 PM today (end)",
+                "16:00": "4 PM today (end)",
+            }
+
         prefix_lower = prefix.lower()
         for name, description in options.items():
             if name.startswith(prefix_lower):
