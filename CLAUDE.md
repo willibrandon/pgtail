@@ -74,6 +74,10 @@ Settings persist in a TOML config file at platform-specific locations:
 - `notifications.enabled`, `notifications.levels`, `notifications.quiet_hours`
 
 ## Recent Changes
+- 007-time-filter: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib), datetime (stdlib)
 - 006-export-pipe: Added `export` and `pipe` commands for saving logs to files and streaming to external tools
 - 005-config-file: Added persistent configuration file support with `set`, `unset`, and `config` commands
-- Added slow query detection with configurable thresholds (slow command)
+
+## Active Technologies
+- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib), datetime (stdlib) (007-time-filter)
+- N/A (local log file reading only) (007-time-filter)
