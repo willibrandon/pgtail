@@ -24,6 +24,7 @@ COMMANDS: dict[str, str] = {
     "until": "Filter logs until time (e.g., 'until 15:00', 'until 30m')",
     "between": "Filter logs in time range (e.g., 'between 14:30 15:00')",
     "display": "Control display mode (compact, full, fields)",
+    "output": "Control output format (json, text)",
     "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
     "stats": "Show query duration statistics",
     "set": "Set a config value (e.g., 'set slow.warn 50')",
@@ -147,6 +148,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_until(arg_text)
         elif cmd == "display":
             yield from self._complete_display(arg_text, parts)
+        elif cmd == "output":
+            yield from self._complete_output(arg_text)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -547,6 +550,28 @@ class PgtailCompleter(Completer):
             "15:30": "3:30 PM today",
             "16:00": "4 PM today",
             "17:00": "5 PM today",
+        }
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )
+
+    def _complete_output(self, prefix: str) -> list[Completion]:
+        """Complete output command options.
+
+        Args:
+            prefix: The prefix to match.
+
+        Yields:
+            Completions for output format options.
+        """
+        options = {
+            "json": "Output as JSON (one object per line)",
+            "text": "Output as colored text (default)",
         }
         prefix_lower = prefix.lower()
         for name, description in options.items():

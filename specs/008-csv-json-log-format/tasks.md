@@ -141,13 +141,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T046 [P] [US5] Implement format_entry_json() function in pgtail_py/display.py with ISO 8601 timestamps
-- [ ] T047 [US5] Add handle_output() command handler in pgtail_py/cli_core.py per contracts/commands.md
-- [ ] T048 [US5] Add "output" command to COMMANDS dict in pgtail_py/commands.py with json/text completions
-- [ ] T049 [US5] Wire handle_output() into command dispatch in pgtail_py/cli.py
-- [ ] T050 [US5] Update entry printing to handle JSON output format in pgtail_py/cli_core.py (print raw string, no colors)
+- [x] T046 [P] [US5] Implement format_entry_json() function in pgtail_py/display.py with ISO 8601 timestamps
+- [x] T047 [US5] Add handle_output() command handler in pgtail_py/cli_core.py per contracts/commands.md
+- [x] T048 [US5] Add "output" command to COMMANDS dict in pgtail_py/commands.py with json/text completions
+- [x] T049 [US5] Wire handle_output() into command dispatch in pgtail_py/cli.py
+- [x] T050 [US5] Update entry printing to handle JSON output format in pgtail_py/cli_core.py (print raw string, no colors)
 
-**Checkpoint**: User Story 5 complete - JSON output mode works for all log formats
+**Checkpoint**: User Story 5 complete - JSON output mode works for all log formats ✅
 
 ---
 

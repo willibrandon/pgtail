@@ -21,6 +21,7 @@ from pgtail_py.cli_core import (
     display_command,
     help_command,
     list_command,
+    output_command,
     refresh_command,
     stop_command,
     tail_command,
@@ -202,6 +203,8 @@ def handle_command(state: AppState, line: str) -> bool:
         until_command(state, args)
     elif cmd == "display":
         display_command(state, args)
+    elif cmd == "output":
+        output_command(state, args)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")

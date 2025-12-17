@@ -83,6 +83,9 @@ Available commands:
                     compact   Single line (default)
                     full      All available fields with labels
                     fields <f1,f2,...>  Show only specified fields
+  output [format]   Control output format
+                    json      Output as JSON (one object per line)
+                    text      Output as colored text (default)
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting
@@ -298,3 +301,33 @@ def display_command(state: AppState, args: list[str]) -> None:
     else:
         print(f"Unknown display mode: {subcommand}")
         print("Usage: display [compact|full|fields <field1,field2,...>]")
+
+
+def output_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'output' command - control output format (text or JSON).
+
+    Args:
+        state: Current application state.
+        args: Command arguments (json or text).
+    """
+    if not args:
+        # Show current output format
+        fmt = state.display_state.output_format.value
+        print(f"Output format: {fmt}")
+        print()
+        print("Usage: output json   Output as JSON (one object per line)")
+        print("       output text   Output as colored text (default)")
+        return
+
+    subcommand = args[0].lower()
+
+    if subcommand == "json":
+        state.display_state.set_output_json()
+        print("Output format: json")
+        print("Note: Slow query highlighting and regex highlights disabled in JSON mode")
+    elif subcommand == "text":
+        state.display_state.set_output_text()
+        print("Output format: text")
+    else:
+        print(f"Unknown output format: {subcommand}")
+        print("Usage: output [json|text]")
