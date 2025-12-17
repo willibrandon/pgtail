@@ -142,8 +142,37 @@ pgtail auto-detects and parses three PostgreSQL log formats:
 - Available fields: application, database, user, pid, backend
 - Only effective for CSV/JSON formats (warns on text format)
 
+## Connection Statistics
+
+The `connections` command tracks connection/disconnection events during tailing:
+
+**Commands:**
+- `connections` - Summary with active count and breakdowns by database/user/application
+- `connections --history` - Sparkline visualization of connect/disconnect rates (last 60 min)
+- `connections --watch` - Live stream of connection events (Ctrl+C to exit)
+- `connections --db=NAME` - Filter by database name
+- `connections --user=NAME` - Filter by user name
+- `connections --app=NAME` - Filter by application name
+- `connections clear` - Reset all statistics
+
+**Flag combinations:**
+- Filter flags (`--db`, `--user`, `--app`) work with all views
+- `--history` and `--watch` are mutually exclusive
+
+**Implementation:**
+- Session-scoped, in-memory only (deque with maxlen=10000)
+- Tracks via `on_entry` callback in LogTailer (before filtering)
+- Requires PostgreSQL `log_connections=on` and `log_disconnections=on`
+- ConnectionFilter dataclass with AND logic for multi-criteria filtering
+
+**New modules:**
+- `pgtail_py/connection_event.py` - ConnectionEvent dataclass, ConnectionEventType enum
+- `pgtail_py/connection_parser.py` - Regex patterns for connection log messages
+- `pgtail_py/connection_stats.py` - ConnectionStats aggregator, ConnectionFilter
+- `pgtail_py/cli_connections.py` - connections command handlers
+
 ## Recent Changes
-- 010-connection-tracking: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0
+- 010-connection-tracking: Connection tracking dashboard with summary, history, watch modes, and filtering
 - 009-error-stats: Added Python 3.10+ + prompt_toolkit >=3.0.0 (REPL), psutil (detection), tomlkit (config)
 - 008-csv-json-log-format: Auto-detection of CSV/JSON log formats, display modes (compact/full/custom), JSON output mode, field-based filtering
 

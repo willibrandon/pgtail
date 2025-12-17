@@ -17,6 +17,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Slow query detection with configurable thresholds
 - Query duration statistics (count, average, percentiles)
 - Error statistics with trend visualization and live counter
+- Connection statistics with history trends and live watch mode
 - Export logs to files (text, JSON, CSV formats)
 - Pipe logs to external commands (grep, jq, wc, etc.)
 - Color-coded output by severity with SQL state codes
@@ -66,6 +67,7 @@ highlight /pattern/ Highlight matching text (yellow background)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
 errors             Show error statistics (see Error Statistics below)
+connections        Show connection statistics (see Connection Statistics below)
 export <file>      Export filtered logs to file (see Export below)
 pipe <cmd>         Pipe filtered logs to external command (see Pipe below)
 set <key> [val]    Set/view a config value (persists across sessions)
@@ -230,6 +232,65 @@ pgtail> errors --trend
 Error rate (per minute):
 
 Last 60 min: ▁▁▁▂▁▁▃▁▅▁▁▁▁▁▂▁▁▁▁▁  total 12, avg 0.2/min
+```
+
+### Connection Statistics
+
+Track connection and disconnection events from PostgreSQL logs:
+
+```
+connections                    Show summary with active count by database/user/app
+connections --history          Sparkline of connect/disconnect rate (last 60 min)
+connections --watch            Live stream of connection events (Ctrl+C to exit)
+connections --db=mydb          Filter by database name
+connections --user=postgres    Filter by user name
+connections --app=psql         Filter by application name
+connections clear              Reset all statistics
+```
+
+Requires PostgreSQL connection logging to be enabled:
+```sql
+ALTER SYSTEM SET log_connections = on;
+ALTER SYSTEM SET log_disconnections = on;
+SELECT pg_reload_conf();
+```
+
+Example output:
+```
+pgtail> connections
+Active connections: 5
+
+By database:
+  mydb              3
+  postgres          2
+
+By user:
+  postgres          4
+  app_user          1
+
+By application:
+  psql              3
+  pgcli             2
+
+Session totals: 12 connects, 7 disconnects
+
+pgtail> connections --watch
+Watching connections - postgresql.log (Ctrl+C to exit)
+[+] connect  [-] disconnect  [!] failed
+
+[+] 14:30:15  postgres@mydb (psql) from [local]
+[-] 14:30:18  postgres@mydb (psql) from [local] (3.2s)
+[+] 14:30:22  app_user@production (rails) from 192.168.1.100
+
+pgtail> connections --history
+Connection History (last 60 min, 15-min buckets)
+─────────────────────────────────────────────────
+
+  Connects:    ▂▃▅▇  total 45
+  Disconnects: ▂▂▄▆  total 40
+
+  Net change: +5 (connections growing)
+  Active now: 5
 ```
 
 ### Export

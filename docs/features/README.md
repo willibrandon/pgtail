@@ -82,7 +82,7 @@ Or reference the file directly when planning.
 
 ### Phase 3: Monitoring
 7. error-stats-dashboard - completed
-8. connection-tracking
+8. connection-tracking - completed
 9. desktop-notifications
 
 ### Phase 4: Full TUI

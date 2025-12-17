@@ -159,13 +159,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T052 [P] Add edge case handling for malformed connection log messages in pgtail_py/connection_parser.py
-- [ ] T053 [P] Add handling for CONNECTION_FAILED events (FATAL messages) in pgtail_py/connection_parser.py
-- [ ] T054 Handle disconnection without matching connection (standalone event) in pgtail_py/connection_stats.py
-- [ ] T055 Add "unknown" default for missing application_name in pgtail_py/connection_event.py
-- [ ] T056 Run all tests and verify pass in tests/
-- [ ] T057 Update CLAUDE.md Recent Changes section with 010-connection-tracking in CLAUDE.md
-- [ ] T058 Run quickstart.md validation scenarios
+- [x] T052 [P] Add edge case handling for malformed connection log messages in pgtail_py/connection_parser.py
+- [x] T053 [P] Add handling for CONNECTION_FAILED events (FATAL messages) in pgtail_py/connection_parser.py
+- [x] T054 Handle disconnection without matching connection (standalone event) in pgtail_py/connection_stats.py
+- [x] T055 Add "unknown" default for missing application_name in pgtail_py/connection_event.py
+- [x] T056 Run all tests and verify pass in tests/
+- [x] T057 Update CLAUDE.md Recent Changes section with 010-connection-tracking in CLAUDE.md
+- [x] T058 Run quickstart.md validation scenarios
 
 ---
 
