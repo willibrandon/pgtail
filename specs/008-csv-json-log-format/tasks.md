@@ -95,15 +95,15 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Implement format_entry_custom() in pgtail_py/display.py for user-selected fields
-- [ ] T027 [P] [US3] Add VALID_DISPLAY_FIELDS constant and get_valid_display_fields() in pgtail_py/display.py
-- [ ] T028 [US3] Add handle_display() command handler in pgtail_py/cli_core.py per contracts/commands.md
-- [ ] T029 [US3] Add "display" command to COMMANDS dict in pgtail_py/commands.py with compact/full/fields completions
-- [ ] T030 [US3] Add DISPLAY_FIELDS constant to pgtail_py/commands.py for field name autocomplete
-- [ ] T031 [US3] Update PgtailCompleter in pgtail_py/commands.py to provide field completions for display command
-- [ ] T032 [US3] Wire handle_display() into command dispatch in pgtail_py/cli.py
+- [x] T026 [P] [US3] Implement format_entry_custom() in pgtail_py/display.py for user-selected fields
+- [x] T027 [P] [US3] Add VALID_DISPLAY_FIELDS constant and get_valid_display_fields() in pgtail_py/display.py
+- [x] T028 [US3] Add handle_display() command handler in pgtail_py/cli_core.py per contracts/commands.md
+- [x] T029 [US3] Add "display" command to COMMANDS dict in pgtail_py/commands.py with compact/full/fields completions
+- [x] T030 [US3] Add DISPLAY_FIELDS constant to pgtail_py/commands.py for field name autocomplete
+- [x] T031 [US3] Update PgtailCompleter in pgtail_py/commands.py to provide field completions for display command
+- [x] T032 [US3] Wire handle_display() into command dispatch in pgtail_py/cli.py
 
-**Checkpoint**: User Story 3 complete - display command works with all three modes
+**Checkpoint**: User Story 3 complete - display command works with all three modes ✅
 
 ---
 

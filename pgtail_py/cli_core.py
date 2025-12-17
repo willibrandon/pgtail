@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from pgtail_py.cli_utils import find_instance, shorten_path
 from pgtail_py.detector import detect_all
+from pgtail_py.display import get_valid_display_fields
 from pgtail_py.format_detector import LogFormat
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import reset_terminal
@@ -77,6 +78,10 @@ Available commands:
   until <time>      Filter logs until time (e.g., 'until 15:00')
                     Disables live tailing (upper bound set)
   between <s> <e>   Filter logs in time range (e.g., 'between 14:30 15:00')
+  display [mode]    Control display mode for log entries
+                    compact   Single line (default)
+                    full      All available fields with labels
+                    fields <f1,f2,...>  Show only specified fields
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting
@@ -242,3 +247,52 @@ def stop_command(state: AppState) -> None:
     # Reset terminal state to prevent mangled output
     reset_terminal()
     print("Stopped tailing.")
+
+
+def display_command(state: AppState, args: list[str]) -> None:
+    """Handle the 'display' command - control log entry display mode.
+
+    Args:
+        state: Current application state.
+        args: Command arguments (compact, full, or fields <field1,field2,...>).
+    """
+    if not args:
+        # Show current display mode
+        print(state.display_state.format_status())
+        return
+
+    subcommand = args[0].lower()
+
+    if subcommand == "compact":
+        state.display_state.set_compact()
+        print("Display mode: compact")
+    elif subcommand == "full":
+        state.display_state.set_full()
+        print("Display mode: full")
+    elif subcommand == "fields":
+        if len(args) < 2:
+            print("Usage: display fields <field1,field2,...>")
+            print(f"Valid fields: {', '.join(get_valid_display_fields())}")
+            return
+
+        # Parse comma-separated field list
+        field_arg = args[1]
+        fields = [f.strip() for f in field_arg.split(",") if f.strip()]
+
+        if not fields:
+            print("No fields specified.")
+            print(f"Valid fields: {', '.join(get_valid_display_fields())}")
+            return
+
+        invalid = state.display_state.set_custom(fields)
+
+        if invalid:
+            print(f"Unknown fields: {', '.join(invalid)}")
+            print(f"Valid fields: {', '.join(get_valid_display_fields())}")
+            if state.display_state.custom_fields:
+                print(f"Using valid fields: {', '.join(state.display_state.custom_fields)}")
+        else:
+            print(f"Display mode: custom ({len(fields)} fields)")
+    else:
+        print(f"Unknown display mode: {subcommand}")
+        print("Usage: display [compact|full|fields <field1,field2,...>]")

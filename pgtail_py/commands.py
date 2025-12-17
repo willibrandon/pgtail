@@ -23,6 +23,7 @@ COMMANDS: dict[str, str] = {
     "since": "Filter logs since time (e.g., 'since 5m', 'since 14:30')",
     "until": "Filter logs until time (e.g., 'until 15:00', 'until 30m')",
     "between": "Filter logs in time range (e.g., 'between 14:30 15:00')",
+    "display": "Control display mode (compact, full, fields)",
     "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
     "stats": "Show query duration statistics",
     "set": "Set a config value (e.g., 'set slow.warn 50')",
@@ -39,6 +40,26 @@ COMMANDS: dict[str, str] = {
     "exit": "Exit pgtail",
     "q": "Exit pgtail",
 }
+
+# Field names for display command autocomplete
+DISPLAY_FIELDS: list[str] = [
+    "timestamp",
+    "pid",
+    "level",
+    "message",
+    "sql_state",
+    "user",
+    "database",
+    "application",
+    "query",
+    "detail",
+    "hint",
+    "context",
+    "location",
+    "backend_type",
+    "session_id",
+    "command_tag",
+]
 
 
 class PgtailCompleter(Completer):
@@ -113,6 +134,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_between(arg_text, len(parts))
         elif cmd == "until":
             yield from self._complete_until(arg_text)
+        elif cmd == "display":
+            yield from self._complete_display(arg_text, parts)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -509,3 +532,60 @@ class PgtailCompleter(Completer):
                     start_position=-len(prefix),
                     display_meta=description,
                 )
+
+    def _complete_display(self, prefix: str, parts: list[str]) -> list[Completion]:
+        """Complete display command options.
+
+        Args:
+            prefix: The prefix to match.
+            parts: All command parts so far.
+
+        Yields:
+            Completions for display subcommands and field names.
+        """
+        # First argument: display mode
+        if len(parts) <= 2:
+            modes = {
+                "compact": "Single line per entry (default)",
+                "full": "All available fields with labels",
+                "fields": "Show only specified fields",
+            }
+            prefix_lower = prefix.lower()
+            for name, description in modes.items():
+                if name.startswith(prefix_lower):
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=description,
+                    )
+            return
+
+        # After "fields": complete field names
+        if len(parts) >= 2 and parts[1].lower() == "fields":
+            # Parse already-selected fields from comma-separated arg
+            if len(parts) >= 3:
+                selected = {f.strip().lower() for f in parts[2].split(",") if f.strip()}
+            else:
+                selected = set()
+
+            prefix_lower = prefix.lower()
+            # Handle comma continuation
+            if "," in prefix:
+                # Complete after the last comma
+                base, partial = prefix.rsplit(",", 1)
+                partial = partial.strip().lower()
+                for field in DISPLAY_FIELDS:
+                    if field.lower().startswith(partial) and field.lower() not in selected:
+                        yield Completion(
+                            f"{base},{field}",
+                            start_position=-len(prefix),
+                            display_meta=f"Add {field} field",
+                        )
+            else:
+                for field in DISPLAY_FIELDS:
+                    if field.lower().startswith(prefix_lower) and field.lower() not in selected:
+                        yield Completion(
+                            field,
+                            start_position=-len(prefix),
+                            display_meta=f"Show {field} field",
+                        )
