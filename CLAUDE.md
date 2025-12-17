@@ -118,6 +118,10 @@ pgtail auto-detects and parses three PostgreSQL log formats:
 - Only effective for CSV/JSON formats (warns on text format)
 
 ## Recent Changes
+- 009-error-stats: Added Python 3.10+ + prompt_toolkit >=3.0.0 (REPL), psutil (detection), tomlkit (config)
 - 008-csv-json-log-format: Auto-detection of CSV/JSON log formats, display modes (compact/full/custom), JSON output mode, field-based filtering
 - 007-time-filter: Added `since`, `until`, `between` commands and `tail --since` flag for time-based log filtering
-- 006-export-pipe: Added `export` and `pipe` commands for saving logs to files and streaming to external tools
+
+## Active Technologies
+- Python 3.10+ + prompt_toolkit >=3.0.0 (REPL), psutil (detection), tomlkit (config) (009-error-stats)
+- In-memory only (session-scoped, no persistence) (009-error-stats)
