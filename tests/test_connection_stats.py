@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from pgtail_py.connection_stats import ConnectionStats
+from pgtail_py.connection_stats import ConnectionFilter, ConnectionStats
 from pgtail_py.connection_event import ConnectionEvent, ConnectionEventType
 from pgtail_py.parser import LogEntry
 from pgtail_py.filter import LogLevel
@@ -375,3 +375,154 @@ class TestConnectionStatsEdgeCases:
 
         stats.clear()
         assert stats.failed_count == 0
+
+
+class TestConnectionFilter:
+    """Tests for ConnectionFilter dataclass."""
+
+    def test_empty_filter_matches_all(self) -> None:
+        """Test that empty filter matches any event."""
+        filter_ = ConnectionFilter()
+        assert filter_.is_empty()
+
+        event = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="mydb",
+            application="psql",
+        )
+        assert filter_.matches(event)
+
+    def test_single_criterion_database(self) -> None:
+        """Test filter with single database criterion."""
+        filter_ = ConnectionFilter(database="mydb")
+        assert not filter_.is_empty()
+
+        matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="mydb",
+            application="psql",
+        )
+        non_matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="other_db",
+            application="psql",
+        )
+
+        assert filter_.matches(matching)
+        assert not filter_.matches(non_matching)
+
+    def test_single_criterion_user(self) -> None:
+        """Test filter with single user criterion."""
+        filter_ = ConnectionFilter(user="app_user")
+        assert not filter_.is_empty()
+
+        matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="app_user",
+            database="mydb",
+        )
+        non_matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="mydb",
+        )
+
+        assert filter_.matches(matching)
+        assert not filter_.matches(non_matching)
+
+    def test_single_criterion_application(self) -> None:
+        """Test filter with single application criterion."""
+        filter_ = ConnectionFilter(application="rails")
+        assert not filter_.is_empty()
+
+        matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="mydb",
+            application="rails",
+        )
+        non_matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="mydb",
+            application="psql",
+        )
+
+        assert filter_.matches(matching)
+        assert not filter_.matches(non_matching)
+
+    def test_multiple_criteria_and_logic(self) -> None:
+        """Test filter with multiple criteria uses AND logic."""
+        filter_ = ConnectionFilter(database="production", user="app_user")
+        assert not filter_.is_empty()
+
+        # Matches both criteria
+        full_match = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="app_user",
+            database="production",
+            application="rails",
+        )
+        # Matches database only
+        db_only = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="production",
+            application="psql",
+        )
+        # Matches user only
+        user_only = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="app_user",
+            database="development",
+            application="rails",
+        )
+        # Matches neither
+        no_match = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="postgres",
+            database="development",
+            application="psql",
+        )
+
+        assert filter_.matches(full_match)
+        assert not filter_.matches(db_only)
+        assert not filter_.matches(user_only)
+        assert not filter_.matches(no_match)
+
+    def test_all_three_criteria(self) -> None:
+        """Test filter with all three criteria."""
+        filter_ = ConnectionFilter(database="prod", user="api", application="web")
+
+        matching = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="api",
+            database="prod",
+            application="web",
+        )
+        # Wrong application
+        wrong_app = ConnectionEvent(
+            timestamp=datetime.now(),
+            event_type=ConnectionEventType.CONNECT,
+            user="api",
+            database="prod",
+            application="worker",
+        )
+
+        assert filter_.matches(matching)
+        assert not filter_.matches(wrong_app)

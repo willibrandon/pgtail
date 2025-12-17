@@ -19,6 +19,49 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class ConnectionFilter:
+    """Filter criteria for connection events.
+
+    All specified criteria use AND logic - an event must match all
+    non-None fields to pass the filter.
+
+    Attributes:
+        database: Filter by database name (exact match).
+        user: Filter by user name (exact match).
+        application: Filter by application name (exact match).
+    """
+
+    database: str | None = None
+    user: str | None = None
+    application: str | None = None
+
+    def is_empty(self) -> bool:
+        """Check if no filter criteria are set.
+
+        Returns:
+            True if all criteria are None, False otherwise.
+        """
+        return self.database is None and self.user is None and self.application is None
+
+    def matches(self, event: ConnectionEvent) -> bool:
+        """Check if an event matches all filter criteria.
+
+        Uses AND logic - all non-None criteria must match.
+
+        Args:
+            event: The connection event to check.
+
+        Returns:
+            True if event matches all criteria, False otherwise.
+        """
+        if self.database is not None and event.database != self.database:
+            return False
+        if self.user is not None and event.user != self.user:
+            return False
+        return not (self.application is not None and event.application != self.application)
+
+
+@dataclass
 class ConnectionStats:
     """Session-scoped connection statistics aggregator.
 

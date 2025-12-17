@@ -137,19 +137,19 @@
 
 ### Tests for User Story 4
 
-- [ ] T042 [P] [US4] Add test for ConnectionFilter.matches() with single criterion in tests/test_connection_stats.py
-- [ ] T043 [P] [US4] Add test for ConnectionFilter.matches() with multiple criteria (AND logic) in tests/test_connection_stats.py
+- [x] T042 [P] [US4] Add test for ConnectionFilter.matches() with single criterion in tests/test_connection_stats.py
+- [x] T043 [P] [US4] Add test for ConnectionFilter.matches() with multiple criteria (AND logic) in tests/test_connection_stats.py
 
 ### Implementation for User Story 4
 
-- [ ] T044 [US4] Create ConnectionFilter dataclass in pgtail_py/connection_stats.py
-- [ ] T045 [US4] Implement ConnectionFilter.matches() method with AND logic in pgtail_py/connection_stats.py
-- [ ] T046 [US4] Implement ConnectionFilter.is_empty() method in pgtail_py/connection_stats.py
-- [ ] T047 [US4] Add --db, --user, --app flag parsing in connections_command() in pgtail_py/cli_connections.py
-- [ ] T048 [US4] Update _show_summary() to apply ConnectionFilter in pgtail_py/cli_connections.py
-- [ ] T049 [US4] Update _show_history() to apply ConnectionFilter in pgtail_py/cli_connections.py
-- [ ] T050 [US4] Update _show_watch() to apply ConnectionFilter in pgtail_py/cli_connections.py
-- [ ] T051 [US4] Add --db=, --user=, --app= to PgtailCompleter subcompletions in pgtail_py/commands.py
+- [x] T044 [US4] Create ConnectionFilter dataclass in pgtail_py/connection_stats.py
+- [x] T045 [US4] Implement ConnectionFilter.matches() method with AND logic in pgtail_py/connection_stats.py
+- [x] T046 [US4] Implement ConnectionFilter.is_empty() method in pgtail_py/connection_stats.py
+- [x] T047 [US4] Add --db, --user, --app flag parsing in connections_command() in pgtail_py/cli_connections.py
+- [x] T048 [US4] Update _show_summary() to apply ConnectionFilter in pgtail_py/cli_connections.py
+- [x] T049 [US4] Update _show_history() to apply ConnectionFilter in pgtail_py/cli_connections.py
+- [x] T050 [US4] Update _show_watch() to apply ConnectionFilter in pgtail_py/cli_connections.py
+- [x] T051 [US4] Add --db=, --user=, --app= to PgtailCompleter subcompletions in pgtail_py/commands.py
 
 **Checkpoint**: User Story 4 complete - all filter flags work across all views
 

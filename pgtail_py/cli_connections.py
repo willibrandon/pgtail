@@ -97,6 +97,8 @@ def _show_summary(
         user_filter: Optional user name filter.
         app_filter: Optional application name filter.
     """
+    from pgtail_py.connection_stats import ConnectionFilter
+
     stats = state.connection_stats
 
     if stats.is_empty():
@@ -107,11 +109,23 @@ def _show_summary(
         )
         return
 
-    # Get active connections (filtering will be applied in Phase 6)
-    active = stats.active_count()
+    # Create filter from parameters
+    conn_filter = ConnectionFilter(
+        database=db_filter,
+        user=user_filter,
+        application=app_filter,
+    )
+
+    # Get filtered active connections
+    if conn_filter.is_empty():
+        filtered_active = list(stats._active.values())
+    else:
+        filtered_active = [e for e in stats._active.values() if conn_filter.matches(e)]
+
+    active_count = len(filtered_active)
 
     # Check if any filters are active
-    has_filter = any([db_filter, user_filter, app_filter])
+    has_filter = not conn_filter.is_empty()
 
     if has_filter:
         # Filtered view - show filter context
@@ -124,19 +138,29 @@ def _show_summary(
             filter_parts.append(f"app='{app_filter}'")
         filter_desc = ", ".join(filter_parts)
 
-        # For now, filtering not applied to counts (Phase 6)
-        # Just show the header indicating filters
         print_formatted_text(
             HTML(
-                f"<b>Active connections</b> (filter: {filter_desc}): <ansigreen>{active}</ansigreen>\n"
+                f"<b>Active connections</b> (filter: {filter_desc}): "
+                f"<ansigreen>{active_count}</ansigreen>\n"
             )
         )
     else:
         # Default summary view
-        print_formatted_text(HTML(f"<b>Active connections:</b> <ansigreen>{active}</ansigreen>\n"))
+        print_formatted_text(HTML(f"<b>Active connections:</b> <ansigreen>{active_count}</ansigreen>\n"))
+
+    # Aggregate filtered connections
+    from collections import defaultdict
+
+    by_db: dict[str, int] = defaultdict(int)
+    by_user: dict[str, int] = defaultdict(int)
+    by_app: dict[str, int] = defaultdict(int)
+
+    for event in filtered_active:
+        by_db[event.database or "unknown"] += 1
+        by_user[event.user or "unknown"] += 1
+        by_app[event.application or "unknown"] += 1
 
     # By database
-    by_db = stats.get_by_database()
     if by_db:
         print_formatted_text("By database:")
         for db, count in sorted(by_db.items(), key=lambda x: -x[1]):
@@ -144,7 +168,6 @@ def _show_summary(
         print()
 
     # By user
-    by_user = stats.get_by_user()
     if by_user:
         print_formatted_text("By user:")
         for user, count in sorted(by_user.items(), key=lambda x: -x[1]):
@@ -152,14 +175,13 @@ def _show_summary(
         print()
 
     # By application
-    by_app = stats.get_by_application()
     if by_app:
         print_formatted_text("By application:")
         for app, count in sorted(by_app.items(), key=lambda x: -x[1]):
             print_formatted_text(f"  {app:<15} {count:>5}")
         print()
 
-    # Session totals
+    # Session totals (unfiltered - shows overall session activity)
     totals = f"Session totals: {stats.connect_count} connects, {stats.disconnect_count} disconnects"
     if stats.failed_count > 0:
         totals += f", {stats.failed_count} failed"
@@ -181,10 +203,14 @@ def _show_history(
 
     Args:
         state: Current application state.
-        db_filter: Optional database name filter (not yet applied).
-        user_filter: Optional user name filter (not yet applied).
-        app_filter: Optional application name filter (not yet applied).
+        db_filter: Optional database name filter.
+        user_filter: Optional user name filter.
+        app_filter: Optional application name filter.
     """
+    from datetime import datetime
+
+    from pgtail_py.connection_event import ConnectionEventType
+    from pgtail_py.connection_stats import ConnectionFilter
     from pgtail_py.error_trend import sparkline
 
     stats = state.connection_stats
@@ -197,8 +223,16 @@ def _show_history(
         )
         return
 
-    # Note: Filters will be applied in Phase 6
-    if any([db_filter, user_filter, app_filter]):
+    # Create filter from parameters
+    conn_filter = ConnectionFilter(
+        database=db_filter,
+        user=user_filter,
+        application=app_filter,
+    )
+
+    # Build filter description for header
+    filter_desc = ""
+    if not conn_filter.is_empty():
         filter_parts = []
         if db_filter:
             filter_parts.append(f"db='{db_filter}'")
@@ -206,15 +240,34 @@ def _show_history(
             filter_parts.append(f"user='{user_filter}'")
         if app_filter:
             filter_parts.append(f"app='{app_filter}'")
-        print_formatted_text(
-            HTML(
-                f"<ansiyellow>Note: Filter ({', '.join(filter_parts)}) "
-                "not yet applied to history. Coming in Phase 6.</ansiyellow>\n"
-            )
-        )
+        filter_desc = f" (filter: {', '.join(filter_parts)})"
 
-    # Get trend buckets (last 60 minutes, 15-minute intervals)
-    buckets = stats.get_trend_buckets(minutes=60, bucket_size=15)
+    # Get filtered trend buckets (last 60 minutes, 15-minute intervals)
+    minutes = 60
+    bucket_size = 15
+    num_buckets = max(1, minutes // bucket_size)
+    buckets: list[tuple[int, int]] = [(0, 0) for _ in range(num_buckets)]
+    now = datetime.now()
+
+    for event in stats._events:
+        # Apply filter
+        if not conn_filter.is_empty() and not conn_filter.matches(event):
+            continue
+
+        # Calculate bucket
+        delta = now - event.timestamp
+        minutes_ago = delta.total_seconds() / 60
+        if minutes_ago < 0 or minutes_ago >= minutes:
+            continue
+
+        bucket_idx = num_buckets - 1 - int(minutes_ago // bucket_size)
+        bucket_idx = max(0, min(num_buckets - 1, bucket_idx))
+
+        connects, disconnects = buckets[bucket_idx]
+        if event.event_type == ConnectionEventType.CONNECT:
+            buckets[bucket_idx] = (connects + 1, disconnects)
+        elif event.event_type == ConnectionEventType.DISCONNECT:
+            buckets[bucket_idx] = (connects, disconnects + 1)
 
     # Extract connects and disconnects
     connects = [b[0] for b in buckets]
@@ -224,7 +277,7 @@ def _show_history(
     total_disconnects = sum(disconnects)
     net_change = total_connects - total_disconnects
 
-    print_formatted_text(HTML("<b>Connection History (last 60 min, 15-min buckets)</b>"))
+    print_formatted_text(HTML(f"<b>Connection History{filter_desc} (last 60 min, 15-min buckets)</b>"))
     print_formatted_text("─────────────────────────────────────────────────\n")
 
     # Sparklines
@@ -288,14 +341,15 @@ def _show_watch(
 
     Args:
         state: Current application state.
-        db_filter: Optional database name filter (not yet applied).
-        user_filter: Optional user name filter (not yet applied).
-        app_filter: Optional application name filter (not yet applied).
+        db_filter: Optional database name filter.
+        user_filter: Optional user name filter.
+        app_filter: Optional application name filter.
     """
     import signal
     import time
 
     from pgtail_py.connection_event import ConnectionEvent, ConnectionEventType
+    from pgtail_py.connection_stats import ConnectionFilter
     from pgtail_py.tailer import LogTailer
 
     # Need a log file to track - check current or last instance
@@ -322,8 +376,16 @@ def _show_watch(
         )
         return
 
-    # Note: Filters will be applied in Phase 6
-    if any([db_filter, user_filter, app_filter]):
+    # Create filter from parameters
+    conn_filter = ConnectionFilter(
+        database=db_filter,
+        user=user_filter,
+        application=app_filter,
+    )
+
+    # Build filter description for header
+    filter_desc = ""
+    if not conn_filter.is_empty():
         filter_parts = []
         if db_filter:
             filter_parts.append(f"db='{db_filter}'")
@@ -331,12 +393,7 @@ def _show_watch(
             filter_parts.append(f"user='{user_filter}'")
         if app_filter:
             filter_parts.append(f"app='{app_filter}'")
-        print_formatted_text(
-            HTML(
-                f"<ansiyellow>Note: Filter ({', '.join(filter_parts)}) "
-                "not yet applied to watch. Coming in Phase 6.</ansiyellow>\n"
-            )
-        )
+        filter_desc = f" (filter: {', '.join(filter_parts)})"
 
     # Track events seen count for display
     events_seen = 0
@@ -379,11 +436,12 @@ def _show_watch(
         nonlocal events_seen
         event = ConnectionEvent.from_log_entry(entry)
         if event is not None:
-            # Also track in stats
+            # Also track in stats (always, regardless of filter)
             state.connection_stats.add(entry)
-            # Display the event
-            print(format_event(event))
-            events_seen += 1
+            # Apply filter before display
+            if conn_filter.is_empty() or conn_filter.matches(event):
+                print(format_event(event))
+                events_seen += 1
 
     # Create tailer for connection event tracking
     watch_tailer = LogTailer(
@@ -397,7 +455,7 @@ def _show_watch(
 
     print_formatted_text(
         HTML(
-            f"<b>Watching connections</b> - {instance.log_path.name} (Ctrl+C to exit)\n"
+            f"<b>Watching connections{filter_desc}</b> - {instance.log_path.name} (Ctrl+C to exit)\n"
             "<ansigreen>[+]</ansigreen> connect  "
             "<ansiyellow>[-]</ansiyellow> disconnect  "
             "<ansired>[!]</ansired> failed\n"
