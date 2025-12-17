@@ -6,6 +6,7 @@ trends, live counters, and filtering by SQLSTATE code.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from prompt_toolkit import print_formatted_text
@@ -115,13 +116,120 @@ def _show_trend(state: AppState) -> None:
 
 
 def _show_live(state: AppState) -> None:
-    """Display live updating error counter."""
-    # Placeholder - will implement full live mode in US3
-    stats = state.error_stats
-    print_formatted_text(
-        f"Errors: {stats.error_count} | Warnings: {stats.warning_count}"
+    """Display live updating error counter with ANSI cursor control.
+
+    Updates in place every 500ms showing:
+    - Error count (red)
+    - Warning count (yellow)
+    - Time since last error
+
+    Starts a background tailer to track new errors while in live mode.
+    Press Ctrl+C to exit.
+    """
+    import sys
+    import time
+
+    from pgtail_py.tailer import LogTailer
+
+    # Need a log file to track - check current or last instance
+    instance = state.current_instance
+    if instance is None and state.instances:
+        # Try first instance with logs
+        for inst in state.instances:
+            if inst.log_path and inst.log_path.exists():
+                instance = inst
+                break
+
+    if instance is None or not instance.log_path:
+        print_formatted_text(
+            HTML(
+                "<ansiyellow>No log file available. "
+                "Use 'tail' first to select an instance.</ansiyellow>"
+            )
+        )
+        return
+
+    if not instance.log_path.exists():
+        print_formatted_text(
+            HTML(f"<ansiyellow>Log file not found: {instance.log_path}</ansiyellow>")
+        )
+        return
+
+    # ANSI escape codes
+    CLEAR_LINE = "\033[2K"
+    HIDE_CURSOR = "\033[?25l"
+    SHOW_CURSOR = "\033[?25h"
+
+    def format_time_since(last_time: datetime | None) -> str:
+        """Format time since last error."""
+        if last_time is None:
+            return "never"
+
+        delta = datetime.now() - last_time
+        seconds = int(delta.total_seconds())
+
+        if seconds < 60:
+            return f"{seconds}s ago"
+        elif seconds < 3600:
+            return f"{seconds // 60}m {seconds % 60}s ago"
+        else:
+            hours = seconds // 3600
+            minutes = (seconds % 3600) // 60
+            return f"{hours}h {minutes}m ago"
+
+    def render_display() -> str:
+        """Render the live display - read fresh values each time."""
+        stats = state.error_stats
+        time_since = format_time_since(stats.last_error_time)
+        return (
+            f"Errors: \033[91m{stats.error_count}\033[0m | "
+            f"Warnings: \033[93m{stats.warning_count}\033[0m | "
+            f"Last error: {time_since}"
+        )
+
+    # Start a background tailer just for error tracking (no display)
+    live_tailer = LogTailer(
+        instance.log_path,
+        active_levels=None,  # Track all levels
+        regex_state=None,
+        time_filter=None,
+        field_filter=None,
+        on_entry=state.error_stats.add,
     )
-    print_formatted_text("\n(Live mode not fully implemented yet)")
+    live_tailer.start()
+
+    # Hide cursor during live mode
+    sys.stdout.write(HIDE_CURSOR)
+    sys.stdout.flush()
+
+    try:
+        # Print initial line (will be updated in place)
+        print_formatted_text(
+            f"Live error counter - {instance.log_path.name} (Ctrl+C to exit)\n"
+        )
+        sys.stdout.write(render_display())
+        sys.stdout.flush()
+
+        while True:
+            time.sleep(0.5)  # 500ms update interval
+
+            # Move cursor to beginning of line and clear
+            sys.stdout.write("\r" + CLEAR_LINE)
+
+            # Write updated stats
+            sys.stdout.write(render_display())
+            sys.stdout.flush()
+
+    except KeyboardInterrupt:
+        # Clean exit on Ctrl+C
+        sys.stdout.write("\n")
+    finally:
+        # Stop the background tailer
+        live_tailer.stop()
+        # Always restore cursor visibility
+        sys.stdout.write(SHOW_CURSOR)
+        sys.stdout.flush()
+        print_formatted_text("Exited live mode.")
 
 
 def _show_by_code(state: AppState, code: str) -> None:

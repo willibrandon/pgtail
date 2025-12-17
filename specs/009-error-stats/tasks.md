@@ -120,12 +120,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Implement _show_live() handler with ANSI cursor control in pgtail_py/cli_errors.py
-- [ ] T044 [US3] Implement live loop with 500ms update interval in pgtail_py/cli_errors.py
-- [ ] T045 [US3] Add Ctrl+C handler to exit live mode cleanly in pgtail_py/cli_errors.py
-- [ ] T046 [US3] Display "time since last error" that updates in pgtail_py/cli_errors.py
-- [ ] T047 [US3] Handle --live flag in errors_command() dispatcher in pgtail_py/cli_errors.py
-- [ ] T048 [US3] Add --live to completion in _complete_errors() in pgtail_py/commands.py
+- [x] T043 [US3] Implement _show_live() handler with ANSI cursor control in pgtail_py/cli_errors.py
+- [x] T044 [US3] Implement live loop with 500ms update interval in pgtail_py/cli_errors.py
+- [x] T045 [US3] Add Ctrl+C handler to exit live mode cleanly in pgtail_py/cli_errors.py
+- [x] T046 [US3] Display "time since last error" that updates in pgtail_py/cli_errors.py
+- [x] T047 [US3] Handle --live flag in errors_command() dispatcher in pgtail_py/cli_errors.py
+- [x] T048 [US3] Add --live to completion in _complete_errors() in pgtail_py/commands.py
 
 **Checkpoint**: User Story 3 complete - `errors --live` shows updating counter
 
