@@ -90,9 +90,10 @@ Commands:
 Filter order (cheapest first): time → level → regex
 
 ## Recent Changes
+- 008-csv-json-log-format: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0, csv (stdlib), json (stdlib)
 - 007-time-filter: Added `since`, `until`, `between` commands and `tail --since` flag for time-based log filtering
 - 006-export-pipe: Added `export` and `pipe` commands for saving logs to files and streaming to external tools
-- 005-config-file: Added persistent configuration file support with `set`, `unset`, and `config` commands
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, re (stdlib), datetime (stdlib)
+- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0, csv (stdlib), json (stdlib) (008-csv-json-log-format)
+- N/A (log file parsing only) (008-csv-json-log-format)
