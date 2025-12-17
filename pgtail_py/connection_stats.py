@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pgtail_py.connection_event import ConnectionEvent, ConnectionEventType
@@ -37,9 +37,7 @@ class ConnectionStats:
         disconnect_count: Total disconnections seen.
     """
 
-    _events: deque[ConnectionEvent] = field(
-        default_factory=lambda: deque(maxlen=10000)
-    )
+    _events: deque[ConnectionEvent] = field(default_factory=lambda: deque(maxlen=10000))
     _active: dict[int, ConnectionEvent] = field(default_factory=dict)
     session_start: datetime = field(default_factory=datetime.now)
     connect_count: int = 0
@@ -161,9 +159,7 @@ class ConnectionStats:
         """
         return [e for e in self._events if e.timestamp >= since]
 
-    def get_trend_buckets(
-        self, minutes: int = 60, bucket_size: int = 15
-    ) -> list[tuple[int, int]]:
+    def get_trend_buckets(self, minutes: int = 60, bucket_size: int = 15) -> list[tuple[int, int]]:
         """Get connection counts per time bucket for trend visualization.
 
         Args:

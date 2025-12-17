@@ -58,7 +58,7 @@ FATAL_CONNECTION_PATTERNS: list[str] = [
 
 def parse_connection_message(
     message: str, *, is_fatal: bool = False
-) -> tuple["ConnectionEventType", dict[str, str | None]] | None:
+) -> tuple[ConnectionEventType, dict[str, str | None]] | None:
     """Parse a connection-related log message.
 
     Attempts to match the message against known connection patterns

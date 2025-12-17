@@ -63,24 +63,24 @@
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Add test for connections command summary display in tests/test_connection_stats.py
-- [ ] T014 [P] [US1] Add test for get_by_database() aggregation in tests/test_connection_stats.py
-- [ ] T015 [P] [US1] Add test for get_by_user() aggregation in tests/test_connection_stats.py
-- [ ] T016 [P] [US1] Add test for get_by_application() aggregation in tests/test_connection_stats.py
+- [x] T013 [P] [US1] Add test for connections command summary display in tests/test_connection_stats.py
+- [x] T014 [P] [US1] Add test for get_by_database() aggregation in tests/test_connection_stats.py
+- [x] T015 [P] [US1] Add test for get_by_user() aggregation in tests/test_connection_stats.py
+- [x] T016 [P] [US1] Add test for get_by_application() aggregation in tests/test_connection_stats.py
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Implement ConnectionStats.active_count() method in pgtail_py/connection_stats.py
-- [ ] T018 [P] [US1] Implement ConnectionStats.get_by_database() method in pgtail_py/connection_stats.py
-- [ ] T019 [P] [US1] Implement ConnectionStats.get_by_user() method in pgtail_py/connection_stats.py
-- [ ] T020 [P] [US1] Implement ConnectionStats.get_by_application() method in pgtail_py/connection_stats.py
-- [ ] T021 [P] [US1] Implement ConnectionStats.get_by_host() method in pgtail_py/connection_stats.py
-- [ ] T022 [US1] Create cli_connections.py with connections_command() handler in pgtail_py/cli_connections.py
-- [ ] T023 [US1] Implement _show_summary() function for default output in pgtail_py/cli_connections.py
-- [ ] T024 [US1] Implement _clear_stats() function for clear subcommand in pgtail_py/cli_connections.py
-- [ ] T025 [US1] Register connections command in COMMANDS dict in pgtail_py/commands.py
-- [ ] T026 [US1] Add connections to PgtailCompleter in pgtail_py/commands.py
-- [ ] T027 [US1] Wire connection_stats.add() to LogTailer on_entry callback in pgtail_py/cli.py
+- [x] T017 [US1] Implement ConnectionStats.active_count() method in pgtail_py/connection_stats.py
+- [x] T018 [P] [US1] Implement ConnectionStats.get_by_database() method in pgtail_py/connection_stats.py
+- [x] T019 [P] [US1] Implement ConnectionStats.get_by_user() method in pgtail_py/connection_stats.py
+- [x] T020 [P] [US1] Implement ConnectionStats.get_by_application() method in pgtail_py/connection_stats.py
+- [x] T021 [P] [US1] Implement ConnectionStats.get_by_host() method in pgtail_py/connection_stats.py
+- [x] T022 [US1] Create cli_connections.py with connections_command() handler in pgtail_py/cli_connections.py
+- [x] T023 [US1] Implement _show_summary() function for default output in pgtail_py/cli_connections.py
+- [x] T024 [US1] Implement _clear_stats() function for clear subcommand in pgtail_py/cli_connections.py
+- [x] T025 [US1] Register connections command in COMMANDS dict in pgtail_py/commands.py
+- [x] T026 [US1] Add connections to PgtailCompleter in pgtail_py/commands.py
+- [x] T027 [US1] Wire connection_stats.add() to LogTailer on_entry callback in pgtail_py/cli.py
 
 **Checkpoint**: User Story 1 complete - `connections` and `connections clear` commands work
 

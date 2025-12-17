@@ -16,6 +16,7 @@ from pgtail_py.cli_config import (
     set_command,
     unset_command,
 )
+from pgtail_py.cli_connections import connections_command
 from pgtail_py.cli_core import (
     clear_command,
     display_command,
@@ -190,6 +191,8 @@ def handle_command(state: AppState, line: str) -> bool:
         stats_command(state)
     elif cmd == "errors":
         errors_command(state, args)
+    elif cmd == "connections":
+        connections_command(state, args)
     elif cmd == "set":
         set_command(state, args)
     elif cmd == "unset":

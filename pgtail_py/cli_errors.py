@@ -50,9 +50,7 @@ def errors_command(state: AppState, args: list[str]) -> None:
             try:
                 since_time = parse_time(args[i + 1])
             except ValueError as e:
-                print_formatted_text(
-                    HTML(f"<ansiyellow>Invalid time format: {e}</ansiyellow>")
-                )
+                print_formatted_text(HTML(f"<ansiyellow>Invalid time format: {e}</ansiyellow>"))
                 return
             i += 1
         else:
@@ -349,9 +347,7 @@ def _show_live(state: AppState) -> None:
 
     try:
         # Print initial line (will be updated in place)
-        print_formatted_text(
-            f"Live error counter - {instance.log_path.name} (Ctrl+C to exit)\n"
-        )
+        print_formatted_text(f"Live error counter - {instance.log_path.name} (Ctrl+C to exit)\n")
         sys.stdout.write(render_display())
         sys.stdout.flush()
 

@@ -17,6 +17,7 @@ from pgtail_py.time_filter import TimeFilter, parse_time
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
     from pgtail_py.instance import Instance
+    from pgtail_py.parser import LogEntry
 
 
 def format_instances_table(instances: list[Instance]) -> str:
@@ -95,6 +96,13 @@ Available commands:
                     --live      Live updating counter
                     --code CODE Filter by SQLSTATE code
                     --since TIME Filter by time window
+                    clear       Reset statistics
+  connections       Show connection statistics
+                    --history   Show connection trends over time
+                    --watch     Live stream of connection events
+                    --db=NAME   Filter by database name
+                    --user=NAME Filter by user name
+                    --app=NAME  Filter by application name
                     clear       Reset statistics
   set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
                     With no value, shows current setting
@@ -220,10 +228,18 @@ def tail_command(state: AppState, args: list[str]) -> None:
         print(f"Time filter: {state.time_filter.format_description()}")
     if state.field_filter.is_active():
         print(state.field_filter.format_status())
-    if state.display_state.mode.value != "compact" or state.display_state.output_format.value != "text":
+    if (
+        state.display_state.mode.value != "compact"
+        or state.display_state.output_format.value != "text"
+    ):
         print(state.display_state.format_status())
     print("Press Ctrl+C to stop")
     print()
+
+    # Create combined callback for both error and connection tracking
+    def on_entry_callback(entry: LogEntry) -> None:
+        state.error_stats.add(entry)
+        state.connection_stats.add(entry)
 
     state.tailer = LogTailer(
         instance.log_path,
@@ -231,7 +247,7 @@ def tail_command(state: AppState, args: list[str]) -> None:
         state.regex_state,
         state.time_filter if state.time_filter.is_active() else None,
         state.field_filter if state.field_filter.is_active() else None,
-        on_entry=state.error_stats.add,
+        on_entry=on_entry_callback,
     )
 
     # Set callback to display format when detected

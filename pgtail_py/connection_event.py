@@ -6,6 +6,7 @@ parsed from PostgreSQL log files.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -90,10 +91,8 @@ class ConnectionEvent:
         if entry.remote_port is not None:
             port = entry.remote_port
         elif data.get("port"):
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 port = int(data["port"])
-            except (ValueError, TypeError):
-                pass
 
         # Parse duration for disconnect events
         duration_seconds: float | None = None

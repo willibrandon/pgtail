@@ -61,8 +61,7 @@ def parse_time(value: str) -> datetime:
 
         if not (0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59):
             raise ValueError(
-                f"Invalid time '{value}'. Hours must be 0-23, "
-                "minutes and seconds must be 0-59."
+                f"Invalid time '{value}'. Hours must be 0-23, minutes and seconds must be 0-59."
             )
 
         today = datetime.now().date()
@@ -151,11 +150,7 @@ class TimeFilter:
 
     def __post_init__(self) -> None:
         """Validate that since <= until when both are set."""
-        if (
-            self.since is not None
-            and self.until is not None
-            and self.since > self.until
-        ):
+        if self.since is not None and self.until is not None and self.since > self.until:
             raise ValueError(
                 f"Start time ({self.since.strftime('%H:%M:%S')}) must be "
                 f"before end time ({self.until.strftime('%H:%M:%S')})"

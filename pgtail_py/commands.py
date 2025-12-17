@@ -31,6 +31,7 @@ COMMANDS: dict[str, str] = {
     "unset": "Remove a config setting (e.g., 'unset slow.warn')",
     "config": "Show current configuration (subcommands: path, edit, reset)",
     "errors": "Show error statistics (--trend, --live, --code, --since, clear)",
+    "connections": "Show connection statistics (--history, --watch, --db=, --user=, --app=, clear)",
     "export": "Export filtered logs to file (e.g., 'export errors.log')",
     "pipe": "Pipe filtered logs to command (e.g., 'pipe wc -l')",
     "stop": "Stop current tail and return to prompt",
@@ -153,6 +154,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_output(arg_text)
         elif cmd == "errors":
             yield from self._complete_errors(arg_text, parts)
+        elif cmd == "connections":
+            yield from self._complete_connections(arg_text, parts)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -693,6 +696,50 @@ class PgtailCompleter(Completer):
         if not has_since:
             options["--since"] = "Filter by time window"
         options["clear"] = "Reset all error statistics"
+
+        prefix_lower = prefix.lower()
+        for name, description in options.items():
+            if name.startswith(prefix_lower):
+                yield Completion(
+                    name,
+                    start_position=-len(prefix),
+                    display_meta=description,
+                )
+
+    def _complete_connections(self, prefix: str, parts: list[str]) -> list[Completion]:
+        """Complete connections command options.
+
+        Args:
+            prefix: The prefix to match.
+            parts: All command parts so far.
+
+        Yields:
+            Completions for connections subcommands and options.
+        """
+        # Check what options are already used
+        has_history = "--history" in parts
+        has_watch = "--watch" in parts
+        has_db = any(p.startswith("--db=") for p in parts)
+        has_user = any(p.startswith("--user=") for p in parts)
+        has_app = any(p.startswith("--app=") for p in parts)
+
+        options: dict[str, str] = {}
+
+        # Mode options (mutually exclusive)
+        if not has_history and not has_watch:
+            options["--history"] = "Show connection trends over time"
+            options["--watch"] = "Live stream of connection events"
+
+        # Filter options
+        if not has_db:
+            options["--db="] = "Filter by database name"
+        if not has_user:
+            options["--user="] = "Filter by user name"
+        if not has_app:
+            options["--app="] = "Filter by application name"
+
+        # Clear subcommand
+        options["clear"] = "Reset connection statistics"
 
         prefix_lower = prefix.lower()
         for name, description in options.items():
