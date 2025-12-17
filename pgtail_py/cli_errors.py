@@ -98,8 +98,20 @@ def _show_trend(state: AppState) -> None:
     total = sum(buckets)
     avg = total / len(buckets) if buckets else 0
 
+    # Detect spikes (>2x average)
+    spike_info = ""
+    if avg > 0:
+        max_val = max(buckets)
+        if max_val > avg * 2:
+            # Find when the spike occurred
+            spike_idx = buckets.index(max_val)
+            minutes_ago = 60 - spike_idx - 1
+            spike_info = f"  ← spike {minutes_ago}m ago ({max_val}/min)"
+
     print_formatted_text("Error rate (per minute):\n")
-    print_formatted_text(f"Last 60 min: {sparkline(buckets)}  total {total}, avg {avg:.1f}/min")
+    print_formatted_text(
+        f"Last 60 min: {sparkline(buckets)}  total {total}, avg {avg:.1f}/min{spike_info}"
+    )
 
 
 def _show_live(state: AppState) -> None:

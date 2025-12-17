@@ -91,22 +91,22 @@
 
 ### Tests for User Story 2
 
-- [ ] T030 [P] [US2] Create test file tests/test_error_trend.py with test fixtures
-- [ ] T031 [P] [US2] Test sparkline() generates correct characters for values in tests/test_error_trend.py
-- [ ] T032 [P] [US2] Test bucket_events() correctly groups events by minute in tests/test_error_trend.py
-- [ ] T033 [P] [US2] Test sparkline() handles empty list in tests/test_error_trend.py
-- [ ] T034 [P] [US2] Test sparkline() handles all-same values in tests/test_error_trend.py
+- [x] T030 [P] [US2] Create test file tests/test_error_trend.py with test fixtures
+- [x] T031 [P] [US2] Test sparkline() generates correct characters for values in tests/test_error_trend.py
+- [x] T032 [P] [US2] Test bucket_events() correctly groups events by minute in tests/test_error_trend.py
+- [x] T033 [P] [US2] Test sparkline() handles empty list in tests/test_error_trend.py
+- [x] T034 [P] [US2] Test sparkline() handles all-same values in tests/test_error_trend.py
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Implement SPARK_CHARS constant in pgtail_py/error_trend.py
-- [ ] T036 [US2] Implement sparkline() function in pgtail_py/error_trend.py
-- [ ] T037 [US2] Implement bucket_events() function in pgtail_py/error_trend.py
-- [ ] T038 [US2] Implement ErrorStats.get_trend_buckets() method in pgtail_py/error_stats.py
-- [ ] T039 [US2] Implement _show_trend() handler in pgtail_py/cli_errors.py
-- [ ] T040 [US2] Add spike detection and annotation (>2x average) in pgtail_py/cli_errors.py
-- [ ] T041 [US2] Handle --trend flag in errors_command() dispatcher in pgtail_py/cli_errors.py
-- [ ] T042 [US2] Add --trend to completion in _complete_errors() in pgtail_py/commands.py
+- [x] T035 [US2] Implement SPARK_CHARS constant in pgtail_py/error_trend.py
+- [x] T036 [US2] Implement sparkline() function in pgtail_py/error_trend.py
+- [x] T037 [US2] Implement bucket_events() function in pgtail_py/error_trend.py
+- [x] T038 [US2] Implement ErrorStats.get_trend_buckets() method in pgtail_py/error_stats.py
+- [x] T039 [US2] Implement _show_trend() handler in pgtail_py/cli_errors.py
+- [x] T040 [US2] Add spike detection and annotation (>2x average) in pgtail_py/cli_errors.py
+- [x] T041 [US2] Handle --trend flag in errors_command() dispatcher in pgtail_py/cli_errors.py
+- [x] T042 [US2] Add --trend to completion in _complete_errors() in pgtail_py/commands.py
 
 **Checkpoint**: User Story 2 complete - `errors --trend` shows sparkline visualization
 
