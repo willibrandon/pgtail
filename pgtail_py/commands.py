@@ -35,6 +35,7 @@ COMMANDS: dict[str, str] = {
     "errors": "Show error statistics (--trend, --live, --code, --since, clear)",
     "connections": "Show connection statistics (--history, --watch, --db=, --user=, --app=, clear)",
     "notify": "Configure desktop notifications (on, off, test, quiet, clear)",
+    "theme": "Switch color theme (e.g., 'theme light', 'theme monokai')",
     "export": "Export filtered logs to file (e.g., 'export errors.log')",
     "pipe": "Pipe filtered logs to command (e.g., 'pipe wc -l')",
     "stop": "Stop current tail and return to prompt",
@@ -161,6 +162,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_connections(arg_text, parts)
         elif cmd == "notify":
             yield from self._complete_notify(arg_text, parts)
+        elif cmd == "theme":
+            yield from self._complete_theme(arg_text, parts)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -836,3 +839,56 @@ class PgtailCompleter(Completer):
                 start_position=-len(prefix),
                 display_meta="Disable quiet hours",
             )
+
+    def _complete_theme(self, prefix: str, parts: list[str]) -> list[Completion]:
+        """Complete theme command options.
+
+        Args:
+            prefix: The prefix to match.
+            parts: All command parts so far.
+
+        Yields:
+            Completions for theme subcommands and theme names.
+        """
+        from pgtail_py.themes import BUILTIN_THEMES
+
+        prefix_lower = prefix.lower()
+
+        # First argument after 'theme'
+        if len(parts) <= 2:
+            # Subcommands
+            subcommands = {
+                "list": "Show all available themes",
+                "preview": "Preview a theme without switching",
+                "edit": "Create or edit a custom theme",
+                "reload": "Reload current theme from disk",
+            }
+            for name, description in subcommands.items():
+                if name.startswith(prefix_lower):
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=description,
+                    )
+
+            # Theme names (built-in)
+            for name in sorted(BUILTIN_THEMES.keys()):
+                if name.startswith(prefix_lower):
+                    theme = BUILTIN_THEMES[name]
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=theme.description or "Built-in theme",
+                    )
+            return
+
+        # After 'theme preview' or 'theme edit' - complete theme names
+        if len(parts) >= 2 and parts[1].lower() in ("preview", "edit"):
+            for name in sorted(BUILTIN_THEMES.keys()):
+                if name.startswith(prefix_lower):
+                    theme = BUILTIN_THEMES[name]
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=theme.description or "Built-in theme",
+                    )

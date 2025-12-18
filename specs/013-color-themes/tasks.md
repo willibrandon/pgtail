@@ -65,15 +65,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Create cli_theme.py command handler module at pgtail_py/cli_theme.py
-- [ ] T021 [US1] Implement handle_theme_show() to display current theme in pgtail_py/cli_theme.py
-- [ ] T022 [US1] Implement ThemeManager.switch_theme(name) method in pgtail_py/theme.py
-- [ ] T023 [US1] Implement handle_theme_switch(name) command handler in pgtail_py/cli_theme.py
-- [ ] T024 [US1] Add theme switching to config persistence (save theme.name) in pgtail_py/cli_theme.py
-- [ ] T025 [US1] Implement error handling for unknown theme names with helpful message in pgtail_py/cli_theme.py
-- [ ] T026 [US1] Register "theme" command in pgtail_py/commands.py
-- [ ] T027 [US1] Load saved theme from config on startup in pgtail_py/cli.py
-- [ ] T028 [US1] Implement graceful fallback to dark theme when saved theme unavailable in pgtail_py/theme.py
+- [x] T020 [US1] Create cli_theme.py command handler module at pgtail_py/cli_theme.py
+- [x] T021 [US1] Implement handle_theme_show() to display current theme in pgtail_py/cli_theme.py
+- [x] T022 [US1] Implement ThemeManager.switch_theme(name) method in pgtail_py/theme.py
+- [x] T023 [US1] Implement handle_theme_switch(name) command handler in pgtail_py/cli_theme.py
+- [x] T024 [US1] Add theme switching to config persistence (save theme.name) in pgtail_py/cli_theme.py
+- [x] T025 [US1] Implement error handling for unknown theme names with helpful message in pgtail_py/cli_theme.py
+- [x] T026 [US1] Register "theme" command in pgtail_py/commands.py
+- [x] T027 [US1] Load saved theme from config on startup in pgtail_py/cli.py
+- [x] T028 [US1] Implement graceful fallback to dark theme when saved theme unavailable in pgtail_py/theme.py
 
 **Checkpoint**: User Story 1 complete - users can switch themes, changes persist across restarts
 
