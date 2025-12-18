@@ -33,7 +33,17 @@ class TestExitKeybinding:
 
 
 class TestEscapeKeybinding:
-    """Tests for the Escape keybinding (toggle follow/browse)."""
+    """Tests for the Escape keybinding (toggle follow/browse when not searching)."""
+
+    def test_escape_bindings_exist(self) -> None:
+        """Escape keybindings are registered (one for toggle, one for cancel search)."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        escape_bindings = [b for b in bindings if "escape" in str(b.keys)]
+        # Should have 2: one for toggle (not searching), one for cancel (searching)
+        assert len(escape_bindings) == 2
 
     def test_escape_toggles_follow_to_browse(self) -> None:
         """Pressing Escape in follow mode switches to browse mode."""
@@ -42,9 +52,12 @@ class TestEscapeKeybinding:
 
         kb = create_keybindings(state)
 
-        # Find the escape binding
+        # Find the escape binding for toggle (has toggle_follow_mode in handler name)
         bindings = list(kb.bindings)
-        escape_bindings = [b for b in bindings if "escape" in str(b.keys)]
+        escape_bindings = [
+            b for b in bindings
+            if "escape" in str(b.keys) and "toggle_follow_mode" in str(b.handler)
+        ]
         assert len(escape_bindings) == 1
 
         # Create mock event
@@ -66,9 +79,12 @@ class TestEscapeKeybinding:
 
         kb = create_keybindings(state)
 
-        # Find the escape binding
+        # Find the escape binding for toggle (has toggle_follow_mode in handler name)
         bindings = list(kb.bindings)
-        escape_bindings = [b for b in bindings if "escape" in str(b.keys)]
+        escape_bindings = [
+            b for b in bindings
+            if "escape" in str(b.keys) and "toggle_follow_mode" in str(b.handler)
+        ]
         assert len(escape_bindings) == 1
 
         # Create mock event
@@ -223,3 +239,48 @@ class TestScrollKeybindings:
 
         # Verify switched to browse mode
         assert state.mode == DisplayMode.BROWSE
+
+
+class TestSearchKeybindings:
+    """Tests for search keybindings (/, ?, n, N)."""
+
+    def test_forward_slash_binding_exists(self) -> None:
+        """/ keybinding is registered for forward search."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        slash_bindings = [b for b in bindings if "/" in str(b.keys)]
+        assert len(slash_bindings) == 1
+
+    def test_question_mark_binding_exists(self) -> None:
+        """? keybinding is registered for backward search."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        question_bindings = [b for b in bindings if "?" in str(b.keys)]
+        assert len(question_bindings) == 1
+
+    def test_n_binding_exists(self) -> None:
+        """n keybinding is registered for next match."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        # Check for 'n' key binding (not containing 'N' or 'down')
+        n_bindings = [
+            b for b in bindings
+            if "'n'" in str(b.keys).lower() and "'n'" in str(b.keys) and "down" not in str(b.keys)
+        ]
+        assert len(n_bindings) >= 1
+
+    def test_N_binding_exists(self) -> None:
+        """N keybinding is registered for previous match."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        # Check for 'N' (shift+n) key binding
+        N_bindings = [b for b in bindings if "'N'" in str(b.keys)]
+        assert len(N_bindings) >= 1

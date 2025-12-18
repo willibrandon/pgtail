@@ -50,7 +50,7 @@ def create_layout(
         """Generate dynamic status bar text."""
         mode = "FOLLOW" if state.is_following else "BROWSE"
         line_count = len(buffer)
-        return f" {mode} | {line_count} lines | q=quit "
+        return f" {mode} | {line_count} lines | q=quit /=search f=follow Esc=toggle "
 
     status_bar = Window(
         content=FormattedTextControl(get_status_text),

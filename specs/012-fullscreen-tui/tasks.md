@@ -118,19 +118,19 @@
 
 ### Tests for User Story 2
 
-- [ ] T033 [P] [US2] Unit test for search keybindings in tests/unit/fullscreen/test_keybindings.py
-- [ ] T034 [P] [US2] Unit test for search state management in tests/unit/fullscreen/test_state.py
+- [X] T033 [P] [US2] Unit test for search keybindings in tests/unit/fullscreen/test_keybindings.py
+- [X] T034 [P] [US2] Unit test for search state management in tests/unit/fullscreen/test_state.py
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Add SearchToolbar widget to layout in pgtail_py/fullscreen/layout.py
-- [ ] T036 [US2] Connect SearchToolbar to TextArea for highlighting in pgtail_py/fullscreen/layout.py
-- [ ] T037 [US2] Add / keybinding for forward search in pgtail_py/fullscreen/keybindings.py
-- [ ] T038 [US2] Add ? keybinding for backward search in pgtail_py/fullscreen/keybindings.py
-- [ ] T039 [US2] Add n/N keybindings for next/prev match in pgtail_py/fullscreen/keybindings.py
-- [ ] T040 [US2] Add Escape handling in search context (cancel search) in pgtail_py/fullscreen/keybindings.py
-- [ ] T041 [US2] Update status bar to show search status in pgtail_py/fullscreen/layout.py
-- [ ] T042 [US2] Handle "Pattern not found" message display in pgtail_py/fullscreen/layout.py
+- [X] T035 [US2] Add SearchToolbar widget to layout in pgtail_py/fullscreen/layout.py
+- [X] T036 [US2] Connect SearchToolbar to TextArea for highlighting in pgtail_py/fullscreen/layout.py
+- [X] T037 [US2] Add / keybinding for forward search in pgtail_py/fullscreen/keybindings.py
+- [X] T038 [US2] Add ? keybinding for backward search in pgtail_py/fullscreen/keybindings.py
+- [X] T039 [US2] Add n/N keybindings for next/prev match in pgtail_py/fullscreen/keybindings.py
+- [X] T040 [US2] Add Escape handling in search context (cancel search) in pgtail_py/fullscreen/keybindings.py
+- [X] T041 [US2] Update status bar to show search status in pgtail_py/fullscreen/layout.py
+- [X] T042 [US2] Handle "Pattern not found" message display in pgtail_py/fullscreen/layout.py
 
 **Checkpoint**: User can search logs with vim-style commands
 
