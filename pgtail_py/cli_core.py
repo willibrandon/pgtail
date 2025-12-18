@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from pgtail_py.cli_utils import find_instance, shorten_path
 from pgtail_py.detector import detect_all
-from pgtail_py.display import get_valid_display_fields
+from pgtail_py.display import format_entry, get_valid_display_fields
 from pgtail_py.format_detector import LogFormat
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import reset_terminal
@@ -244,12 +244,18 @@ def tail_command(state: AppState, args: list[str]) -> None:
     print("Press Ctrl+C to stop")
     print()
 
-    # Create combined callback for error tracking, connection tracking, and notifications
+    # Create combined callback for error tracking, connection tracking, notifications, and fullscreen buffer
     def on_entry_callback(entry: LogEntry) -> None:
         state.error_stats.add(entry)
         state.connection_stats.add(entry)
         if state.notification_manager:
             state.notification_manager.check(entry)
+        # Feed formatted entry to fullscreen buffer (always, even when not in fullscreen)
+        buffer = state.get_or_create_buffer()
+        formatted = format_entry(entry, state.display_state)
+        # Strip ANSI and format codes for plain text storage in buffer
+        # The buffer stores plain text; formatting is applied when displaying
+        buffer.append(formatted)
 
     state.tailer = LogTailer(
         instance.log_path,

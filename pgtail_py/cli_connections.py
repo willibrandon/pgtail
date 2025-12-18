@@ -146,7 +146,9 @@ def _show_summary(
         )
     else:
         # Default summary view
-        print_formatted_text(HTML(f"<b>Active connections:</b> <ansigreen>{active_count}</ansigreen>\n"))
+        print_formatted_text(
+            HTML(f"<b>Active connections:</b> <ansigreen>{active_count}</ansigreen>\n")
+        )
 
     # Aggregate filtered connections
     from collections import defaultdict
@@ -277,15 +279,14 @@ def _show_history(
     total_disconnects = sum(disconnects)
     net_change = total_connects - total_disconnects
 
-    print_formatted_text(HTML(f"<b>Connection History{filter_desc} (last 60 min, 15-min buckets)</b>"))
+    print_formatted_text(
+        HTML(f"<b>Connection History{filter_desc} (last 60 min, 15-min buckets)</b>")
+    )
     print_formatted_text("─────────────────────────────────────────────────\n")
 
     # Sparklines
     print_formatted_text(
-        HTML(
-            f"  <ansigreen>Connects:</ansigreen>    {sparkline(connects)}  "
-            f"total {total_connects}"
-        )
+        HTML(f"  <ansigreen>Connects:</ansigreen>    {sparkline(connects)}  total {total_connects}")
     )
     print_formatted_text(
         HTML(

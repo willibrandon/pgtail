@@ -52,6 +52,7 @@ from pgtail_py.display import DisplayState, OutputFormat, format_entry
 from pgtail_py.error_stats import ErrorStats
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
+from pgtail_py.fullscreen import FullscreenState, LogBuffer
 from pgtail_py.instance import Instance
 from pgtail_py.notifier import create_notifier
 from pgtail_py.notify import NotificationConfig, NotificationManager, NotificationRule, QuietHours
@@ -78,6 +79,8 @@ class AppState:
         error_stats: Session-scoped error statistics
         connection_stats: Session-scoped connection statistics
         notification_manager: Desktop notification coordinator
+        fullscreen_buffer: Circular buffer for fullscreen log display
+        fullscreen_state: State for fullscreen TUI mode (follow/browse mode)
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
         tailer: Active log tailer instance
@@ -98,6 +101,8 @@ class AppState:
     error_stats: ErrorStats = field(default_factory=ErrorStats)
     connection_stats: ConnectionStats = field(default_factory=ConnectionStats)
     notification_manager: NotificationManager | None = None
+    fullscreen_buffer: LogBuffer | None = None
+    fullscreen_state: FullscreenState | None = None
     tailing: bool = False
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None
@@ -161,22 +166,40 @@ class AppState:
 
         # Apply error rate threshold
         if self.config.notifications.error_rate:
-            notify_config.add_rule(NotificationRule.error_rate_rule(self.config.notifications.error_rate))
+            notify_config.add_rule(
+                NotificationRule.error_rate_rule(self.config.notifications.error_rate)
+            )
 
         # Apply slow query threshold
         if self.config.notifications.slow_query_ms:
-            notify_config.add_rule(NotificationRule.slow_query_rule(self.config.notifications.slow_query_ms))
+            notify_config.add_rule(
+                NotificationRule.slow_query_rule(self.config.notifications.slow_query_ms)
+            )
 
         # Apply quiet hours
         if self.config.notifications.quiet_hours:
             with contextlib.suppress(ValueError):
-                notify_config.quiet_hours = QuietHours.from_string(self.config.notifications.quiet_hours)
+                notify_config.quiet_hours = QuietHours.from_string(
+                    self.config.notifications.quiet_hours
+                )
 
         self.notification_manager = NotificationManager(
             notifier=notifier,
             config=notify_config,
             error_stats=self.error_stats,
         )
+
+    def get_or_create_buffer(self) -> LogBuffer:
+        """Get existing buffer or create new one."""
+        if self.fullscreen_buffer is None:
+            self.fullscreen_buffer = LogBuffer()
+        return self.fullscreen_buffer
+
+    def get_or_create_fullscreen_state(self) -> FullscreenState:
+        """Get existing fullscreen state or create new one."""
+        if self.fullscreen_state is None:
+            self.fullscreen_state = FullscreenState()
+        return self.fullscreen_state
 
 
 def handle_command(state: AppState, line: str) -> bool:

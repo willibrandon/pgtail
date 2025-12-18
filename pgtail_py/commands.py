@@ -817,7 +817,9 @@ class PgtailCompleter(Completer):
             # Complete log levels
             already_selected = {p.upper() for p in parts[2:] if not p.startswith("/")}
             for level in LogLevel:
-                if level.name not in already_selected and level.name.startswith(prefix_lower.upper()):
+                if level.name not in already_selected and level.name.startswith(
+                    prefix_lower.upper()
+                ):
                     yield Completion(
                         level.name,
                         start_position=-len(prefix),

@@ -25,10 +25,10 @@
 
 **Purpose**: Create fullscreen subpackage structure and foundational types
 
-- [ ] T001 Create fullscreen package directory at pgtail_py/fullscreen/
-- [ ] T002 Create pgtail_py/fullscreen/__init__.py with package exports
-- [ ] T003 [P] Create tests/unit/fullscreen/ directory structure
-- [ ] T004 [P] Create DisplayMode enum in pgtail_py/fullscreen/state.py
+- [X] T001 Create fullscreen package directory at pgtail_py/fullscreen/
+- [X] T002 Create pgtail_py/fullscreen/__init__.py with package exports
+- [X] T003 [P] Create tests/unit/fullscreen/ directory structure
+- [X] T004 [P] Create DisplayMode enum in pgtail_py/fullscreen/state.py
 
 ---
 
@@ -40,17 +40,17 @@
 
 ### Tests for Foundation
 
-- [ ] T005 [P] Unit test for LogBuffer.append() and FIFO eviction in tests/unit/fullscreen/test_buffer.py
-- [ ] T006 [P] Unit test for LogBuffer.get_text() and get_lines() in tests/unit/fullscreen/test_buffer.py
-- [ ] T007 [P] Unit test for FullscreenState mode transitions in tests/unit/fullscreen/test_state.py
+- [X] T005 [P] Unit test for LogBuffer.append() and FIFO eviction in tests/unit/fullscreen/test_buffer.py
+- [X] T006 [P] Unit test for LogBuffer.get_text() and get_lines() in tests/unit/fullscreen/test_buffer.py
+- [X] T007 [P] Unit test for FullscreenState mode transitions in tests/unit/fullscreen/test_state.py
 
 ### Implementation for Foundation
 
-- [ ] T008 Implement LogBuffer class with deque in pgtail_py/fullscreen/buffer.py
-- [ ] T009 Implement FullscreenState class in pgtail_py/fullscreen/state.py
-- [ ] T010 Add fullscreen_buffer and fullscreen_state fields to AppState in pgtail_py/cli.py
-- [ ] T011 Add get_or_create_buffer() and get_or_create_fullscreen_state() methods to AppState in pgtail_py/cli.py
-- [ ] T012 Extend tailer on_entry callback to feed LogBuffer in pgtail_py/cli.py (in REPL tail loop)
+- [X] T008 Implement LogBuffer class with deque in pgtail_py/fullscreen/buffer.py
+- [X] T009 Implement FullscreenState class in pgtail_py/fullscreen/state.py
+- [X] T010 Add fullscreen_buffer and fullscreen_state fields to AppState in pgtail_py/cli.py
+- [X] T011 Add get_or_create_buffer() and get_or_create_fullscreen_state() methods to AppState in pgtail_py/cli.py
+- [X] T012 Extend tailer on_entry callback to feed LogBuffer in pgtail_py/cli_core.py (in tail_command)
 
 **Checkpoint**: Foundation ready - LogBuffer accumulates entries, state management in place
 
