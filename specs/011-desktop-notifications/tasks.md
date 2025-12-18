@@ -25,10 +25,10 @@
 
 **Purpose**: Create module files and basic structure
 
-- [ ] T001 [P] Create NotificationRuleType enum and NotificationRule dataclass in pgtail_py/notify.py
-- [ ] T002 [P] Create Notifier abstract interface in pgtail_py/notifier.py
-- [ ] T003 [P] Create MacOSNotifier and LinuxNotifier in pgtail_py/notifier_unix.py
-- [ ] T004 [P] Create WindowsNotifier in pgtail_py/notifier_windows.py
+- [X] T001 [P] Create NotificationRuleType enum and NotificationRule dataclass in pgtail_py/notify.py
+- [X] T002 [P] Create Notifier abstract interface in pgtail_py/notifier.py
+- [X] T003 [P] Create MacOSNotifier and LinuxNotifier in pgtail_py/notifier_unix.py
+- [X] T004 [P] Create WindowsNotifier in pgtail_py/notifier_windows.py
 
 ---
 
@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Implement platform detection and notifier factory in pgtail_py/notifier.py (depends on T002-T004)
-- [ ] T006 Implement RateLimiter class in pgtail_py/notify.py
-- [ ] T007 Implement QuietHours class with overnight span handling in pgtail_py/notify.py
-- [ ] T008 Implement NotificationConfig dataclass in pgtail_py/notify.py (depends on T001, T006, T007)
-- [ ] T009 Implement NotificationManager with check(entry) method in pgtail_py/notify.py (depends on T005, T008)
-- [ ] T010 Extend NotificationsSection in pgtail_py/config.py with patterns, error_rate, slow_query_ms fields
-- [ ] T011 Add NotificationManager to AppState in pgtail_py/cli.py and wire to tailer.on_entry callback (depends on T009)
+- [X] T005 Implement platform detection and notifier factory in pgtail_py/notifier.py (depends on T002-T004)
+- [X] T006 Implement RateLimiter class in pgtail_py/notify.py
+- [X] T007 Implement QuietHours class with overnight span handling in pgtail_py/notify.py
+- [X] T008 Implement NotificationConfig dataclass in pgtail_py/notify.py (depends on T001, T006, T007)
+- [X] T009 Implement NotificationManager with check(entry) method in pgtail_py/notify.py (depends on T005, T008)
+- [X] T010 Extend NotificationsSection in pgtail_py/config.py with patterns, error_rate, slow_query_ms fields
+- [X] T011 Add NotificationManager to AppState in pgtail_py/cli.py and wire to tailer.on_entry callback (depends on T009)
 
 **Checkpoint**: Foundation ready - notify command implementation can now begin
 

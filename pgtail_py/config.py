@@ -126,6 +126,9 @@ class NotificationsSection:
 
     enabled: bool = False
     levels: list[str] = field(default_factory=lambda: ["FATAL", "PANIC"])
+    patterns: list[str] = field(default_factory=list)
+    error_rate: int | None = None  # Errors per minute threshold
+    slow_query_ms: int | None = None  # Slow query threshold in ms
     quiet_hours: str | None = None
 
 
@@ -232,6 +235,42 @@ def validate_quiet_hours(value: Any) -> str | None:
     return value
 
 
+def validate_patterns(value: Any) -> list[str]:
+    """Validate notification patterns list."""
+    if not isinstance(value, list):
+        raise ValueError("must be a list of regex patterns")
+    result = []
+    import re as re_module
+
+    for item in value:
+        if not isinstance(item, str):
+            raise ValueError(f"invalid pattern: {item}")
+        # Extract pattern from /pattern/ or /pattern/i syntax
+        pattern_str = item
+        if pattern_str.startswith("/"):
+            # Strip leading / and trailing /[i]
+            if pattern_str.endswith("/i"):
+                pattern_str = pattern_str[1:-2]
+            elif pattern_str.endswith("/"):
+                pattern_str = pattern_str[1:-1]
+        # Validate regex compiles
+        try:
+            re_module.compile(pattern_str)
+        except re_module.error as e:
+            raise ValueError(f"invalid regex pattern '{item}': {e}") from None
+        result.append(item)
+    return result
+
+
+def validate_optional_positive_int(value: Any) -> int | None:
+    """Validate optional positive integer."""
+    if value is None:
+        return None
+    if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        return value
+    raise ValueError("must be a positive integer or null")
+
+
 # Settings schema: maps dotted key to (default_value, validator, type_hint)
 SettingDef = tuple[Any, Callable[[Any], Any], str]
 
@@ -247,6 +286,9 @@ SETTINGS_SCHEMA: dict[str, SettingDef] = {
     "theme.name": ("dark", validate_theme, "str"),
     "notifications.enabled": (False, validate_bool, "bool"),
     "notifications.levels": (["FATAL", "PANIC"], validate_log_levels, "list"),
+    "notifications.patterns": ([], validate_patterns, "list"),
+    "notifications.error_rate": (None, validate_optional_positive_int, "int"),
+    "notifications.slow_query_ms": (None, validate_optional_positive_int, "int"),
     "notifications.quiet_hours": (None, validate_quiet_hours, "str"),
 }
 
@@ -347,6 +389,9 @@ DEFAULT_CONFIG_TEMPLATE = """\
 [notifications]
 # enabled = false                # Enable desktop notifications
 # levels = ["FATAL", "PANIC"]    # Levels that trigger notifications
+# patterns = ["/deadlock detected/"]  # Regex patterns that trigger notifications
+# error_rate = 10                # Alert when errors/min exceeds this threshold
+# slow_query_ms = 500            # Alert when query duration exceeds this (ms)
 # quiet_hours = "22:00-08:00"    # Suppress notifications during these hours
 """
 

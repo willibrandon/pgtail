@@ -52,6 +52,8 @@ from pgtail_py.error_stats import ErrorStats
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
 from pgtail_py.instance import Instance
+from pgtail_py.notifier import create_notifier
+from pgtail_py.notify import NotificationConfig, NotificationManager, NotificationRule, QuietHours
 from pgtail_py.regex_filter import FilterState
 from pgtail_py.slow_query import DurationStats, SlowQueryConfig, extract_duration
 from pgtail_py.tailer import LogTailer
@@ -74,6 +76,7 @@ class AppState:
         duration_stats: Session-scoped query duration statistics
         error_stats: Session-scoped error statistics
         connection_stats: Session-scoped connection statistics
+        notification_manager: Desktop notification coordinator
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
         tailer: Active log tailer instance
@@ -93,6 +96,7 @@ class AppState:
     duration_stats: DurationStats = field(default_factory=DurationStats)
     error_stats: ErrorStats = field(default_factory=ErrorStats)
     connection_stats: ConnectionStats = field(default_factory=ConnectionStats)
+    notification_manager: NotificationManager | None = None
     tailing: bool = False
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None
@@ -105,6 +109,7 @@ class AppState:
         """Load config and apply settings after initialization."""
         self.config = load_config(warn_func=warn)
         self._apply_config()
+        self._init_notification_manager()
 
     def _apply_config(self) -> None:
         """Apply configuration settings to state."""
@@ -123,6 +128,53 @@ class AppState:
             warning_ms=self.config.slow.warn,
             slow_ms=self.config.slow.error,
             critical_ms=self.config.slow.critical,
+        )
+
+    def _init_notification_manager(self) -> None:
+        """Initialize notification manager from config."""
+        notifier = create_notifier()
+        notify_config = NotificationConfig(enabled=self.config.notifications.enabled)
+
+        # Apply level rules from config
+        if self.config.notifications.levels:
+            levels: set[LogLevel] = set()
+            for level_name in self.config.notifications.levels:
+                with contextlib.suppress(ValueError):
+                    levels.add(LogLevel.from_string(level_name))
+            if levels:
+                notify_config.add_rule(NotificationRule.level_rule(levels))
+
+        # Apply pattern rules from config
+        for pattern_str in self.config.notifications.patterns:
+            case_sensitive = True
+            regex_str = pattern_str
+            # Parse /pattern/ or /pattern/i syntax
+            if pattern_str.startswith("/"):
+                if pattern_str.endswith("/i"):
+                    regex_str = pattern_str[1:-2]
+                    case_sensitive = False
+                elif pattern_str.endswith("/"):
+                    regex_str = pattern_str[1:-1]
+            with contextlib.suppress(Exception):
+                notify_config.add_rule(NotificationRule.pattern_rule(regex_str, case_sensitive))
+
+        # Apply error rate threshold
+        if self.config.notifications.error_rate:
+            notify_config.add_rule(NotificationRule.error_rate_rule(self.config.notifications.error_rate))
+
+        # Apply slow query threshold
+        if self.config.notifications.slow_query_ms:
+            notify_config.add_rule(NotificationRule.slow_query_rule(self.config.notifications.slow_query_ms))
+
+        # Apply quiet hours
+        if self.config.notifications.quiet_hours:
+            with contextlib.suppress(ValueError):
+                notify_config.quiet_hours = QuietHours.from_string(self.config.notifications.quiet_hours)
+
+        self.notification_manager = NotificationManager(
+            notifier=notifier,
+            config=notify_config,
+            error_stats=self.error_stats,
         )
 
 

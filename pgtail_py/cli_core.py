@@ -236,10 +236,12 @@ def tail_command(state: AppState, args: list[str]) -> None:
     print("Press Ctrl+C to stop")
     print()
 
-    # Create combined callback for both error and connection tracking
+    # Create combined callback for error tracking, connection tracking, and notifications
     def on_entry_callback(entry: LogEntry) -> None:
         state.error_stats.add(entry)
         state.connection_stats.add(entry)
+        if state.notification_manager:
+            state.notification_manager.check(entry)
 
     state.tailer = LogTailer(
         instance.log_path,
