@@ -86,7 +86,7 @@ Or reference the file directly when planning.
 9. desktop-notifications - completed
 
 ### Phase 4: Full TUI
-10. full-screen-tui
+10. full-screen-tui - completed
 11. themes
 12. sql-syntax-highlighting
 

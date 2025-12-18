@@ -179,14 +179,14 @@
 
 **Purpose**: Edge cases, documentation, and cleanup
 
-- [ ] T053 [P] Handle terminal resize events gracefully in pgtail_py/fullscreen/app.py
-- [ ] T054 [P] Add buffer boundary clamping (prevent scroll past first/last line) in pgtail_py/fullscreen/keybindings.py
-- [ ] T055 [P] Add error handling for invalid search regex in pgtail_py/fullscreen/keybindings.py
-- [ ] T056 Update CLAUDE.md with fullscreen module documentation
+- [X] T053 [P] Handle terminal resize events gracefully in pgtail_py/fullscreen/app.py (prompt_toolkit handles automatically)
+- [X] T054 [P] Add buffer boundary clamping (prevent scroll past first/last line) in pgtail_py/fullscreen/keybindings.py (prompt_toolkit Document handles automatically)
+- [X] T055 [P] Add error handling for invalid search regex in pgtail_py/fullscreen/keybindings.py (prompt_toolkit escapes search patterns)
+- [X] T056 Update CLAUDE.md with fullscreen module documentation
 - [X] T057 Add fullscreen command to help output in pgtail_py/cli_core.py (completed in Phase 3)
-- [ ] T058 Run make lint and fix any issues
-- [ ] T059 Run make test and ensure all tests pass
-- [ ] T060 Manual validation per quickstart.md scenarios
+- [X] T058 Run make lint and fix any issues
+- [X] T059 Run make test and ensure all tests pass
+- [X] T060 Manual validation per quickstart.md scenarios
 
 ---
 

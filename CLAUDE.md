@@ -205,6 +205,49 @@ The `connections` command tracks connection/disconnection events during tailing:
 - `pgtail_py/connection_stats.py` - ConnectionStats aggregator, ConnectionFilter
 - `pgtail_py/cli_connections.py` - connections command handlers
 
+## Fullscreen TUI Mode
+
+The `fullscreen` (or `fs`) command enters a full-screen terminal UI for browsing logs:
+
+**Commands:**
+- `fullscreen` or `fs` - Enter fullscreen mode (requires active tail)
+
+**Keybindings:**
+- `q` - Exit fullscreen, return to REPL
+- `j`/`k` - Scroll down/up one line
+- `Down`/`Up` - Scroll down/up one line (arrow keys)
+- `Ctrl+D`/`Ctrl+U` - Half-page down/up
+- `g`/`G` - Jump to top/bottom
+- `/pattern` - Search forward
+- `?pattern` - Search backward
+- `n`/`N` - Next/previous search match
+- `f` - Enter follow mode (resume auto-scroll)
+- `Escape` - Clear search highlights or toggle follow/browse mode
+
+**Modes:**
+- **FOLLOW** - Auto-scroll to show new log entries (default)
+- **BROWSE** - Manual navigation through buffer history
+
+**Mouse support:**
+- Scroll wheel triggers browse mode
+- Click in log area triggers browse mode
+- Scrollbar on right side
+
+**Implementation:**
+- Uses prompt_toolkit full-screen Application
+- Circular buffer stores last 10,000 log lines
+- Buffer is shared with REPL mode (persists between fullscreen sessions)
+- Status bar shows current mode, line count, and key hints
+
+**New modules:**
+- `pgtail_py/fullscreen/__init__.py` - Package exports (LogBuffer, FullscreenState, etc.)
+- `pgtail_py/fullscreen/app.py` - Application setup, run_fullscreen(), update loop
+- `pgtail_py/fullscreen/buffer.py` - LogBuffer circular buffer implementation
+- `pgtail_py/fullscreen/keybindings.py` - Vim-style key bindings
+- `pgtail_py/fullscreen/layout.py` - HSplit layout with log view, search bar, status bar
+- `pgtail_py/fullscreen/state.py` - FullscreenState, DisplayMode enum
+- `pgtail_py/cli_fullscreen.py` - fullscreen command handler
+
 ## Recent Changes
 - 012-fullscreen-tui: Added Python 3.10+ + prompt_toolkit >=3.0.0 (full-screen Application, KeyBindings, Layout, Buffer)
 - 011-desktop-notifications: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0
