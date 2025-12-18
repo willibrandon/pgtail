@@ -112,10 +112,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Implement ERROR_RATE rule type in NotificationRule in pgtail_py/notify.py
-- [ ] T028 [US4] Add error rate checking against ErrorStats in NotificationManager.check() in pgtail_py/notify.py
-- [ ] T029 [US4] Implement `notify on errors > N/min` parsing in pgtail_py/cli_notify.py
-- [ ] T030 [US4] Implement config persistence for error_rate threshold in pgtail_py/cli_notify.py
+- [X] T027 [US4] Implement ERROR_RATE rule type in NotificationRule in pgtail_py/notify.py
+- [X] T028 [US4] Add error rate checking against ErrorStats in NotificationManager.check() in pgtail_py/notify.py
+- [X] T029 [US4] Implement `notify on errors > N/min` parsing in pgtail_py/cli_notify.py
+- [X] T030 [US4] Implement config persistence for error_rate threshold in pgtail_py/cli_notify.py
 
 **Checkpoint**: User Story 4 complete - error rate threshold notifications working
 
@@ -129,10 +129,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T031 [US5] Implement SLOW_QUERY rule type in NotificationRule in pgtail_py/notify.py
-- [ ] T032 [US5] Add slow query checking (extract duration from entry) in NotificationManager.check() in pgtail_py/notify.py
-- [ ] T033 [US5] Implement `notify on slow > Nms` parsing with duration conversion in pgtail_py/cli_notify.py
-- [ ] T034 [US5] Implement config persistence for slow_query_ms threshold in pgtail_py/cli_notify.py
+- [X] T031 [US5] Implement SLOW_QUERY rule type in NotificationRule in pgtail_py/notify.py
+- [X] T032 [US5] Add slow query checking (extract duration from entry) in NotificationManager.check() in pgtail_py/notify.py
+- [X] T033 [US5] Implement `notify on slow > Nms` parsing with duration conversion in pgtail_py/cli_notify.py
+- [X] T034 [US5] Implement config persistence for slow_query_ms threshold in pgtail_py/cli_notify.py
 
 **Checkpoint**: User Story 5 complete - slow query notifications working
 
@@ -146,10 +146,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T035 [US6] Integrate QuietHours checking in NotificationManager.check() flow in pgtail_py/notify.py
-- [ ] T036 [US6] Implement `notify quiet HH:MM-HH:MM` parsing and validation in pgtail_py/cli_notify.py
-- [ ] T037 [US6] Implement `notify quiet off` handler in pgtail_py/cli_notify.py
-- [ ] T038 [US6] Add "(active)" indicator to status display when in quiet period in pgtail_py/cli_notify.py
+- [X] T035 [US6] Integrate QuietHours checking in NotificationManager.check() flow in pgtail_py/notify.py
+- [X] T036 [US6] Implement `notify quiet HH:MM-HH:MM` parsing and validation in pgtail_py/cli_notify.py
+- [X] T037 [US6] Implement `notify quiet off` handler in pgtail_py/cli_notify.py
+- [X] T038 [US6] Add "(active)" indicator to status display when in quiet period in pgtail_py/cli_notify.py
 
 **Checkpoint**: User Story 6 complete - quiet hours suppress notifications
 
@@ -163,11 +163,11 @@
 
 ### Implementation for User Story 7
 
-- [ ] T039 [US7] Implement `notify test` command that bypasses rate limiting and quiet hours in pgtail_py/cli_notify.py
-- [ ] T040 [US7] Implement `notify` (status) command showing all settings in pgtail_py/cli_notify.py
-- [ ] T041 [US7] Implement `notify clear` command to remove all rules in pgtail_py/cli_notify.py
-- [ ] T042 [US7] Add platform info and availability hints to status output in pgtail_py/cli_notify.py
-- [ ] T043 [US7] Handle notification unavailability with helpful error messages in pgtail_py/cli_notify.py
+- [X] T039 [US7] Implement `notify test` command that bypasses rate limiting and quiet hours in pgtail_py/cli_notify.py
+- [X] T040 [US7] Implement `notify` (status) command showing all settings in pgtail_py/cli_notify.py
+- [X] T041 [US7] Implement `notify clear` command to remove all rules in pgtail_py/cli_notify.py
+- [X] T042 [US7] Add platform info and availability hints to status output in pgtail_py/cli_notify.py
+- [X] T043 [US7] Handle notification unavailability with helpful error messages in pgtail_py/cli_notify.py
 
 **Checkpoint**: User Story 7 complete - test and status commands working
 
@@ -177,13 +177,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T044 [P] Add docstrings to all public functions in pgtail_py/notify.py
-- [ ] T045 [P] Add docstrings to all public functions in pgtail_py/notifier.py
-- [ ] T046 [P] Add docstrings to all public functions in pgtail_py/cli_notify.py
-- [ ] T047 [P] Add type hints to all functions across notification modules
-- [ ] T048 Update CLAUDE.md with new notification modules and commands
-- [ ] T049 Run quickstart.md validation (manual verification of setup guide)
-- [ ] T050 Verify graceful degradation when notification system unavailable
+- [X] T044 [P] Add docstrings to all public functions in pgtail_py/notify.py
+- [X] T045 [P] Add docstrings to all public functions in pgtail_py/notifier.py
+- [X] T046 [P] Add docstrings to all public functions in pgtail_py/cli_notify.py
+- [X] T047 [P] Add type hints to all functions across notification modules
+- [X] T048 Update CLAUDE.md with new notification modules and commands
+- [X] T049 Run quickstart.md validation (manual verification of setup guide)
+- [X] T050 Verify graceful degradation when notification system unavailable
 
 ---
 

@@ -18,6 +18,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Query duration statistics (count, average, percentiles)
 - Error statistics with trend visualization and live counter
 - Connection statistics with history trends and live watch mode
+- Desktop notifications for critical log events (FATAL, PANIC, patterns, thresholds)
 - Export logs to files (text, JSON, CSV formats)
 - Pipe logs to external commands (grep, jq, wc, etc.)
 - Color-coded output by severity with SQL state codes
@@ -68,6 +69,7 @@ slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
 errors             Show error statistics (see Error Statistics below)
 connections        Show connection statistics (see Connection Statistics below)
+notify             Configure desktop notifications (see Desktop Notifications below)
 export <file>      Export filtered logs to file (see Export below)
 pipe <cmd>         Pipe filtered logs to external command (see Pipe below)
 set <key> [val]    Set/view a config value (persists across sessions)
@@ -293,6 +295,46 @@ Connection History (last 60 min, 15-min buckets)
   Active now: 5
 ```
 
+### Desktop Notifications
+
+Get desktop alerts for critical PostgreSQL events:
+
+```
+notify                         Show current notification settings
+notify on FATAL PANIC          Enable for specific log levels
+notify on ERROR WARNING        Add more levels to notify on
+notify on /deadlock/i          Enable for regex pattern (case-insensitive)
+notify on /timeout/            Enable for regex pattern (case-sensitive)
+notify on errors > 10/min      Alert when error rate exceeds threshold
+notify on slow > 500ms         Alert when queries exceed duration
+notify off                     Disable all notifications
+notify test                    Send a test notification
+notify quiet 22:00-08:00       Suppress notifications during quiet hours
+notify quiet off               Disable quiet hours
+notify clear                   Remove all notification rules
+```
+
+Features:
+- **Rate limiting**: Max 1 notification per 5 seconds to prevent spam during incidents
+- **Quiet hours**: Suppress notifications during configured time ranges (handles overnight spans like 22:00-08:00)
+- **Multiple triggers**: Combine level-based, pattern-based, and threshold-based rules
+- **Cross-platform**: macOS (osascript), Linux (notify-send), Windows (PowerShell toast)
+
+Example output:
+```
+pgtail> notify
+Notifications: enabled
+  Levels: FATAL, PANIC
+  Patterns: /deadlock/i
+  Slow queries: > 500ms
+  Quiet hours: 22:00-08:00
+Platform: macOS (osascript)
+
+pgtail> notify test
+Test notification sent
+Platform: macOS (osascript)
+```
+
 ### Export
 
 Export filtered log entries to a file:
@@ -345,6 +387,12 @@ Available settings:
 - `display.timestamp_format` - strftime format for timestamps
 - `display.show_pid`, `display.show_level` - Toggle output fields
 - `theme.name` - Color theme (`dark` or `light`)
+- `notifications.enabled` - Enable/disable desktop notifications
+- `notifications.levels` - Log levels that trigger notifications
+- `notifications.patterns` - Regex patterns that trigger notifications
+- `notifications.error_rate` - Error rate threshold (errors per minute)
+- `notifications.slow_query_ms` - Slow query threshold in milliseconds
+- `notifications.quiet_hours` - Time range to suppress notifications (e.g., `22:00-08:00`)
 
 ### Example
 

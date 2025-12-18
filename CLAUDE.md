@@ -142,6 +142,40 @@ pgtail auto-detects and parses three PostgreSQL log formats:
 - Available fields: application, database, user, pid, backend
 - Only effective for CSV/JSON formats (warns on text format)
 
+## Desktop Notifications
+
+The `notify` command configures desktop notifications for log events:
+
+**Commands:**
+- `notify` - Show current notification settings and status
+- `notify on LEVEL...` - Enable for log levels (e.g., `notify on FATAL PANIC ERROR`)
+- `notify on /pattern/` - Enable for regex pattern matches (e.g., `notify on /deadlock/i`)
+- `notify on errors > N/min` - Alert when error rate exceeds threshold
+- `notify on slow > Nms` - Alert when query duration exceeds threshold
+- `notify off` - Disable all notifications
+- `notify test` - Send a test notification (bypasses rate limiting)
+- `notify quiet HH:MM-HH:MM` - Set quiet hours (e.g., `notify quiet 22:00-08:00`)
+- `notify quiet off` - Disable quiet hours
+- `notify clear` - Remove all notification rules
+
+**Features:**
+- Rate limiting: Max 1 notification per 5 seconds to prevent spam
+- Quiet hours: Suppress notifications during configured time ranges (handles overnight spans)
+- Platform detection: macOS (osascript), Linux (notify-send), Windows (PowerShell)
+- Graceful degradation: Silent fallback when notification system unavailable
+
+**Implementation:**
+- Session-scoped notification manager with config persistence
+- Checks in order: quiet hours → level rules → pattern rules → error rate → slow query
+- Error rate uses ErrorStats for per-minute bucketing
+
+**New modules:**
+- `pgtail_py/notify.py` - NotificationRule, NotificationConfig, NotificationManager, RateLimiter, QuietHours
+- `pgtail_py/notifier.py` - Notifier abstract interface, NoOpNotifier fallback, create_notifier() factory
+- `pgtail_py/notifier_unix.py` - MacOSNotifier (osascript), LinuxNotifier (notify-send)
+- `pgtail_py/notifier_windows.py` - WindowsNotifier (PowerShell toast)
+- `pgtail_py/cli_notify.py` - notify command handlers
+
 ## Connection Statistics
 
 The `connections` command tracks connection/disconnection events during tailing:
