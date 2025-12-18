@@ -108,17 +108,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T037 [US3] Implement load_custom_theme(path) TOML parser in pgtail_py/theme.py
-- [ ] T038 [US3] Implement ThemeManager.scan_custom_themes() to find themes in config dir in pgtail_py/theme.py
-- [ ] T039 [US3] Implement ThemeManager.validate_theme(theme) with error messages in pgtail_py/theme.py
-- [ ] T040 [US3] Create THEME_TEMPLATE constant with sample custom theme TOML in pgtail_py/theme.py
-- [ ] T041 [US3] Implement handle_theme_edit(name) command handler in pgtail_py/cli_theme.py
-- [ ] T042 [US3] Create theme template file if not exists in handle_theme_edit() in pgtail_py/cli_theme.py
-- [ ] T043 [US3] Open $EDITOR for theme file (or show path if no EDITOR) in pgtail_py/cli_theme.py
-- [ ] T044 [US3] Block editing built-in themes with helpful error message in pgtail_py/cli_theme.py
-- [ ] T045 [US3] Include custom themes in theme list and autocomplete in pgtail_py/cli_theme.py
-- [ ] T046 [US3] Register "theme edit" command in pgtail_py/commands.py
-- [ ] T047 [US3] Handle theme validation errors with line/field information in pgtail_py/cli_theme.py
+- [x] T037 [US3] Implement load_custom_theme(path) TOML parser in pgtail_py/theme.py
+- [x] T038 [US3] Implement ThemeManager.scan_custom_themes() to find themes in config dir in pgtail_py/theme.py
+- [x] T039 [US3] Implement ThemeManager.validate_theme(theme) with error messages in pgtail_py/theme.py
+- [x] T040 [US3] Create THEME_TEMPLATE constant with sample custom theme TOML in pgtail_py/theme.py
+- [x] T041 [US3] Implement handle_theme_edit(name) command handler in pgtail_py/cli_theme.py
+- [x] T042 [US3] Create theme template file if not exists in handle_theme_edit() in pgtail_py/cli_theme.py
+- [x] T043 [US3] Open $EDITOR for theme file (or show path if no EDITOR) in pgtail_py/cli_theme.py
+- [x] T044 [US3] Block editing built-in themes with helpful error message in pgtail_py/cli_theme.py
+- [x] T045 [US3] Include custom themes in theme list and autocomplete in pgtail_py/cli_theme.py
+- [x] T046 [US3] Register "theme edit" command in pgtail_py/commands.py
+- [x] T047 [US3] Handle theme validation errors with line/field information in pgtail_py/cli_theme.py
 
 **Checkpoint**: User Story 3 complete - users can create, validate, and apply custom themes
 

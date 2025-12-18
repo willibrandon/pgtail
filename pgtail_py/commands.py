@@ -850,9 +850,16 @@ class PgtailCompleter(Completer):
         Yields:
             Completions for theme subcommands and theme names.
         """
+        from pgtail_py.theme import get_themes_dir
         from pgtail_py.themes import BUILTIN_THEMES
 
         prefix_lower = prefix.lower()
+
+        # Get custom theme names by scanning the themes directory
+        custom_themes: list[str] = []
+        themes_dir = get_themes_dir()
+        if themes_dir.exists():
+            custom_themes = sorted(p.stem for p in themes_dir.glob("*.toml"))
 
         # First argument after 'theme'
         if len(parts) <= 2:
@@ -880,6 +887,15 @@ class PgtailCompleter(Completer):
                         start_position=-len(prefix),
                         display_meta=theme.description or "Built-in theme",
                     )
+
+            # Theme names (custom)
+            for name in custom_themes:
+                if name.startswith(prefix_lower) and name not in BUILTIN_THEMES:
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta="Custom theme",
+                    )
             return
 
         # After 'theme preview' or 'theme edit' - complete theme names
@@ -891,4 +907,13 @@ class PgtailCompleter(Completer):
                         name,
                         start_position=-len(prefix),
                         display_meta=theme.description or "Built-in theme",
+                    )
+
+            # Custom themes for preview/edit
+            for name in custom_themes:
+                if name.startswith(prefix_lower) and name not in BUILTIN_THEMES:
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta="Custom theme",
                     )

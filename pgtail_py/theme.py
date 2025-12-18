@@ -694,23 +694,42 @@ def load_custom_theme(path: Path) -> Theme | None:
     Returns:
         Theme if successfully loaded, None on error.
     """
+    theme, _ = load_custom_theme_with_errors(path)
+    return theme
+
+
+def load_custom_theme_with_errors(path: Path) -> tuple[Theme | None, list[str]]:
+    """Load a custom theme from a TOML file with detailed error messages.
+
+    Args:
+        path: Path to the TOML file.
+
+    Returns:
+        Tuple of (Theme or None, list of error messages).
+    """
     import tomlkit
     from tomlkit.exceptions import TOMLKitError
 
+    errors: list[str] = []
+
+    # Read and parse TOML
     try:
         content = path.read_text()
-        doc = tomlkit.parse(content)
-    except (OSError, TOMLKitError):
-        return None
+    except OSError as e:
+        return None, [f"Cannot read file: {e}"]
 
-    # Extract name from filename if not in meta
+    try:
+        doc = tomlkit.parse(content)
+    except TOMLKitError as e:
+        # Extract line number from tomlkit error if available
+        error_str = str(e)
+        return None, [f"TOML parse error: {error_str}"]
+
+    # Extract name from filename
     name = path.stem
 
     # Parse meta section
     meta = doc.get("meta", {})
-    if "name" in meta:
-        # Use filename as the identifier, meta.name is just display name
-        pass
     description = meta.get("description", "")
 
     # Parse levels section
@@ -718,21 +737,40 @@ def load_custom_theme(path: Path) -> Theme | None:
     levels_data = doc.get("levels", {})
     for level_name, style_data in levels_data.items():
         if isinstance(style_data, dict):
-            levels[level_name.upper()] = ColorStyle.from_dict(dict(style_data))
+            style = ColorStyle.from_dict(dict(style_data))
+            style_errors = style.validate()
+            for err in style_errors:
+                errors.append(f"[levels.{level_name}] {err}")
+            levels[level_name.upper()] = style
+        else:
+            errors.append(f"[levels.{level_name}] Expected table, got {type(style_data).__name__}")
 
     # Parse ui section
     ui: dict[str, ColorStyle] = {}
     ui_data = doc.get("ui", {})
     for ui_name, style_data in ui_data.items():
         if isinstance(style_data, dict):
-            ui[ui_name] = ColorStyle.from_dict(dict(style_data))
+            style = ColorStyle.from_dict(dict(style_data))
+            style_errors = style.validate()
+            for err in style_errors:
+                errors.append(f"[ui.{ui_name}] {err}")
+            ui[ui_name] = style
+        else:
+            errors.append(f"[ui.{ui_name}] Expected table, got {type(style_data).__name__}")
 
-    return Theme(
+    theme = Theme(
         name=name,
         description=str(description),
         levels=levels,
         ui=ui,
     )
+
+    # Validate theme structure
+    structure_errors = theme.validate()
+    errors.extend(structure_errors)
+
+    # Return theme even with validation errors (allows preview of partial themes)
+    return theme, errors
 
 
 # =============================================================================

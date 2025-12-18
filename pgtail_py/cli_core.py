@@ -124,6 +124,7 @@ Available commands:
   theme [name]      Switch color theme (e.g., 'theme light', 'theme monokai')
                     list        Show all available themes
                     preview <n> Preview a theme without switching
+                    edit <name> Create or edit a custom theme
                     reload      Reload current theme from disk
   set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
                     With no value, shows current setting

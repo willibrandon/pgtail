@@ -85,6 +85,25 @@ def handle_theme_switch(state: AppState, name: str) -> None:
         state: Current application state.
         name: Theme name to switch to.
     """
+    from pgtail_py.theme import get_themes_dir, load_custom_theme_with_errors
+
+    # Check if it's a custom theme and validate it
+    if name not in state.theme_manager.builtin_themes:
+        themes_dir = get_themes_dir()
+        theme_file = themes_dir / f"{name}.toml"
+        if theme_file.exists():
+            theme, errors = load_custom_theme_with_errors(theme_file)
+            if errors:
+                print(f"Theme '{name}' has validation errors:")
+                for error in errors:
+                    print(f"  {error}")
+                print()
+                if theme is None:
+                    print("Theme cannot be loaded due to errors.")
+                    return
+                print("Theme loaded with warnings. Colors may not display correctly.")
+                print()
+
     # Try to switch theme
     if not state.theme_manager.switch_theme(name):
         # Theme not found - show helpful error
@@ -268,8 +287,54 @@ def handle_theme_edit(state: AppState, name: str) -> None:
         state: Current application state.
         name: Theme name to edit.
     """
-    # This will be implemented in Phase 5 (User Story 3)
-    print(f"Theme editing for '{name}' - coming soon")
+    import os
+    import subprocess
+
+    from pgtail_py.theme import THEME_TEMPLATE, ensure_themes_dir
+
+    # Block editing built-in themes
+    if name in state.theme_manager.builtin_themes:
+        print(f"Cannot edit built-in theme: {name}")
+        print()
+        print("Built-in themes are read-only. To customize:")
+        print(f"  1. Create a custom theme with a new name: theme edit my-{name}")
+        print("  2. Or copy the built-in theme colors to your custom theme")
+        return
+
+    # Ensure themes directory exists
+    themes_dir = ensure_themes_dir()
+    theme_file = themes_dir / f"{name}.toml"
+
+    # Create theme template file if not exists
+    created = False
+    if not theme_file.exists():
+        theme_file.write_text(THEME_TEMPLATE.format(name=name))
+        created = True
+        print(f"Created new theme file: {theme_file}")
+    else:
+        print(f"Editing theme file: {theme_file}")
+
+    # Try to open in $EDITOR
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
+    if editor:
+        try:
+            subprocess.run([editor, str(theme_file)], check=False)
+            print()
+            print(f"Use 'theme {name}' to apply this theme.")
+            print("Use 'theme reload' to reload after further edits.")
+        except FileNotFoundError:
+            print(f"Could not launch editor: {editor}")
+            print()
+            print(f"Edit the file manually: {theme_file}")
+    else:
+        # No editor configured
+        if created:
+            print()
+        print("No $EDITOR environment variable set.")
+        print()
+        print(f"Edit the file manually: {theme_file}")
+        print()
+        print(f"Then use 'theme {name}' to apply the theme.")
 
 
 def handle_theme_reload(state: AppState) -> None:
