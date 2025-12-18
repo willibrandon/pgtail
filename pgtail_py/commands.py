@@ -799,6 +799,21 @@ class PgtailCompleter(Completer):
                     display_meta="Duration threshold (slow > Nms)",
                 )
 
+            # Pattern syntax hints when starting with /
+            if prefix_lower.startswith("/") or prefix_lower == "":
+                pattern_examples = {
+                    "/deadlock/": "Match 'deadlock' in messages",
+                    "/timeout/i": "Match 'timeout' case-insensitive",
+                    "/error.*connection/": "Match error with connection",
+                }
+                for pattern, desc in pattern_examples.items():
+                    if pattern.startswith(prefix_lower) or prefix_lower == "":
+                        yield Completion(
+                            pattern,
+                            start_position=-len(prefix),
+                            display_meta=desc,
+                        )
+
             # Complete log levels
             already_selected = {p.upper() for p in parts[2:] if not p.startswith("/")}
             for level in LogLevel:

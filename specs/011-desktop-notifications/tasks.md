@@ -78,9 +78,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Integrate RateLimiter into NotificationManager.check() flow in pgtail_py/notify.py
-- [ ] T020 [US2] Add rate limiting before notification send in NotificationManager in pgtail_py/notify.py
-- [ ] T021 [US2] Update RateLimiter timestamp on successful send in pgtail_py/notify.py
+- [X] T019 [US2] Integrate RateLimiter into NotificationManager.check() flow in pgtail_py/notify.py
+- [X] T020 [US2] Add rate limiting before notification send in NotificationManager in pgtail_py/notify.py
+- [X] T021 [US2] Update RateLimiter timestamp on successful send in pgtail_py/notify.py
 
 **Checkpoint**: User Story 2 complete - rate limiting prevents spam
 
@@ -94,11 +94,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Implement PATTERN rule type matching in NotificationManager.check() in pgtail_py/notify.py
-- [ ] T023 [US3] Implement `notify on /<pattern>/[i]` parsing with regex compilation in pgtail_py/cli_notify.py
-- [ ] T024 [US3] Add regex validation and error handling for invalid patterns in pgtail_py/cli_notify.py
-- [ ] T025 [US3] Implement config persistence for pattern rules (as list of strings) in pgtail_py/cli_notify.py
-- [ ] T026 [US3] Add pattern completions to PgtailCompleter in pgtail_py/commands.py
+- [X] T022 [US3] Implement PATTERN rule type matching in NotificationManager.check() in pgtail_py/notify.py
+- [X] T023 [US3] Implement `notify on /<pattern>/[i]` parsing with regex compilation in pgtail_py/cli_notify.py
+- [X] T024 [US3] Add regex validation and error handling for invalid patterns in pgtail_py/cli_notify.py
+- [X] T025 [US3] Implement config persistence for pattern rules (as list of strings) in pgtail_py/cli_notify.py
+- [X] T026 [US3] Add pattern completions to PgtailCompleter in pgtail_py/commands.py
 
 **Checkpoint**: User Story 3 complete - pattern-based notifications working
 
