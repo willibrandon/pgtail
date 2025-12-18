@@ -23,6 +23,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Export logs to files (text, JSON, CSV formats)
 - Pipe logs to external commands (grep, jq, wc, etc.)
 - Color themes: 6 built-in themes plus custom TOML themes
+- **SQL syntax highlighting** in log messages (keywords, identifiers, strings, numbers, operators, comments)
 - Color-coded output by severity with SQL state codes
 - REPL with autocomplete and command history
 - Cross-platform (macOS, Linux, Windows)
@@ -161,6 +162,7 @@ pgtail> fullscreen
 - Buffer persists between fullscreen sessions
 - Status bar shows current mode, line count, and key hints
 - Search highlights matches in the log view
+- SQL syntax highlighting (keywords, identifiers, strings, etc.)
 
 ### Log Format Support
 
@@ -440,6 +442,49 @@ Color formats: ANSI names (`ansired`), hex codes (`#ff6b6b`), CSS names (`DarkRe
 
 To disable all colors: `NO_COLOR=1 pgtail`
 
+### SQL Syntax Highlighting
+
+SQL statements in log messages are automatically highlighted with distinct colors for each element:
+
+| Element | Default Color | Example |
+|---------|--------------|---------|
+| Keywords | Blue (bold) | `SELECT`, `FROM`, `WHERE`, `JOIN` |
+| Identifiers | Cyan | `users`, `created_at` |
+| Strings | Green | `'hello world'`, `$$body$$` |
+| Numbers | Magenta | `42`, `3.14` |
+| Operators | Yellow | `=`, `<>`, `||`, `::` |
+| Comments | Gray | `-- comment`, `/* block */` |
+| Functions | Blue | `COUNT()`, `NOW()` |
+
+SQL is detected in log messages containing:
+- `LOG: statement:` - Statement logging
+- `LOG: execute <name>:` - Prepared statement execution
+- `LOG: duration: ... statement:` - Query timing with SQL
+- `DETAIL:` - Error context details
+
+Example output (colors shown as `[color]`):
+```
+10:23:45 [12345] LOG: statement: [blue]SELECT[/] [cyan]id[/], [cyan]name[/] [blue]FROM[/] [cyan]users[/] [blue]WHERE[/] [cyan]active[/] [yellow]=[/] [green]'yes'[/]
+```
+
+SQL highlighting:
+- Works in both streaming mode and fullscreen TUI mode
+- Respects current theme colors (each theme defines SQL colors)
+- Gracefully handles malformed SQL (highlights what it can recognize)
+- Disabled when `NO_COLOR=1` is set
+
+Custom theme SQL colors can be defined in TOML:
+```toml
+[ui]
+sql_keyword = { fg = "blue", bold = true }
+sql_identifier = { fg = "cyan" }
+sql_string = { fg = "green" }
+sql_number = { fg = "magenta" }
+sql_operator = { fg = "yellow" }
+sql_comment = { fg = "gray" }
+sql_function = { fg = "blue" }
+```
+
 ### Export
 
 Export filtered log entries to a file:
@@ -574,6 +619,7 @@ Query Duration Statistics
 - prompt_toolkit
 - psutil
 - tomlkit
+- pygments
 
 ## License
 

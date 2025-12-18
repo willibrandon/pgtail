@@ -150,13 +150,13 @@ Based on plan.md structure:
 
 **Purpose**: Performance optimization, edge cases, and documentation
 
-- [ ] T044 [P] Add unit tests for malformed SQL handling (graceful degradation) in tests/test_sql_tokenizer.py
-- [ ] T045 [P] Add unit tests for SQL detection edge cases in tests/test_sql_detector.py
-- [ ] T046 Add performance test for 10,000-character SQL (verify <100ms) in tests/test_sql_highlighter.py
-- [ ] T047 Compile regex patterns at module level for performance in pgtail_py/sql_tokenizer.py
-- [ ] T048 Add type annotations to all public functions in SQL modules
-- [ ] T049 Add module docstrings to pgtail_py/sql_tokenizer.py, pgtail_py/sql_highlighter.py, pgtail_py/sql_detector.py
-- [ ] T050 Run quickstart.md validation - verify SQL highlighting works as documented
+- [x] T044 [P] Add unit tests for malformed SQL handling (graceful degradation) in tests/test_sql_tokenizer.py
+- [x] T045 [P] Add unit tests for SQL detection edge cases in tests/test_sql_detector.py
+- [x] T046 Add performance test for 10,000-character SQL (verify <100ms) in tests/test_sql_highlighter.py
+- [x] T047 Compile regex patterns at module level for performance in pgtail_py/sql_tokenizer.py
+- [x] T048 Add type annotations to all public functions in SQL modules
+- [x] T049 Add module docstrings to pgtail_py/sql_tokenizer.py, pgtail_py/sql_highlighter.py, pgtail_py/sql_detector.py
+- [x] T050 Run quickstart.md validation - verify SQL highlighting works as documented
 
 ---
 

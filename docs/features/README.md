@@ -88,7 +88,7 @@ Or reference the file directly when planning.
 ### Phase 4: Full TUI
 10. full-screen-tui - completed
 11. themes - completed
-12. sql-syntax-highlighting
+12. sql-syntax-highlighting - completed
 
 ### Phase 5: Advanced
 13. split-panes

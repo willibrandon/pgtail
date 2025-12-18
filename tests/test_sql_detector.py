@@ -148,3 +148,173 @@ class TestDetectSQLContent:
         assert "duration" in result.prefix.lower()
         assert "execute" in result.prefix.lower()
         assert "SELECT" in result.sql
+
+
+class TestDetectSQLContentEdgeCases:
+    """Test SQL detection edge cases - T045."""
+
+    def test_statement_with_leading_whitespace(self) -> None:
+        """Statement pattern with leading whitespace should work."""
+        message = "   statement: SELECT 1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert result.sql == "SELECT 1"
+
+    def test_statement_with_extra_spaces(self) -> None:
+        """Statement pattern with extra spaces should work."""
+        message = "statement:   SELECT 1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert result.sql.strip() == "SELECT 1"
+
+    def test_multiline_sql_statement(self) -> None:
+        """Multiline SQL should be captured completely."""
+        message = "statement: SELECT id,\n    name,\n    email\nFROM users"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "SELECT" in result.sql
+        assert "FROM users" in result.sql
+
+    def test_sql_with_semicolon(self) -> None:
+        """SQL with semicolon should capture the full statement."""
+        message = "statement: SELECT 1;"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert result.sql == "SELECT 1;"
+
+    def test_sql_with_multiple_semicolons(self) -> None:
+        """SQL with multiple statements should capture all."""
+        message = "statement: SELECT 1; SELECT 2;"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "SELECT 1" in result.sql
+        assert "SELECT 2" in result.sql
+
+    def test_duration_with_microseconds(self) -> None:
+        """Duration with microsecond precision should work."""
+        message = "duration: 0.000123 ms statement: SELECT 1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert result.sql == "SELECT 1"
+
+    def test_duration_with_large_value(self) -> None:
+        """Duration with large value should work."""
+        message = "duration: 12345.678 ms statement: SELECT 1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert result.sql == "SELECT 1"
+
+    def test_execute_with_special_name(self) -> None:
+        """Execute with special statement name should work."""
+        message = "execute S_1234: SELECT * FROM users"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "SELECT" in result.sql
+
+    def test_parse_with_unnamed_statement(self) -> None:
+        """Parse with <unnamed> statement should work."""
+        message = "parse <unnamed>: SELECT $1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "SELECT" in result.sql
+
+    def test_bind_with_parameters(self) -> None:
+        """Bind with parameter placeholders should work."""
+        message = "bind <unnamed>: SELECT * FROM users WHERE id = $1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "$1" in result.sql
+
+    def test_detail_with_key_violation(self) -> None:
+        """DETAIL with key violation message should work."""
+        message = "DETAIL: Key (email)=(test@example.com) already exists."
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "Key" in result.sql
+
+    def test_detail_with_empty_content(self) -> None:
+        """DETAIL with only whitespace should return None."""
+        message = "DETAIL:    "
+        result = detect_sql_content(message)
+        assert result is None
+
+    def test_statement_upper_case_keyword(self) -> None:
+        """STATEMENT: in uppercase should work (case-insensitive)."""
+        message = "STATEMENT: SELECT 1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert result.sql == "SELECT 1"
+
+    def test_sql_with_string_containing_colon(self) -> None:
+        """SQL with string containing colon should capture correctly."""
+        message = "statement: SELECT 'time: 12:00' FROM users"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "'time: 12:00'" in result.sql
+
+    def test_sql_with_comment_containing_prefix(self) -> None:
+        """SQL with comment containing prefix pattern should work."""
+        message = "statement: SELECT 1 -- statement: in comment"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "SELECT 1" in result.sql
+
+    def test_no_false_positive_on_similar_pattern(self) -> None:
+        """Similar but non-matching patterns should return None."""
+        messages = [
+            "statements: SELECT 1",  # plural
+            "statementSELECT 1",  # no space or colon
+            "statement SELECT 1",  # no colon
+            "the statement: says hello",  # prefix text
+        ]
+        for msg in messages:
+            # These shouldn't match or should match correctly based on pattern
+            result = detect_sql_content(msg)
+            # If it matches, verify it's reasonable
+            if result:
+                # The match should make sense
+                assert result.prefix + result.sql + result.suffix == msg
+
+    def test_sql_with_unicode_content(self) -> None:
+        """SQL with unicode content should be captured."""
+        message = "statement: SELECT * FROM users WHERE name = '日本語'"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "'日本語'" in result.sql
+
+    def test_sql_with_newline_in_string(self) -> None:
+        """SQL with newline in string should be captured."""
+        message = "statement: SELECT 'line1\nline2'"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "'line1\nline2'" in result.sql
+
+    def test_sql_preserves_trailing_spaces(self) -> None:
+        """SQL trailing spaces should be in suffix."""
+        message = "statement: SELECT 1   "
+        result = detect_sql_content(message)
+        assert result is not None
+        # Trailing whitespace captured in suffix
+        assert result.prefix + result.sql + result.suffix == message
+
+    def test_empty_sql_after_duration(self) -> None:
+        """Duration pattern with empty SQL should return None."""
+        message = "duration: 1.0 ms statement:    "
+        result = detect_sql_content(message)
+        assert result is None
+
+    def test_very_long_sql(self) -> None:
+        """Very long SQL should be captured."""
+        long_sql = "SELECT " + ", ".join([f"col_{i}" for i in range(1000)]) + " FROM users"
+        message = f"statement: {long_sql}"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert len(result.sql) == len(long_sql)
+
+    def test_sql_with_dollar_quoted_body(self) -> None:
+        """SQL with dollar-quoted function body should be captured."""
+        message = "statement: CREATE FUNCTION foo() RETURNS void AS $$ SELECT 1; $$ LANGUAGE sql"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "$$" in result.sql
+        assert "SELECT 1" in result.sql

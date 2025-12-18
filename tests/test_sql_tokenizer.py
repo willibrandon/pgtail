@@ -866,3 +866,147 @@ class TestSQLTokenizerPunctuation:
         assert "(" in texts
         assert "," in texts
         assert ")" in texts
+
+
+class TestSQLTokenizerMalformedSQL:
+    """Test malformed SQL handling (graceful degradation) - T044."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_unclosed_single_quote_partial(self, tokenizer: SQLTokenizer) -> None:
+        """Unclosed single quote should tokenize what it can."""
+        # An unclosed string will match as much as possible or fall through
+        # The tokenizer should not crash
+        tokens = tokenizer.tokenize("SELECT 'unclosed")
+        # Should have at least SELECT token
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(keywords) >= 1
+        assert keywords[0].text == "SELECT"
+
+    def test_unclosed_double_quote_partial(self, tokenizer: SQLTokenizer) -> None:
+        """Unclosed double quote should tokenize what it can."""
+        tokens = tokenizer.tokenize('SELECT "unclosed')
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(keywords) >= 1
+        assert keywords[0].text == "SELECT"
+
+    def test_unclosed_block_comment_partial(self, tokenizer: SQLTokenizer) -> None:
+        """Unclosed block comment should tokenize what it can."""
+        tokens = tokenizer.tokenize("SELECT /* unclosed comment")
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(keywords) >= 1
+        assert keywords[0].text == "SELECT"
+
+    def test_unclosed_dollar_quote_partial(self, tokenizer: SQLTokenizer) -> None:
+        """Unclosed dollar quote should tokenize what it can."""
+        tokens = tokenizer.tokenize("SELECT $$unclosed")
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(keywords) >= 1
+        assert keywords[0].text == "SELECT"
+
+    def test_mixed_valid_invalid_tokens(self, tokenizer: SQLTokenizer) -> None:
+        """Mix of valid and invalid content should tokenize valid parts."""
+        # Unicode and special characters that aren't valid SQL
+        tokens = tokenizer.tokenize("SELECT \x00 FROM \x01 users")
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        # SELECT and FROM should be recognized
+        assert len(keywords) == 2
+        # users should be recognized
+        assert len(identifiers) == 1
+        assert identifiers[0].text == "users"
+
+    def test_invalid_operator_sequence(self, tokenizer: SQLTokenizer) -> None:
+        """Invalid operator sequences should be handled gracefully."""
+        # Multiple operators in sequence
+        tokens = tokenizer.tokenize("SELECT ><><>< FROM users")
+        # Should still recognize keywords
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(keywords) == 2
+        # Operators should be tokenized individually or as pairs
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) >= 1
+
+    def test_special_unicode_characters(self, tokenizer: SQLTokenizer) -> None:
+        """Unicode characters should be handled as unknown tokens."""
+        tokens = tokenizer.tokenize("SELECT \u2603 FROM users")  # snowman
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        unknown = [t for t in tokens if t.type == SQLTokenType.UNKNOWN]
+        assert len(keywords) == 2
+        assert len(identifiers) == 1
+        # Snowman should be unknown
+        assert len(unknown) == 1
+        assert "\u2603" in unknown[0].text
+
+    def test_empty_quoted_strings_edge_case(self, tokenizer: SQLTokenizer) -> None:
+        """Empty quoted strings should be handled."""
+        tokens = tokenizer.tokenize("SELECT '' FROM users")
+        strings = [t for t in tokens if t.type == SQLTokenType.STRING]
+        assert len(strings) == 1
+        assert strings[0].text == "''"
+
+    def test_consecutive_strings(self, tokenizer: SQLTokenizer) -> None:
+        """Consecutive strings (PostgreSQL string concatenation) should be handled."""
+        tokens = tokenizer.tokenize("SELECT 'a''b' FROM users")
+        strings = [t for t in tokens if t.type == SQLTokenType.STRING]
+        # This is a single string with escaped quote
+        assert len(strings) == 1
+        assert strings[0].text == "'a''b'"
+
+    def test_very_long_identifier(self, tokenizer: SQLTokenizer) -> None:
+        """Very long identifier should be handled."""
+        long_id = "a" * 1000
+        tokens = tokenizer.tokenize(f"SELECT {long_id} FROM users")
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        assert len(identifiers) == 2
+        assert identifiers[0].text == long_id
+
+    def test_very_long_string(self, tokenizer: SQLTokenizer) -> None:
+        """Very long string literal should be handled."""
+        long_str = "x" * 1000
+        tokens = tokenizer.tokenize(f"SELECT '{long_str}' FROM users")
+        strings = [t for t in tokens if t.type == SQLTokenType.STRING]
+        assert len(strings) == 1
+        assert strings[0].text == f"'{long_str}'"
+
+    def test_malformed_numeric_literal(self, tokenizer: SQLTokenizer) -> None:
+        """Malformed numeric should be tokenized as best as possible."""
+        # Multiple dots - should be tokenized as number + dot + number
+        tokens = tokenizer.tokenize("SELECT 1.2.3 FROM users")
+        # Should recognize at least some parts
+        numbers = [t for t in tokens if t.type == SQLTokenType.NUMBER]
+        assert len(numbers) >= 1
+
+    def test_mixed_newlines_and_whitespace(self, tokenizer: SQLTokenizer) -> None:
+        """Mixed newlines, tabs, and spaces should be handled."""
+        tokens = tokenizer.tokenize("SELECT\n\t  id\r\n  FROM\tusers")
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        whitespace = [t for t in tokens if t.type == SQLTokenType.WHITESPACE]
+        assert len(keywords) == 2
+        assert len(identifiers) == 2
+        # Whitespace gets merged into continuous runs
+        assert len(whitespace) >= 1
+
+    def test_reconstructs_original_with_malformed(self, tokenizer: SQLTokenizer) -> None:
+        """Even with malformed SQL, tokens should reconstruct original."""
+        sql = "SELECT \x00 'unclosed FROM \u2603 users"
+        tokens = tokenizer.tokenize(sql)
+        reconstructed = "".join(t.text for t in tokens)
+        assert reconstructed == sql
+
+    def test_no_exceptions_on_random_bytes(self, tokenizer: SQLTokenizer) -> None:
+        """Random byte sequences should not cause exceptions."""
+        # Create a string with various problematic characters
+        problematic = "SELECT \x00\x01\x02\x03\xff FROM users"
+        # Should not raise any exceptions
+        tokens = tokenizer.tokenize(problematic)
+        # Should have at least some tokens
+        assert len(tokens) > 0
+        # Should reconstruct
+        reconstructed = "".join(t.text for t in tokens)
+        assert reconstructed == problematic

@@ -215,3 +215,123 @@ class TestSQLHighlighterIdentifiers:
         result = highlighter.highlight(sql)
         reconstructed = "".join(p[1] for p in result)
         assert reconstructed == sql
+
+
+class TestSQLHighlighterPerformance:
+    """Performance tests for SQL highlighter - T046."""
+
+    @pytest.fixture
+    def highlighter(self) -> SQLHighlighter:
+        """Create a highlighter instance."""
+        return SQLHighlighter()
+
+    def test_highlight_10000_char_sql_under_100ms(self, highlighter: SQLHighlighter) -> None:
+        """10,000+ character SQL should highlight in under 100ms.
+
+        Per SC-004: No performance degradation for statements up to 10,000 characters.
+        """
+        import time
+
+        # Build a ~10,000 character SQL statement
+        columns = [f"column_{i:04d}" for i in range(500)]
+        values = [f"'value_{i:04d}'" for i in range(500)]
+        column_list = ", ".join(columns)
+        value_list = ", ".join(values)
+
+        # INSERT with many columns and values
+        sql = f"INSERT INTO very_long_table_name_for_testing ({column_list}) VALUES ({value_list})"
+
+        # Verify it's over 10,000 characters
+        assert len(sql) >= 10000, f"SQL length is only {len(sql)}, expected >= 10000"
+
+        # Time the highlighting
+        start = time.perf_counter()
+        result = highlighter.highlight(sql)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        # Verify result is valid
+        reconstructed = "".join(p[1] for p in result)
+        assert reconstructed == sql
+
+        # Verify it completed in under 100ms
+        assert elapsed_ms < 100, f"Highlighting took {elapsed_ms:.2f}ms, expected < 100ms"
+
+    def test_highlight_large_select_with_joins(self, highlighter: SQLHighlighter) -> None:
+        """Large SELECT with multiple JOINs should perform well."""
+        import time
+
+        # Build a complex query with many joins
+        tables = [f"table_{i}" for i in range(100)]
+        joins = [
+            f"LEFT JOIN {t} t{i} ON t{i}.id = t0.{t}_id" for i, t in enumerate(tables[1:], 1)
+        ]
+        columns = [f"t{i}.col1, t{i}.col2, t{i}.col3" for i in range(len(tables))]
+
+        sql = f"""SELECT {", ".join(columns)}
+FROM {tables[0]} t0
+{chr(10).join(joins)}
+WHERE t0.active = true
+ORDER BY t0.created_at DESC
+LIMIT 100"""
+
+        # Verify length is substantial (should be > 5000 now)
+        assert len(sql) >= 5000, f"SQL length is only {len(sql)}"
+
+        start = time.perf_counter()
+        result = highlighter.highlight(sql)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        # Verify highlighting worked
+        keywords = [p for p in result if p[0] == "class:sql_keyword"]
+        assert len(keywords) >= 50, "Should have many keywords highlighted"
+
+        # Should complete in reasonable time
+        assert elapsed_ms < 100, f"Highlighting took {elapsed_ms:.2f}ms"
+
+    def test_highlight_many_string_literals(self, highlighter: SQLHighlighter) -> None:
+        """SQL with many string literals should perform well."""
+        import time
+
+        # Build SQL with many string literals
+        values = [f"('value_{i}', 'data_{i}')" for i in range(500)]
+        sql = f"INSERT INTO strings (col1, col2) VALUES {', '.join(values)}"
+
+        assert len(sql) >= 10000, f"SQL length is only {len(sql)}"
+
+        start = time.perf_counter()
+        result = highlighter.highlight(sql)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        # Verify strings were found
+        strings = [p for p in result if p[0] == "class:sql_string"]
+        assert len(strings) >= 1000, "Should have many string literals"
+
+        assert elapsed_ms < 100, f"Highlighting took {elapsed_ms:.2f}ms"
+
+    def test_highlight_repeated_highlighting_consistent(
+        self, highlighter: SQLHighlighter
+    ) -> None:
+        """Repeated highlighting should have consistent performance."""
+        import time
+
+        sql = "SELECT id, name FROM users WHERE active = true ORDER BY name"
+
+        # Warm up
+        for _ in range(10):
+            highlighter.highlight(sql)
+
+        # Measure multiple runs
+        times = []
+        for _ in range(100):
+            start = time.perf_counter()
+            highlighter.highlight(sql)
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            times.append(elapsed_ms)
+
+        avg_time = sum(times) / len(times)
+        max_time = max(times)
+
+        # Average should be well under 1ms for short SQL
+        assert avg_time < 1, f"Average time {avg_time:.3f}ms too slow"
+        # No outliers should exceed 10ms
+        assert max_time < 10, f"Max time {max_time:.3f}ms too slow"

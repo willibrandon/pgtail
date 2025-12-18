@@ -44,6 +44,9 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/error_stats.py` - Error event tracking, SQLSTATE lookups, session statistics
 - `pgtail_py/error_trend.py` - Sparkline visualization and per-minute bucketing
 - `pgtail_py/cli_errors.py` - errors command handlers (summary, trend, live, code filter)
+- `pgtail_py/sql_tokenizer.py` - SQL tokenization (keywords, identifiers, strings, numbers, operators, comments, functions)
+- `pgtail_py/sql_highlighter.py` - SQL syntax highlighting with FormattedText output
+- `pgtail_py/sql_detector.py` - SQL content detection in PostgreSQL log messages
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
 
@@ -285,6 +288,61 @@ The `fullscreen` (or `fs`) command enters a full-screen terminal UI for browsing
 - `pgtail_py/fullscreen/lexer.py` - Pygments LogLineLexer for SQL syntax highlighting
 - `pgtail_py/fullscreen/state.py` - FullscreenState, DisplayMode enum
 - `pgtail_py/cli_fullscreen.py` - fullscreen command handler
+
+## SQL Syntax Highlighting
+
+SQL syntax highlighting is an **always-on** feature that automatically colors SQL statements in PostgreSQL log messages. No configuration required.
+
+**What Gets Highlighted:**
+
+| Element | Token Type | Default Color (dark theme) |
+|---------|------------|---------------------------|
+| Keywords | `sql_keyword` | Blue (bold) |
+| Identifiers | `sql_identifier` | Cyan |
+| Strings | `sql_string` | Green |
+| Numbers | `sql_number` | Magenta |
+| Operators | `sql_operator` | Yellow |
+| Comments | `sql_comment` | Gray |
+| Functions | `sql_function` | Blue |
+
+**Where SQL Is Detected:**
+- `LOG: statement:` - Statement logging
+- `LOG: execute <name>:` - Prepared statement execution
+- `LOG: parse <name>:` - Prepared statement parsing
+- `LOG: bind <name>:` - Parameter binding
+- `LOG: duration: ... statement:` - Query timing
+- `DETAIL:` - Error context details
+
+**Implementation:**
+- `sql_detector.py` - Regex patterns to detect SQL content in log messages
+- `sql_tokenizer.py` - Tokenizes SQL into KEYWORD, IDENTIFIER, STRING, NUMBER, OPERATOR, COMMENT, FUNCTION types
+- `sql_highlighter.py` - Converts tokens to FormattedText with style classes
+- `display.py` - Integration via `_format_message_with_sql()` in all format functions
+- `fullscreen/lexer.py` - Pygments RegexLexer for TextArea highlighting
+
+**Token Matching Order** (per research.md):
+1. Whitespace
+2. Block comments (`/* ... */`)
+3. Line comments (`--`)
+4. Dollar-quoted strings (`$$...$$`, `$tag$...$tag$`)
+5. Single-quoted strings (`'...'`)
+6. Quoted identifiers (`"..."`)
+7. Numbers
+8. Keywords (case-insensitive, 70+ SQL keywords)
+9. Functions (identifier followed by `(`)
+10. Multi-char operators (`<>`, `!=`, `<=`, `>=`, `||`, `::`)
+11. Single-char operators
+12. Punctuation
+
+**Graceful Degradation:**
+- Malformed SQL: Recognized tokens highlighted, unrecognized text displayed plain
+- NO_COLOR=1: All SQL highlighting disabled
+- Missing theme keys: Falls back to default text color
+
+**New modules:**
+- `pgtail_py/sql_tokenizer.py` - SQLTokenType enum, SQLToken dataclass, SQLTokenizer class
+- `pgtail_py/sql_highlighter.py` - SQLHighlighter class, TOKEN_TO_STYLE mapping, highlight_sql() function
+- `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
 ## Recent Changes
 - 014-sql-highlighting: Added Python 3.10+ + prompt_toolkit >=3.0.0 (FormattedText styling), existing theme.py/ThemeManager
