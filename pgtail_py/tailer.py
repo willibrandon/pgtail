@@ -202,19 +202,25 @@ class LogTailer:
     def get_entry(self, timeout: float = 0.1) -> LogEntry | None:
         """Get the next log entry, if available.
 
+        Uses non-blocking gets with short sleeps to be responsive to Ctrl+C.
+
         Args:
             timeout: Time to wait for an entry in seconds.
 
         Returns:
             LogEntry if available, None otherwise.
         """
+        # Use non-blocking get to be responsive to KeyboardInterrupt
         try:
-            return self._queue.get(timeout=timeout)
+            return self._queue.get_nowait()
         except Empty:
-            return None
-        except RuntimeError:
-            # Can occur if KeyboardInterrupt hits during queue lock operations
-            raise KeyboardInterrupt from None
+            # No entry immediately available, sleep briefly
+            # Short sleep allows Ctrl+C to be processed
+            time.sleep(timeout)
+            try:
+                return self._queue.get_nowait()
+            except Empty:
+                return None
 
     def update_levels(self, levels: set[LogLevel] | None) -> None:
         """Update the active log levels filter.

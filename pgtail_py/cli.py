@@ -30,6 +30,7 @@ from pgtail_py.cli_core import (
 from pgtail_py.cli_errors import errors_command
 from pgtail_py.cli_export import export_command, pipe_command
 from pgtail_py.cli_filter import filter_command, highlight_command, levels_command
+from pgtail_py.cli_fullscreen import fullscreen_command
 from pgtail_py.cli_notify import notify_command
 from pgtail_py.cli_slow import slow_command, stats_command
 from pgtail_py.cli_time import between_command, since_command, until_command
@@ -104,6 +105,7 @@ class AppState:
     fullscreen_buffer: LogBuffer | None = None
     fullscreen_state: FullscreenState | None = None
     tailing: bool = False
+    output_paused: bool = False
     history_path: Path = field(default_factory=get_history_path)
     tailer: LogTailer | None = None
     stop_event: threading.Event = field(default_factory=threading.Event)
@@ -295,6 +297,8 @@ def handle_command(state: AppState, line: str) -> bool:
         display_command(state, args)
     elif cmd == "output":
         output_command(state, args)
+    elif cmd in ("fullscreen", "fs"):
+        fullscreen_command(" ".join(args), state)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")
@@ -307,6 +311,10 @@ def _get_prompt(state: AppState) -> HTML:
     if state.shell_mode:
         return HTML("<style fg='#ff6688'>!</style> ")
     if state.tailing and state.current_instance:
+        if state.output_paused:
+            return HTML(
+                f"<style fg='#ffaa00'>paused</style> <style fg='#00aaaa'>[{state.current_instance.id}]</style><style fg='#666666'>&gt;</style> "
+            )
         return HTML(
             f"<style fg='#00aa00'>tailing</style> <style fg='#00aaaa'>[{state.current_instance.id}]</style><style fg='#666666'>&gt;</style> "
         )
@@ -442,25 +450,23 @@ def main() -> None:
     # REPL loop
     while True:
         try:
-            # When tailing, process output in a loop until Ctrl+C
-            if state.tailing:
+            # When tailing and not paused, process output in a loop until Ctrl+C
+            if state.tailing and not state.output_paused:
                 try:
-                    while state.tailing:
+                    while state.tailing and not state.output_paused:
                         _process_tail_output(state)
                 except KeyboardInterrupt:
-                    # Ctrl+C stops tailing
-                    print()
-                    stop_command(state)
+                    # Ctrl+C pauses output but keeps tailer running for fullscreen
+                    state.output_paused = True
+                    print("\nPaused. Use 'fullscreen' for live view, 'stop' to stop tailing.", flush=True)
                     continue
 
             line = session.prompt(lambda: _get_prompt(state))
             if not handle_command(state, line):
                 break
         except KeyboardInterrupt:
-            # Ctrl+C - if tailing, stop; otherwise ignore
+            # Ctrl+C at prompt - ignore
             print()
-            if state.tailing:
-                stop_command(state)
             continue
         except EOFError:
             # Ctrl+D - exit

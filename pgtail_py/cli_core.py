@@ -87,6 +87,10 @@ Available commands:
   output [format]   Control output format
                     json      Output as JSON (one object per line)
                     text      Output as colored text (default)
+  fullscreen        Enter fullscreen TUI mode (alias: fs)
+                    q         Exit fullscreen, return to REPL
+                    j/k       Scroll up/down one line
+                    Escape    Toggle follow/browse mode
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting
@@ -225,9 +229,19 @@ def tail_command(state: AppState, args: list[str]) -> None:
     if since_time is not None:
         state.time_filter = TimeFilter(since=since_time)
 
+    # Stop any existing tailer before starting a new one
+    if state.tailer is not None:
+        state.tailer.stop()
+        state.tailer = None
+
+    # Clear buffer for new tail session
+    if state.fullscreen_buffer is not None:
+        state.fullscreen_buffer.clear()
+
     # Start tailing
     state.current_instance = instance
     state.tailing = True
+    state.output_paused = False
     state.stop_event.clear()
 
     print(f"Tailing {instance.log_path}")
@@ -253,9 +267,13 @@ def tail_command(state: AppState, args: list[str]) -> None:
         # Feed formatted entry to fullscreen buffer (always, even when not in fullscreen)
         buffer = state.get_or_create_buffer()
         formatted = format_entry(entry, state.display_state)
-        # Strip ANSI and format codes for plain text storage in buffer
-        # The buffer stores plain text; formatting is applied when displaying
-        buffer.append(formatted)
+        # Convert FormattedText to plain string for buffer storage
+        if isinstance(formatted, str):
+            buffer.append(formatted)
+        else:
+            # FormattedText is a list of (style, text) tuples
+            plain_text = "".join(fragment[1] for fragment in formatted)
+            buffer.append(plain_text)
 
     state.tailer = LogTailer(
         instance.log_path,
@@ -290,6 +308,7 @@ def stop_command(state: AppState) -> None:
         # Keep tailer reference so buffer is available for export
 
     state.tailing = False
+    state.output_paused = False
     state.stop_event.set()
     state.current_instance = None
 

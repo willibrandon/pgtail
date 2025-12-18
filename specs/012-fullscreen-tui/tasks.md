@@ -66,20 +66,20 @@
 
 ### Tests for User Story 5
 
-- [ ] T013 [P] [US5] Unit test for fullscreen_command error when no active tail in tests/unit/fullscreen/test_cli_fullscreen.py
-- [ ] T014 [P] [US5] Integration test for fullscreen enter/exit cycle in tests/integration/test_fullscreen.py
+- [X] T013 [P] [US5] Unit test for fullscreen_command error when no active tail in tests/unit/fullscreen/test_cli_fullscreen.py
+- [X] T014 [P] [US5] Integration test for fullscreen enter/exit cycle in tests/integration/test_fullscreen.py
 
 ### Implementation for User Story 5
 
-- [ ] T015 [P] [US5] Create basic layout with TextArea and status bar in pgtail_py/fullscreen/layout.py
-- [ ] T016 [P] [US5] Create exit keybinding (q) in pgtail_py/fullscreen/keybindings.py
-- [ ] T017 [US5] Create create_fullscreen_app() function in pgtail_py/fullscreen/app.py
-- [ ] T018 [US5] Create run_fullscreen() function in pgtail_py/fullscreen/app.py
-- [ ] T019 [US5] Implement fullscreen_command handler in pgtail_py/cli_fullscreen.py
-- [ ] T020 [US5] Register fullscreen/fs command in pgtail_py/commands.py
-- [ ] T021 [US5] Wire fullscreen_command to command dispatch in pgtail_py/cli.py
-- [ ] T022 [US5] Add status bar showing mode and line count in pgtail_py/fullscreen/layout.py
-- [ ] T023 [US5] Implement live buffer updates with app.invalidate() in pgtail_py/fullscreen/app.py
+- [X] T015 [P] [US5] Create basic layout with TextArea and status bar in pgtail_py/fullscreen/layout.py
+- [X] T016 [P] [US5] Create exit keybinding (q) in pgtail_py/fullscreen/keybindings.py
+- [X] T017 [US5] Create create_fullscreen_app() function in pgtail_py/fullscreen/app.py
+- [X] T018 [US5] Create run_fullscreen() function in pgtail_py/fullscreen/app.py
+- [X] T019 [US5] Implement fullscreen_command handler in pgtail_py/cli_fullscreen.py
+- [X] T020 [US5] Register fullscreen/fs command in pgtail_py/commands.py
+- [X] T021 [US5] Wire fullscreen_command to command dispatch in pgtail_py/cli.py
+- [X] T022 [US5] Add status bar showing mode and line count in pgtail_py/fullscreen/layout.py
+- [X] T023 [US5] Implement live buffer updates with app.invalidate() in pgtail_py/fullscreen/app.py
 
 **Checkpoint**: User can enter fullscreen mode, see log content, and exit with `q`
 
@@ -183,7 +183,7 @@
 - [ ] T054 [P] Add buffer boundary clamping (prevent scroll past first/last line) in pgtail_py/fullscreen/keybindings.py
 - [ ] T055 [P] Add error handling for invalid search regex in pgtail_py/fullscreen/keybindings.py
 - [ ] T056 Update CLAUDE.md with fullscreen module documentation
-- [ ] T057 Add fullscreen command to help output in pgtail_py/commands.py
+- [X] T057 Add fullscreen command to help output in pgtail_py/cli_core.py (completed in Phase 3)
 - [ ] T058 Run make lint and fix any issues
 - [ ] T059 Run make test and ensure all tests pass
 - [ ] T060 Manual validation per quickstart.md scenarios
