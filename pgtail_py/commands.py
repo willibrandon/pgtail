@@ -32,6 +32,7 @@ COMMANDS: dict[str, str] = {
     "config": "Show current configuration (subcommands: path, edit, reset)",
     "errors": "Show error statistics (--trend, --live, --code, --since, clear)",
     "connections": "Show connection statistics (--history, --watch, --db=, --user=, --app=, clear)",
+    "notify": "Configure desktop notifications (on, off, test, quiet, clear)",
     "export": "Export filtered logs to file (e.g., 'export errors.log')",
     "pipe": "Pipe filtered logs to command (e.g., 'pipe wc -l')",
     "stop": "Stop current tail and return to prompt",
@@ -156,6 +157,8 @@ class PgtailCompleter(Completer):
             yield from self._complete_errors(arg_text, parts)
         elif cmd == "connections":
             yield from self._complete_connections(arg_text, parts)
+        elif cmd == "notify":
+            yield from self._complete_notify(arg_text, parts)
 
     def _complete_commands(self, prefix: str) -> list[Completion]:
         """Complete command names.
@@ -749,3 +752,68 @@ class PgtailCompleter(Completer):
                     start_position=-len(prefix),
                     display_meta=description,
                 )
+
+    def _complete_notify(self, prefix: str, parts: list[str]) -> list[Completion]:
+        """Complete notify command options.
+
+        Args:
+            prefix: The prefix to match.
+            parts: All command parts so far.
+
+        Yields:
+            Completions for notify subcommands and options.
+        """
+        prefix_lower = prefix.lower()
+
+        # First argument after 'notify'
+        if len(parts) <= 2:
+            subcommands = {
+                "on": "Enable notifications (levels, patterns, thresholds)",
+                "off": "Disable all notifications",
+                "test": "Send a test notification",
+                "quiet": "Set quiet hours (HH:MM-HH:MM)",
+                "clear": "Remove all notification rules",
+            }
+            for name, description in subcommands.items():
+                if name.startswith(prefix_lower):
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=description,
+                    )
+            return
+
+        # After 'notify on'
+        if len(parts) >= 2 and parts[1].lower() == "on":
+            # Check for special keywords
+            if prefix_lower.startswith("error"):
+                yield Completion(
+                    "errors",
+                    start_position=-len(prefix),
+                    display_meta="Rate threshold (errors > N/min)",
+                )
+            if prefix_lower.startswith("slow"):
+                yield Completion(
+                    "slow",
+                    start_position=-len(prefix),
+                    display_meta="Duration threshold (slow > Nms)",
+                )
+
+            # Complete log levels
+            already_selected = {p.upper() for p in parts[2:] if not p.startswith("/")}
+            for level in LogLevel:
+                if level.name not in already_selected and level.name.startswith(prefix_lower.upper()):
+                    yield Completion(
+                        level.name,
+                        start_position=-len(prefix),
+                        display_meta=f"Severity {level.value}",
+                    )
+            return
+
+        # After 'notify quiet'
+        if len(parts) >= 2 and parts[1].lower() == "quiet" and "off".startswith(prefix_lower):
+            yield Completion(
+                "off",
+                start_position=-len(prefix),
+                display_meta="Disable quiet hours",
+            )

@@ -104,6 +104,14 @@ Available commands:
                     --user=NAME Filter by user name
                     --app=NAME  Filter by application name
                     clear       Reset statistics
+  notify            Configure desktop notifications
+                    on LEVEL... Enable for log levels (FATAL, PANIC, etc.)
+                    on /pattern/  Enable for regex pattern matches
+                    off         Disable all notifications
+                    test        Send a test notification
+                    quiet HH:MM-HH:MM  Set quiet hours
+                    quiet off   Disable quiet hours
+                    clear       Remove all notification rules
   set <key> [val]   Set/view a config value (e.g., 'set slow.warn 50')
                     With no value, shows current setting
   unset <key>       Remove a setting to revert to default

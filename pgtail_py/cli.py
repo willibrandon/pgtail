@@ -30,6 +30,7 @@ from pgtail_py.cli_core import (
 from pgtail_py.cli_errors import errors_command
 from pgtail_py.cli_export import export_command, pipe_command
 from pgtail_py.cli_filter import filter_command, highlight_command, levels_command
+from pgtail_py.cli_notify import notify_command
 from pgtail_py.cli_slow import slow_command, stats_command
 from pgtail_py.cli_time import between_command, since_command, until_command
 from pgtail_py.cli_utils import run_shell, warn
@@ -245,6 +246,8 @@ def handle_command(state: AppState, line: str) -> bool:
         errors_command(state, args)
     elif cmd == "connections":
         connections_command(state, args)
+    elif cmd == "notify":
+        notify_command(state, args)
     elif cmd == "set":
         set_command(state, args)
     elif cmd == "unset":

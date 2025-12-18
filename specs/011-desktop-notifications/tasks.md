@@ -58,13 +58,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement LEVEL rule matching in NotificationManager.check() in pgtail_py/notify.py
-- [ ] T013 [US1] Create cli_notify.py with notify_command handler skeleton in pgtail_py/cli_notify.py
-- [ ] T014 [US1] Implement `notify on <levels>` parsing and validation in pgtail_py/cli_notify.py
-- [ ] T015 [US1] Implement `notify off` command handler in pgtail_py/cli_notify.py
-- [ ] T016 [US1] Add notify command routing in handle_command() in pgtail_py/cli.py (depends on T013)
-- [ ] T017 [US1] Implement config persistence for level rules in pgtail_py/cli_notify.py
-- [ ] T018 [US1] Add 'notify' to PgtailCompleter in pgtail_py/commands.py
+- [X] T012 [US1] Implement LEVEL rule matching in NotificationManager.check() in pgtail_py/notify.py
+- [X] T013 [US1] Create cli_notify.py with notify_command handler skeleton in pgtail_py/cli_notify.py
+- [X] T014 [US1] Implement `notify on <levels>` parsing and validation in pgtail_py/cli_notify.py
+- [X] T015 [US1] Implement `notify off` command handler in pgtail_py/cli_notify.py
+- [X] T016 [US1] Add notify command routing in handle_command() in pgtail_py/cli.py (depends on T013)
+- [X] T017 [US1] Implement config persistence for level rules in pgtail_py/cli_notify.py
+- [X] T018 [US1] Add 'notify' to PgtailCompleter in pgtail_py/commands.py
 
 **Checkpoint**: User Story 1 complete - level-based notifications working independently
 
