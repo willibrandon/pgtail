@@ -206,9 +206,10 @@ The `connections` command tracks connection/disconnection events during tailing:
 - `pgtail_py/cli_connections.py` - connections command handlers
 
 ## Recent Changes
+- 012-fullscreen-tui: Added Python 3.10+ + prompt_toolkit >=3.0.0 (full-screen Application, KeyBindings, Layout, Buffer)
 - 011-desktop-notifications: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0
 - 010-connection-tracking: Connection tracking dashboard with summary, history, watch modes, and filtering
-- 009-error-stats: Added Python 3.10+ + prompt_toolkit >=3.0.0 (REPL), psutil (detection), tomlkit (config)
 
 ## Active Technologies
-- TOML config file (existing config.py infrastructure) (011-desktop-notifications)
+- Python 3.10+ + prompt_toolkit >=3.0.0 (full-screen Application, KeyBindings, Layout, Buffer) (012-fullscreen-tui)
+- In-memory circular buffer (10,000 lines max, no persistence) (012-fullscreen-tui)
