@@ -244,3 +244,109 @@ class TestSQLTokenizerKeywords:
         for kw in keywords:
             tokens = tokenizer.tokenize(kw)
             assert tokens[0].type == SQLTokenType.KEYWORD, f"{kw} should be recognized as keyword"
+
+
+class TestSQLTokenizerIdentifiers:
+    """Test identifier tokenization (User Story 2)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_unquoted_identifier_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Simple unquoted identifier should be recognized."""
+        tokens = tokenizer.tokenize("users")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.IDENTIFIER
+        assert tokens[0].text == "users"
+
+    def test_unquoted_identifier_with_underscore(self, tokenizer: SQLTokenizer) -> None:
+        """Identifier with underscore should be recognized."""
+        tokens = tokenizer.tokenize("user_name")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.IDENTIFIER
+        assert tokens[0].text == "user_name"
+
+    def test_unquoted_identifier_starting_with_underscore(self, tokenizer: SQLTokenizer) -> None:
+        """Identifier starting with underscore should be recognized."""
+        tokens = tokenizer.tokenize("_private")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.IDENTIFIER
+        assert tokens[0].text == "_private"
+
+    def test_unquoted_identifier_with_numbers(self, tokenizer: SQLTokenizer) -> None:
+        """Identifier with numbers should be recognized."""
+        tokens = tokenizer.tokenize("table1")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.IDENTIFIER
+        assert tokens[0].text == "table1"
+
+    def test_quoted_identifier_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Double-quoted identifier should be recognized as QUOTED_IDENTIFIER."""
+        tokens = tokenizer.tokenize('"MyTable"')
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.QUOTED_IDENTIFIER
+        assert tokens[0].text == '"MyTable"'
+
+    def test_quoted_identifier_with_spaces(self, tokenizer: SQLTokenizer) -> None:
+        """Quoted identifier with spaces should be recognized."""
+        tokens = tokenizer.tokenize('"My Table"')
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.QUOTED_IDENTIFIER
+        assert tokens[0].text == '"My Table"'
+
+    def test_quoted_identifier_with_reserved_word(self, tokenizer: SQLTokenizer) -> None:
+        """Quoted reserved word should be QUOTED_IDENTIFIER, not keyword."""
+        tokens = tokenizer.tokenize('"SELECT"')
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.QUOTED_IDENTIFIER
+        assert tokens[0].text == '"SELECT"'
+
+    def test_quoted_identifier_preserves_case(self, tokenizer: SQLTokenizer) -> None:
+        """Quoted identifier should preserve original case."""
+        tokens = tokenizer.tokenize('"MixedCase"')
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.QUOTED_IDENTIFIER
+        assert tokens[0].text == '"MixedCase"'
+
+    def test_quoted_identifier_with_escaped_quote(self, tokenizer: SQLTokenizer) -> None:
+        """Quoted identifier with escaped double quote should be recognized."""
+        tokens = tokenizer.tokenize('"Say ""Hello"""')
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.QUOTED_IDENTIFIER
+        assert tokens[0].text == '"Say ""Hello"""'
+
+    def test_identifier_in_select_statement(self, tokenizer: SQLTokenizer) -> None:
+        """Identifiers in SELECT should be recognized."""
+        tokens = tokenizer.tokenize("SELECT id, name FROM users")
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        assert len(identifiers) == 3
+        assert identifiers[0].text == "id"
+        assert identifiers[1].text == "name"
+        assert identifiers[2].text == "users"
+
+    def test_quoted_identifier_in_select_statement(self, tokenizer: SQLTokenizer) -> None:
+        """Quoted identifiers in SELECT should be recognized."""
+        tokens = tokenizer.tokenize('SELECT "Id" FROM "MyTable"')
+        quoted = [t for t in tokens if t.type == SQLTokenType.QUOTED_IDENTIFIER]
+        assert len(quoted) == 2
+        assert quoted[0].text == '"Id"'
+        assert quoted[1].text == '"MyTable"'
+
+    def test_mixed_identifiers(self, tokenizer: SQLTokenizer) -> None:
+        """Mix of quoted and unquoted identifiers should work."""
+        tokens = tokenizer.tokenize('SELECT id, "Name" FROM users')
+        unquoted = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        quoted = [t for t in tokens if t.type == SQLTokenType.QUOTED_IDENTIFIER]
+        assert len(unquoted) == 2  # id, users
+        assert len(quoted) == 1  # "Name"
+
+    def test_schema_qualified_identifier(self, tokenizer: SQLTokenizer) -> None:
+        """Schema.table should tokenize as separate identifiers."""
+        tokens = tokenizer.tokenize("public.users")
+        # Should be: public, ., users
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        assert len(identifiers) == 2
+        assert identifiers[0].text == "public"
+        assert identifiers[1].text == "users"

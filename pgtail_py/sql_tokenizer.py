@@ -163,6 +163,10 @@ SQL_KEYWORDS: frozenset[str] = frozenset(
 # Whitespace pattern
 _WHITESPACE_PATTERN = re.compile(r"\s+")
 
+# Quoted identifier pattern: "..." with "" for escaped quotes
+# Matches: "MyTable", "My Table", "Say ""Hello"""
+_QUOTED_IDENTIFIER_PATTERN = re.compile(r'"(?:[^"]|"")*"')
+
 # Keyword/identifier pattern (word characters)
 _WORD_PATTERN = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
 
@@ -197,6 +201,20 @@ class SQLTokenizer:
                 tokens.append(
                     SQLToken(
                         type=SQLTokenType.WHITESPACE,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # Try quoted identifier ("...")
+            match = _QUOTED_IDENTIFIER_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.QUOTED_IDENTIFIER,
                         text=match.group(),
                         start=pos,
                         end=match.end(),

@@ -24,9 +24,9 @@ class SQLDetectionResult(NamedTuple):
 
 
 # Compiled patterns for SQL detection (ordered by specificity)
-# Pattern 1: LOG: duration: ... ms statement: <SQL>
-_DURATION_STATEMENT_PATTERN = re.compile(
-    r"^(.*?duration:\s*[\d.]+\s*ms\s+statement:\s*)(.*?)(\s*)$",
+# Pattern 1: LOG: duration: ... ms statement/parse/bind/execute: <SQL>
+_DURATION_SQL_PATTERN = re.compile(
+    r"^(.*?duration:\s*[\d.]+\s*ms\s+(?:statement|parse|bind|execute)\s*(?:\S+)?:\s*)(.*?)(\s*)$",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -42,7 +42,19 @@ _EXECUTE_PATTERN = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-# Pattern 4: DETAIL: <SQL context> - often contains SQL in error contexts
+# Pattern 4: LOG: parse <name>: <SQL>
+_PARSE_PATTERN = re.compile(
+    r"^(.*?parse\s+\S+:\s*)(.*?)(\s*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# Pattern 5: LOG: bind <name>: <SQL>
+_BIND_PATTERN = re.compile(
+    r"^(.*?bind\s+\S+:\s*)(.*?)(\s*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# Pattern 6: DETAIL: <SQL context> - often contains SQL in error contexts
 _DETAIL_PATTERN = re.compile(
     r"^(DETAIL:\s*)(.*?)(\s*)$",
     re.IGNORECASE | re.DOTALL,
@@ -55,7 +67,9 @@ def detect_sql_content(message: str) -> SQLDetectionResult | None:
     Looks for PostgreSQL log message patterns that contain SQL:
     - LOG: statement: <SQL>
     - LOG: execute <name>: <SQL>
-    - LOG: duration: ... ms statement: <SQL>
+    - LOG: parse <name>: <SQL>
+    - LOG: bind <name>: <SQL>
+    - LOG: duration: ... ms statement/parse/bind/execute: <SQL>
     - DETAIL: <SQL context>
 
     Args:
@@ -69,8 +83,8 @@ def detect_sql_content(message: str) -> SQLDetectionResult | None:
         return None
 
     # Try patterns in order of specificity
-    # Duration + statement is most specific
-    match = _DURATION_STATEMENT_PATTERN.match(message)
+    # Duration + SQL command is most specific
+    match = _DURATION_SQL_PATTERN.match(message)
     if match:
         prefix, sql, suffix = match.groups()
         if sql.strip():
@@ -85,6 +99,20 @@ def detect_sql_content(message: str) -> SQLDetectionResult | None:
 
     # Execute prepared statement
     match = _EXECUTE_PATTERN.match(message)
+    if match:
+        prefix, sql, suffix = match.groups()
+        if sql.strip():
+            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
+
+    # Parse prepared statement
+    match = _PARSE_PATTERN.match(message)
+    if match:
+        prefix, sql, suffix = match.groups()
+        if sql.strip():
+            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
+
+    # Bind prepared statement
+    match = _BIND_PATTERN.match(message)
     if match:
         prefix, sql, suffix = match.groups()
         if sql.strip():

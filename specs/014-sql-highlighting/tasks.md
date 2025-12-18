@@ -83,15 +83,15 @@ Based on plan.md structure:
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Add unit tests for identifier tokenization (unquoted and quoted) in tests/test_sql_tokenizer.py
-- [ ] T022 [P] [US2] Add unit tests for identifier highlighting in tests/test_sql_highlighter.py
+- [x] T021 [P] [US2] Add unit tests for identifier tokenization (unquoted and quoted) in tests/test_sql_tokenizer.py
+- [x] T022 [P] [US2] Add unit tests for identifier highlighting in tests/test_sql_highlighter.py
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Implement unquoted identifier regex pattern ([a-zA-Z_][a-zA-Z0-9_]*) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T024 [US2] Implement quoted identifier regex pattern ("...") in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T025 [US2] Add IDENTIFIER and QUOTED_IDENTIFIER token types to tokenize() in pgtail_py/sql_tokenizer.py
-- [ ] T026 [US2] Add identifier style mapping (sql_identifier) to SQLHighlighter in pgtail_py/sql_highlighter.py
+- [x] T023 [US2] Implement unquoted identifier regex pattern ([a-zA-Z_][a-zA-Z0-9_]*) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T024 [US2] Implement quoted identifier regex pattern ("...") in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T025 [US2] Add IDENTIFIER and QUOTED_IDENTIFIER token types to tokenize() in pgtail_py/sql_tokenizer.py
+- [x] T026 [US2] Add identifier style mapping (sql_identifier) to SQLHighlighter in pgtail_py/sql_highlighter.py
 
 **Checkpoint**: Identifiers highlighted - User Stories 1 AND 2 both work independently
 

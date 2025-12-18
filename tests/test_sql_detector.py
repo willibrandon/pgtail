@@ -105,3 +105,46 @@ class TestDetectSQLContent:
         assert result is not None
         reconstructed = result.prefix + result.sql + result.suffix
         assert reconstructed == message
+
+    def test_detect_parse_pattern(self) -> None:
+        """Should detect 'parse <name>:' pattern."""
+        message = "parse <unnamed>: SELECT id FROM items"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "parse" in result.prefix.lower()
+        assert "SELECT" in result.sql
+
+    def test_detect_bind_pattern(self) -> None:
+        """Should detect 'bind <name>:' pattern."""
+        message = "bind <unnamed>: SELECT id FROM items WHERE active = $1"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "bind" in result.prefix.lower()
+        assert "SELECT" in result.sql
+
+    def test_detect_duration_parse_pattern(self) -> None:
+        """Should detect 'duration: ... ms parse <name>:' pattern."""
+        message = "duration: 0.056 ms  parse <unnamed>: SELECT id FROM items"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "duration" in result.prefix.lower()
+        assert "parse" in result.prefix.lower()
+        assert "SELECT" in result.sql
+
+    def test_detect_duration_bind_pattern(self) -> None:
+        """Should detect 'duration: ... ms bind <name>:' pattern."""
+        message = "duration: 0.244 ms  bind <unnamed>: SELECT id FROM items"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "duration" in result.prefix.lower()
+        assert "bind" in result.prefix.lower()
+        assert "SELECT" in result.sql
+
+    def test_detect_duration_execute_pattern(self) -> None:
+        """Should detect 'duration: ... ms execute <name>:' pattern."""
+        message = "duration: 0.075 ms  execute <unnamed>: SELECT id FROM items"
+        result = detect_sql_content(message)
+        assert result is not None
+        assert "duration" in result.prefix.lower()
+        assert "execute" in result.prefix.lower()
+        assert "SELECT" in result.sql
