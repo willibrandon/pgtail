@@ -90,7 +90,12 @@ Available commands:
   fullscreen        Enter fullscreen TUI mode (alias: fs)
                     q         Exit fullscreen, return to REPL
                     j/k       Scroll up/down one line
-                    Escape    Toggle follow/browse mode
+                    g/G       Jump to top/bottom
+                    Ctrl+D/U  Half-page down/up
+                    /pattern  Search forward (?=backward)
+                    n/N       Next/prev search match
+                    f         Resume follow mode
+                    Escape    Clear search or toggle follow/browse
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting

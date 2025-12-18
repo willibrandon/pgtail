@@ -144,15 +144,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T043 [P] [US3] Unit test for page navigation keybindings in tests/unit/fullscreen/test_keybindings.py
+- [X] T043 [P] [US3] Unit test for page navigation keybindings in tests/unit/fullscreen/test_keybindings.py
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Add Ctrl+D keybinding for half-page down in pgtail_py/fullscreen/keybindings.py
-- [ ] T045 [US3] Add Ctrl+U keybinding for half-page up in pgtail_py/fullscreen/keybindings.py
-- [ ] T046 [US3] Add g keybinding to jump to top in pgtail_py/fullscreen/keybindings.py
-- [ ] T047 [US3] Add G keybinding to jump to bottom in pgtail_py/fullscreen/keybindings.py
-- [ ] T048 [US3] Enable enable_page_navigation_bindings in Application in pgtail_py/fullscreen/app.py
+- [X] T044 [US3] Add Ctrl+D keybinding for half-page down in pgtail_py/fullscreen/keybindings.py
+- [X] T045 [US3] Add Ctrl+U keybinding for half-page up in pgtail_py/fullscreen/keybindings.py
+- [X] T046 [US3] Add g keybinding to jump to top in pgtail_py/fullscreen/keybindings.py
+- [X] T047 [US3] Add G keybinding to jump to bottom in pgtail_py/fullscreen/keybindings.py
+- [X] T048 [US3] Enable enable_page_navigation_bindings in Application in pgtail_py/fullscreen/app.py
 
 **Checkpoint**: Power users have full vim-style navigation
 

@@ -52,17 +52,20 @@ class TestEscapeKeybinding:
 
         kb = create_keybindings(state)
 
-        # Find the escape binding for toggle (has toggle_follow_mode in handler name)
+        # Find the escape binding for non-search (has escape_handler in handler name)
         bindings = list(kb.bindings)
         escape_bindings = [
             b for b in bindings
-            if "escape" in str(b.keys) and "toggle_follow_mode" in str(b.handler)
+            if "escape" in str(b.keys) and "escape_handler" in str(b.handler)
         ]
         assert len(escape_bindings) == 1
 
-        # Create mock event
+        # Create mock event with no search pattern
         event = MagicMock()
         event.app = MagicMock()
+        event.app.layout.current_control = MagicMock()
+        event.app.layout.current_control.search_state = MagicMock()
+        event.app.layout.current_control.search_state.text = ""  # No search pattern
 
         # Execute the handler
         escape_bindings[0].handler(event)
@@ -79,17 +82,20 @@ class TestEscapeKeybinding:
 
         kb = create_keybindings(state)
 
-        # Find the escape binding for toggle (has toggle_follow_mode in handler name)
+        # Find the escape binding for non-search (has escape_handler in handler name)
         bindings = list(kb.bindings)
         escape_bindings = [
             b for b in bindings
-            if "escape" in str(b.keys) and "toggle_follow_mode" in str(b.handler)
+            if "escape" in str(b.keys) and "escape_handler" in str(b.handler)
         ]
         assert len(escape_bindings) == 1
 
-        # Create mock event
+        # Create mock event with no search pattern
         event = MagicMock()
         event.app = MagicMock()
+        event.app.layout.current_control = MagicMock()
+        event.app.layout.current_control.search_state = MagicMock()
+        event.app.layout.current_control.search_state.text = ""  # No search pattern
 
         # Execute the handler
         escape_bindings[0].handler(event)
@@ -284,3 +290,84 @@ class TestSearchKeybindings:
         # Check for 'N' (shift+n) key binding
         N_bindings = [b for b in bindings if "'N'" in str(b.keys)]
         assert len(N_bindings) >= 1
+
+
+class TestPageNavigationKeybindings:
+    """Tests for page navigation keybindings (Ctrl+D/U, g/G)."""
+
+    def test_ctrl_d_binding_exists(self) -> None:
+        """Ctrl+D keybinding is registered for half-page down."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        ctrl_d_bindings = [b for b in bindings if "c-d" in str(b.keys)]
+        assert len(ctrl_d_bindings) == 1
+
+    def test_ctrl_u_binding_exists(self) -> None:
+        """Ctrl+U keybinding is registered for half-page up."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        ctrl_u_bindings = [b for b in bindings if "c-u" in str(b.keys)]
+        assert len(ctrl_u_bindings) == 1
+
+    def test_g_binding_exists(self) -> None:
+        """g keybinding is registered for jump to top."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        g_bindings = [b for b in bindings if "'g'" in str(b.keys)]
+        assert len(g_bindings) == 1
+
+    def test_G_binding_exists(self) -> None:
+        """G keybinding is registered for jump to bottom."""
+        state = FullscreenState()
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        G_bindings = [b for b in bindings if "'G'" in str(b.keys)]
+        assert len(G_bindings) == 1
+
+    def test_ctrl_d_enters_browse_mode(self) -> None:
+        """Ctrl+D enters browse mode."""
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        ctrl_d_bindings = [b for b in bindings if "c-d" in str(b.keys)]
+
+        event = MagicMock()
+        event.app = MagicMock()
+        event.current_buffer = MagicMock()
+        event.current_buffer.document = MagicMock()
+        event.current_buffer.document.line_count = 100
+        event.current_buffer.document.cursor_position_row = 10
+
+        ctrl_d_bindings[0].handler(event)
+
+        assert state.mode == DisplayMode.BROWSE
+
+    def test_g_enters_browse_mode(self) -> None:
+        """g enters browse mode and moves to top."""
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        g_bindings = [b for b in bindings if "'g'" in str(b.keys)]
+
+        event = MagicMock()
+        event.app = MagicMock()
+        event.current_buffer = MagicMock()
+        event.current_buffer.cursor_position = 500
+
+        g_bindings[0].handler(event)
+
+        assert state.mode == DisplayMode.BROWSE
+        assert event.current_buffer.cursor_position == 0

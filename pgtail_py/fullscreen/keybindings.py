@@ -21,6 +21,10 @@ def create_keybindings(state: FullscreenState) -> KeyBindings:
     - f: Enter follow mode (resume auto-scroll)
     - j/Down: Scroll down one line (enters browse mode)
     - k/Up: Scroll up one line (enters browse mode)
+    - Ctrl+D: Half-page down (enters browse mode)
+    - Ctrl+U: Half-page up (enters browse mode)
+    - g: Jump to top (enters browse mode)
+    - G: Jump to bottom (enters follow mode)
     - /: Start forward search
     - ?: Start backward search
     - n: Next search match
@@ -132,5 +136,50 @@ def create_keybindings(state: FullscreenState) -> KeyBindings:
             buffer_control.buffer.apply_search(
                 inverted, include_current_position=False, count=1
             )
+
+    # Page navigation keybindings
+    @kb.add("c-d", filter=~is_searching)
+    def half_page_down(event: object) -> None:
+        """Scroll down half a page (enters browse mode)."""
+        state.enter_browse()
+        buffer = event.current_buffer  # type: ignore[attr-defined]
+        # Move cursor down by half the visible lines (estimate ~20 lines)
+        lines_to_move = max(1, buffer.document.line_count // 20)
+        for _ in range(lines_to_move):
+            offset = buffer.document.get_cursor_down_position()
+            if offset == 0:
+                break
+            buffer.cursor_position += offset
+        event.app.invalidate()  # type: ignore[attr-defined]
+
+    @kb.add("c-u", filter=~is_searching)
+    def half_page_up(event: object) -> None:
+        """Scroll up half a page (enters browse mode)."""
+        state.enter_browse()
+        buffer = event.current_buffer  # type: ignore[attr-defined]
+        # Move cursor up by half the visible lines (estimate ~20 lines)
+        lines_to_move = max(1, buffer.document.line_count // 20)
+        for _ in range(lines_to_move):
+            offset = buffer.document.get_cursor_up_position()
+            if offset == 0:
+                break
+            buffer.cursor_position += offset
+        event.app.invalidate()  # type: ignore[attr-defined]
+
+    @kb.add("g", filter=~is_searching)
+    def jump_to_top(event: object) -> None:
+        """Jump to top of buffer (enters browse mode)."""
+        state.enter_browse()
+        buffer = event.current_buffer  # type: ignore[attr-defined]
+        buffer.cursor_position = 0
+        event.app.invalidate()  # type: ignore[attr-defined]
+
+    @kb.add("G", filter=~is_searching)
+    def jump_to_bottom(event: object) -> None:
+        """Jump to bottom of buffer (enters follow mode)."""
+        state.enter_follow()
+        buffer = event.current_buffer  # type: ignore[attr-defined]
+        buffer.cursor_position = len(buffer.text)
+        event.app.invalidate()  # type: ignore[attr-defined]
 
     return kb
