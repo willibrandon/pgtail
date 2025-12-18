@@ -93,18 +93,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T024 [P] [US1] Unit test for toggle_follow() state transitions in tests/unit/fullscreen/test_state.py
-- [ ] T025 [P] [US1] Unit test for scroll keybindings in tests/unit/fullscreen/test_keybindings.py
+- [X] T024 [P] [US1] Unit test for toggle_follow() state transitions in tests/unit/fullscreen/test_state.py
+- [X] T025 [P] [US1] Unit test for scroll keybindings in tests/unit/fullscreen/test_keybindings.py
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Add Escape keybinding to toggle follow/browse in pgtail_py/fullscreen/keybindings.py
-- [ ] T027 [US1] Add j/k keybindings for line scroll in pgtail_py/fullscreen/keybindings.py
-- [ ] T028 [US1] Add Up/Down arrow keybindings for line scroll in pgtail_py/fullscreen/keybindings.py
-- [ ] T029 [US1] Add f keybinding to enter follow mode in pgtail_py/fullscreen/keybindings.py
-- [ ] T030 [US1] Implement auto-scroll to bottom in follow mode in pgtail_py/fullscreen/app.py
-- [ ] T031 [US1] Update status bar to show FOLLOW/BROWSE mode in pgtail_py/fullscreen/layout.py
-- [ ] T032 [US1] Auto-pause follow mode on manual scroll in pgtail_py/fullscreen/keybindings.py
+- [X] T026 [US1] Add Escape keybinding to toggle follow/browse in pgtail_py/fullscreen/keybindings.py
+- [X] T027 [US1] Add j/k keybindings for line scroll in pgtail_py/fullscreen/keybindings.py
+- [X] T028 [US1] Add Up/Down arrow keybindings for line scroll in pgtail_py/fullscreen/keybindings.py
+- [X] T029 [US1] Add f keybinding to enter follow mode in pgtail_py/fullscreen/keybindings.py
+- [X] T030 [US1] Implement auto-scroll to bottom in follow mode in pgtail_py/fullscreen/app.py
+- [X] T031 [US1] Update status bar to show FOLLOW/BROWSE mode in pgtail_py/fullscreen/layout.py
+- [X] T032 [US1] Auto-pause follow mode on manual scroll in pgtail_py/fullscreen/keybindings.py
 
 **Checkpoint**: User can browse history and resume live tailing
 
