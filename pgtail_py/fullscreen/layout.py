@@ -91,13 +91,17 @@ def create_layout(
     """
     search_toolbar = SearchToolbar()
 
+    text = buffer.get_text()
     text_area = TextArea(
-        text=buffer.get_text(),
+        text=text,
         read_only=True,
         scrollbar=True,
         search_field=search_toolbar,
         lexer=BufferLexer(buffer),
     )
+
+    # Start at the end (tail) for follow mode
+    text_area.buffer.cursor_position = len(text)
 
     # Wrap the Window's scroll methods to enter browse mode on mouse scroll
     window = text_area.window
