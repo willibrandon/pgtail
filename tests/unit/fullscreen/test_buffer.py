@@ -168,3 +168,63 @@ class TestLogBufferClear:
         buf.append("line1")
         buf.clear()
         assert buf.maxlen == 100
+
+
+class TestLogBufferNewlineSplitting:
+    """Tests for newline splitting in append()."""
+
+    def test_plain_string_with_newline_splits(self) -> None:
+        """Plain string with newline is split into multiple lines."""
+        buf = LogBuffer()
+        buf.append("line1\nline2")
+        assert len(buf) == 2
+        assert buf.get_plain_lines() == ["line1", "line2"]
+
+    def test_plain_string_multiple_newlines(self) -> None:
+        """Multiple newlines create multiple lines."""
+        buf = LogBuffer()
+        buf.append("a\nb\nc")
+        assert len(buf) == 3
+        assert buf.get_plain_lines() == ["a", "b", "c"]
+
+    def test_formatted_text_with_newline_splits(self) -> None:
+        """FormattedText with newline is split preserving styles."""
+        from prompt_toolkit.formatted_text import FormattedText
+
+        buf = LogBuffer()
+        buf.append(FormattedText([("class:a", "hello\nworld")]))
+        assert len(buf) == 2
+        lines = buf.get_lines()
+        assert lines[0] == [("class:a", "hello")]
+        assert lines[1] == [("class:a", "world")]
+
+    def test_formatted_text_newline_in_middle(self) -> None:
+        """Newline in middle of FormattedText splits correctly."""
+        from prompt_toolkit.formatted_text import FormattedText
+
+        buf = LogBuffer()
+        buf.append(
+            FormattedText([("class:a", "foo"), ("class:b", "bar\nbaz"), ("class:c", "qux")])
+        )
+        assert len(buf) == 2
+        lines = buf.get_lines()
+        # First line: "foo" + "bar"
+        assert ("class:a", "foo") in lines[0]
+        assert ("class:b", "bar") in lines[0]
+        # Second line: "baz" + "qux"
+        assert ("class:b", "baz") in lines[1]
+        assert ("class:c", "qux") in lines[1]
+
+    def test_get_text_after_split_matches_original(self) -> None:
+        """get_text() after split should reconstruct original content."""
+        buf = LogBuffer()
+        buf.append("line1\nline2\nline3")
+        # get_text joins with \n, so result should match original
+        assert buf.get_text() == "line1\nline2\nline3"
+
+    def test_trailing_newline_creates_empty_line(self) -> None:
+        """Trailing newline creates an empty line."""
+        buf = LogBuffer()
+        buf.append("line1\n")
+        assert len(buf) == 2
+        assert buf.get_plain_lines() == ["line1", ""]

@@ -43,15 +43,56 @@ class LogBuffer:
         If buffer is at capacity, oldest line is automatically evicted.
         Thread-safe via GIL (single atomic append).
 
+        Entries containing newlines are split into multiple lines to ensure
+        each visual line in the TextArea maps to one buffer entry.
+
         Args:
             line: FormattedText with styling or plain string
         """
         if isinstance(line, str):
-            # Plain string - wrap in empty style
-            self._lines.append([("", line)])
+            # Plain string - split on newlines
+            for subline in line.split("\n"):
+                self._lines.append([("", subline)])
         else:
-            # FormattedText - convert to list of tuples
-            self._lines.append(list(line))
+            # FormattedText - split on newlines while preserving styles
+            styled_lines = self._split_on_newlines(list(line))
+            for styled_line in styled_lines:
+                self._lines.append(styled_line)
+
+    def _split_on_newlines(self, fragments: StyledLine) -> list[StyledLine]:
+        """Split styled fragments on newlines into multiple lines.
+
+        Args:
+            fragments: List of (style, text) tuples
+
+        Returns:
+            List of styled lines, split on newline boundaries
+        """
+        if not fragments:
+            return [[]]
+
+        lines: list[StyledLine] = []
+        current_line: StyledLine = []
+
+        for style, text in fragments:
+            if "\n" not in text:
+                # No newline - add entire fragment to current line
+                if text:  # Skip empty fragments
+                    current_line.append((style, text))
+            else:
+                # Split on newlines
+                parts = text.split("\n")
+                for i, part in enumerate(parts):
+                    if i > 0:
+                        # Start a new line
+                        lines.append(current_line)
+                        current_line = []
+                    if part:  # Skip empty parts
+                        current_line.append((style, part))
+
+        # Don't forget the last line
+        lines.append(current_line)
+        return lines
 
     def get_formatted_text(self) -> list[tuple[str, str]]:
         """Get all lines as FormattedText tuples for styled display.
