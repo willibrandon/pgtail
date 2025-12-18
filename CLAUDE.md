@@ -249,10 +249,10 @@ The `fullscreen` (or `fs`) command enters a full-screen terminal UI for browsing
 - `pgtail_py/cli_fullscreen.py` - fullscreen command handler
 
 ## Recent Changes
+- 013-color-themes: Added Python 3.10+ + prompt_toolkit >=3.0.0 (styling/FormattedText), tomlkit >=0.12.0 (config files)
 - 012-fullscreen-tui: Added Python 3.10+ + prompt_toolkit >=3.0.0 (full-screen Application, KeyBindings, Layout, Buffer)
 - 011-desktop-notifications: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0
-- 010-connection-tracking: Connection tracking dashboard with summary, history, watch modes, and filtering
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0 (full-screen Application, KeyBindings, Layout, Buffer) (012-fullscreen-tui)
-- In-memory circular buffer (10,000 lines max, no persistence) (012-fullscreen-tui)
+- Python 3.10+ + prompt_toolkit >=3.0.0 (styling/FormattedText), tomlkit >=0.12.0 (config files) (013-color-themes)
+- TOML files at platform-specific config paths (existing config.py infrastructure) (013-color-themes)
