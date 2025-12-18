@@ -105,21 +105,21 @@ Based on plan.md structure:
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Add unit tests for string literal tokenization (single-quoted, dollar-quoted) in tests/test_sql_tokenizer.py
-- [ ] T028 [P] [US3] Add unit tests for numeric literal tokenization in tests/test_sql_tokenizer.py
-- [ ] T029 [P] [US3] Add unit tests for operator tokenization in tests/test_sql_tokenizer.py
-- [ ] T030 [P] [US3] Add unit tests for comment tokenization (-- and /* */) in tests/test_sql_tokenizer.py
+- [x] T027 [P] [US3] Add unit tests for string literal tokenization (single-quoted, dollar-quoted) in tests/test_sql_tokenizer.py
+- [x] T028 [P] [US3] Add unit tests for numeric literal tokenization in tests/test_sql_tokenizer.py
+- [x] T029 [P] [US3] Add unit tests for operator tokenization in tests/test_sql_tokenizer.py
+- [x] T030 [P] [US3] Add unit tests for comment tokenization (-- and /* */) in tests/test_sql_tokenizer.py
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Implement single-quoted string regex pattern ('...') with escape handling in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T032 [US3] Implement dollar-quoted string regex pattern ($$...$$ and $tag$...$tag$) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T033 [US3] Implement numeric literal regex pattern ([0-9]+(\.[0-9]+)?) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T034 [US3] Implement operator regex patterns (multi-char then single-char) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T035 [US3] Implement comment regex patterns (-- and /* */) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T036 [US3] Implement function name detection (identifier followed by open paren) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T037 [US3] Add STRING, NUMBER, OPERATOR, COMMENT, FUNCTION style mappings to SQLHighlighter in pgtail_py/sql_highlighter.py
-- [ ] T038 [US3] Ensure token matching order follows research.md (comments first, then strings, then keywords, etc.) in pgtail_py/sql_tokenizer.py
+- [x] T031 [US3] Implement single-quoted string regex pattern ('...') with escape handling in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T032 [US3] Implement dollar-quoted string regex pattern ($$...$$ and $tag$...$tag$) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T033 [US3] Implement numeric literal regex pattern ([0-9]+(\.[0-9]+)?) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T034 [US3] Implement operator regex patterns (multi-char then single-char) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T035 [US3] Implement comment regex patterns (-- and /* */) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T036 [US3] Implement function name detection (identifier followed by open paren) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T037 [US3] Add STRING, NUMBER, OPERATOR, COMMENT, FUNCTION style mappings to SQLHighlighter in pgtail_py/sql_highlighter.py
+- [x] T038 [US3] Ensure token matching order follows research.md (comments first, then strings, then keywords, etc.) in pgtail_py/sql_tokenizer.py
 
 **Checkpoint**: All token types highlighted - full SQL highlighting in streaming mode
 

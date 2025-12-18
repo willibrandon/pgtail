@@ -350,3 +350,519 @@ class TestSQLTokenizerIdentifiers:
         assert len(identifiers) == 2
         assert identifiers[0].text == "public"
         assert identifiers[1].text == "users"
+
+
+class TestSQLTokenizerStrings:
+    """Test string literal tokenization (User Story 3 - T027)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_single_quoted_string_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Simple single-quoted string should be recognized."""
+        tokens = tokenizer.tokenize("'hello'")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "'hello'"
+
+    def test_single_quoted_string_with_spaces(self, tokenizer: SQLTokenizer) -> None:
+        """Single-quoted string with spaces should be recognized."""
+        tokens = tokenizer.tokenize("'hello world'")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "'hello world'"
+
+    def test_single_quoted_string_escaped_quote(self, tokenizer: SQLTokenizer) -> None:
+        """Single-quoted string with escaped quote ('') should be recognized."""
+        tokens = tokenizer.tokenize("'it''s a test'")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "'it''s a test'"
+
+    def test_single_quoted_string_empty(self, tokenizer: SQLTokenizer) -> None:
+        """Empty single-quoted string should be recognized."""
+        tokens = tokenizer.tokenize("''")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "''"
+
+    def test_dollar_quoted_string_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Simple dollar-quoted string ($$...$$) should be recognized."""
+        tokens = tokenizer.tokenize("$$hello$$")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "$$hello$$"
+
+    def test_dollar_quoted_string_with_tag(self, tokenizer: SQLTokenizer) -> None:
+        """Tagged dollar-quoted string ($tag$...$tag$) should be recognized."""
+        tokens = tokenizer.tokenize("$body$SELECT 1$body$")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "$body$SELECT 1$body$"
+
+    def test_dollar_quoted_string_empty(self, tokenizer: SQLTokenizer) -> None:
+        """Empty dollar-quoted string should be recognized."""
+        tokens = tokenizer.tokenize("$$$$")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "$$$$"
+
+    def test_dollar_quoted_string_with_single_quotes(self, tokenizer: SQLTokenizer) -> None:
+        """Dollar-quoted string containing single quotes should be recognized."""
+        tokens = tokenizer.tokenize("$$it's a test$$")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "$$it's a test$$"
+
+    def test_dollar_quoted_string_with_newlines(self, tokenizer: SQLTokenizer) -> None:
+        """Dollar-quoted string with newlines should be recognized."""
+        tokens = tokenizer.tokenize("$$line1\nline2$$")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.STRING
+        assert tokens[0].text == "$$line1\nline2$$"
+
+    def test_string_in_where_clause(self, tokenizer: SQLTokenizer) -> None:
+        """String literal in WHERE clause should be recognized."""
+        tokens = tokenizer.tokenize("WHERE name = 'test'")
+        strings = [t for t in tokens if t.type == SQLTokenType.STRING]
+        assert len(strings) == 1
+        assert strings[0].text == "'test'"
+
+    def test_multiple_strings(self, tokenizer: SQLTokenizer) -> None:
+        """Multiple string literals should all be recognized."""
+        tokens = tokenizer.tokenize("'a', 'b', 'c'")
+        strings = [t for t in tokens if t.type == SQLTokenType.STRING]
+        assert len(strings) == 3
+
+    def test_string_does_not_consume_next_token(self, tokenizer: SQLTokenizer) -> None:
+        """String should not consume following tokens."""
+        tokens = tokenizer.tokenize("'test' AND")
+        strings = [t for t in tokens if t.type == SQLTokenType.STRING]
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(strings) == 1
+        assert len(keywords) == 1
+
+
+class TestSQLTokenizerNumbers:
+    """Test numeric literal tokenization (User Story 3 - T028)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_integer_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Simple integer should be recognized."""
+        tokens = tokenizer.tokenize("42")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.NUMBER
+        assert tokens[0].text == "42"
+
+    def test_integer_zero(self, tokenizer: SQLTokenizer) -> None:
+        """Zero should be recognized."""
+        tokens = tokenizer.tokenize("0")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.NUMBER
+        assert tokens[0].text == "0"
+
+    def test_integer_large(self, tokenizer: SQLTokenizer) -> None:
+        """Large integer should be recognized."""
+        tokens = tokenizer.tokenize("123456789")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.NUMBER
+        assert tokens[0].text == "123456789"
+
+    def test_decimal_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Simple decimal should be recognized."""
+        tokens = tokenizer.tokenize("3.14")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.NUMBER
+        assert tokens[0].text == "3.14"
+
+    def test_decimal_leading_zero(self, tokenizer: SQLTokenizer) -> None:
+        """Decimal with leading zero should be recognized."""
+        tokens = tokenizer.tokenize("0.5")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.NUMBER
+        assert tokens[0].text == "0.5"
+
+    def test_decimal_multiple_places(self, tokenizer: SQLTokenizer) -> None:
+        """Decimal with multiple places should be recognized."""
+        tokens = tokenizer.tokenize("123.456789")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.NUMBER
+        assert tokens[0].text == "123.456789"
+
+    def test_number_in_comparison(self, tokenizer: SQLTokenizer) -> None:
+        """Number in comparison should be recognized."""
+        tokens = tokenizer.tokenize("id = 42")
+        numbers = [t for t in tokens if t.type == SQLTokenType.NUMBER]
+        assert len(numbers) == 1
+        assert numbers[0].text == "42"
+
+    def test_number_in_limit(self, tokenizer: SQLTokenizer) -> None:
+        """Number in LIMIT clause should be recognized."""
+        tokens = tokenizer.tokenize("LIMIT 10")
+        numbers = [t for t in tokens if t.type == SQLTokenType.NUMBER]
+        assert len(numbers) == 1
+        assert numbers[0].text == "10"
+
+    def test_multiple_numbers(self, tokenizer: SQLTokenizer) -> None:
+        """Multiple numbers should all be recognized."""
+        tokens = tokenizer.tokenize("1, 2, 3")
+        numbers = [t for t in tokens if t.type == SQLTokenType.NUMBER]
+        assert len(numbers) == 3
+
+    def test_negative_number_as_operator_and_number(self, tokenizer: SQLTokenizer) -> None:
+        """Negative number should tokenize as operator + number (- 42)."""
+        # In SQL tokenization, -42 is typically operator (-) + number (42)
+        tokens = tokenizer.tokenize("-42")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        numbers = [t for t in tokens if t.type == SQLTokenType.NUMBER]
+        assert len(operators) == 1
+        assert len(numbers) == 1
+        assert numbers[0].text == "42"
+
+
+class TestSQLTokenizerOperators:
+    """Test operator tokenization (User Story 3 - T029)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_equals_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Equals operator should be recognized."""
+        tokens = tokenizer.tokenize("=")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "="
+
+    def test_not_equals_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Not equals (<>) operator should be recognized as single token."""
+        tokens = tokenizer.tokenize("<>")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == "<>"
+
+    def test_not_equals_bang_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Not equals (!=) operator should be recognized as single token."""
+        tokens = tokenizer.tokenize("!=")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == "!="
+
+    def test_less_than_or_equal(self, tokenizer: SQLTokenizer) -> None:
+        """Less than or equal (<=) should be recognized."""
+        tokens = tokenizer.tokenize("<=")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == "<="
+
+    def test_greater_than_or_equal(self, tokenizer: SQLTokenizer) -> None:
+        """Greater than or equal (>=) should be recognized."""
+        tokens = tokenizer.tokenize(">=")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == ">="
+
+    def test_less_than(self, tokenizer: SQLTokenizer) -> None:
+        """Less than (<) should be recognized."""
+        tokens = tokenizer.tokenize("<")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "<"
+
+    def test_greater_than(self, tokenizer: SQLTokenizer) -> None:
+        """Greater than (>) should be recognized."""
+        tokens = tokenizer.tokenize(">")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == ">"
+
+    def test_concatenation_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Concatenation (||) operator should be recognized."""
+        tokens = tokenizer.tokenize("||")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == "||"
+
+    def test_type_cast_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Type cast (::) operator should be recognized."""
+        tokens = tokenizer.tokenize("::")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == "::"
+
+    def test_plus_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Plus operator should be recognized."""
+        tokens = tokenizer.tokenize("+")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "+"
+
+    def test_minus_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Minus operator should be recognized."""
+        tokens = tokenizer.tokenize("-")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "-"
+
+    def test_multiply_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Multiply operator should be recognized."""
+        tokens = tokenizer.tokenize("*")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "*"
+
+    def test_divide_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Divide operator should be recognized."""
+        tokens = tokenizer.tokenize("/")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "/"
+
+    def test_modulo_operator(self, tokenizer: SQLTokenizer) -> None:
+        """Modulo (%) operator should be recognized."""
+        tokens = tokenizer.tokenize("%")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.OPERATOR
+        assert tokens[0].text == "%"
+
+    def test_operator_in_expression(self, tokenizer: SQLTokenizer) -> None:
+        """Operators in expression should be recognized."""
+        tokens = tokenizer.tokenize("a + b * c")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 2
+        assert operators[0].text == "+"
+        assert operators[1].text == "*"
+
+    def test_comparison_expression(self, tokenizer: SQLTokenizer) -> None:
+        """Comparison operators in expression should be recognized."""
+        tokens = tokenizer.tokenize("x >= 5 AND y <> 10")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 2
+        assert operators[0].text == ">="
+        assert operators[1].text == "<>"
+
+    def test_type_cast_in_expression(self, tokenizer: SQLTokenizer) -> None:
+        """Type cast in expression should be recognized."""
+        tokens = tokenizer.tokenize("value::integer")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        assert len(operators) == 1
+        assert operators[0].text == "::"
+
+
+class TestSQLTokenizerComments:
+    """Test comment tokenization (User Story 3 - T030)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_single_line_comment_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Single line comment (--) should be recognized."""
+        tokens = tokenizer.tokenize("-- this is a comment")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.COMMENT
+        assert tokens[0].text == "-- this is a comment"
+
+    def test_single_line_comment_empty(self, tokenizer: SQLTokenizer) -> None:
+        """Empty single line comment should be recognized."""
+        tokens = tokenizer.tokenize("--")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.COMMENT
+        assert tokens[0].text == "--"
+
+    def test_single_line_comment_after_sql(self, tokenizer: SQLTokenizer) -> None:
+        """Single line comment after SQL should be recognized."""
+        tokens = tokenizer.tokenize("SELECT 1 -- comment")
+        comments = [t for t in tokens if t.type == SQLTokenType.COMMENT]
+        assert len(comments) == 1
+        assert comments[0].text == "-- comment"
+
+    def test_block_comment_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Block comment (/* */) should be recognized."""
+        tokens = tokenizer.tokenize("/* comment */")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.COMMENT
+        assert tokens[0].text == "/* comment */"
+
+    def test_block_comment_empty(self, tokenizer: SQLTokenizer) -> None:
+        """Empty block comment should be recognized."""
+        tokens = tokenizer.tokenize("/**/")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.COMMENT
+        assert tokens[0].text == "/**/"
+
+    def test_block_comment_multiline(self, tokenizer: SQLTokenizer) -> None:
+        """Multi-line block comment should be recognized."""
+        tokens = tokenizer.tokenize("/* line1\nline2 */")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.COMMENT
+        assert "line1" in tokens[0].text
+        assert "line2" in tokens[0].text
+
+    def test_block_comment_with_asterisks(self, tokenizer: SQLTokenizer) -> None:
+        """Block comment with asterisks inside should be recognized."""
+        tokens = tokenizer.tokenize("/* * * * */")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.COMMENT
+        assert tokens[0].text == "/* * * * */"
+
+    def test_block_comment_in_select(self, tokenizer: SQLTokenizer) -> None:
+        """Block comment in SELECT should be recognized."""
+        tokens = tokenizer.tokenize("SELECT /* columns */ id FROM users")
+        comments = [t for t in tokens if t.type == SQLTokenType.COMMENT]
+        assert len(comments) == 1
+        assert comments[0].text == "/* columns */"
+
+    def test_comment_does_not_consume_following_code(self, tokenizer: SQLTokenizer) -> None:
+        """Comment should not consume following code."""
+        tokens = tokenizer.tokenize("-- comment\nSELECT")
+        comments = [t for t in tokens if t.type == SQLTokenType.COMMENT]
+        keywords = [t for t in tokens if t.type == SQLTokenType.KEYWORD]
+        assert len(comments) == 1
+        assert len(keywords) == 1
+        assert keywords[0].text == "SELECT"
+
+    def test_minus_not_comment_without_second_dash(self, tokenizer: SQLTokenizer) -> None:
+        """Single minus should be operator, not start of comment."""
+        tokens = tokenizer.tokenize("5 - 3")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        comments = [t for t in tokens if t.type == SQLTokenType.COMMENT]
+        assert len(operators) == 1
+        assert operators[0].text == "-"
+        assert len(comments) == 0
+
+    def test_slash_not_comment_without_asterisk(self, tokenizer: SQLTokenizer) -> None:
+        """Single slash should be operator, not start of comment."""
+        tokens = tokenizer.tokenize("10 / 2")
+        operators = [t for t in tokens if t.type == SQLTokenType.OPERATOR]
+        comments = [t for t in tokens if t.type == SQLTokenType.COMMENT]
+        assert len(operators) == 1
+        assert operators[0].text == "/"
+        assert len(comments) == 0
+
+
+class TestSQLTokenizerFunctions:
+    """Test function name tokenization (User Story 3)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_function_simple(self, tokenizer: SQLTokenizer) -> None:
+        """Function name followed by ( should be recognized."""
+        tokens = tokenizer.tokenize("count(")
+        functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+        assert len(functions) == 1
+        assert functions[0].text == "count"
+
+    def test_function_with_argument(self, tokenizer: SQLTokenizer) -> None:
+        """Function with argument should have function type."""
+        tokens = tokenizer.tokenize("count(id)")
+        functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+        assert len(functions) == 1
+        assert functions[0].text == "count"
+
+    def test_function_upper_case(self, tokenizer: SQLTokenizer) -> None:
+        """Uppercase function name should be recognized."""
+        tokens = tokenizer.tokenize("COUNT(id)")
+        functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+        assert len(functions) == 1
+        assert functions[0].text == "COUNT"
+
+    def test_function_nested(self, tokenizer: SQLTokenizer) -> None:
+        """Nested functions should both be recognized."""
+        tokens = tokenizer.tokenize("UPPER(TRIM(name))")
+        functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+        assert len(functions) == 2
+        texts = [f.text for f in functions]
+        assert "UPPER" in texts
+        assert "TRIM" in texts
+
+    def test_aggregate_functions(self, tokenizer: SQLTokenizer) -> None:
+        """Aggregate functions should be recognized."""
+        for func in ["sum", "avg", "min", "max", "count"]:
+            tokens = tokenizer.tokenize(f"{func}(value)")
+            functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+            assert len(functions) == 1, f"{func} should be recognized as function"
+            assert functions[0].text == func
+
+    def test_string_function(self, tokenizer: SQLTokenizer) -> None:
+        """String functions should be recognized."""
+        tokens = tokenizer.tokenize("substring('hello', 1, 3)")
+        functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+        assert len(functions) == 1
+        assert functions[0].text == "substring"
+
+    def test_identifier_not_followed_by_paren_is_not_function(
+        self, tokenizer: SQLTokenizer
+    ) -> None:
+        """Identifier not followed by ( should NOT be function."""
+        tokens = tokenizer.tokenize("count = 5")
+        functions = [t for t in tokens if t.type == SQLTokenType.FUNCTION]
+        identifiers = [t for t in tokens if t.type == SQLTokenType.IDENTIFIER]
+        assert len(functions) == 0
+        assert len(identifiers) == 1
+        assert identifiers[0].text == "count"
+
+
+class TestSQLTokenizerPunctuation:
+    """Test punctuation tokenization (User Story 3)."""
+
+    @pytest.fixture
+    def tokenizer(self) -> SQLTokenizer:
+        """Create a tokenizer instance."""
+        return SQLTokenizer()
+
+    def test_comma(self, tokenizer: SQLTokenizer) -> None:
+        """Comma should be recognized as punctuation."""
+        tokens = tokenizer.tokenize(",")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.PUNCTUATION
+        assert tokens[0].text == ","
+
+    def test_semicolon(self, tokenizer: SQLTokenizer) -> None:
+        """Semicolon should be recognized as punctuation."""
+        tokens = tokenizer.tokenize(";")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.PUNCTUATION
+        assert tokens[0].text == ";"
+
+    def test_open_paren(self, tokenizer: SQLTokenizer) -> None:
+        """Open parenthesis should be recognized as punctuation."""
+        tokens = tokenizer.tokenize("(")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.PUNCTUATION
+        assert tokens[0].text == "("
+
+    def test_close_paren(self, tokenizer: SQLTokenizer) -> None:
+        """Close parenthesis should be recognized as punctuation."""
+        tokens = tokenizer.tokenize(")")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.PUNCTUATION
+        assert tokens[0].text == ")"
+
+    def test_dot(self, tokenizer: SQLTokenizer) -> None:
+        """Dot should be recognized as punctuation."""
+        tokens = tokenizer.tokenize(".")
+        assert len(tokens) == 1
+        assert tokens[0].type == SQLTokenType.PUNCTUATION
+        assert tokens[0].text == "."
+
+    def test_punctuation_in_expression(self, tokenizer: SQLTokenizer) -> None:
+        """Punctuation in expression should be recognized."""
+        tokens = tokenizer.tokenize("(a, b)")
+        punctuation = [t for t in tokens if t.type == SQLTokenType.PUNCTUATION]
+        assert len(punctuation) == 3
+        texts = [p.text for p in punctuation]
+        assert "(" in texts
+        assert "," in texts
+        assert ")" in texts

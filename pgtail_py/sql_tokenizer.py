@@ -158,17 +158,43 @@ SQL_KEYWORDS: frozenset[str] = frozenset(
 
 
 # Compiled regex patterns for tokenization
-# Order matters: more specific patterns first
+# Order matters per research.md: comments → strings → numbers → keywords → functions → operators → identifiers
 
 # Whitespace pattern
 _WHITESPACE_PATTERN = re.compile(r"\s+")
+
+# Comment patterns (must match before operators containing - or /)
+_BLOCK_COMMENT_PATTERN = re.compile(r"/\*.*?\*/", re.DOTALL)  # /* ... */
+_LINE_COMMENT_PATTERN = re.compile(r"--[^\n]*")  # -- to end of line
+
+# String patterns (must match before other patterns that could match inside strings)
+# Dollar-quoted strings: $$...$$ or $tag$...$tag$
+# Use a function-based approach since regex backreferences don't handle empty groups well
+_DOLLAR_EMPTY_STRING_PATTERN = re.compile(r"\$\$.*?\$\$", re.DOTALL)  # $$...$$
+_DOLLAR_TAG_STRING_PATTERN = re.compile(
+    r"\$([a-zA-Z_][a-zA-Z0-9_]*)\$.*?\$\1\$", re.DOTALL
+)  # $tag$...$tag$
+# Single-quoted strings with '' escape handling
+_SINGLE_STRING_PATTERN = re.compile(r"'(?:[^']|'')*'")
 
 # Quoted identifier pattern: "..." with "" for escaped quotes
 # Matches: "MyTable", "My Table", "Say ""Hello"""
 _QUOTED_IDENTIFIER_PATTERN = re.compile(r'"(?:[^"]|"")*"')
 
+# Number pattern: integers and decimals
+_NUMBER_PATTERN = re.compile(r"[0-9]+(?:\.[0-9]+)?")
+
 # Keyword/identifier pattern (word characters)
 _WORD_PATTERN = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
+
+# Multi-character operators (must match before single-char operators)
+_MULTI_OP_PATTERN = re.compile(r"<>|!=|<=|>=|\|\||::")
+
+# Single-character operators
+_SINGLE_OP_PATTERN = re.compile(r"[=<>+\-*/%!|:&^~]")
+
+# Punctuation characters
+_PUNCTUATION_PATTERN = re.compile(r"[(),;.\[\]]")
 
 
 class SQLTokenizer:
@@ -180,6 +206,20 @@ class SQLTokenizer:
 
     def tokenize(self, sql: str) -> list[SQLToken]:
         """Parse SQL string into tokens.
+
+        Token matching order per research.md:
+        1. Whitespace
+        2. Block comments (/* ... */)
+        3. Line comments (--)
+        4. Dollar-quoted strings ($$...$$ or $tag$...$tag$)
+        5. Single-quoted strings ('...')
+        6. Quoted identifiers ("...")
+        7. Numbers
+        8. Words (keywords, functions, identifiers)
+        9. Multi-character operators (<>, !=, etc.)
+        10. Single-character operators
+        11. Punctuation
+        12. Unknown
 
         Args:
             sql: SQL text to tokenize.
@@ -195,7 +235,7 @@ class SQLTokenizer:
         length = len(sql)
 
         while pos < length:
-            # Try whitespace
+            # 1. Try whitespace
             match = _WHITESPACE_PATTERN.match(sql, pos)
             if match:
                 tokens.append(
@@ -209,7 +249,66 @@ class SQLTokenizer:
                 pos = match.end()
                 continue
 
-            # Try quoted identifier ("...")
+            # 2. Try block comment (/* ... */)
+            match = _BLOCK_COMMENT_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.COMMENT,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 3. Try line comment (--)
+            match = _LINE_COMMENT_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.COMMENT,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 4. Try dollar-quoted string ($$...$$ or $tag$...$tag$)
+            # Try tagged version first ($tag$...$tag$), then empty ($$...$$)
+            match = _DOLLAR_TAG_STRING_PATTERN.match(sql, pos)
+            if not match:
+                match = _DOLLAR_EMPTY_STRING_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.STRING,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 5. Try single-quoted string ('...')
+            match = _SINGLE_STRING_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.STRING,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 6. Try quoted identifier ("...")
             match = _QUOTED_IDENTIFIER_PATTERN.match(sql, pos)
             if match:
                 tokens.append(
@@ -223,13 +322,34 @@ class SQLTokenizer:
                 pos = match.end()
                 continue
 
-            # Try word (keyword or identifier)
+            # 7. Try number
+            match = _NUMBER_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.NUMBER,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 8. Try word (keyword, function, or identifier)
             match = _WORD_PATTERN.match(sql, pos)
             if match:
                 word = match.group()
+                word_end = match.end()
+
+                # Look ahead to see if followed by ( to detect function
+                is_function = word_end < length and sql[word_end] == "("
+
                 # Check if it's a keyword (case-insensitive)
-                if word.upper() in SQL_KEYWORDS:
+                if word.upper() in SQL_KEYWORDS and not is_function:
                     token_type = SQLTokenType.KEYWORD
+                elif is_function:
+                    token_type = SQLTokenType.FUNCTION
                 else:
                     token_type = SQLTokenType.IDENTIFIER
 
@@ -238,13 +358,55 @@ class SQLTokenizer:
                         type=token_type,
                         text=word,
                         start=pos,
+                        end=word_end,
+                    )
+                )
+                pos = word_end
+                continue
+
+            # 9. Try multi-character operators
+            match = _MULTI_OP_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.OPERATOR,
+                        text=match.group(),
+                        start=pos,
                         end=match.end(),
                     )
                 )
                 pos = match.end()
                 continue
 
-            # Unknown character - consume one character
+            # 10. Try single-character operators
+            match = _SINGLE_OP_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.OPERATOR,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 11. Try punctuation
+            match = _PUNCTUATION_PATTERN.match(sql, pos)
+            if match:
+                tokens.append(
+                    SQLToken(
+                        type=SQLTokenType.PUNCTUATION,
+                        text=match.group(),
+                        start=pos,
+                        end=match.end(),
+                    )
+                )
+                pos = match.end()
+                continue
+
+            # 12. Unknown character - consume one character
             tokens.append(
                 SQLToken(
                     type=SQLTokenType.UNKNOWN,
