@@ -172,10 +172,9 @@ The `connections` command tracks connection/disconnection events during tailing:
 - `pgtail_py/cli_connections.py` - connections command handlers
 
 ## Recent Changes
+- 011-desktop-notifications: Added Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0
 - 010-connection-tracking: Connection tracking dashboard with summary, history, watch modes, and filtering
 - 009-error-stats: Added Python 3.10+ + prompt_toolkit >=3.0.0 (REPL), psutil (detection), tomlkit (config)
-- 008-csv-json-log-format: Auto-detection of CSV/JSON log formats, display modes (compact/full/custom), JSON output mode, field-based filtering
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0, tomlkit >=0.12.0 (010-connection-tracking)
-- In-memory only (session-scoped, deque with maxlen=10,000) (010-connection-tracking)
+- TOML config file (existing config.py infrastructure) (011-desktop-notifications)
