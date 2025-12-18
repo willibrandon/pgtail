@@ -22,6 +22,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Desktop notifications for critical log events (FATAL, PANIC, patterns, thresholds)
 - Export logs to files (text, JSON, CSV formats)
 - Pipe logs to external commands (grep, jq, wc, etc.)
+- Color themes: 6 built-in themes plus custom TOML themes
 - Color-coded output by severity with SQL state codes
 - REPL with autocomplete and command history
 - Cross-platform (macOS, Linux, Windows)
@@ -72,6 +73,7 @@ stats              Show query duration statistics
 errors             Show error statistics (see Error Statistics below)
 connections        Show connection statistics (see Connection Statistics below)
 notify             Configure desktop notifications (see Desktop Notifications below)
+theme              Switch color themes (see Color Themes below)
 export <file>      Export filtered logs to file (see Export below)
 pipe <cmd>         Pipe filtered logs to external command (see Pipe below)
 set <key> [val]    Set/view a config value (persists across sessions)
@@ -386,6 +388,58 @@ Test notification sent
 Platform: macOS (osascript)
 ```
 
+### Color Themes
+
+Customize log output colors with built-in or custom themes:
+
+```
+theme                      Show current theme
+theme <name>               Switch theme (dark, light, monokai, etc.)
+theme list                 Show all available themes
+theme preview <name>       Preview a theme with sample output
+theme edit <name>          Create or edit a custom theme
+theme reload               Reload current theme after external edits
+```
+
+**Built-in themes:**
+
+| Theme | Best For |
+|-------|----------|
+| `dark` | Dark terminal backgrounds (default) |
+| `light` | Light terminal backgrounds |
+| `high-contrast` | Accessibility, bright displays |
+| `monokai` | Developers familiar with editor theme |
+| `solarized-dark` | Dark terminals, reduced eye strain |
+| `solarized-light` | Light terminals, reduced eye strain |
+
+**Custom themes:**
+
+Create custom themes as TOML files:
+- **macOS**: `~/Library/Application Support/pgtail/themes/mytheme.toml`
+- **Linux**: `~/.config/pgtail/themes/mytheme.toml`
+- **Windows**: `%APPDATA%/pgtail/themes/mytheme.toml`
+
+```toml
+[meta]
+name = "My Theme"
+description = "Custom colors"
+
+[levels]
+PANIC = { fg = "white", bg = "red", bold = true }
+FATAL = { fg = "red", bold = true }
+ERROR = { fg = "#ff6b6b" }
+WARNING = { fg = "#ffd93d" }
+LOG = { fg = "default" }
+
+[ui]
+timestamp = { fg = "gray" }
+highlight = { bg = "yellow", fg = "black" }
+```
+
+Color formats: ANSI names (`ansired`), hex codes (`#ff6b6b`), CSS names (`DarkRed`)
+
+To disable all colors: `NO_COLOR=1 pgtail`
+
 ### Export
 
 Export filtered log entries to a file:
@@ -437,7 +491,7 @@ Available settings:
 - `slow.warn`, `slow.error`, `slow.critical` - Threshold values in ms
 - `display.timestamp_format` - strftime format for timestamps
 - `display.show_pid`, `display.show_level` - Toggle output fields
-- `theme.name` - Color theme (`dark` or `light`)
+- `theme.name` - Color theme (dark, light, high-contrast, monokai, solarized-dark, solarized-light, or custom)
 - `notifications.enabled` - Enable/disable desktop notifications
 - `notifications.levels` - Log levels that trigger notifications
 - `notifications.patterns` - Regex patterns that trigger notifications

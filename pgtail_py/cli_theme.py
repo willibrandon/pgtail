@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -137,6 +138,11 @@ def handle_theme_switch(state: AppState, name: str) -> None:
     if theme and theme.description:
         print(f"  {theme.description}")
     print(f"Saved to {get_config_path()}")
+
+    # Warn if NO_COLOR is set
+    if "NO_COLOR" in os.environ:
+        print()
+        print("Note: NO_COLOR is set - colors are disabled.")
 
 
 def handle_theme_list(state: AppState) -> None:
@@ -343,6 +349,5 @@ def handle_theme_reload(state: AppState) -> None:
     Args:
         state: Current application state.
     """
-    # This will be implemented in Phase 6 (User Story 4)
     success, message = state.theme_manager.reload_current()
     print(message)

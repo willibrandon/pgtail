@@ -79,7 +79,7 @@ Settings persist in a TOML config file at platform-specific locations:
 - `slow.warn`, `slow.error`, `slow.critical` - Threshold values in ms
 - `display.timestamp_format` - strftime format string
 - `display.show_pid`, `display.show_level` - Toggle output fields
-- `theme.name` - Color theme (`dark` or `light`)
+- `theme.name` - Color theme (dark, light, high-contrast, monokai, solarized-dark, solarized-light, or custom)
 - `notifications.enabled`, `notifications.levels`, `notifications.quiet_hours`
 
 ## Time Filtering
@@ -204,6 +204,39 @@ The `connections` command tracks connection/disconnection events during tailing:
 - `pgtail_py/connection_parser.py` - Regex patterns for connection log messages
 - `pgtail_py/connection_stats.py` - ConnectionStats aggregator, ConnectionFilter
 - `pgtail_py/cli_connections.py` - connections command handlers
+
+## Color Themes
+
+The `theme` command manages color schemes for log output:
+
+**Commands:**
+- `theme` - Show current theme
+- `theme <name>` - Switch to a theme (e.g., `theme light`, `theme monokai`)
+- `theme list` - Show all available themes (built-in and custom)
+- `theme preview <name>` - Preview a theme with sample log output
+- `theme edit <name>` - Create or edit a custom theme (opens $EDITOR)
+- `theme reload` - Reload current theme from disk after external edits
+
+**Built-in themes:** dark (default), light, high-contrast, monokai, solarized-dark, solarized-light
+
+**Custom themes:**
+- TOML files stored in platform-specific themes directory:
+  - **macOS**: `~/Library/Application Support/pgtail/themes/`
+  - **Linux**: `~/.config/pgtail/themes/`
+  - **Windows**: `%APPDATA%/pgtail/themes/`
+- Use `theme edit mytheme` to create a new theme from template
+- Theme defines colors for log levels (PANIC, FATAL, ERROR, etc.) and UI elements (timestamp, pid, highlight)
+
+**Implementation:**
+- ThemeManager handles loading, switching, and validating themes
+- Colors: ANSI names (ansiRed), hex codes (#ff6b6b), or CSS named colors (DarkRed)
+- Theme persists in config.toml under `theme.name`
+- Respects NO_COLOR environment variable (disables all colors)
+
+**New modules:**
+- `pgtail_py/theme.py` - Theme, ColorStyle dataclasses; ThemeManager; color validation
+- `pgtail_py/themes/` - Built-in theme definitions (dark.py, light.py, etc.)
+- `pgtail_py/cli_theme.py` - theme command handlers
 
 ## Fullscreen TUI Mode
 

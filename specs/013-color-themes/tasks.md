@@ -132,11 +132,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T048 [US4] Implement ThemeManager.reload_current() method in pgtail_py/theme.py
-- [ ] T049 [US4] Implement handle_theme_reload() command handler in pgtail_py/cli_theme.py
-- [ ] T050 [US4] Handle reload errors gracefully (keep previous theme) in pgtail_py/cli_theme.py
-- [ ] T051 [US4] Handle deleted theme file (fallback to dark) in pgtail_py/theme.py
-- [ ] T052 [US4] Register "theme reload" command in pgtail_py/commands.py
+- [x] T048 [US4] Implement ThemeManager.reload_current() method in pgtail_py/theme.py
+- [x] T049 [US4] Implement handle_theme_reload() command handler in pgtail_py/cli_theme.py
+- [x] T050 [US4] Handle reload errors gracefully (keep previous theme) in pgtail_py/cli_theme.py
+- [x] T051 [US4] Handle deleted theme file (fallback to dark) in pgtail_py/theme.py
+- [x] T052 [US4] Register "theme reload" command in pgtail_py/commands.py
 
 **Checkpoint**: User Story 4 complete - live theme editing workflow fully supported
 
@@ -146,12 +146,12 @@
 
 **Purpose**: Edge cases, documentation, and cleanup
 
-- [ ] T053 [P] Add NO_COLOR environment variable handling in theme commands in pgtail_py/cli_theme.py
-- [ ] T054 [P] Show "colors disabled" note when NO_COLOR=1 and user switches themes in pgtail_py/cli_theme.py
-- [ ] T055 [P] Handle missing config directory creation for custom themes in pgtail_py/theme.py
-- [ ] T056 Update CLAUDE.md with theme module documentation
-- [ ] T057 Verify all theme commands work during active log tailing
-- [ ] T058 Validate quickstart.md scenarios work end-to-end
+- [x] T053 [P] Add NO_COLOR environment variable handling in theme commands in pgtail_py/cli_theme.py
+- [x] T054 [P] Show "colors disabled" note when NO_COLOR=1 and user switches themes in pgtail_py/cli_theme.py
+- [x] T055 [P] Handle missing config directory creation for custom themes in pgtail_py/theme.py
+- [x] T056 Update CLAUDE.md with theme module documentation
+- [x] T057 Verify all theme commands work during active log tailing
+- [x] T058 Validate quickstart.md scenarios work end-to-end
 
 ---
 
