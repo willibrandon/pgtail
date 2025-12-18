@@ -32,5 +32,13 @@ DARK_THEME = Theme(
         "slow_slow": ColorStyle(fg="yellow", bold=True),
         "slow_critical": ColorStyle(fg="red", bold=True),
         "detail": ColorStyle(fg="ansidefault"),
+        # SQL syntax highlighting
+        "sql_keyword": ColorStyle(fg="ansiblue", bold=True),
+        "sql_identifier": ColorStyle(fg="ansicyan"),
+        "sql_string": ColorStyle(fg="ansigreen"),
+        "sql_number": ColorStyle(fg="ansimagenta"),
+        "sql_operator": ColorStyle(fg="ansiyellow"),
+        "sql_comment": ColorStyle(fg="ansibrightblack"),
+        "sql_function": ColorStyle(fg="ansiblue"),
     },
 )

@@ -382,6 +382,10 @@ class Theme:
         if missing_ui:
             errors.append(f"Missing required UI elements: {', '.join(sorted(missing_ui))}")
 
+        # Note: SQL color style keys are optional for theme validation
+        # sql_keyword, sql_identifier, sql_string, sql_number, sql_operator, sql_comment, sql_function
+        # Missing keys will gracefully fall back to default text color
+
         # Validate all color styles
         for level_name, style in self.levels.items():
             for error in style.validate():
@@ -808,4 +812,13 @@ slow_warning = {{ fg = "yellow" }}
 slow_slow = {{ fg = "yellow", bold = true }}
 slow_critical = {{ fg = "red", bold = true }}
 detail = {{ fg = "default" }}
+
+# SQL syntax highlighting colors (optional - falls back to default text if omitted)
+sql_keyword = {{ fg = "blue", bold = true }}
+sql_identifier = {{ fg = "cyan" }}
+sql_string = {{ fg = "green" }}
+sql_number = {{ fg = "magenta" }}
+sql_operator = {{ fg = "yellow" }}
+sql_comment = {{ fg = "gray" }}
+sql_function = {{ fg = "blue" }}
 """

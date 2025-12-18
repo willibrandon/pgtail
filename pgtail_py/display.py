@@ -12,6 +12,9 @@ from typing import TYPE_CHECKING, Any
 
 from prompt_toolkit.formatted_text import FormattedText
 
+from pgtail_py.sql_detector import detect_sql_content
+from pgtail_py.sql_highlighter import highlight_sql
+
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry
 
@@ -99,6 +102,43 @@ def get_valid_display_fields() -> list[str]:
     return sorted(VALID_DISPLAY_FIELDS)
 
 
+def _format_message_with_sql(
+    message: str, level_class: str
+) -> list[tuple[str, str]]:
+    """Format a log message with SQL syntax highlighting if SQL is detected.
+
+    Args:
+        message: The log message to format.
+        level_class: The style class for the log level (e.g., "class:error").
+
+    Returns:
+        List of (style, text) tuples for FormattedText.
+    """
+    # Try to detect SQL content in the message
+    detection = detect_sql_content(message)
+
+    if detection is None:
+        # No SQL detected - return message with level styling
+        return [(level_class, message)]
+
+    # SQL detected - format with highlighting
+    parts: list[tuple[str, str]] = []
+
+    # Add prefix with level class
+    if detection.prefix:
+        parts.append((level_class, detection.prefix))
+
+    # Add highlighted SQL
+    sql_formatted = highlight_sql(detection.sql)
+    parts.extend(list(sql_formatted))
+
+    # Add suffix with level class
+    if detection.suffix:
+        parts.append((level_class, detection.suffix))
+
+    return parts
+
+
 class DisplayState:
     """Manages display and output settings.
 
@@ -183,6 +223,7 @@ def format_entry_compact(entry: LogEntry) -> FormattedText:
 
     For structured formats, includes SQL state code.
     For text format, behaves like existing format_log_entry().
+    SQL statements in messages are syntax-highlighted.
 
     Args:
         entry: Log entry to format
@@ -207,9 +248,13 @@ def format_entry_compact(entry: LogEntry) -> FormattedText:
 
     # SQL state code (for structured formats)
     if entry.sql_state:
-        parts.append((level_class, f"{level_name} {entry.sql_state}: {entry.message}"))
+        parts.append((level_class, f"{level_name} {entry.sql_state}: "))
     else:
-        parts.append((level_class, f"{level_name}: {entry.message}"))
+        parts.append((level_class, f"{level_name}: "))
+
+    # Message with SQL highlighting
+    message_parts = _format_message_with_sql(entry.message, level_class)
+    parts.extend(message_parts)
 
     return FormattedText(parts)
 

@@ -25,9 +25,9 @@ Based on plan.md structure:
 
 **Purpose**: Create new module files and establish basic structure
 
-- [ ] T001 [P] Create SQL tokenizer module skeleton in pgtail_py/sql_tokenizer.py with SQLTokenType enum and SQLToken dataclass
-- [ ] T002 [P] Create SQL highlighter module skeleton in pgtail_py/sql_highlighter.py with SQLHighlighter class stub
-- [ ] T003 [P] Create SQL detector module skeleton in pgtail_py/sql_detector.py with detect_sql_content() stub
+- [x] T001 [P] Create SQL tokenizer module skeleton in pgtail_py/sql_tokenizer.py with SQLTokenType enum and SQLToken dataclass
+- [x] T002 [P] Create SQL highlighter module skeleton in pgtail_py/sql_highlighter.py with SQLHighlighter class stub
+- [x] T003 [P] Create SQL detector module skeleton in pgtail_py/sql_detector.py with detect_sql_content() stub
 
 ---
 
@@ -37,15 +37,15 @@ Based on plan.md structure:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add SQL color style keys (sql_keyword, sql_identifier, sql_string, sql_number, sql_operator, sql_comment, sql_function) to Theme.ui validation in pgtail_py/theme.py
-- [ ] T005 [P] Add SQL colors to dark theme in pgtail_py/themes/dark.py
-- [ ] T006 [P] Add SQL colors to light theme in pgtail_py/themes/light.py
-- [ ] T007 [P] Add SQL colors to high-contrast theme in pgtail_py/themes/high_contrast.py
-- [ ] T008 [P] Add SQL colors to monokai theme in pgtail_py/themes/monokai.py
-- [ ] T009 [P] Add SQL colors to solarized-dark theme in pgtail_py/themes/solarized_dark.py
-- [ ] T010 [P] Add SQL colors to solarized-light theme in pgtail_py/themes/solarized_light.py
-- [ ] T011 Implement SQLDetector.detect_sql_content() with PostgreSQL log prefix patterns (LOG: statement:, LOG: execute, DETAIL:, ERROR:) in pgtail_py/sql_detector.py
-- [ ] T012 Update THEME_TEMPLATE in pgtail_py/theme.py to include SQL color placeholders for custom themes
+- [x] T004 Add SQL color style keys (sql_keyword, sql_identifier, sql_string, sql_number, sql_operator, sql_comment, sql_function) to Theme.ui validation in pgtail_py/theme.py
+- [x] T005 [P] Add SQL colors to dark theme in pgtail_py/themes/dark.py
+- [x] T006 [P] Add SQL colors to light theme in pgtail_py/themes/light.py
+- [x] T007 [P] Add SQL colors to high-contrast theme in pgtail_py/themes/high_contrast.py
+- [x] T008 [P] Add SQL colors to monokai theme in pgtail_py/themes/monokai.py
+- [x] T009 [P] Add SQL colors to solarized-dark theme in pgtail_py/themes/solarized_dark.py
+- [x] T010 [P] Add SQL colors to solarized-light theme in pgtail_py/themes/solarized_light.py
+- [x] T011 Implement SQLDetector.detect_sql_content() with PostgreSQL log prefix patterns (LOG: statement:, LOG: execute, DETAIL:, ERROR:) in pgtail_py/sql_detector.py
+- [x] T012 Update THEME_TEMPLATE in pgtail_py/theme.py to include SQL color placeholders for custom themes
 
 **Checkpoint**: Foundation ready - theme integration and SQL detection complete, user story implementation can begin
 
@@ -59,17 +59,17 @@ Based on plan.md structure:
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Create unit tests for keyword tokenization in tests/test_sql_tokenizer.py (test SELECT, INSERT, UPDATE, DELETE, FROM, WHERE, JOIN, etc.)
-- [ ] T014 [P] [US1] Create unit tests for keyword highlighting in tests/test_sql_highlighter.py (test FormattedText output has sql_keyword class)
+- [x] T013 [P] [US1] Create unit tests for keyword tokenization in tests/test_sql_tokenizer.py (test SELECT, INSERT, UPDATE, DELETE, FROM, WHERE, JOIN, etc.)
+- [x] T014 [P] [US1] Create unit tests for keyword highlighting in tests/test_sql_highlighter.py (test FormattedText output has sql_keyword class)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement keyword regex pattern (case-insensitive, word boundaries) in SQLTokenizer in pgtail_py/sql_tokenizer.py
-- [ ] T016 [US1] Add all 45+ SQL keywords from FR-002 to keyword set in pgtail_py/sql_tokenizer.py
-- [ ] T017 [US1] Implement SQLTokenizer.tokenize() method with keyword matching in pgtail_py/sql_tokenizer.py
-- [ ] T018 [US1] Implement SQLHighlighter.highlight() to convert KEYWORD tokens to FormattedText with sql_keyword style in pgtail_py/sql_highlighter.py
-- [ ] T019 [US1] Integrate SQL highlighting into format_entry_compact() in pgtail_py/display.py (detect SQL, highlight keywords in message)
-- [ ] T020 [US1] Add NO_COLOR check to skip highlighting when colors disabled in pgtail_py/sql_highlighter.py
+- [x] T015 [US1] Implement keyword regex pattern (case-insensitive, word boundaries) in SQLTokenizer in pgtail_py/sql_tokenizer.py
+- [x] T016 [US1] Add all 45+ SQL keywords from FR-002 to keyword set in pgtail_py/sql_tokenizer.py
+- [x] T017 [US1] Implement SQLTokenizer.tokenize() method with keyword matching in pgtail_py/sql_tokenizer.py
+- [x] T018 [US1] Implement SQLHighlighter.highlight() to convert KEYWORD tokens to FormattedText with sql_keyword style in pgtail_py/sql_highlighter.py
+- [x] T019 [US1] Integrate SQL highlighting into format_entry_compact() in pgtail_py/display.py (detect SQL, highlight keywords in message)
+- [x] T020 [US1] Add NO_COLOR check to skip highlighting when colors disabled in pgtail_py/sql_highlighter.py
 
 **Checkpoint**: Keywords highlighted in streaming mode - MVP complete, independently testable
 

@@ -36,5 +36,13 @@ SOLARIZED_LIGHT_THEME = Theme(
         "slow_slow": ColorStyle(fg="#cb4b16", bold=True),
         "slow_critical": ColorStyle(fg="#dc322f", bold=True),
         "detail": ColorStyle(fg="#657b83"),
+        # SQL syntax highlighting (Solarized light palette)
+        "sql_keyword": ColorStyle(fg="#268bd2", bold=True),  # Blue
+        "sql_identifier": ColorStyle(fg="#2aa198"),  # Cyan
+        "sql_string": ColorStyle(fg="#859900"),  # Green
+        "sql_number": ColorStyle(fg="#d33682"),  # Magenta
+        "sql_operator": ColorStyle(fg="#b58900"),  # Yellow
+        "sql_comment": ColorStyle(fg="#93a1a1"),  # Base1 (gray)
+        "sql_function": ColorStyle(fg="#268bd2"),  # Blue
     },
 )

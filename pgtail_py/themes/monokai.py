@@ -32,5 +32,13 @@ MONOKAI_THEME = Theme(
         "slow_slow": ColorStyle(fg="#fd971f", bold=True),
         "slow_critical": ColorStyle(fg="#f92672", bold=True),
         "detail": ColorStyle(fg="#f8f8f2"),
+        # SQL syntax highlighting (Monokai palette)
+        "sql_keyword": ColorStyle(fg="#f92672", bold=True),  # Pink
+        "sql_identifier": ColorStyle(fg="#66d9ef"),  # Cyan
+        "sql_string": ColorStyle(fg="#e6db74"),  # Yellow
+        "sql_number": ColorStyle(fg="#ae81ff"),  # Purple
+        "sql_operator": ColorStyle(fg="#f8f8f2"),  # White
+        "sql_comment": ColorStyle(fg="#75715e"),  # Gray
+        "sql_function": ColorStyle(fg="#a6e22e"),  # Green
     },
 )

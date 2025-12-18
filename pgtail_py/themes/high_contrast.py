@@ -33,5 +33,13 @@ HIGH_CONTRAST_THEME = Theme(
         "slow_slow": ColorStyle(fg="yellow", bold=True, underline=True),
         "slow_critical": ColorStyle(fg="red", bold=True, underline=True),
         "detail": ColorStyle(fg="white"),
+        # SQL syntax highlighting (high saturation for accessibility)
+        "sql_keyword": ColorStyle(fg="blue", bold=True),
+        "sql_identifier": ColorStyle(fg="cyan", bold=True),
+        "sql_string": ColorStyle(fg="green", bold=True),
+        "sql_number": ColorStyle(fg="magenta", bold=True),
+        "sql_operator": ColorStyle(fg="yellow", bold=True),
+        "sql_comment": ColorStyle(fg="white", dim=True),
+        "sql_function": ColorStyle(fg="blue", bold=True),
     },
 )
