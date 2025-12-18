@@ -371,3 +371,165 @@ class TestPageNavigationKeybindings:
 
         assert state.mode == DisplayMode.BROWSE
         assert event.current_buffer.cursor_position == 0
+
+
+class TestMouseScrollBehavior:
+    """Tests for mouse scroll behavior.
+
+    Mouse scroll triggers browse mode through two mechanisms:
+    1. Some terminals send scroll as Up/Down key presses (tested via arrow handlers)
+    2. Mouse events are intercepted via wrapped Window._scroll_up/_scroll_down methods
+    """
+
+    def test_down_arrow_enters_browse_mode_for_mouse_scroll(self) -> None:
+        """Down arrow (used for mouse scroll down in some terminals) enters browse mode."""
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        down_bindings = [b for b in bindings if "down" in str(b.keys)]
+        assert len(down_bindings) == 1
+
+        event = MagicMock()
+        event.app = MagicMock()
+        event.current_buffer = MagicMock()
+        event.current_buffer.cursor_position = 0
+        event.current_buffer.document = MagicMock()
+        event.current_buffer.document.get_cursor_down_position.return_value = 10
+
+        down_bindings[0].handler(event)
+
+        # Mouse scroll (via down arrow) should enter browse mode
+        assert state.mode == DisplayMode.BROWSE
+
+    def test_up_arrow_enters_browse_mode_for_mouse_scroll(self) -> None:
+        """Up arrow (used for mouse scroll up in some terminals) enters browse mode."""
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        kb = create_keybindings(state)
+
+        bindings = list(kb.bindings)
+        up_bindings = [b for b in bindings if "up" in str(b.keys)]
+        assert len(up_bindings) == 1
+
+        event = MagicMock()
+        event.app = MagicMock()
+        event.current_buffer = MagicMock()
+        event.current_buffer.cursor_position = 50
+        event.current_buffer.document = MagicMock()
+        event.current_buffer.document.get_cursor_up_position.return_value = -10
+
+        up_bindings[0].handler(event)
+
+        # Mouse scroll (via up arrow) should enter browse mode
+        assert state.mode == DisplayMode.BROWSE
+
+
+class TestWindowScrollWrapping:
+    """Tests for Window scroll method wrapping (for mouse wheel events)."""
+
+    def test_window_scroll_down_enters_browse_mode(self) -> None:
+        """Window._scroll_down (called by mouse wheel) enters browse mode."""
+        from pgtail_py.fullscreen.buffer import LogBuffer
+        from pgtail_py.fullscreen.layout import create_layout
+
+        buffer = LogBuffer()
+        buffer.append("Line 1")
+        buffer.append("Line 2")
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        # Create layout which wraps the window's scroll methods
+        _layout, text_area, _search = create_layout(buffer, state)
+
+        # Call the wrapped scroll method (simulating mouse wheel down)
+        text_area.window._scroll_down()
+
+        # Should have entered browse mode
+        assert state.mode == DisplayMode.BROWSE
+
+    def test_window_scroll_up_enters_browse_mode(self) -> None:
+        """Window._scroll_up (called by mouse wheel) enters browse mode."""
+        from pgtail_py.fullscreen.buffer import LogBuffer
+        from pgtail_py.fullscreen.layout import create_layout
+
+        buffer = LogBuffer()
+        buffer.append("Line 1")
+        buffer.append("Line 2")
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        # Create layout which wraps the window's scroll methods
+        _layout, text_area, _search = create_layout(buffer, state)
+
+        # Call the wrapped scroll method (simulating mouse wheel up)
+        text_area.window._scroll_up()
+
+        # Should have entered browse mode
+        assert state.mode == DisplayMode.BROWSE
+
+
+class TestMouseClickBehavior:
+    """Tests for mouse click behavior (triggers browse mode)."""
+
+    def test_mouse_click_enters_browse_mode(self) -> None:
+        """Mouse click (MOUSE_DOWN) enters browse mode."""
+        from prompt_toolkit.data_structures import Point
+        from prompt_toolkit.mouse_events import MouseButton, MouseEvent, MouseEventType
+
+        from pgtail_py.fullscreen.buffer import LogBuffer
+        from pgtail_py.fullscreen.layout import create_layout
+
+        buffer = LogBuffer()
+        buffer.append("Line 1")
+        buffer.append("Line 2")
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        # Create layout which wraps the control's mouse handler
+        _layout, text_area, _search = create_layout(buffer, state)
+
+        # Create a mock mouse down event
+        mouse_event = MouseEvent(
+            position=Point(x=0, y=0),
+            event_type=MouseEventType.MOUSE_DOWN,
+            button=MouseButton.LEFT,
+            modifiers=frozenset(),
+        )
+
+        # Call the wrapped mouse handler
+        text_area.control.mouse_handler(mouse_event)
+
+        # Should have entered browse mode
+        assert state.mode == DisplayMode.BROWSE
+
+    def test_mouse_move_does_not_enter_browse_mode(self) -> None:
+        """Mouse move (without click) does not enter browse mode."""
+        from prompt_toolkit.data_structures import Point
+        from prompt_toolkit.mouse_events import MouseButton, MouseEvent, MouseEventType
+
+        from pgtail_py.fullscreen.buffer import LogBuffer
+        from pgtail_py.fullscreen.layout import create_layout
+
+        buffer = LogBuffer()
+        buffer.append("Line 1")
+        state = FullscreenState()
+        assert state.mode == DisplayMode.FOLLOW
+
+        _layout, text_area, _search = create_layout(buffer, state)
+
+        # Create a mouse move event (not a click)
+        mouse_event = MouseEvent(
+            position=Point(x=0, y=0),
+            event_type=MouseEventType.MOUSE_MOVE,
+            button=MouseButton.NONE,
+            modifiers=frozenset(),
+        )
+
+        text_area.control.mouse_handler(mouse_event)
+
+        # Should still be in follow mode
+        assert state.mode == DisplayMode.FOLLOW

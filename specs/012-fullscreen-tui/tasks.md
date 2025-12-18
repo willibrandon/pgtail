@@ -166,10 +166,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Enable mouse_support=True in Application in pgtail_py/fullscreen/app.py
-- [ ] T050 [US4] Enable scrollbar=True in TextArea in pgtail_py/fullscreen/layout.py
-- [ ] T051 [US4] Test mouse wheel scroll triggers browse mode in pgtail_py/fullscreen/keybindings.py
-- [ ] T052 [US4] Verify text selection works via terminal native handling (no code needed, just test)
+- [X] T049 [US4] Enable mouse_support=True in Application in pgtail_py/fullscreen/app.py
+- [X] T050 [US4] Enable scrollbar=True in TextArea in pgtail_py/fullscreen/layout.py
+- [X] T051 [US4] Test mouse wheel scroll triggers browse mode in pgtail_py/fullscreen/keybindings.py
+- [X] T052 [US4] Verify text selection works via terminal native handling (no code needed, just test)
 
 **Checkpoint**: Mouse users can navigate comfortably
 
