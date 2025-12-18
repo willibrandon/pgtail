@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
+from prompt_toolkit import print_formatted_text
+from prompt_toolkit.formatted_text import FormattedText
+
 from pgtail_py.config import get_config_path, save_config
+from pgtail_py.filter import LogLevel
+from pgtail_py.parser import LogEntry
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
+    from pgtail_py.theme import Theme
 
 
 def theme_command(state: AppState, args: list[str]) -> None:
@@ -151,6 +158,73 @@ def handle_theme_list(state: AppState) -> None:
     print("Use 'theme preview <name>' to preview a theme.")
 
 
+def generate_sample_log_entries() -> list[LogEntry]:
+    """Generate sample log entries for theme preview.
+
+    Returns:
+        List of LogEntry objects covering all log levels.
+    """
+    now = datetime.now()
+    samples = [
+        (LogLevel.PANIC, "System shutdown initiated due to memory corruption"),
+        (LogLevel.FATAL, "Could not open relation: permission denied"),
+        (LogLevel.ERROR, "duplicate key value violates unique constraint"),
+        (LogLevel.WARNING, "checkpoints are occurring too frequently"),
+        (LogLevel.NOTICE, "table 'users' does not exist, skipping"),
+        (LogLevel.LOG, "connection received: host=127.0.0.1 port=5432"),
+        (LogLevel.INFO, "database system is ready to accept connections"),
+        (LogLevel.DEBUG1, "replication slot 'sub1' advanced to 0/1234567"),
+    ]
+
+    entries = []
+    for level, message in samples:
+        entries.append(
+            LogEntry(
+                timestamp=now,
+                pid=12345,
+                level=level,
+                message=message,
+                raw=f"{now.isoformat()} [12345] {level.name}: {message}",
+            )
+        )
+    return entries
+
+
+def format_preview_entry(entry: LogEntry, theme: Theme) -> FormattedText:
+    """Format a log entry using a specific theme for preview.
+
+    Args:
+        entry: The log entry to format.
+        theme: Theme to use for styling.
+
+    Returns:
+        FormattedText suitable for print_formatted_text().
+    """
+    level_style = theme.get_level_style(entry.level.name)
+    ts_style = theme.get_ui_style("timestamp")
+    pid_style = theme.get_ui_style("pid")
+
+    parts = []
+
+    # Timestamp
+    if entry.timestamp:
+        ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]
+        ts_style_str = ts_style.to_style_string() or ""
+        parts.append((ts_style_str, f"{ts_str} "))
+
+    # PID
+    if entry.pid:
+        pid_style_str = pid_style.to_style_string() or ""
+        parts.append((pid_style_str, f"[{entry.pid}] "))
+
+    # Level and message
+    level_name = entry.level.name.ljust(7)
+    level_style_str = level_style.to_style_string() or ""
+    parts.append((level_style_str, f"{level_name}: {entry.message}"))
+
+    return FormattedText(parts)
+
+
 def handle_theme_preview(state: AppState, name: str) -> None:
     """Preview a theme with sample log output.
 
@@ -158,9 +232,33 @@ def handle_theme_preview(state: AppState, name: str) -> None:
         state: Current application state.
         name: Theme name to preview.
     """
-    # This will be implemented in Phase 4 (User Story 2)
-    print(f"Preview for theme '{name}' - coming soon")
-    print("Use 'theme <name>' to switch to this theme.")
+    # Get the theme
+    theme = state.theme_manager.get_theme(name)
+    if theme is None:
+        builtin, custom = state.theme_manager.list_themes()
+        print(f"Unknown theme: {name}")
+        print()
+        print("Available themes:")
+        for theme_name in builtin + custom:
+            print(f"  {theme_name}")
+        return
+
+    # Generate sample entries and display with theme
+    print(f"Preview: {name}")
+    if theme.description:
+        print(f"  {theme.description}")
+    print()
+
+    # Generate style from theme for print_formatted_text
+    style = state.theme_manager.generate_style(theme)
+
+    # Show sample log entries
+    for entry in generate_sample_log_entries():
+        formatted = format_preview_entry(entry, theme)
+        print_formatted_text(formatted, style=style)
+
+    print()
+    print(f"Use 'theme {name}' to switch to this theme.")
 
 
 def handle_theme_edit(state: AppState, name: str) -> None:

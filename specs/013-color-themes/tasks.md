@@ -87,14 +87,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T029 [US2] Implement ThemeManager.list_themes() returning built-in and custom names in pgtail_py/theme.py
-- [ ] T030 [US2] Implement handle_theme_list() command handler in pgtail_py/cli_theme.py
-- [ ] T031 [US2] Format theme list output with current theme marker and sections in pgtail_py/cli_theme.py
-- [ ] T032 [US2] Create generate_sample_log_entries() for preview in pgtail_py/cli_theme.py
-- [ ] T033 [US2] Implement handle_theme_preview(name) command handler in pgtail_py/cli_theme.py
-- [ ] T034 [US2] Display all 8 log levels (PANIC through DEBUG) in preview output in pgtail_py/cli_theme.py
-- [ ] T035 [US2] Register "theme list" and "theme preview" commands in pgtail_py/commands.py
-- [ ] T036 [US2] Add theme name autocomplete for preview command in pgtail_py/commands.py
+- [x] T029 [US2] Implement ThemeManager.list_themes() returning built-in and custom names in pgtail_py/theme.py
+- [x] T030 [US2] Implement handle_theme_list() command handler in pgtail_py/cli_theme.py
+- [x] T031 [US2] Format theme list output with current theme marker and sections in pgtail_py/cli_theme.py
+- [x] T032 [US2] Create generate_sample_log_entries() for preview in pgtail_py/cli_theme.py
+- [x] T033 [US2] Implement handle_theme_preview(name) command handler in pgtail_py/cli_theme.py
+- [x] T034 [US2] Display all 8 log levels (PANIC through DEBUG) in preview output in pgtail_py/cli_theme.py
+- [x] T035 [US2] Register "theme list" and "theme preview" commands in pgtail_py/commands.py
+- [x] T036 [US2] Add theme name autocomplete for preview command in pgtail_py/commands.py
 
 **Checkpoint**: User Story 2 complete - users can explore and preview all available themes
 
