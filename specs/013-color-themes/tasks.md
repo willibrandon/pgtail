@@ -24,11 +24,11 @@
 
 **Purpose**: Create theme module structure and core dataclasses
 
-- [ ] T001 Create themes package directory at pgtail_py/themes/
-- [ ] T002 Create themes package __init__.py at pgtail_py/themes/__init__.py
-- [ ] T003 Create ColorStyle and Theme dataclasses in pgtail_py/theme.py
-- [ ] T004 Implement color validation function (ANSI, hex, named colors) in pgtail_py/theme.py
-- [ ] T005 Implement ColorStyle.to_style_string() conversion in pgtail_py/theme.py
+- [x] T001 Create themes package directory at pgtail_py/themes/
+- [x] T002 Create themes package __init__.py at pgtail_py/themes/__init__.py
+- [x] T003 Create ColorStyle and Theme dataclasses in pgtail_py/theme.py
+- [x] T004 Implement color validation function (ANSI, hex, named colors) in pgtail_py/theme.py
+- [x] T005 Implement ColorStyle.to_style_string() conversion in pgtail_py/theme.py
 
 ---
 
@@ -38,20 +38,20 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Implement ThemeManager class with current_theme, builtin_themes, style fields in pgtail_py/theme.py
-- [ ] T007 Implement ThemeManager.generate_style() to create prompt_toolkit Style from Theme in pgtail_py/theme.py
-- [ ] T008 [P] Create dark theme (default) in pgtail_py/themes/dark.py
-- [ ] T009 [P] Create light theme in pgtail_py/themes/light.py
-- [ ] T010 [P] Create high-contrast theme in pgtail_py/themes/high_contrast.py
-- [ ] T011 [P] Create monokai theme in pgtail_py/themes/monokai.py
-- [ ] T012 [P] Create solarized-dark theme in pgtail_py/themes/solarized_dark.py
-- [ ] T013 [P] Create solarized-light theme in pgtail_py/themes/solarized_light.py
-- [ ] T014 Update pgtail_py/themes/__init__.py to export all built-in themes
-- [ ] T015 Implement ThemeManager.load_builtin_themes() in pgtail_py/theme.py
-- [ ] T016 Implement get_themes_dir() for custom theme directory path in pgtail_py/theme.py
-- [ ] T017 Update validate_theme() in pgtail_py/config.py to accept all 6 built-in theme names
-- [ ] T018 Add ThemeManager to AppState in pgtail_py/cli.py
-- [ ] T019 Update pgtail_py/colors.py to use ThemeManager.get_style() instead of hardcoded LOG_STYLE
+- [x] T006 Implement ThemeManager class with current_theme, builtin_themes, style fields in pgtail_py/theme.py
+- [x] T007 Implement ThemeManager.generate_style() to create prompt_toolkit Style from Theme in pgtail_py/theme.py
+- [x] T008 [P] Create dark theme (default) in pgtail_py/themes/dark.py
+- [x] T009 [P] Create light theme in pgtail_py/themes/light.py
+- [x] T010 [P] Create high-contrast theme in pgtail_py/themes/high_contrast.py
+- [x] T011 [P] Create monokai theme in pgtail_py/themes/monokai.py
+- [x] T012 [P] Create solarized-dark theme in pgtail_py/themes/solarized_dark.py
+- [x] T013 [P] Create solarized-light theme in pgtail_py/themes/solarized_light.py
+- [x] T014 Update pgtail_py/themes/__init__.py to export all built-in themes
+- [x] T015 Implement ThemeManager.load_builtin_themes() in pgtail_py/theme.py
+- [x] T016 Implement get_themes_dir() for custom theme directory path in pgtail_py/theme.py
+- [x] T017 Update validate_theme() in pgtail_py/config.py to accept all 6 built-in theme names
+- [x] T018 Add ThemeManager to AppState in pgtail_py/cli.py
+- [x] T019 Update pgtail_py/colors.py to use ThemeManager.get_style() instead of hardcoded LOG_STYLE
 
 **Checkpoint**: Foundation ready - theme infrastructure complete, all 6 built-in themes defined
 

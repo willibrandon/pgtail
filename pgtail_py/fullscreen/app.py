@@ -98,9 +98,7 @@ def run_fullscreen(
 
     async def run_with_updates() -> None:
         """Run app with background update task."""
-        update_task = asyncio.create_task(
-            _update_display_loop(app, buffer, text_area, state)
-        )
+        update_task = asyncio.create_task(_update_display_loop(app, buffer, text_area, state))
         try:
             await app.run_async()
         finally:

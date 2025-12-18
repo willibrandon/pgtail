@@ -29,9 +29,11 @@ def _wrap_scroll_method(
     Returns:
         Wrapped method that enters browse mode first
     """
+
     def wrapped() -> None:
         state.enter_browse()
         original_method()
+
     return wrapped
 
 
@@ -48,11 +50,13 @@ def _wrap_mouse_handler(
     Returns:
         Wrapped handler that enters browse mode on MOUSE_DOWN
     """
+
     def wrapped(mouse_event: MouseEvent) -> Any:
         # Enter browse mode on mouse click (not on scroll - that's handled separately)
         if mouse_event.event_type == MouseEventType.MOUSE_DOWN:
             state.enter_browse()
         return original_handler(mouse_event)
+
     return wrapped
 
 

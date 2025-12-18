@@ -36,9 +36,9 @@ from pgtail_py.cli_slow import slow_command, stats_command
 from pgtail_py.cli_time import between_command, since_command, until_command
 from pgtail_py.cli_utils import run_shell, warn
 from pgtail_py.colors import (
-    LOG_STYLE,
     format_log_entry_with_highlights,
     format_slow_query_entry,
+    get_style,
 )
 from pgtail_py.commands import PgtailCompleter
 from pgtail_py.config import (
@@ -61,6 +61,7 @@ from pgtail_py.regex_filter import FilterState
 from pgtail_py.slow_query import DurationStats, SlowQueryConfig, extract_duration
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode
+from pgtail_py.theme import ThemeManager
 from pgtail_py.time_filter import TimeFilter
 
 
@@ -82,6 +83,7 @@ class AppState:
         notification_manager: Desktop notification coordinator
         fullscreen_buffer: Circular buffer for fullscreen log display
         fullscreen_state: State for fullscreen TUI mode (follow/browse mode)
+        theme_manager: Color theme manager for styling
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
         tailer: Active log tailer instance
@@ -104,6 +106,7 @@ class AppState:
     notification_manager: NotificationManager | None = None
     fullscreen_buffer: LogBuffer | None = None
     fullscreen_state: FullscreenState | None = None
+    theme_manager: ThemeManager = field(default_factory=ThemeManager)
     tailing: bool = False
     output_paused: bool = False
     history_path: Path = field(default_factory=get_history_path)
@@ -137,6 +140,10 @@ class AppState:
             slow_ms=self.config.slow.error,
             critical_ms=self.config.slow.critical,
         )
+
+        # Apply theme from config (fallback to dark if saved theme is unavailable)
+        if self.config.theme.name and not self.theme_manager.switch_theme(self.config.theme.name):
+            self.theme_manager.switch_theme("dark")
 
     def _init_notification_manager(self) -> None:
         """Initialize notification manager from config."""
@@ -345,13 +352,16 @@ def _process_tail_output(state: AppState) -> None:
             print(formatted)
             continue
 
+        # Get the current theme style
+        style = get_style(state.theme_manager)
+
         # Check for slow query highlighting first (slow query takes precedence)
         if state.slow_query_config.enabled and duration_ms is not None:
             slow_level = state.slow_query_config.get_level(duration_ms)
             if slow_level is not None:
                 # Slow query highlighting completely replaces regex highlighting
                 formatted = format_slow_query_entry(entry, slow_level)
-                print_formatted_text(formatted, style=LOG_STYLE)
+                print_formatted_text(formatted, style=style)
                 continue
 
         # Fall back to regex highlighting (only in COMPACT mode)
@@ -363,12 +373,12 @@ def _process_tail_output(state: AppState) -> None:
 
             if all_spans:
                 formatted = format_log_entry_with_highlights(entry, all_spans)
-                print_formatted_text(formatted, style=LOG_STYLE)
+                print_formatted_text(formatted, style=style)
                 continue
 
         # Use display module formatting (compact, full, or custom mode)
         formatted = format_entry(entry, state.display_state)
-        print_formatted_text(formatted, style=LOG_STYLE)
+        print_formatted_text(formatted, style=style)
 
 
 def _create_key_bindings(state: AppState) -> KeyBindings:
@@ -458,7 +468,10 @@ def main() -> None:
                 except KeyboardInterrupt:
                     # Ctrl+C pauses output but keeps tailer running for fullscreen
                     state.output_paused = True
-                    print("\nPaused. Use 'fullscreen' for live view, 'stop' to stop tailing.", flush=True)
+                    print(
+                        "\nPaused. Use 'fullscreen' for live view, 'stop' to stop tailing.",
+                        flush=True,
+                    )
                     continue
 
             line = session.prompt(lambda: _get_prompt(state))

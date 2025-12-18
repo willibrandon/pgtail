@@ -133,9 +133,7 @@ def create_keybindings(state: FullscreenState) -> KeyBindings:
         if hasattr(buffer_control, "search_state") and buffer_control.search_state.text:
             # Invert direction for previous match
             inverted = ~buffer_control.search_state
-            buffer_control.buffer.apply_search(
-                inverted, include_current_position=False, count=1
-            )
+            buffer_control.buffer.apply_search(inverted, include_current_position=False, count=1)
 
     # Page navigation keybindings
     @kb.add("c-d", filter=~is_searching)

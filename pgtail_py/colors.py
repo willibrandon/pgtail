@@ -1,6 +1,9 @@
 """Color output for PostgreSQL log entries using prompt_toolkit styles."""
 
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING
 
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
@@ -10,8 +13,12 @@ from pgtail_py.filter import LogLevel
 from pgtail_py.parser import LogEntry
 from pgtail_py.slow_query import SlowQueryLevel
 
+if TYPE_CHECKING:
+    from pgtail_py.theme import ThemeManager
+
 # Style definitions for each log level
 # Using ANSI color names that work across terminals
+# NOTE: This is the fallback style when no ThemeManager is available
 LEVEL_STYLES = {
     LogLevel.PANIC: "bold fg:white bg:red",
     LogLevel.FATAL: "bold fg:red",
@@ -42,6 +49,21 @@ _STYLE_RULES.extend(
     ]
 )
 LOG_STYLE = Style(_STYLE_RULES)
+
+
+def get_style(theme_manager: ThemeManager | None = None) -> Style:
+    """Get the current style from ThemeManager or fallback.
+
+    Args:
+        theme_manager: Optional ThemeManager instance.
+
+    Returns:
+        Style from theme manager if available, else LOG_STYLE fallback.
+    """
+    if theme_manager is not None:
+        return theme_manager.get_style()
+    return LOG_STYLE
+
 
 # Standalone highlight style for direct use
 HIGHLIGHT_STYLE = "fg:black bg:yellow"

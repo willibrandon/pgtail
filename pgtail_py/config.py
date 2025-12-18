@@ -203,11 +203,28 @@ def validate_string(value: Any) -> str:
     raise ValueError("must be a string")
 
 
+VALID_THEME_NAMES = {
+    "dark",
+    "light",
+    "high-contrast",
+    "monokai",
+    "solarized-dark",
+    "solarized-light",
+}
+
+
 def validate_theme(value: Any) -> str:
-    """Validate theme name."""
-    if isinstance(value, str) and value in ("dark", "light"):
+    """Validate theme name.
+
+    Accepts built-in theme names or any string (for custom themes).
+    """
+    # Accept built-in themes or custom theme names (alphanumeric with hyphens)
+    if isinstance(value, str) and (
+        value in VALID_THEME_NAMES or value.replace("-", "").replace("_", "").isalnum()
+    ):
         return value
-    raise ValueError("must be 'dark' or 'light'")
+    valid_list = ", ".join(sorted(VALID_THEME_NAMES))
+    raise ValueError(f"must be a valid theme name. Built-in: {valid_list}")
 
 
 def validate_strftime(value: Any) -> str:
@@ -384,7 +401,7 @@ DEFAULT_CONFIG_TEMPLATE = """\
 # show_level = true                  # Show log level in output
 
 [theme]
-# name = "dark"  # Options: dark, light
+# name = "dark"  # Options: dark, light, high-contrast, monokai, solarized-dark, solarized-light
 
 [notifications]
 # enabled = false                # Enable desktop notifications
