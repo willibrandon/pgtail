@@ -102,9 +102,7 @@ def get_valid_display_fields() -> list[str]:
     return sorted(VALID_DISPLAY_FIELDS)
 
 
-def _format_message_with_sql(
-    message: str, level_class: str
-) -> list[tuple[str, str]]:
+def _format_message_with_sql(message: str, level_class: str) -> list[tuple[str, str]]:
     """Format a log message with SQL syntax highlighting if SQL is detected.
 
     Args:
@@ -263,6 +261,7 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
     """Format entry in full mode (all fields).
 
     Shows primary line followed by indented secondary fields.
+    SQL statements in messages are syntax-highlighted.
 
     Example:
         10:23:45.123 [12345] ERROR 42P01: relation "foo" does not exist
@@ -292,9 +291,13 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
     level_name = entry.level.name.ljust(7)
 
     if entry.sql_state:
-        parts.append((level_class, f"{level_name} {entry.sql_state}: {entry.message}"))
+        parts.append((level_class, f"{level_name} {entry.sql_state}: "))
     else:
-        parts.append((level_class, f"{level_name}: {entry.message}"))
+        parts.append((level_class, f"{level_name}: "))
+
+    # Message with SQL highlighting
+    message_parts = _format_message_with_sql(entry.message, level_class)
+    parts.extend(message_parts)
 
     # Secondary fields (indented)
     secondary_fields = [
@@ -315,13 +318,20 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
         if value is not None:
             label = _FIELD_LABELS.get(field_name, field_name)
             parts.append(("", f"\n  {label}: "))
-            parts.append(("class:detail", str(value)))
+            # Check if the field might contain SQL (query, detail)
+            if field_name in ("query", "detail"):
+                field_parts = _format_message_with_sql(str(value), "class:detail")
+                parts.extend(field_parts)
+            else:
+                parts.append(("class:detail", str(value)))
 
     return FormattedText(parts)
 
 
 def format_entry_custom(entry: LogEntry, fields: list[str]) -> FormattedText:
     """Format entry with only specified fields.
+
+    SQL statements in message and query fields are syntax-highlighted.
 
     Args:
         entry: Log entry to format
@@ -358,7 +368,17 @@ def format_entry_custom(entry: LogEntry, fields: list[str]) -> FormattedText:
         elif field_name == "sql_state" and entry.sql_state:
             parts.append((level_class, entry.sql_state))
         elif field_name == "message":
-            parts.append((level_class, entry.message))
+            # Apply SQL highlighting to message
+            message_parts = _format_message_with_sql(entry.message, level_class)
+            parts.extend(message_parts)
+        elif field_name == "query":
+            # Query field typically contains SQL
+            query_parts = _format_message_with_sql(str(value), "")
+            parts.extend(query_parts)
+        elif field_name == "detail":
+            # Detail field may contain SQL context
+            detail_parts = _format_message_with_sql(str(value), "")
+            parts.extend(detail_parts)
         else:
             parts.append(("", str(value)))
 

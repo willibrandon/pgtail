@@ -8,8 +8,11 @@ from typing import TYPE_CHECKING, Any
 from prompt_toolkit.layout import HSplit, Layout, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension as D
+from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.mouse_events import MouseEvent, MouseEventType
 from prompt_toolkit.widgets import SearchToolbar, TextArea
+
+from pgtail_py.fullscreen.lexer import LogLineLexer
 
 if TYPE_CHECKING:
     from pgtail_py.fullscreen.buffer import LogBuffer
@@ -76,6 +79,11 @@ def create_layout(
     │ FOLLOW | 1234 lines | q=quit    │ (fixed height=1)
     └─────────────────────────────────┘
 
+    Note: The TextArea displays plain text for navigation support.
+    Theme colors are applied to the Application via the style parameter.
+    SQL syntax highlighting is visible in streaming mode; fullscreen shows
+    plain text with log level coloring via the theme.
+
     Args:
         buffer: LogBuffer for content
         state: FullscreenState for status display
@@ -90,6 +98,7 @@ def create_layout(
         read_only=True,
         scrollbar=True,
         search_field=search_toolbar,
+        lexer=PygmentsLexer(LogLineLexer),
     )
 
     # Wrap the Window's scroll methods to enter browse mode on mouse scroll

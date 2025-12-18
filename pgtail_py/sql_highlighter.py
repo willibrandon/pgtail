@@ -11,7 +11,6 @@ from prompt_toolkit.formatted_text import FormattedText
 
 from pgtail_py.sql_tokenizer import SQLToken, SQLTokenizer, SQLTokenType
 
-
 # Style class mapping for token types
 TOKEN_TO_STYLE: dict[SQLTokenType, str] = {
     SQLTokenType.KEYWORD: "class:sql_keyword",

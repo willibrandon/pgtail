@@ -133,14 +133,14 @@ Based on plan.md structure:
 
 ### Tests for User Story 4
 
-- [ ] T039 [P] [US4] Add integration test for SQL highlighting in fullscreen display in tests/test_display_sql.py
+- [x] T039 [P] [US4] Add integration test for SQL highlighting in fullscreen display in tests/test_display_sql.py
 
 ### Implementation for User Story 4
 
-- [ ] T040 [US4] Integrate SQL highlighting into format_entry_full() in pgtail_py/display.py
-- [ ] T041 [US4] Integrate SQL highlighting into format_entry_custom() in pgtail_py/display.py
-- [ ] T042 [US4] Verify FormattedText with SQL highlighting renders correctly in fullscreen buffer (pgtail_py/fullscreen/buffer.py)
-- [ ] T043 [US4] Test SQL highlighting with search highlighting overlay in fullscreen mode
+- [x] T040 [US4] Integrate SQL highlighting into format_entry_full() in pgtail_py/display.py
+- [x] T041 [US4] Integrate SQL highlighting into format_entry_custom() in pgtail_py/display.py
+- [x] T042 [US4] Verify FormattedText with SQL highlighting renders correctly in fullscreen buffer (pgtail_py/fullscreen/buffer.py)
+- [x] T043 [US4] Test SQL highlighting with search highlighting overlay in fullscreen mode
 
 **Checkpoint**: SQL highlighting works in both streaming and fullscreen modes
 

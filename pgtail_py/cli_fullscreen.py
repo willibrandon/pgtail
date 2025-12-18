@@ -25,6 +25,7 @@ def fullscreen_command(args: str, state: AppState) -> None:
     - If no buffer content: Print error message
     - Otherwise: Enter fullscreen mode to view buffer
     - On 'q' exit: Return to REPL with buffer preserved
+    - Theme colors and SQL highlighting are preserved in fullscreen mode
     """
     buffer = state.get_or_create_buffer()
 
@@ -33,4 +34,8 @@ def fullscreen_command(args: str, state: AppState) -> None:
         return
 
     fs_state = state.get_or_create_fullscreen_state()
-    run_fullscreen(buffer, fs_state)
+
+    # Get theme style for consistent colors in fullscreen mode
+    style = state.theme_manager.get_style()
+
+    run_fullscreen(buffer, fs_state, style)

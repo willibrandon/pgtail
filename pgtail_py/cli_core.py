@@ -275,15 +275,10 @@ def tail_command(state: AppState, args: list[str]) -> None:
         if state.notification_manager:
             state.notification_manager.check(entry)
         # Feed formatted entry to fullscreen buffer (always, even when not in fullscreen)
+        # Buffer stores FormattedText directly to preserve styling for fullscreen TUI
         buffer = state.get_or_create_buffer()
         formatted = format_entry(entry, state.display_state)
-        # Convert FormattedText to plain string for buffer storage
-        if isinstance(formatted, str):
-            buffer.append(formatted)
-        else:
-            # FormattedText is a list of (style, text) tuples
-            plain_text = "".join(fragment[1] for fragment in formatted)
-            buffer.append(plain_text)
+        buffer.append(formatted)
 
     state.tailer = LogTailer(
         instance.log_path,

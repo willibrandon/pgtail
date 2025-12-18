@@ -182,6 +182,7 @@ source = { editable = "." }
 dependencies = [
     { name = "prompt-toolkit" },
     { name = "psutil" },
+    { name = "pygments" },
     { name = "tomlkit" },
 ]
 
@@ -197,6 +198,7 @@ dev = [
 requires-dist = [
     { name = "prompt-toolkit", specifier = ">=3.0.0" },
     { name = "psutil", specifier = ">=5.9.0" },
+    { name = "pygments", specifier = ">=2.0" },
     { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },

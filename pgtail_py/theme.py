@@ -673,6 +673,47 @@ class ThemeManager:
             if style_string:
                 rules.append((ui_name, style_string))
 
+        # Add Pygments token mappings for fullscreen syntax highlighting
+        # Maps Pygments token class names to theme's SQL style values
+        # Note: Pygments tokens use dot notation (pygments.literal.number)
+        pygments_mappings = {
+            # Map Pygments tokens to theme SQL styles
+            "pygments.keyword": "sql_keyword",
+            # String tokens (Token.Literal.String)
+            "pygments.literal.string": "sql_string",
+            "pygments.literal.string.single": "sql_string",
+            # Number tokens (Token.Literal.Number)
+            "pygments.literal.number": "sql_number",
+            # Operator tokens
+            "pygments.operator": "sql_operator",
+            # Comment tokens
+            "pygments.comment": "sql_comment",
+            "pygments.comment.single": "sql_comment",
+            "pygments.comment.multiline": "sql_comment",
+            # Name tokens
+            "pygments.name.function": "sql_function",
+            "pygments.name": "sql_identifier",
+            "pygments.name.variable": "sql_identifier",
+            "pygments.name.label": "sql_keyword",  # SQL state codes
+            # Punctuation
+            "pygments.punctuation": "sql_operator",
+            # Generic tokens for log levels
+            "pygments.generic.error": "error",
+        }
+
+        for pygments_class, theme_key in pygments_mappings.items():
+            # Try to find the style from UI section (SQL styles)
+            if theme_key in theme.ui:
+                style_string = theme.ui[theme_key].to_style_string()
+            # Fall back to levels section (for error, warning, etc.)
+            elif theme_key.upper() in theme.levels:
+                style_string = theme.levels[theme_key.upper()].to_style_string()
+            else:
+                continue
+
+            if style_string:
+                rules.append((pygments_class, style_string))
+
         return Style(rules)
 
     def get_style(self) -> Style:

@@ -50,12 +50,14 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 **Key dependencies:**
 - `prompt_toolkit` - REPL with autocomplete and history
 - `psutil` - Cross-platform process detection
+- `pygments` - Syntax highlighting in fullscreen mode
 
 ## Tech Stack
 
 - Python 3.10+
-- prompt_toolkit >=3.0.0 (REPL, autocomplete, styled output)
+- prompt_toolkit >=3.0.0 (REPL, autocomplete, styled output, fullscreen)
 - psutil >=5.9.0 (process detection)
+- pygments >=2.0 (syntax highlighting)
 - re (stdlib, regex filtering)
 
 ## Configuration
@@ -267,10 +269,12 @@ The `fullscreen` (or `fs`) command enters a full-screen terminal UI for browsing
 - Scrollbar on right side
 
 **Implementation:**
-- Uses prompt_toolkit full-screen Application
+- Uses prompt_toolkit full-screen Application with TextArea widget
 - Circular buffer stores last 10,000 log lines
 - Buffer is shared with REPL mode (persists between fullscreen sessions)
 - Status bar shows current mode, line count, and key hints
+- SQL syntax highlighting via custom Pygments lexer (LogLineLexer)
+- Theme colors applied through Pygments token mappings
 
 **New modules:**
 - `pgtail_py/fullscreen/__init__.py` - Package exports (LogBuffer, FullscreenState, etc.)
@@ -278,6 +282,7 @@ The `fullscreen` (or `fs`) command enters a full-screen terminal UI for browsing
 - `pgtail_py/fullscreen/buffer.py` - LogBuffer circular buffer implementation
 - `pgtail_py/fullscreen/keybindings.py` - Vim-style key bindings
 - `pgtail_py/fullscreen/layout.py` - HSplit layout with log view, search bar, status bar
+- `pgtail_py/fullscreen/lexer.py` - Pygments LogLineLexer for SQL syntax highlighting
 - `pgtail_py/fullscreen/state.py` - FullscreenState, DisplayMode enum
 - `pgtail_py/cli_fullscreen.py` - fullscreen command handler
 

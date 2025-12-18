@@ -69,7 +69,7 @@ class TestLogBufferAppend:
         buf = LogBuffer(maxlen=3)
         for i in range(5):
             buf.append(f"line{i}")
-        lines = buf.get_lines()
+        lines = buf.get_plain_lines()
         assert lines == ["line2", "line3", "line4"]
 
     def test_append_empty_line(self) -> None:
@@ -112,7 +112,7 @@ class TestLogBufferGetText:
 
 
 class TestLogBufferGetLines:
-    """Tests for LogBuffer.get_lines()."""
+    """Tests for LogBuffer.get_lines() and get_plain_lines()."""
 
     def test_get_lines_empty(self) -> None:
         """Empty buffer returns empty list."""
@@ -124,16 +124,30 @@ class TestLogBufferGetLines:
         buf = LogBuffer()
         buf.append("line1")
         lines = buf.get_lines()
-        lines.append("line2")  # Modify the copy
+        lines.append([("", "line2")])  # Modify the copy
         assert len(buf) == 1  # Original unchanged
 
     def test_get_lines_order(self) -> None:
-        """get_lines() returns lines in chronological order."""
+        """get_lines() returns styled lines in chronological order."""
         buf = LogBuffer()
         buf.append("first")
         buf.append("second")
         buf.append("third")
-        assert buf.get_lines() == ["first", "second", "third"]
+        # get_lines returns StyledLine (list of tuples)
+        lines = buf.get_lines()
+        assert len(lines) == 3
+        # Each line is a list of (style, text) tuples
+        assert lines[0] == [("", "first")]
+        assert lines[1] == [("", "second")]
+        assert lines[2] == [("", "third")]
+
+    def test_get_plain_lines_order(self) -> None:
+        """get_plain_lines() returns plain text in chronological order."""
+        buf = LogBuffer()
+        buf.append("first")
+        buf.append("second")
+        buf.append("third")
+        assert buf.get_plain_lines() == ["first", "second", "third"]
 
 
 class TestLogBufferClear:

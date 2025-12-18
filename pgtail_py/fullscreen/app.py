@@ -7,6 +7,7 @@ import contextlib
 from typing import TYPE_CHECKING
 
 from prompt_toolkit.application import Application
+from prompt_toolkit.styles import Style
 
 from pgtail_py.fullscreen.keybindings import create_keybindings
 from pgtail_py.fullscreen.layout import create_layout
@@ -19,12 +20,14 @@ if TYPE_CHECKING:
 def create_fullscreen_app(
     buffer: LogBuffer,
     state: FullscreenState,
+    style: Style | None = None,
 ) -> Application[None]:
     """Create prompt_toolkit Application for fullscreen mode.
 
     Args:
         buffer: LogBuffer to display (shared with REPL mode)
         state: FullscreenState for mode management
+        style: Optional prompt_toolkit Style for theming
 
     Returns:
         Configured Application ready to run
@@ -38,6 +41,7 @@ def create_fullscreen_app(
         full_screen=True,
         mouse_support=True,
         enable_page_navigation_bindings=True,
+        style=style,
     )
 
     # Store references for live updates
@@ -83,6 +87,7 @@ async def _update_display_loop(
 def run_fullscreen(
     buffer: LogBuffer,
     state: FullscreenState,
+    style: Style | None = None,
 ) -> None:
     """Run fullscreen mode (blocking).
 
@@ -92,8 +97,9 @@ def run_fullscreen(
     Args:
         buffer: LogBuffer to display
         state: FullscreenState for mode management
+        style: Optional prompt_toolkit Style for theming
     """
-    app = create_fullscreen_app(buffer, state)
+    app = create_fullscreen_app(buffer, state, style)
     text_area = app._pgtail_text_area  # type: ignore[attr-defined]
 
     async def run_with_updates() -> None:
