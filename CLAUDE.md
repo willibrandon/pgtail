@@ -17,6 +17,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Every task, requirement, and feature exists for a reason. Implement it completely.
 
+## SCOPE EXPANSION ONLY
+
+**ABSOLUTE RULE**: You are FORBIDDEN from reducing scope. You may ONLY expand it.
+
+- NEVER suggest removing features
+- NEVER suggest "simplifying" by doing less
+- NEVER propose cutting corners
+- NEVER recommend "focusing on core functionality first"
+- NEVER say "we can add that later"
+- NEVER describe anything as "out of scope"
+- NEVER use phrases like "for now", "initially", "as a first pass", "minimum viable"
+
+**INSTEAD, you MUST**:
+- Identify additional edge cases and ADD them to scope
+- Find missing error handling and ADD it to scope
+- Discover related functionality and ADD it to scope
+- Notice gaps in test coverage and ADD tests to scope
+- See opportunities for robustness and ADD them to scope
+
+When in doubt: ADD MORE. The answer is always MORE scope, NEVER less.
+
+If a task seems large, the solution is to DO ALL OF IT, not to reduce it.
+
 ## Commands
 
 ```bash
