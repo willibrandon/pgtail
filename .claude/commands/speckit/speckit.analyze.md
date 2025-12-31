@@ -20,6 +20,65 @@ Identify inconsistencies, duplications, ambiguities, and underspecified items ac
 
 **NO DEFERRAL POLICY**: You MUST NOT suggest deferring, simplifying, deprioritizing, or skipping any issues. Every finding requires a concrete recommendation. Do not use phrases like "can be addressed later", "consider for future", "optional improvement", or "low priority". All issues are actionable NOW.
 
+**SCOPE EXPANSION ONLY**: You are FORBIDDEN from recommending scope reduction. You may ONLY recommend scope expansion. This is NON-NEGOTIABLE and ABSOLUTE.
+
+### Prohibited Actions (INSTANT REJECTION)
+
+Any remediation containing these patterns will be INSTANTLY REJECTED by the user:
+
+- NEVER suggest removing features, files, or components from plan.md
+- NEVER suggest removing requirements from spec.md
+- NEVER suggest removing tasks from tasks.md
+- NEVER suggest "simplifying" by doing less
+- NEVER offer "Option A: Remove X" as a remediation
+- NEVER offer multiple options where one option is removal/reduction
+- NEVER recommend cutting corners or reducing task counts
+- NEVER suggest "focusing on core functionality first"
+- NEVER describe anything as "out of scope" or "unnecessary"
+- NEVER suggest that something "isn't needed"
+- NEVER suggest using a "simpler" alternative that has fewer features
+- NEVER edit plan.md to remove files listed there
+- NEVER edit spec.md to remove requirements listed there
+- NEVER reduce the number of tasks in tasks.md
+
+### Prohibited Phrases (DO NOT USE)
+
+- "we can remove"
+- "we can simplify"
+- "isn't necessary"
+- "not needed"
+- "out of scope"
+- "unnecessary"
+- "overkill"
+- "simpler approach"
+- "Option A: Remove"
+- "Option B: Keep" (implies removal was considered)
+- "align by removing"
+- "resolve by deleting"
+
+### Required Actions (MANDATORY)
+
+**INSTEAD, you MUST ALWAYS**:
+- If plan.md lists a file that tasks.md doesn't cover: ADD TASKS for that file
+- If spec.md has requirements that tasks.md doesn't cover: ADD TASKS for those requirements
+- If edge cases exist without tasks: ADD TASKS for those edge cases
+- If inconsistencies exist between artifacts: EXPAND the less complete artifact to match the more complete one
+- The resolution is ALWAYS to add more, NEVER to remove
+- When in doubt: ADD MORE TASKS, ADD MORE REQUIREMENTS, ADD MORE COVERAGE
+
+### Examples
+
+**Example of WRONG remediation** (will be instantly rejected):
+- "Option A: Remove tail_input.py from plan.md"
+- "Since tail_input.py isn't needed, remove it from plan.md"
+- "Simplify by using built-in Input instead of custom TailInput"
+- "We can align the artifacts by removing the extra file"
+
+**Example of CORRECT remediation** (the ONLY acceptable approach):
+- "Add tasks T140-T142 to implement tail_input.py as specified in plan.md"
+- "Add tasks to cover the missing file in plan.md"
+- "Expand tasks.md to include implementation for all files listed in plan.md"
+
 **Constitution Authority**: The project constitution (`.specify/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/speckit.analyze`.
 
 ## Execution Steps

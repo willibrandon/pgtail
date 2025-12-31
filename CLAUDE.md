@@ -40,6 +40,43 @@ When in doubt: ADD MORE. The answer is always MORE scope, NEVER less.
 
 If a task seems large, the solution is to DO ALL OF IT, not to reduce it.
 
+**SCOPE EXPANSION ONLY**: You are FORBIDDEN from recommending scope reduction. You may ONLY recommend scope expansion. This is NON-NEGOTIABLE and ABSOLUTE.
+
+### Prohibited Actions (INSTANT REJECTION)
+
+Any remediation containing these patterns will be INSTANTLY REJECTED by the user:
+
+- NEVER suggest removing features, files, or components from plan.md
+- NEVER suggest removing requirements from spec.md
+- NEVER suggest removing tasks from tasks.md
+- NEVER suggest "simplifying" by doing less
+- NEVER offer "Option A: Remove X" as a remediation
+- NEVER offer multiple options where one option is removal/reduction
+- NEVER recommend cutting corners or reducing task counts
+- NEVER suggest "focusing on core functionality first"
+- NEVER describe anything as "out of scope" or "unnecessary"
+- NEVER suggest that something "isn't needed"
+- NEVER suggest using a "simpler" alternative that has fewer features
+- NEVER edit plan.md to remove files listed there
+- NEVER edit spec.md to remove requirements listed there
+- NEVER reduce the number of tasks in tasks.md
+
+### Prohibited Phrases (DO NOT USE)
+
+- "we can remove"
+- "we can simplify"
+- "isn't necessary"
+- "not needed"
+- "out of scope"
+- "unnecessary"
+- "overkill"
+- "simpler approach"
+- "Option A: Remove"
+- "Option B: Keep" (implies removal was considered)
+- "align by removing"
+- "resolve by deleting"
+
+
 ## Commands
 
 ```bash
@@ -367,10 +404,11 @@ The `tail` command enters a split-screen interface with three areas:
 Filter changes trigger `_rebuild_buffer_filters()` which recalculates error/warning counts from buffer.
 
 ## Recent Changes
+- 017-log-selection: Replace prompt_toolkit tail mode with Textual for built-in text selection and clipboard support (textual>=0.89.0, pyperclip>=1.8.0)
 - 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input. Error/warning/line counts respect active filters.
 - 016-resilient-tailing: Tailer automatically detects new log files after PostgreSQL restart using current_logfiles
-- 015-remove-fullscreen: Removed fullscreen TUI mode (fullscreen/ package, cli_fullscreen.py, related tests)
 
 ## Active Technologies
 - Python 3.10+ + prompt_toolkit >=3.0.0 (Application, HSplit, Window, FormattedTextControl, BufferControl, TextArea) (016-status-bar-tail)
+- textual>=0.89.0 + pyperclip>=1.8.0 (017-log-selection - new Textual-based tail mode)
 - In-memory ring buffer (10,000 lines max), no persistence (016-status-bar-tail)
