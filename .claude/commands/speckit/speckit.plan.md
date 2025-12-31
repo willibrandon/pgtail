@@ -87,3 +87,5 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 - Use absolute paths
 - ERROR on gate failures or unresolved clarifications
+
+**NO DEFERRAL POLICY**: You MUST NOT defer research, simplify architecture, skip design artifacts, or suggest "handling in implementation". Complete ALL phases fully. Generate ALL required artifacts (research.md, data-model.md, contracts/, quickstart.md). Do not reduce scope or suggest "minimal viable" approaches unless explicitly requested.

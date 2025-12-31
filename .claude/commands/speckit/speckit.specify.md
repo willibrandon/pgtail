@@ -196,6 +196,8 @@ Given that feature description, do this:
 
 ## General Guidelines
 
+**NO DEFERRAL POLICY**: You MUST NOT suggest reducing scope, simplifying requirements, or deferring features. Capture the FULL specification as described by the user. Do not remove complexity to make your job easier. Do not suggest "MVP" reductions or "phase 2" deferrals unless explicitly requested.
+
 ## Quick Guidelines
 
 - Focus on **WHAT** users need and **WHY**.

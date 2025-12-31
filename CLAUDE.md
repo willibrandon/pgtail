@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## NO DEFERRAL POLICY
+
+**CRITICAL**: You MUST NOT defer, simplify, deprioritize, or skip ANY work. This applies to ALL tasks:
+
+- Do NOT suggest "addressing later" or "in a future phase"
+- Do NOT propose "MVP" scope reductions unless explicitly requested
+- Do NOT skip "nice-to-have" features - they are requirements
+- Do NOT simplify implementations to reduce complexity
+- Do NOT deprioritize P2/P3 tasks - all priorities are actionable NOW
+- Do NOT defer edge cases, error handling, or validation
+- Do NOT suggest "optional improvements" - all improvements are mandatory
+- Do NOT reduce task counts to seem more manageable
+
+Every task, requirement, and feature exists for a reason. Implement it completely.
+
 ## Commands
 
 ```bash
@@ -296,10 +311,10 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
 ## Recent Changes
+- 016-status-bar-tail: Added Python 3.10+ + prompt_toolkit >=3.0.0 (Application, HSplit, Window, FormattedTextControl, BufferControl, TextArea)
 - 016-resilient-tailing: Tailer automatically detects new log files after PostgreSQL restart using current_logfiles
 - 015-remove-fullscreen: Removed fullscreen TUI mode (fullscreen/ package, cli_fullscreen.py, related tests)
-- 014-sql-highlighting: Added Python 3.10+ + prompt_toolkit >=3.0.0 (FormattedText styling), existing theme.py/ThemeManager
-- 013-color-themes: Added Python 3.10+ + prompt_toolkit >=3.0.0 (styling/FormattedText), tomlkit >=0.12.0 (config files)
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0 (015-remove-fullscreen)
+- Python 3.10+ + prompt_toolkit >=3.0.0 (Application, HSplit, Window, FormattedTextControl, BufferControl, TextArea) (016-status-bar-tail)
+- In-memory ring buffer (10,000 lines max), no persistence (016-status-bar-tail)

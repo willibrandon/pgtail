@@ -133,3 +133,5 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Report final status with summary of completed work
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
+
+**NO DEFERRAL POLICY**: You MUST NOT skip tasks, simplify implementations, defer "nice-to-have" features, or suggest "addressing later". Execute ALL tasks in tasks.md completely. Do not propose reducing scope mid-implementation. Do not mark tasks complete until they are FULLY implemented. Every task exists for a reason - implement it.

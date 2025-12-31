@@ -64,6 +64,8 @@ Context for task generation: $ARGUMENTS
 
 The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context.
 
+**NO DEFERRAL POLICY**: You MUST NOT skip tasks, defer features to "future phases", simplify requirements, or suggest "addressing later". Generate tasks for ALL user stories and ALL requirements. Do not reduce task counts to seem more manageable. Do not deprioritize P2/P3 stories. Every requirement gets tasks - no exceptions.
+
 ## Task Generation Rules
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.

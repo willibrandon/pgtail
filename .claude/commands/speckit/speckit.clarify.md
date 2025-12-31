@@ -18,6 +18,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 Goal: Detect and reduce ambiguity or missing decision points in the active feature specification and record the clarifications directly in the spec file.
 
+**NO DEFERRAL POLICY**: You MUST NOT defer clarifications to "later phases", suggest "addressing in implementation", or skip questions because they seem "minor". Every ambiguity identified MUST be resolved in this session. Do not simplify scope or suggest removing features to avoid clarification.
+
 Note: This clarification workflow is expected to run (and be completed) BEFORE invoking `/speckit.plan`. If the user explicitly states they are skipping clarification (e.g., exploratory spike), you may proceed, but must warn that downstream rework risk increases.
 
 Execution steps:
