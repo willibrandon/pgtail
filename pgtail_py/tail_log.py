@@ -16,7 +16,9 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from textual import events
 from textual.binding import Binding, BindingType
+from textual.geometry import Offset
 from textual.message import Message
 from textual.selection import Selection
 from textual.widgets import Log
@@ -46,6 +48,7 @@ class TailLog(Log):
         Binding("k", "scroll_up", "Up", show=False),
         Binding("g", "scroll_home", "Top", show=False),
         Binding("shift+g", "scroll_end", "Bottom", show=False),
+        Binding("f", "follow", "Follow", show=False),
         Binding("ctrl+d", "half_page_down", "Half page down", show=False),
         Binding("ctrl+u", "half_page_up", "Half page up", show=False),
         Binding("ctrl+f", "page_down", "Page down", show=False),
@@ -128,6 +131,12 @@ class TailLog(Log):
         self._visual_mode: bool = False
         self._visual_line_mode: bool = False
         self._visual_anchor_line: int | None = None
+        self._cursor_line: int = 0
+
+    @property
+    def cursor_line(self) -> int:
+        """Current cursor line position."""
+        return self._cursor_line
 
     @property
     def visual_mode(self) -> bool:
@@ -142,75 +151,106 @@ class TailLog(Log):
     # Navigation actions
 
     def action_scroll_down(self) -> None:
-        """Scroll down one line."""
-        self.scroll_down()
-        if self._visual_mode:
-            self._update_selection()
+        """Move cursor/selection down one line."""
+        if self.line_count == 0:
+            return
+        self._cursor_line = min(self._cursor_line + 1, self.line_count - 1)
+        self._select_cursor_line()
+        self._scroll_cursor_visible()
 
     def action_scroll_up(self) -> None:
-        """Scroll up one line."""
-        self.scroll_up()
-        if self._visual_mode:
-            self._update_selection()
+        """Move cursor/selection up one line."""
+        if self.line_count == 0:
+            return
+        self._cursor_line = max(self._cursor_line - 1, 0)
+        self._select_cursor_line()
+        self._scroll_cursor_visible()
 
     def action_scroll_home(self) -> None:
-        """Scroll to top of log."""
+        """Move cursor/selection to top of log."""
+        if self.line_count == 0:
+            return
+        self._cursor_line = 0
+        self._select_cursor_line()
         self.scroll_home()
-        if self._visual_mode:
-            self._update_selection()
 
     def action_scroll_end(self) -> None:
-        """Scroll to bottom of log (resumes FOLLOW mode)."""
+        """Move cursor/selection to bottom of log."""
+        if self.line_count == 0:
+            return
+        self._cursor_line = self.line_count - 1
+        self._select_cursor_line()
         self.scroll_end()
-        if self._visual_mode:
-            self._update_selection()
+
+    def action_follow(self) -> None:
+        """Enter follow mode: go to tail, clear selection, enable auto-scroll."""
+        if self.line_count == 0:
+            return
+        # Exit visual mode
+        self._visual_mode = False
+        self._visual_line_mode = False
+        self._visual_anchor_line = None
+        # Move to end
+        self._cursor_line = self.line_count - 1
+        self._set_selection(None)
+        self.scroll_end()
 
     def action_half_page_down(self) -> None:
-        """Scroll down half a page."""
+        """Move cursor/selection down half a page."""
+        if self.line_count == 0:
+            return
         height = self.scrollable_content_region.height
-        self.scroll_relative(y=height // 2)
-        if self._visual_mode:
-            self._update_selection()
+        self._cursor_line = min(self._cursor_line + height // 2, self.line_count - 1)
+        self._select_cursor_line()
+        self._scroll_cursor_visible()
 
     def action_half_page_up(self) -> None:
-        """Scroll up half a page."""
+        """Move cursor/selection up half a page."""
+        if self.line_count == 0:
+            return
         height = self.scrollable_content_region.height
-        self.scroll_relative(y=-(height // 2))
-        if self._visual_mode:
-            self._update_selection()
+        self._cursor_line = max(self._cursor_line - height // 2, 0)
+        self._select_cursor_line()
+        self._scroll_cursor_visible()
 
     def action_page_down(self) -> None:
-        """Scroll down one full page."""
-        self.scroll_page_down()
-        if self._visual_mode:
-            self._update_selection()
+        """Move cursor/selection down one full page."""
+        if self.line_count == 0:
+            return
+        height = self.scrollable_content_region.height
+        self._cursor_line = min(self._cursor_line + height, self.line_count - 1)
+        self._select_cursor_line()
+        self._scroll_cursor_visible()
 
     def action_page_up(self) -> None:
-        """Scroll up one full page."""
-        self.scroll_page_up()
-        if self._visual_mode:
-            self._update_selection()
+        """Move cursor/selection up one full page."""
+        if self.line_count == 0:
+            return
+        height = self.scrollable_content_region.height
+        self._cursor_line = max(self._cursor_line - height, 0)
+        self._select_cursor_line()
+        self._scroll_cursor_visible()
 
     # Visual mode actions
 
     def action_visual_mode(self) -> None:
-        """Enter visual mode for character-wise selection."""
+        """Enter visual mode for single-line selection."""
         if self.line_count == 0:
-            return  # No-op on empty buffer
+            return
         self._visual_mode = True
         self._visual_line_mode = False
-        self._visual_anchor_line = self._get_current_line()
-        self._update_selection()
+        self._visual_anchor_line = self._cursor_line
+        self._select_cursor_line()
         self.post_message(self.VisualModeChanged(active=True, line_mode=False))
 
     def action_visual_line_mode(self) -> None:
-        """Enter visual line mode for full-line selection."""
+        """Enter visual line mode for multi-line selection."""
         if self.line_count == 0:
-            return  # No-op on empty buffer
+            return
         self._visual_mode = True
         self._visual_line_mode = True
-        self._visual_anchor_line = self._get_current_line()
-        self._update_selection()
+        self._visual_anchor_line = self._cursor_line
+        self._select_cursor_line()
         self.post_message(self.VisualModeChanged(active=True, line_mode=True))
 
     def action_yank(self) -> None:
@@ -265,47 +305,63 @@ class TailLog(Log):
         if success:
             self.post_message(self.SelectionCopied(selected_text, len(selected_text)))
 
-    # Helper methods
+    # Event handlers
 
-    def _get_current_line(self) -> int:
-        """Get the current line at viewport center.
+    def on_click(self, event: events.Click) -> None:
+        """Handle mouse click to select line.
 
-        Returns:
-            Line index at viewport center (clamped to valid range).
+        Args:
+            event: Click event with position information.
         """
-        viewport_top = self.scroll_offset.y
-        viewport_height = self.scrollable_content_region.height
-        center_line = viewport_top + (viewport_height // 2)
-        # Clamp to valid range
-        return max(0, min(center_line, self.line_count - 1))
-
-    def _update_selection(self) -> None:
-        """Update selection based on visual mode anchor and current line."""
-        if not self._visual_mode or self._visual_anchor_line is None:
+        if self.line_count == 0:
             return
 
-        current = self._get_current_line()
-        start_line = min(self._visual_anchor_line, current)
-        end_line = max(self._visual_anchor_line, current)
+        # Calculate which line was clicked and set cursor
+        clicked_line = self.scroll_offset.y + event.y
+        self._cursor_line = max(0, min(clicked_line, self.line_count - 1))
 
-        # Clamp to valid bounds
-        start_line = max(0, min(start_line, self.line_count - 1))
-        end_line = max(0, min(end_line, self.line_count - 1))
+        # Exit visual mode on click
+        if self._visual_mode:
+            self._visual_mode = False
+            self._visual_line_mode = False
+            self._visual_anchor_line = None
 
-        from textual.geometry import Offset
-        from textual.selection import Selection
+        # Select the clicked line
+        self._select_cursor_line()
 
-        if self._visual_line_mode:
-            # Full line selection: start of first line to end of last line
-            start = Offset(0, start_line)
-            # Use a large x value to indicate end of line
-            end = Offset(10000, end_line)
+    # Helper methods
+
+    def _select_cursor_line(self) -> None:
+        """Select based on cursor position and visual mode state."""
+        if self.line_count == 0:
+            return
+
+        if self._visual_mode and self._visual_line_mode and self._visual_anchor_line is not None:
+            # Visual line mode: select from anchor to cursor
+            start_line = min(self._visual_anchor_line, self._cursor_line)
+            end_line = max(self._visual_anchor_line, self._cursor_line)
         else:
-            # Character selection (currently same as line mode for simplicity)
-            start = Offset(0, start_line)
-            end = Offset(10000, end_line)
+            # Single line selection
+            start_line = self._cursor_line
+            end_line = self._cursor_line
 
+        start = Offset(0, start_line)
+        end = Offset(10000, end_line)
         self._set_selection(Selection(start, end))
+
+    def _scroll_cursor_visible(self) -> None:
+        """Scroll to keep cursor line visible."""
+        if self.line_count == 0:
+            return
+
+        viewport_top = self.scroll_offset.y
+        viewport_height = self.scrollable_content_region.height
+        viewport_bottom = viewport_top + viewport_height - 1
+
+        if self._cursor_line < viewport_top:
+            self.scroll_to(y=self._cursor_line, animate=False)
+        elif self._cursor_line > viewport_bottom:
+            self.scroll_to(y=self._cursor_line - viewport_height + 1, animate=False)
 
     def _exit_visual_mode(self) -> None:
         """Exit visual mode and clear selection."""
