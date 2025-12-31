@@ -40,5 +40,18 @@ MONOKAI_THEME = Theme(
         "sql_operator": ColorStyle(fg="#f8f8f2"),  # White
         "sql_comment": ColorStyle(fg="#75715e"),  # Gray
         "sql_function": ColorStyle(fg="#a6e22e"),  # Green
+        # Status bar (tail mode) - Monokai palette
+        "status": ColorStyle(fg="#f8f8f2", bg="#3e3d32"),  # Light text on dark gray
+        "status_follow": ColorStyle(fg="#a6e22e", bg="#3e3d32", bold=True),  # Green
+        "status_paused": ColorStyle(fg="#fd971f", bg="#3e3d32", bold=True),  # Orange
+        "status_error": ColorStyle(fg="#f92672", bg="#3e3d32", bold=True),  # Pink
+        "status_warning": ColorStyle(fg="#fd971f", bg="#3e3d32"),  # Orange
+        "status_filter": ColorStyle(fg="#66d9ef", bg="#3e3d32"),  # Cyan
+        "status_instance": ColorStyle(fg="#f8f8f2", bg="#3e3d32"),
+        # Input line (tail mode)
+        "input": ColorStyle(),
+        "input_prompt": ColorStyle(fg="#a6e22e", bold=True),  # Green
+        # Separator lines
+        "separator": ColorStyle(fg="#75715e"),  # Gray
     },
 )

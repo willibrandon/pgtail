@@ -44,5 +44,18 @@ SOLARIZED_DARK_THEME = Theme(
         "sql_operator": ColorStyle(fg="#b58900"),  # Yellow
         "sql_comment": ColorStyle(fg="#586e75"),  # Base01 (gray)
         "sql_function": ColorStyle(fg="#268bd2"),  # Blue
+        # Status bar (tail mode) - Solarized dark palette
+        "status": ColorStyle(fg="#839496", bg="#073642"),  # Base0 on Base02
+        "status_follow": ColorStyle(fg="#859900", bg="#073642", bold=True),  # Green
+        "status_paused": ColorStyle(fg="#b58900", bg="#073642", bold=True),  # Yellow
+        "status_error": ColorStyle(fg="#dc322f", bg="#073642", bold=True),  # Red
+        "status_warning": ColorStyle(fg="#b58900", bg="#073642"),  # Yellow
+        "status_filter": ColorStyle(fg="#2aa198", bg="#073642"),  # Cyan
+        "status_instance": ColorStyle(fg="#839496", bg="#073642"),  # Base0
+        # Input line (tail mode)
+        "input": ColorStyle(),
+        "input_prompt": ColorStyle(fg="#859900", bold=True),  # Green
+        # Separator lines
+        "separator": ColorStyle(fg="#586e75"),  # Base01
     },
 )

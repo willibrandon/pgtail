@@ -41,5 +41,18 @@ HIGH_CONTRAST_THEME = Theme(
         "sql_operator": ColorStyle(fg="yellow", bold=True),
         "sql_comment": ColorStyle(fg="white", dim=True),
         "sql_function": ColorStyle(fg="blue", bold=True),
+        # Status bar (tail mode) - WCAG AA compliant high contrast
+        "status": ColorStyle(fg="white", bg="ansiblack", bold=True),
+        "status_follow": ColorStyle(fg="green", bg="ansiblack", bold=True),
+        "status_paused": ColorStyle(fg="yellow", bg="ansiblack", bold=True),
+        "status_error": ColorStyle(fg="red", bg="ansiblack", bold=True, underline=True),
+        "status_warning": ColorStyle(fg="yellow", bg="ansiblack", bold=True),
+        "status_filter": ColorStyle(fg="cyan", bg="ansiblack", bold=True),
+        "status_instance": ColorStyle(fg="white", bg="ansiblack", bold=True),
+        # Input line (tail mode)
+        "input": ColorStyle(),
+        "input_prompt": ColorStyle(fg="green", bold=True),
+        # Separator lines
+        "separator": ColorStyle(fg="white"),
     },
 )

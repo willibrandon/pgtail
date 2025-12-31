@@ -536,14 +536,67 @@ Query Duration Statistics
   p50: 150.2ms  p95: 890.1ms  p99: 1205.3ms  max: 1501.2ms
 ```
 
-## Keyboard Shortcuts
+## Tail Mode
+
+When you run `tail <id>`, pgtail enters a split-screen interface with three areas:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Log output area (scrollable)                                │
+│ 10:23:45.123 [12345] LOG    : statement: SELECT 1           │
+│ 10:23:46.456 [12345] ERROR   42P01: relation "foo" ...      │
+│ ...                                                         │
+├─────────────────────────────────────────────────────────────┤
+│ tail> level error                                           │
+├─────────────────────────────────────────────────────────────┤
+│ FOLLOW | E:2 W:0 | 150 lines | levels:ERROR | PG16:5432     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Status bar format:**
+- `FOLLOW` / `PAUSED +N new` - Following live or paused with N new entries
+- `E:X W:Y` - Error and warning counts (respects active filters)
+- `N lines` - Entry count (respects active filters)
+- Active filters: `levels:`, `filter:/pattern/`, `since:`, `slow:>`
+- PostgreSQL version and port
+
+**Navigation keys:**
+
+| Key | Action |
+|-----|--------|
+| Up/Down | Scroll 1 line |
+| Page Up/Down | Scroll full page |
+| Ctrl+u/d | Scroll half page |
+| Ctrl+b/f | Scroll full page |
+| Home | Go to top (oldest) |
+| End | Go to bottom, resume FOLLOW mode |
+| Ctrl+L | Redraw screen |
+| Ctrl+C | Exit tail mode |
+
+**Commands in tail mode:**
+
+| Command | Action |
+|---------|--------|
+| `level <levels>` | Filter by level (e.g., `level error,warning`) |
+| `filter /pattern/` | Filter by regex |
+| `since <time>` | Filter by time (e.g., `since 5m`) |
+| `slow <ms>` | Set slow query threshold |
+| `clear` | Remove all filters |
+| `errors` | Show error statistics |
+| `connections` | Show connection statistics |
+| `pause` | Enter PAUSED mode |
+| `follow` | Resume FOLLOW mode |
+| `help` | Show available commands |
+| `stop` / `q` | Exit tail mode |
+
+## Keyboard Shortcuts (REPL)
 
 | Key | Action |
 |-----|--------|
 | Tab | Autocomplete |
 | Up/Down | Command history |
-| Ctrl+C | Pause tail (enter prompt) |
-| Ctrl+D | Exit |
+| Ctrl+C | Stop current tail |
+| Ctrl+D | Exit pgtail |
 
 ## Requirements
 

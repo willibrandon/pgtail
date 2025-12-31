@@ -40,5 +40,18 @@ LIGHT_THEME = Theme(
         "sql_operator": ColorStyle(fg="darkorange"),
         "sql_comment": ColorStyle(fg="gray"),
         "sql_function": ColorStyle(fg="darkblue"),
+        # Status bar (tail mode) - dark text on light gray background
+        "status": ColorStyle(fg="ansiblack", bg="silver"),
+        "status_follow": ColorStyle(fg="darkgreen", bg="silver", bold=True),
+        "status_paused": ColorStyle(fg="darkorange", bg="silver", bold=True),
+        "status_error": ColorStyle(fg="darkred", bg="silver", bold=True),
+        "status_warning": ColorStyle(fg="darkorange", bg="silver"),
+        "status_filter": ColorStyle(fg="teal", bg="silver"),
+        "status_instance": ColorStyle(fg="ansiblack", bg="silver"),
+        # Input line (tail mode)
+        "input": ColorStyle(),
+        "input_prompt": ColorStyle(fg="darkgreen", bold=True),
+        # Separator lines
+        "separator": ColorStyle(fg="gray"),
     },
 )

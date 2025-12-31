@@ -62,6 +62,11 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/sql_tokenizer.py` - SQL tokenization (keywords, identifiers, strings, numbers, operators, comments, functions)
 - `pgtail_py/sql_highlighter.py` - SQL syntax highlighting with FormattedText output
 - `pgtail_py/sql_detector.py` - SQL content detection in PostgreSQL log messages
+- `pgtail_py/tail_buffer.py` - TailBuffer deque (10,000 line) with scroll position, FormattedLogEntry dataclass
+- `pgtail_py/tail_status.py` - TailStatus for status bar state (counts, filters, mode, instance info)
+- `pgtail_py/tail_layout.py` - TailLayout with HSplit (log/status/input), TailModeCompleter
+- `pgtail_py/tail_app.py` - TailApp coordinator, asyncio entry consumer, Application lifecycle
+- `pgtail_py/cli_tail.py` - Tail mode command handlers (level, filter, since, errors, etc.)
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
 
@@ -310,8 +315,36 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `pgtail_py/sql_highlighter.py` - SQLHighlighter class, TOKEN_TO_STYLE mapping, highlight_sql() function
 - `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
+## Status Bar Tail Mode
+
+The `tail` command enters a split-screen interface with three areas:
+- **Log output** (top): Scrollable log entries, 10,000 line buffer
+- **Command input** (middle): Always-visible prompt for filter commands
+- **Status bar** (bottom): Live stats and filter state
+
+**Status bar format:** `MODE | E:X W:Y | N lines | filters... | PGver:port`
+- Error/warning counts and line count respect active filters
+- Filters shown: `levels:`, `filter:/pattern/`, `since:`, `slow:>`
+
+**Navigation keys:**
+- Up/Down: Scroll 1 line
+- Page Up/Down: Scroll full page
+- Ctrl+u/d: Scroll half page
+- Ctrl+b/f: Scroll full page
+- Home: Go to top
+- End: Resume FOLLOW mode
+
+**Implementation:**
+- `tail_app.py`: TailApp coordinator with asyncio entry consumer
+- `tail_buffer.py`: TailBuffer deque with scroll position and filter support
+- `tail_layout.py`: HSplit layout, key bindings, TailModeCompleter
+- `tail_status.py`: TailStatus for status bar state
+- `cli_tail.py`: Command handlers (level, filter, since, clear, errors, etc.)
+
+Filter changes trigger `_rebuild_buffer_filters()` which recalculates error/warning counts from buffer.
+
 ## Recent Changes
-- 016-status-bar-tail: Added Python 3.10+ + prompt_toolkit >=3.0.0 (Application, HSplit, Window, FormattedTextControl, BufferControl, TextArea)
+- 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input. Error/warning/line counts respect active filters.
 - 016-resilient-tailing: Tailer automatically detects new log files after PostgreSQL restart using current_logfiles
 - 015-remove-fullscreen: Removed fullscreen TUI mode (fullscreen/ package, cli_fullscreen.py, related tests)
 

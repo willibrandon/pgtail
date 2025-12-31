@@ -169,12 +169,16 @@ def refresh_command(state: AppState) -> None:
 def tail_command(state: AppState, args: list[str]) -> None:
     """Handle the 'tail' command - tail logs for an instance.
 
+    By default, launches the status bar tail mode with split-screen interface.
+    Use --stream for legacy streaming mode.
+
     Args:
         state: Current application state.
-        args: Command arguments (instance ID or path, optional --since flag).
+        args: Command arguments (instance ID or path, optional --since/--stream flags).
     """
-    # Parse --since flag from arguments
+    # Parse flags from arguments
     since_time = None
+    stream_mode = False
     instance_arg = None
     i = 0
     while i < len(args):
@@ -185,6 +189,9 @@ def tail_command(state: AppState, args: list[str]) -> None:
                 print(f"Error parsing --since time: {e}")
                 return
             i += 2
+        elif args[i] == "--stream":
+            stream_mode = True
+            i += 1
         elif args[i].startswith("--"):
             print(f"Unknown option: {args[i]}")
             return
@@ -235,6 +242,51 @@ def tail_command(state: AppState, args: list[str]) -> None:
     if state.tailer is not None:
         state.tailer.stop()
         state.tailer = None
+
+    # Use status bar mode by default, streaming mode with --stream
+    if not stream_mode:
+        # Status bar tail mode (default)
+        _tail_status_bar_mode(state, instance)
+    else:
+        # Legacy streaming mode
+        _tail_stream_mode(state, instance)
+
+
+def _tail_status_bar_mode(state: AppState, instance: Instance) -> None:
+    """Launch the status bar tail mode interface.
+
+    Args:
+        state: Current application state.
+        instance: PostgreSQL instance to tail.
+    """
+    from pgtail_py.tail_app import TailApp
+
+    # log_path is verified by caller before calling this function
+    assert instance.log_path is not None
+
+    state.current_instance = instance
+    state.tailing = True
+
+    # Create and start TailApp
+    app = TailApp()
+    try:
+        app.start(state, instance, instance.log_path)
+    finally:
+        # Clean up state after exit
+        state.tailing = False
+        state.current_instance = None
+        reset_terminal()
+
+
+def _tail_stream_mode(state: AppState, instance: Instance) -> None:
+    """Legacy streaming tail mode.
+
+    Args:
+        state: Current application state.
+        instance: PostgreSQL instance to tail.
+    """
+    # log_path is verified by caller before calling this function
+    assert instance.log_path is not None
 
     # Start tailing
     state.current_instance = instance

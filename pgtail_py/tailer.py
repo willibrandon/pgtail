@@ -129,11 +129,7 @@ class LogTailer:
         # Try current_logfiles first (PostgreSQL 10+, most reliable)
         if self._data_dir:
             new_path = read_current_logfiles(self._data_dir)
-            if (
-                new_path
-                and new_path.exists()
-                and new_path.resolve() != self._log_path.resolve()
-            ):
+            if new_path and new_path.exists() and new_path.resolve() != self._log_path.resolve():
                 self._switch_to_file(new_path)
                 return True
 

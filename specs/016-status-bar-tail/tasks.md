@@ -24,11 +24,11 @@
 
 **Purpose**: Create module structure for tail mode components
 
-- [ ] T001 Create empty `pgtail_py/tail_buffer.py` with module docstring
-- [ ] T002 [P] Create empty `pgtail_py/tail_status.py` with module docstring
-- [ ] T003 [P] Create empty `pgtail_py/tail_layout.py` with module docstring
-- [ ] T004 [P] Create empty `pgtail_py/tail_app.py` with module docstring
-- [ ] T005 [P] Create empty `pgtail_py/cli_tail.py` with module docstring
+- [X] T001 Create empty `pgtail_py/tail_buffer.py` with module docstring
+- [X] T002 [P] Create empty `pgtail_py/tail_status.py` with module docstring
+- [X] T003 [P] Create empty `pgtail_py/tail_layout.py` with module docstring
+- [X] T004 [P] Create empty `pgtail_py/tail_app.py` with module docstring
+- [X] T005 [P] Create empty `pgtail_py/cli_tail.py` with module docstring
 
 ---
 
@@ -38,27 +38,27 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Implement `FormattedLogEntry` dataclass in `pgtail_py/tail_buffer.py` per contracts/tail_buffer.py
-- [ ] T007 Implement `TailBuffer` class in `pgtail_py/tail_buffer.py` with:
+- [X] T006 Implement `FormattedLogEntry` dataclass in `pgtail_py/tail_buffer.py` per contracts/tail_buffer.py
+- [X] T007 Implement `TailBuffer` class in `pgtail_py/tail_buffer.py` with:
   - deque with maxlen=10000
   - append(), clear(), total_entries property
   - Basic follow_mode property (always True for now)
-- [ ] T008 [P] Implement `TailStatus` class in `pgtail_py/tail_status.py` with:
+- [X] T008 [P] Implement `TailStatus` class in `pgtail_py/tail_status.py` with:
   - error_count, warning_count, total_lines properties
   - update_from_entry(), set_total_lines(), reset_counts() methods
   - format() returning basic FormattedText
-- [ ] T009 [P] Implement `TailLayout` builder in `pgtail_py/tail_layout.py` with:
+- [X] T009 [P] Implement `TailLayout` builder in `pgtail_py/tail_layout.py` with:
   - HSplit with 3 sections (log, status, input)
   - LAYOUT_CONFIG and LAYOUT_STYLES constants
   - Basic key bindings structure (Enter for command submit)
-- [ ] T010 Implement core `TailApp` coordinator in `pgtail_py/tail_app.py` with:
+- [X] T010 Implement core `TailApp` coordinator in `pgtail_py/tail_app.py` with:
   - start() method that blocks until exit
   - Basic Application setup with layout
   - Integration with LogTailer for background streaming
-- [ ] T011 Add `tail` command dispatch to `pgtail_py/cli.py` to launch TailApp
-- [ ] T012 Implement background entry consumer in `TailApp` using asyncio with thread-safe invalidate()
-- [ ] T013 Validate thread-safe queue handoff between LogTailer thread and UI event loop
-- [ ] T014 Add Ctrl+L key binding for manual screen redraw in `pgtail_py/tail_layout.py`
+- [X] T011 Add `tail` command dispatch to `pgtail_py/cli.py` to launch TailApp
+- [X] T012 Implement background entry consumer in `TailApp` using asyncio with thread-safe invalidate()
+- [X] T013 Validate thread-safe queue handoff between LogTailer thread and UI event loop
+- [X] T014 Add Ctrl+L key binding for manual screen redraw in `pgtail_py/tail_layout.py`
 
 **Checkpoint**: Foundation ready - basic tail mode launches and displays streaming logs
 
@@ -72,13 +72,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Add BufferControl for command input line in `pgtail_py/tail_layout.py`
-- [ ] T016 [US1] Implement command parsing in `pgtail_py/cli_tail.py` for tail mode commands
-- [ ] T017 [US1] Wire command submission (Enter key) to TailApp._on_command in `pgtail_py/tail_app.py`
-- [ ] T018 [US1] Implement `level` command handler in `pgtail_py/cli_tail.py` (reuses existing filter.py)
-- [ ] T019 [US1] Add filter predicate to TailBuffer and wire level filter updates
-- [ ] T020 [US1] Implement refilter() in TailBuffer to re-evaluate existing entries when filter changes
-- [ ] T021 [US1] Add tab completion for tail mode commands using existing PgtailCompleter
+- [X] T015 [US1] Add BufferControl for command input line in `pgtail_py/tail_layout.py`
+- [X] T016 [US1] Implement command parsing in `pgtail_py/cli_tail.py` for tail mode commands
+- [X] T017 [US1] Wire command submission (Enter key) to TailApp._on_command in `pgtail_py/tail_app.py`
+- [X] T018 [US1] Implement `level` command handler in `pgtail_py/cli_tail.py` (reuses existing filter.py)
+- [X] T019 [US1] Add filter predicate to TailBuffer and wire level filter updates
+- [X] T020 [US1] Implement refilter() in TailBuffer to re-evaluate existing entries when filter changes
+- [X] T021 [US1] Add tab completion for tail mode commands using existing PgtailCompleter
 
 **Checkpoint**: User can type `level error` while logs stream, filter applies to both existing and new entries
 
@@ -92,12 +92,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Enhance TailStatus.format() to show mode, counts, and filters per status bar format
-- [ ] T023 [US2] Add set_level_filter(), set_regex_filter(), set_time_filter(), set_slow_threshold() to TailStatus
-- [ ] T024 [US2] Wire TailStatus updates to filter command execution in TailApp
-- [ ] T025 [US2] Add set_instance_info() and display PG version/port in status bar
-- [ ] T026 [US2] Style status bar sections using LAYOUT_STYLES classes in `pgtail_py/tail_layout.py`
-- [ ] T027 [US2] Add status bar invalidation on new entries (<100ms latency requirement)
+- [X] T022 [US2] Enhance TailStatus.format() to show mode, counts, and filters per status bar format
+- [X] T023 [US2] Add set_level_filter(), set_regex_filter(), set_time_filter(), set_slow_threshold() to TailStatus
+- [X] T024 [US2] Wire TailStatus updates to filter command execution in TailApp
+- [X] T025 [US2] Add set_instance_info() and display PG version/port in status bar
+- [X] T026 [US2] Style status bar sections using LAYOUT_STYLES classes in `pgtail_py/tail_layout.py`
+- [X] T027 [US2] Add status bar invalidation on new entries (<100ms latency requirement)
 
 **Checkpoint**: Status bar shows `FOLLOW | E:N W:N | N lines | levels:... | PG17:5432`
 
@@ -111,14 +111,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Implement scroll_offset and PAUSED mode tracking in TailBuffer
-- [ ] T029 [US3] Implement scroll_up(lines), scroll_down(lines), scroll_to_top() in TailBuffer
-- [ ] T030 [US3] Implement resume_follow() to jump to end and enter FOLLOW mode
-- [ ] T031 [US3] Add new_since_pause counter and increment on new entries when paused
-- [ ] T032 [US3] Update TailStatus.set_follow_mode() to display PAUSED +N new
-- [ ] T033 [US3] Add keyboard handlers for Up/Down/PageUp/PageDown/Home/End in `pgtail_py/tail_layout.py`
-- [ ] T034 [US3] Implement get_visible_lines(height) to return filtered entries based on scroll position
-- [ ] T035 [US3] Handle scroll position adjustment when oldest entries evicted (FR-008a)
+- [X] T028 [US3] Implement scroll_offset and PAUSED mode tracking in TailBuffer
+- [X] T029 [US3] Implement scroll_up(lines), scroll_down(lines), scroll_to_top() in TailBuffer
+- [X] T030 [US3] Implement resume_follow() to jump to end and enter FOLLOW mode
+- [X] T031 [US3] Add new_since_pause counter and increment on new entries when paused
+- [X] T032 [US3] Update TailStatus.set_follow_mode() to display PAUSED +N new
+- [X] T033 [US3] Add keyboard handlers for Up/Down/PageUp/PageDown/Home/End in `pgtail_py/tail_layout.py`
+- [X] T034 [US3] Implement get_visible_lines(height) to return filtered entries based on scroll position
+- [X] T035 [US3] Handle scroll position adjustment when oldest entries evicted (FR-008a)
 
 **Checkpoint**: User can scroll with keyboard, status shows PAUSED +N, End resumes following
 
@@ -132,11 +132,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T036 [US4] Implement insert_command_output() in TailBuffer to add separator + output + separator
-- [ ] T037 [US4] Add SEPARATOR_STYLE constant in `pgtail_py/tail_layout.py` for dotted line separators
-- [ ] T038 [US4] Implement `errors` command handler in `pgtail_py/cli_tail.py` using existing ErrorStats
-- [ ] T039 [US4] Implement `connections` command handler in `pgtail_py/cli_tail.py` using existing ConnectionStats
-- [ ] T040 [US4] Ensure command output entries have matches_filter=True (always shown)
+- [X] T036 [US4] Implement insert_command_output() in TailBuffer to add separator + output + separator
+- [X] T037 [US4] Add SEPARATOR_STYLE constant in `pgtail_py/tail_layout.py` for dotted line separators
+- [X] T038 [US4] Implement `errors` command handler in `pgtail_py/cli_tail.py` using existing ErrorStats
+- [X] T039 [US4] Implement `connections` command handler in `pgtail_py/cli_tail.py` using existing ConnectionStats
+- [X] T040 [US4] Ensure command output entries have matches_filter=True (always shown)
 
 **Checkpoint**: Running `errors` or `connections` shows output inline with separators
 
@@ -150,13 +150,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T041 [US5] Implement `filter /pattern/` command handler in `pgtail_py/cli_tail.py` (regex filter)
-- [ ] T042 [US5] Implement `since <time>` command handler in `pgtail_py/cli_tail.py` (time filter)
-- [ ] T043 [US5] Implement `until <time>` command handler in `pgtail_py/cli_tail.py`
-- [ ] T044 [US5] Implement `between <start> <end>` command handler in `pgtail_py/cli_tail.py`
-- [ ] T045 [US5] Implement `slow <ms>` command handler in `pgtail_py/cli_tail.py` (slow query threshold)
-- [ ] T046 [US5] Implement `clear` command handler to remove all filters
-- [ ] T047 [US5] Add update_filters() to TailBuffer that accepts list of filter predicates and triggers refilter()
+- [X] T041 [US5] Implement `filter /pattern/` command handler in `pgtail_py/cli_tail.py` (regex filter)
+- [X] T042 [US5] Implement `since <time>` command handler in `pgtail_py/cli_tail.py` (time filter)
+- [X] T043 [US5] Implement `until <time>` command handler in `pgtail_py/cli_tail.py`
+- [X] T044 [US5] Implement `between <start> <end>` command handler in `pgtail_py/cli_tail.py`
+- [X] T045 [US5] Implement `slow <ms>` command handler in `pgtail_py/cli_tail.py` (slow query threshold)
+- [X] T046 [US5] Implement `clear` command handler to remove all filters
+- [X] T047 [US5] Add update_filters() to TailBuffer that accepts list of filter predicates and triggers refilter()
 
 **Checkpoint**: All filter commands work: level, filter, since, until, between, slow, clear
 
@@ -170,9 +170,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T048 [US6] Enable mouse_support=True on Application in `pgtail_py/tail_app.py`
-- [ ] T049 [US6] Implement mouse handler for SCROLL_UP/SCROLL_DOWN events in log window
-- [ ] T050 [US6] Wire mouse scroll events to TailBuffer.scroll_up/scroll_down (3 lines per tick)
+- [X] T048 [US6] Enable mouse_support=True on Application in `pgtail_py/tail_app.py`
+- [X] T049 [US6] Implement mouse handler for SCROLL_UP/SCROLL_DOWN events in log window
+- [X] T050 [US6] Wire mouse scroll events to TailBuffer.scroll_up/scroll_down (3 lines per tick)
 
 **Checkpoint**: Mouse wheel scrolls log area, enters PAUSED mode on scroll up
 
@@ -186,10 +186,10 @@
 
 ### Implementation for User Story 7
 
-- [ ] T051 [US7] Implement `stop`, `exit`, `q` command handlers that call TailApp.stop()
-- [ ] T052 [US7] Add Ctrl+C key binding that triggers TailApp.stop()
-- [ ] T053 [US7] Implement TailApp.stop() cleanup: set running=False, stop tailer, exit Application
-- [ ] T054 [US7] Ensure clean return to REPL without orphan threads (SC-011)
+- [X] T051 [US7] Implement `stop`, `exit`, `q` command handlers that call TailApp.stop()
+- [X] T052 [US7] Add Ctrl+C key binding that triggers TailApp.stop()
+- [X] T053 [US7] Implement TailApp.stop() cleanup: set running=False, stop tailer, exit Application
+- [X] T054 [US7] Ensure clean return to REPL without orphan threads (SC-011)
 
 **Checkpoint**: All exit methods work: stop, exit, q, Ctrl+C
 
@@ -203,10 +203,10 @@
 
 ### Implementation for User Story 8
 
-- [ ] T055 [US8] Verify prompt_toolkit automatic resize handling works with HSplit layout
-- [ ] T056 [US8] Add minimum terminal size check (40x10) in TailLayout
-- [ ] T057 [US8] Display warning message when terminal too small using class:warning style
-- [ ] T058 [US8] Ensure scroll position remains valid after resize (clamp if needed)
+- [X] T055 [US8] Verify prompt_toolkit automatic resize handling works with HSplit layout
+- [X] T056 [US8] Add minimum terminal size check (40x10) in TailLayout
+- [X] T057 [US8] Display warning message when terminal too small using class:warning style
+- [X] T058 [US8] Ensure scroll position remains valid after resize (clamp if needed)
 
 **Checkpoint**: Terminal resize reflows layout, small terminal shows warning
 
@@ -216,13 +216,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T059 [P] Validate all keyboard shortcuts work per TAIL_MODE_KEYS in contracts/tail_app.py
-- [ ] T060 [P] Add `pause` command to explicitly enter PAUSED mode
-- [ ] T061 [P] Add `follow` command to explicitly resume FOLLOW mode
-- [ ] T062 Ensure UI latency <50ms under 1000 lines/sec log volume (SC-006)
-- [ ] T063 Verify memory usage <50MB for 10,000 line buffer (SC-007)
-- [ ] T064 Validate tab completion appears within 100ms (SC-008)
-- [ ] T065 Run quickstart.md validation scenarios
+- [X] T059 [P] Validate all keyboard shortcuts work per TAIL_MODE_KEYS in contracts/tail_app.py
+- [X] T060 [P] Add `pause` command to explicitly enter PAUSED mode
+- [X] T061 [P] Add `follow` command to explicitly resume FOLLOW mode
+- [X] T062 Ensure UI latency <50ms under 1000 lines/sec log volume (SC-006)
+- [X] T063 Verify memory usage <50MB for 10,000 line buffer (SC-007)
+- [X] T064 Validate tab completion appears within 100ms (SC-008)
+- [X] T065 Run quickstart.md validation scenarios
 
 ---
 
