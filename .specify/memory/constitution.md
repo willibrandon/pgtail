@@ -1,12 +1,11 @@
 <!--
 Sync Impact Report
 ==================
-Version Change: 1.2.0 → 2.0.0
-Bump Rationale: MAJOR - Language change from Go to Python, replacement of core REPL dependency
+Version Change: 2.0.0 → 2.1.0
+Bump Rationale: MINOR - Added Textual as approved TUI library for fullscreen interfaces
 
 Modified Principles:
-- II. Cross-Platform Parity: Updated examples to Python conventions (modules instead of Go files, stdlib modules)
-- VI. Minimal Dependencies: Complete rewrite - go-prompt → python-prompt-toolkit, lipgloss/fsnotify/gopsutil → watchdog/psutil
+- VI. Minimal Dependencies: Expanded approved dependencies to include Textual for rich TUI applications
 
 Added Sections: None
 
@@ -43,7 +42,7 @@ pgtail MUST behave identically on macOS, Linux, and Windows:
 - **Feature Equivalence**: Every feature available on one platform MUST be available on all platforms (or gracefully degrade with clear messaging)
 - **Isolation of Platform Code**: Platform-specific code MUST be isolated in dedicated modules (e.g., `detector_unix.py`, `detector_windows.py`)
 - **Path Handling**: All file path operations MUST use `pathlib` or `os.path`; never hardcode path separators
-- **Cross-Platform Libraries**: Use only dependencies that support all three platforms (e.g., `psutil`, `watchdog`)
+- **Cross-Platform Libraries**: Use only dependencies that support all three platforms (e.g., `psutil`, `textual`)
 
 **Rationale**: PostgreSQL developers work across platforms. A tool that only works on one OS provides limited value.
 
@@ -87,12 +86,14 @@ pgtail MUST minimize external dependencies:
 - **Justified Additions**: Each dependency MUST provide clear cross-platform value that would be expensive to replicate
 - **Standard Library Preference**: Prefer Python standard library when functionality is adequate
 - **Mandatory REPL Library**: The REPL MUST use `prompt_toolkit` for autocomplete and history; no custom or simplified implementations. Reference source: `../python-prompt-toolkit/`
+- **Approved TUI Library**: For rich fullscreen terminal interfaces (log selection, interactive browsers), `textual` MAY be used. Reference source: `../textual/`
 - **Approved Dependencies**: Core approved dependencies are:
   - `prompt_toolkit` (REPL with autocomplete/history - REQUIRED) - Local reference: `../python-prompt-toolkit/`
+  - `textual` (fullscreen TUI applications with widgets - OPTIONAL for advanced interfaces) - Local reference: `../textual/`
   - `psutil` (cross-platform process detection)
   - `watchdog` (file system monitoring)
 
-**Rationale**: Fewer dependencies mean easier maintenance, faster builds, and fewer security vulnerabilities. prompt_toolkit is mandatory because autocomplete and history are core UX requirements, not optional polish. python-prompt-toolkit has superior terminal color detection compared to alternatives.
+**Rationale**: Fewer dependencies mean easier maintenance, faster builds, and fewer security vulnerabilities. prompt_toolkit is mandatory because autocomplete and history are core UX requirements, not optional polish. python-prompt-toolkit has superior terminal color detection compared to alternatives. Textual provides a modern widget system for complex interactive screens without reimplementing terminal UI primitives.
 
 ### VII. Developer Workflow Priority
 
@@ -137,4 +138,4 @@ This constitution supersedes all other project guidelines. All contributions MUS
 - All PRs MUST be verified against these principles before merge
 - Complexity additions MUST be justified against Simplicity First and Minimal Dependencies principles
 
-**Version**: 2.0.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-14
+**Version**: 2.1.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-31
