@@ -426,3 +426,24 @@ def format_entry(
 
     # Default fallback
     return format_entry_compact(entry)
+
+
+def format_entry_as_rich(entry: LogEntry) -> str:
+    """Format entry as Rich Text markup string for Textual widgets.
+
+    Delegates to tail_rich.format_entry_compact() which returns a Rich
+    console markup string with styled log levels, timestamps, and messages.
+
+    This function provides integration between the display module and the
+    Textual-based tail mode, allowing consistent formatting across both
+    the legacy prompt_toolkit mode and the new Textual mode.
+
+    Args:
+        entry: Log entry to format.
+
+    Returns:
+        Rich console markup string with styled content.
+    """
+    from pgtail_py.tail_rich import format_entry_compact as format_rich
+
+    return format_rich(entry)

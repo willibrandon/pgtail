@@ -37,6 +37,26 @@ class FormattedLogEntry:
     formatted: FormattedText
     matches_filter: bool = True
 
+    def format_as_rich_text(self) -> str:
+        """Convert formatted entry to Rich Text markup string.
+
+        Converts the prompt_toolkit FormattedText to a Rich console markup
+        string for use in Textual widgets. This bridges the deprecated
+        prompt_toolkit format to the new Textual-based tail mode.
+
+        Returns:
+            Rich markup string representation of the entry.
+        """
+        from pgtail_py.tail_rich import format_entry_compact
+
+        if self.entry is not None:
+            return format_entry_compact(self.entry)
+        # For non-entry items (separators, command output), extract plain text
+        parts: list[str] = []
+        for _style, text in self.formatted:
+            parts.append(str(text))
+        return "".join(parts)
+
 
 # Separator style for command output
 SEPARATOR_CHAR = "·"

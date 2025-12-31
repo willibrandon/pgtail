@@ -60,6 +60,26 @@ class TestLogLevel:
         assert "DEBUG1" in names
         assert len(names) == 12
 
+    def test_at_or_above_error(self) -> None:
+        """Test at_or_above for ERROR level."""
+        levels = LogLevel.at_or_above(LogLevel.ERROR)
+        assert levels == {LogLevel.PANIC, LogLevel.FATAL, LogLevel.ERROR}
+
+    def test_at_or_above_warning(self) -> None:
+        """Test at_or_above for WARNING level."""
+        levels = LogLevel.at_or_above(LogLevel.WARNING)
+        assert levels == {LogLevel.PANIC, LogLevel.FATAL, LogLevel.ERROR, LogLevel.WARNING}
+
+    def test_at_or_above_panic(self) -> None:
+        """Test at_or_above for PANIC (most severe) level."""
+        levels = LogLevel.at_or_above(LogLevel.PANIC)
+        assert levels == {LogLevel.PANIC}
+
+    def test_at_or_above_debug5(self) -> None:
+        """Test at_or_above for DEBUG5 (least severe) level."""
+        levels = LogLevel.at_or_above(LogLevel.DEBUG5)
+        assert levels == LogLevel.all_levels()
+
 
 class TestShouldShow:
     """Tests for should_show function."""
@@ -110,27 +130,37 @@ class TestParseLevels:
         assert levels is None
         assert invalid == []
 
-    def test_single_level(self) -> None:
-        """Test parsing a single level."""
+    def test_single_level_includes_more_severe(self) -> None:
+        """Test that single level includes that level and all more severe."""
         levels, invalid = parse_levels(["ERROR"])
-        assert levels == {LogLevel.ERROR}
+        # ERROR (2) should include PANIC (0), FATAL (1), ERROR (2)
+        assert levels == {LogLevel.PANIC, LogLevel.FATAL, LogLevel.ERROR}
         assert invalid == []
 
-    def test_multiple_levels(self) -> None:
-        """Test parsing multiple levels."""
+    def test_single_level_warning_and_up(self) -> None:
+        """Test that WARNING includes WARNING, ERROR, FATAL, PANIC."""
+        levels, invalid = parse_levels(["WARNING"])
+        assert levels == {LogLevel.PANIC, LogLevel.FATAL, LogLevel.ERROR, LogLevel.WARNING}
+        assert invalid == []
+
+    def test_multiple_levels_exact_match(self) -> None:
+        """Test that multiple levels returns exact levels specified."""
         levels, invalid = parse_levels(["ERROR", "WARNING", "FATAL"])
+        # Multiple levels = exact match, no "and up" expansion
         assert levels == {LogLevel.ERROR, LogLevel.WARNING, LogLevel.FATAL}
         assert invalid == []
 
     def test_case_insensitive(self) -> None:
         """Test that parsing is case insensitive."""
         levels, invalid = parse_levels(["error", "WARNING", "Fatal"])
+        # Multiple levels = exact match
         assert levels == {LogLevel.ERROR, LogLevel.WARNING, LogLevel.FATAL}
         assert invalid == []
 
     def test_invalid_level_name(self) -> None:
         """Test that invalid names are returned in invalid list."""
         levels, invalid = parse_levels(["ERROR", "INVALID", "WARNING"])
+        # Two valid levels = exact match (no "and up" expansion)
         assert levels == {LogLevel.ERROR, LogLevel.WARNING}
         assert invalid == ["INVALID"]
 

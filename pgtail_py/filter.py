@@ -52,6 +52,25 @@ class LogLevel(IntEnum):
         """Return list of all level names."""
         return [level.name for level in cls]
 
+    @classmethod
+    def at_or_above(cls, threshold: "LogLevel") -> set["LogLevel"]:
+        """Return all levels at or above a severity threshold.
+
+        Since lower enum values indicate higher severity, this returns
+        all levels with values <= the threshold.
+
+        Args:
+            threshold: The minimum severity level to include.
+
+        Returns:
+            Set of LogLevel values at or above the threshold.
+
+        Example:
+            LogLevel.at_or_above(LogLevel.WARNING) returns
+            {PANIC, FATAL, ERROR, WARNING}
+        """
+        return {level for level in cls if level.value <= threshold.value}
+
 
 def should_show(level: LogLevel, active_levels: set[LogLevel] | None) -> bool:
     """Check if a log entry should be displayed based on active levels.
@@ -70,6 +89,13 @@ def should_show(level: LogLevel, active_levels: set[LogLevel] | None) -> bool:
 
 def parse_levels(args: list[str]) -> tuple[set[LogLevel] | None, list[str]]:
     """Parse level arguments into a set of LogLevels.
+
+    When a single level is specified (e.g., "WARNING"), returns that level
+    and all more severe levels (ERROR, FATAL, PANIC). This is the expected
+    behavior for log filtering - "level WARNING" means "WARNING and up".
+
+    When multiple levels are specified (e.g., "ERROR,INFO"), returns only
+    those exact levels for explicit filtering.
 
     Args:
         args: List of level names (e.g., ["ERROR", "WARNING"]).
@@ -93,4 +119,13 @@ def parse_levels(args: list[str]) -> tuple[set[LogLevel] | None, list[str]]:
         except ValueError:
             invalid_names.append(arg)
 
-    return valid_levels if valid_levels else None, invalid_names
+    if not valid_levels:
+        return None, invalid_names
+
+    # Single level: include that level and all more severe ("and up")
+    # Multiple levels: use exact levels specified
+    if len(valid_levels) == 1:
+        threshold = next(iter(valid_levels))
+        return LogLevel.at_or_above(threshold), invalid_names
+
+    return valid_levels, invalid_names

@@ -20,12 +20,12 @@
 
 **Purpose**: Project initialization and dependency configuration
 
-- [ ] T001 Add textual>=0.89.0 and pyperclip>=1.8.0 to dependencies in pyproject.toml
-- [ ] T002 Run `uv sync` to install new dependencies and verify installation
-- [ ] T003 [P] Create empty module file pgtail_py/tail_textual.py with module docstring
-- [ ] T004 [P] Create empty module file pgtail_py/tail_log.py with module docstring
-- [ ] T005 [P] Create empty module file pgtail_py/tail_rich.py with module docstring
-- [ ] T006 Verify Textual installation with `python -c "from textual import __version__; print(__version__)"`
+- [X] T001 Add textual>=0.89.0 and pyperclip>=1.8.0 to dependencies in pyproject.toml
+- [X] T002 Run `uv sync` to install new dependencies and verify installation
+- [X] T003 [P] Create empty module file pgtail_py/tail_textual.py with module docstring
+- [X] T004 [P] Create empty module file pgtail_py/tail_log.py with module docstring
+- [X] T005 [P] Create empty module file pgtail_py/tail_rich.py with module docstring
+- [X] T006 Verify Textual installation with `python -c "from textual import __version__; print(__version__)"`
 
 ---
 
@@ -35,29 +35,29 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Implement Rich text formatting for LogEntry in pgtail_py/tail_rich.py (LEVEL_STYLES dict, format_entry_as_rich function)
-- [ ] T008 Implement format_entry_compact function returning plain string in pgtail_py/tail_rich.py
-- [ ] T009 Create TailLog base class extending Log with ALLOW_SELECT=True in pgtail_py/tail_log.py
-- [ ] T010 Create TailApp shell class extending App in pgtail_py/tail_textual.py with compose() yielding TailLog, Static, Input
-- [ ] T011 Implement TailApp CSS for layout (TailLog height:1fr, status height:1, Input dock:bottom) in pgtail_py/tail_textual.py
-- [ ] T012 Implement TailApp __init__ accepting state, instance, log_path, max_lines in pgtail_py/tail_textual.py
-- [ ] T013 Implement TailApp.run_tail_mode() class method entry point in pgtail_py/tail_textual.py
-- [ ] T014 Implement TailApp.on_mount() to start LogTailer and background consumer in pgtail_py/tail_textual.py
-- [ ] T015 Implement TailApp.on_unmount() to stop tailer and set _running=False in pgtail_py/tail_textual.py
-- [ ] T016 Implement background worker _start_consumer() using @work decorator in pgtail_py/tail_textual.py
-- [ ] T017 Implement _add_entry() method to add formatted entries to TailLog in pgtail_py/tail_textual.py
-- [ ] T018 Implement _update_status() method to update Static status bar in pgtail_py/tail_textual.py
-- [ ] T019 Add format_plain() method to TailStatus class in pgtail_py/tail_status.py for plain text status output
-- [ ] T020 Implement action_quit() bound to 'q' key in pgtail_py/tail_textual.py
-- [ ] T021 Implement _handle_command() method to dispatch commands to cli_tail handlers in pgtail_py/tail_textual.py
-- [ ] T022 Implement on_input_submitted() event handler to process command input in pgtail_py/tail_textual.py
-- [ ] T023 Add log_widget parameter to handle_tail_command() function signature in pgtail_py/cli_tail.py
-- [ ] T024 Update handle_tail_command() to use log_widget for clear command in pgtail_py/cli_tail.py
-- [ ] T025 Update cli.py to import TailApp from tail_textual and call TailApp.run_tail_mode() in pgtail_py/cli.py
-- [ ] T026 Add deprecation warning to tail_app.py module docstring in pgtail_py/tail_app.py
-- [ ] T027 Add deprecation warning to tail_layout.py module docstring in pgtail_py/tail_layout.py
-- [ ] T028 Run `make test` to verify no regressions from foundational changes
-- [ ] T029 Run `make lint` to verify code style compliance
+- [X] T007 Implement Rich text formatting for LogEntry in pgtail_py/tail_rich.py (LEVEL_STYLES dict, format_entry_as_rich function)
+- [X] T008 Implement format_entry_compact function returning plain string in pgtail_py/tail_rich.py
+- [X] T009 Create TailLog base class extending Log with ALLOW_SELECT=True in pgtail_py/tail_log.py
+- [X] T010 Create TailApp shell class extending App in pgtail_py/tail_textual.py with compose() yielding TailLog, Static, Input
+- [X] T011 Implement TailApp CSS for layout (TailLog height:1fr, status height:1, Input dock:bottom) in pgtail_py/tail_textual.py
+- [X] T012 Implement TailApp __init__ accepting state, instance, log_path, max_lines in pgtail_py/tail_textual.py
+- [X] T013 Implement TailApp.run_tail_mode() class method entry point in pgtail_py/tail_textual.py
+- [X] T014 Implement TailApp.on_mount() to start LogTailer and background consumer in pgtail_py/tail_textual.py
+- [X] T015 Implement TailApp.on_unmount() to stop tailer and set _running=False in pgtail_py/tail_textual.py
+- [X] T016 Implement background worker _start_consumer() using @work decorator in pgtail_py/tail_textual.py
+- [X] T017 Implement _add_entry() method to add formatted entries to TailLog in pgtail_py/tail_textual.py
+- [X] T018 Implement _update_status() method to update Static status bar in pgtail_py/tail_textual.py
+- [X] T019 Add format_plain() method to TailStatus class in pgtail_py/tail_status.py for plain text status output
+- [X] T020 Implement action_quit() bound to 'q' key in pgtail_py/tail_textual.py
+- [X] T021 Implement _handle_command() method to dispatch commands to cli_tail handlers in pgtail_py/tail_textual.py
+- [X] T022 Implement on_input_submitted() event handler to process command input in pgtail_py/tail_textual.py
+- [X] T023 Add log_widget parameter to handle_tail_command() function signature in pgtail_py/cli_tail.py
+- [X] T024 Update handle_tail_command() to use log_widget for clear command in pgtail_py/cli_tail.py
+- [X] T025 Update cli.py to import TailApp from tail_textual and call TailApp.run_tail_mode() in pgtail_py/cli.py
+- [X] T026 Add deprecation warning to tail_app.py module docstring in pgtail_py/tail_app.py
+- [X] T027 Add deprecation warning to tail_layout.py module docstring in pgtail_py/tail_layout.py
+- [X] T028 Run `make test` to verify no regressions from foundational changes
+- [X] T029 Run `make lint` to verify code style compliance
 
 **Checkpoint**: Foundation ready - TailApp can launch, display log entries, accept commands, and quit. User story implementation can now begin.
 
@@ -71,16 +71,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T030 [US1] Verify TailLog ALLOW_SELECT=True enables mouse selection in pgtail_py/tail_log.py
-- [ ] T031 [US1] Implement _copy_with_fallback() method with OSC 52 + pyperclip in pgtail_py/tail_log.py
-- [ ] T032 [US1] Add action_copy_selection() bound to Ctrl+C in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T033 [US1] Implement action_copy_selection() to call _copy_with_fallback with selected text in pgtail_py/tail_log.py
-- [ ] T034 [US1] Add SelectionCopied Message class for clipboard copy events in pgtail_py/tail_log.py
-- [ ] T035 [US1] Post SelectionCopied message after successful copy in pgtail_py/tail_log.py
-- [ ] T036 [US1] Handle empty selection in _copy_with_fallback (return early, no-op) in pgtail_py/tail_log.py
-- [ ] T037 [US1] Handle clipboard exceptions with graceful degradation (return False) in pgtail_py/tail_log.py
-- [ ] T038 [US1] Test mouse selection and Ctrl+C copy manually in iTerm2/Kitty terminal
-- [ ] T039 [US1] Test multi-line selection across ERROR with DETAIL and STATEMENT fields manually
+- [X] T030 [US1] Verify TailLog ALLOW_SELECT=True enables mouse selection in pgtail_py/tail_log.py
+- [X] T031 [US1] Implement _copy_with_fallback() method with OSC 52 + pyperclip in pgtail_py/tail_log.py
+- [X] T032 [US1] Add action_copy_selection() bound to Ctrl+C in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T033 [US1] Implement action_copy_selection() to call _copy_with_fallback with selected text in pgtail_py/tail_log.py
+- [X] T034 [US1] Add SelectionCopied Message class for clipboard copy events in pgtail_py/tail_log.py
+- [X] T035 [US1] Post SelectionCopied message after successful copy in pgtail_py/tail_log.py
+- [X] T036 [US1] Handle empty selection in _copy_with_fallback (return early, no-op) in pgtail_py/tail_log.py
+- [X] T037 [US1] Handle clipboard exceptions with graceful degradation (return False) in pgtail_py/tail_log.py
+- [x] T038 [US1] Test mouse selection and Ctrl+C copy manually in iTerm2/Kitty terminal
+- [x] T039 [US1] Test multi-line selection across ERROR with DETAIL and STATEMENT fields manually
 
 **Checkpoint**: User Story 1 complete - mouse selection and copy works
 
@@ -94,26 +94,26 @@
 
 ### Implementation for User Story 2
 
-- [ ] T040 [US2] Add Binding for j -> action_scroll_down in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T041 [US2] Add Binding for k -> action_scroll_up in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T042 [US2] Implement action_scroll_down() calling self.scroll_down() in pgtail_py/tail_log.py
-- [ ] T043 [US2] Implement action_scroll_up() calling self.scroll_up() in pgtail_py/tail_log.py
-- [ ] T044 [US2] Add Binding for g -> action_scroll_home in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T045 [US2] Add Binding for shift+g -> action_scroll_end in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T046 [US2] Implement action_scroll_home() calling self.scroll_home() in pgtail_py/tail_log.py
-- [ ] T047 [US2] Implement action_scroll_end() calling self.scroll_end() in pgtail_py/tail_log.py
-- [ ] T048 [US2] Add Binding for ctrl+d -> action_half_page_down in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T049 [US2] Add Binding for ctrl+u -> action_half_page_up in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T050 [US2] Implement action_half_page_down() using scroll_relative(y=viewport_height//2) in pgtail_py/tail_log.py
-- [ ] T051 [US2] Implement action_half_page_up() using scroll_relative(y=-viewport_height//2) in pgtail_py/tail_log.py
-- [ ] T052 [US2] Add Binding for ctrl+f -> action_page_down in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T053 [US2] Add Binding for pagedown -> action_page_down in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T054 [US2] Add Binding for ctrl+b -> action_page_up in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T055 [US2] Add Binding for pageup -> action_page_up in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T056 [US2] Implement action_page_down() calling self.scroll_page_down() in pgtail_py/tail_log.py
-- [ ] T057 [US2] Implement action_page_up() calling self.scroll_page_up() in pgtail_py/tail_log.py
-- [ ] T058 [US2] Verify scroll boundaries clamp correctly (no scroll past top/bottom) manually
-- [ ] T059 [US2] Test all vim navigation keys (j, k, g, G, Ctrl+D, Ctrl+U, Ctrl+F, Ctrl+B) manually
+- [X] T040 [US2] Add Binding for j -> action_scroll_down in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T041 [US2] Add Binding for k -> action_scroll_up in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T042 [US2] Implement action_scroll_down() calling self.scroll_down() in pgtail_py/tail_log.py
+- [X] T043 [US2] Implement action_scroll_up() calling self.scroll_up() in pgtail_py/tail_log.py
+- [X] T044 [US2] Add Binding for g -> action_scroll_home in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T045 [US2] Add Binding for shift+g -> action_scroll_end in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T046 [US2] Implement action_scroll_home() calling self.scroll_home() in pgtail_py/tail_log.py
+- [X] T047 [US2] Implement action_scroll_end() calling self.scroll_end() in pgtail_py/tail_log.py
+- [X] T048 [US2] Add Binding for ctrl+d -> action_half_page_down in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T049 [US2] Add Binding for ctrl+u -> action_half_page_up in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T050 [US2] Implement action_half_page_down() using scroll_relative(y=viewport_height//2) in pgtail_py/tail_log.py
+- [X] T051 [US2] Implement action_half_page_up() using scroll_relative(y=-viewport_height//2) in pgtail_py/tail_log.py
+- [X] T052 [US2] Add Binding for ctrl+f -> action_page_down in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T053 [US2] Add Binding for pagedown -> action_page_down in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T054 [US2] Add Binding for ctrl+b -> action_page_up in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T055 [US2] Add Binding for pageup -> action_page_up in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T056 [US2] Implement action_page_down() calling self.scroll_page_down() in pgtail_py/tail_log.py
+- [X] T057 [US2] Implement action_page_up() calling self.scroll_page_up() in pgtail_py/tail_log.py
+- [x] T058 [US2] Verify scroll boundaries clamp correctly (no scroll past top/bottom) manually
+- [x] T059 [US2] Test all vim navigation keys (j, k, g, G, Ctrl+D, Ctrl+U, Ctrl+F, Ctrl+B) manually
 
 **Checkpoint**: User Story 2 complete - vim navigation works
 
@@ -127,29 +127,29 @@
 
 ### Implementation for User Story 3
 
-- [ ] T060 [US3] Add _visual_mode: bool = False instance variable in TailLog.__init__ in pgtail_py/tail_log.py
-- [ ] T061 [US3] Add _visual_line_mode: bool = False instance variable in TailLog.__init__ in pgtail_py/tail_log.py
-- [ ] T062 [US3] Add _visual_anchor_line: int | None = None instance variable in TailLog.__init__ in pgtail_py/tail_log.py
-- [ ] T063 [US3] Add visual_mode read-only property returning _visual_mode in pgtail_py/tail_log.py
-- [ ] T064 [US3] Add visual_line_mode read-only property returning _visual_line_mode in pgtail_py/tail_log.py
-- [ ] T065 [US3] Add Binding for v -> action_visual_mode in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T066 [US3] Implement action_visual_mode() setting _visual_mode=True, _visual_line_mode=False, anchor to current line in pgtail_py/tail_log.py
-- [ ] T067 [US3] Implement _get_current_line() returning viewport center line index in pgtail_py/tail_log.py
-- [ ] T068 [US3] Implement _update_selection() creating Selection from anchor to current line in pgtail_py/tail_log.py
-- [ ] T069 [US3] Add Binding for shift+v -> action_visual_line_mode in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T070 [US3] Implement action_visual_line_mode() setting _visual_mode=True, _visual_line_mode=True, anchor to current line in pgtail_py/tail_log.py
-- [ ] T071 [US3] Modify action_scroll_down to call _update_selection() when _visual_mode is True in pgtail_py/tail_log.py
-- [ ] T072 [US3] Modify action_scroll_up to call _update_selection() when _visual_mode is True in pgtail_py/tail_log.py
-- [ ] T073 [US3] Add Binding for y -> action_yank in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T074 [US3] Implement action_yank() copying selection, clearing selection, exiting visual mode in pgtail_py/tail_log.py
-- [ ] T075 [US3] Add Binding for escape -> action_clear_selection in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T076 [US3] Implement action_clear_selection() clearing selection and exiting visual mode in pgtail_py/tail_log.py
-- [ ] T077 [US3] Add VisualModeChanged Message class for visual mode state changes in pgtail_py/tail_log.py
-- [ ] T078 [US3] Post VisualModeChanged message on visual mode enter/exit in pgtail_py/tail_log.py
-- [ ] T079 [US3] Handle visual mode at buffer boundaries (clamp selection to 0..line_count-1) in pgtail_py/tail_log.py
-- [ ] T080 [US3] Test visual mode: v, navigate j/k, y to yank, verify clipboard manually
-- [ ] T081 [US3] Test visual line mode: V, navigate j/k, y to yank full lines, verify clipboard manually
-- [ ] T082 [US3] Test Escape to exit visual mode and clear selection manually
+- [X] T060 [US3] Add _visual_mode: bool = False instance variable in TailLog.__init__ in pgtail_py/tail_log.py
+- [X] T061 [US3] Add _visual_line_mode: bool = False instance variable in TailLog.__init__ in pgtail_py/tail_log.py
+- [X] T062 [US3] Add _visual_anchor_line: int | None = None instance variable in TailLog.__init__ in pgtail_py/tail_log.py
+- [X] T063 [US3] Add visual_mode read-only property returning _visual_mode in pgtail_py/tail_log.py
+- [X] T064 [US3] Add visual_line_mode read-only property returning _visual_line_mode in pgtail_py/tail_log.py
+- [X] T065 [US3] Add Binding for v -> action_visual_mode in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T066 [US3] Implement action_visual_mode() setting _visual_mode=True, _visual_line_mode=False, anchor to current line in pgtail_py/tail_log.py
+- [X] T067 [US3] Implement _get_current_line() returning viewport center line index in pgtail_py/tail_log.py
+- [X] T068 [US3] Implement _update_selection() creating Selection from anchor to current line in pgtail_py/tail_log.py
+- [X] T069 [US3] Add Binding for shift+v -> action_visual_line_mode in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T070 [US3] Implement action_visual_line_mode() setting _visual_mode=True, _visual_line_mode=True, anchor to current line in pgtail_py/tail_log.py
+- [X] T071 [US3] Modify action_scroll_down to call _update_selection() when _visual_mode is True in pgtail_py/tail_log.py
+- [X] T072 [US3] Modify action_scroll_up to call _update_selection() when _visual_mode is True in pgtail_py/tail_log.py
+- [X] T073 [US3] Add Binding for y -> action_yank in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T074 [US3] Implement action_yank() copying selection, clearing selection, exiting visual mode in pgtail_py/tail_log.py
+- [X] T075 [US3] Add Binding for escape -> action_clear_selection in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T076 [US3] Implement action_clear_selection() clearing selection and exiting visual mode in pgtail_py/tail_log.py
+- [X] T077 [US3] Add VisualModeChanged Message class for visual mode state changes in pgtail_py/tail_log.py
+- [X] T078 [US3] Post VisualModeChanged message on visual mode enter/exit in pgtail_py/tail_log.py
+- [X] T079 [US3] Handle visual mode at buffer boundaries (clamp selection to 0..line_count-1) in pgtail_py/tail_log.py
+- [x] T080 [US3] Test visual mode: v, navigate j/k, y to yank, verify clipboard manually
+- [x] T081 [US3] Test visual line mode: V, navigate j/k, y to yank full lines, verify clipboard manually
+- [x] T082 [US3] Test Escape to exit visual mode and clear selection manually
 
 **Checkpoint**: User Story 3 complete - vim visual mode selection works
 
@@ -163,10 +163,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T083 [US4] Add Binding for ctrl+a -> action_select_all in TailLog BINDINGS in pgtail_py/tail_log.py
-- [ ] T084 [US4] Implement action_select_all() setting selection to SELECT_ALL in pgtail_py/tail_log.py
-- [ ] T085 [US4] Verify Ctrl+C binding from US1 (T032) works after Ctrl+A select all manually
-- [ ] T086 [US4] Verify Escape binding from US3 (T075) clears selection from Ctrl+A manually
+- [X] T083 [US4] Add Binding for ctrl+a -> action_select_all in TailLog BINDINGS in pgtail_py/tail_log.py
+- [X] T084 [US4] Implement action_select_all() setting selection to SELECT_ALL in pgtail_py/tail_log.py
+- [x] T085 [US4] Verify Ctrl+C binding from US1 (T032) works after Ctrl+A select all manually
+- [x] T086 [US4] Verify Escape binding from US3 (T075) clears selection from Ctrl+A manually
 
 **Checkpoint**: User Story 4 complete - standard Ctrl+A/Ctrl+C shortcuts work
 
@@ -180,17 +180,17 @@
 
 ### Implementation for User Story 5
 
-- [ ] T087 [US5] Verify TailLog auto_scroll=True is set in compose() in pgtail_py/tail_textual.py
-- [ ] T088 [US5] Verify _add_entry() uses write_line() with default scroll_end behavior in pgtail_py/tail_textual.py
-- [ ] T089 [US5] Update _add_entry() to track was_at_end = log.is_vertical_scroll_end before write in pgtail_py/tail_textual.py
-- [ ] T090 [US5] Update _add_entry() to update status bar FOLLOW/SCROLL mode based on was_at_end in pgtail_py/tail_textual.py
-- [ ] T091 [US5] Update TailStatus to track follow_mode and new_since_pause in pgtail_py/tail_status.py
-- [ ] T092 [US5] Add set_follow_mode(follow: bool, new_count: int) method to TailStatus in pgtail_py/tail_status.py
-- [ ] T093 [US5] Update format_plain() to show FOLLOW or SCROLL+N in status bar in pgtail_py/tail_status.py
-- [ ] T094 [US5] Verify scrolling up (k, Page Up, mouse) pauses auto-scroll (Log widget built-in behavior) manually
-- [ ] T095 [US5] Verify pressing G returns to bottom and resumes FOLLOW mode (action_scroll_end sets is_vertical_scroll_end) manually
-- [ ] T096 [US5] Verify new entries don't jump view when user is reviewing history manually
-- [ ] T097 [US5] Verify scrollbar grab pauses auto-scroll (Log widget checks is_vertical_scrollbar_grabbed) manually
+- [X] T087 [US5] Verify TailLog auto_scroll=True is set in compose() in pgtail_py/tail_textual.py
+- [X] T088 [US5] Verify _add_entry() uses write_line() with default scroll_end behavior in pgtail_py/tail_textual.py
+- [X] T089 [US5] Update _add_entry() to track was_at_end = log.is_vertical_scroll_end before write in pgtail_py/tail_textual.py
+- [X] T090 [US5] Update _add_entry() to update status bar FOLLOW/SCROLL mode based on was_at_end in pgtail_py/tail_textual.py
+- [X] T091 [US5] Update TailStatus to track follow_mode and new_since_pause in pgtail_py/tail_status.py
+- [X] T092 [US5] Add set_follow_mode(follow: bool, new_count: int) method to TailStatus in pgtail_py/tail_status.py
+- [X] T093 [US5] Update format_plain() to show FOLLOW or SCROLL+N in status bar in pgtail_py/tail_status.py
+- [x] T094 [US5] Verify scrolling up (k, Page Up, mouse) pauses auto-scroll (Log widget built-in behavior) manually
+- [x] T095 [US5] Verify pressing G returns to bottom and resumes FOLLOW mode (action_scroll_end sets is_vertical_scroll_end) manually
+- [x] T096 [US5] Verify new entries don't jump view when user is reviewing history manually
+- [x] T097 [US5] Verify scrollbar grab pauses auto-scroll (Log widget checks is_vertical_scrollbar_grabbed) manually
 
 **Checkpoint**: User Story 5 complete - auto-scroll FOLLOW/SCROLL mode works
 
@@ -204,13 +204,13 @@
 
 ### Implementation for User Story 6
 
-- [ ] T098 [US6] Verify _copy_with_fallback() tries OSC 52 first in pgtail_py/tail_log.py
-- [ ] T099 [US6] Verify _copy_with_fallback() falls back to pyperclip.copy() in pgtail_py/tail_log.py
-- [ ] T100 [US6] Handle pyperclip ImportError gracefully (pyperclip optional) in pgtail_py/tail_log.py
-- [ ] T101 [US6] Handle pyperclip.PyperclipException gracefully (no clipboard mechanism) in pgtail_py/tail_log.py
-- [ ] T102 [US6] Test clipboard in iTerm2 (OSC 52 works) manually
-- [ ] T103 [US6] Test clipboard in macOS Terminal.app (pyperclip fallback) manually
-- [ ] T104 [US6] Verify graceful degradation when neither mechanism works (return False, no exception) manually
+- [X] T098 [US6] Verify _copy_with_fallback() tries OSC 52 first in pgtail_py/tail_log.py
+- [X] T099 [US6] Verify _copy_with_fallback() falls back to pyperclip.copy() in pgtail_py/tail_log.py
+- [X] T100 [US6] Handle pyperclip ImportError gracefully (pyperclip optional) in pgtail_py/tail_log.py
+- [X] T101 [US6] Handle pyperclip.PyperclipException gracefully (no clipboard mechanism) in pgtail_py/tail_log.py
+- [x] T102 [US6] Test clipboard in iTerm2 (OSC 52 works) manually
+- [x] T103 [US6] Test clipboard in macOS Terminal.app (pyperclip fallback) manually
+- [x] T104 [US6] Verify graceful degradation when neither mechanism works (return False, no exception) manually
 
 **Checkpoint**: User Story 6 complete - clipboard fallback works
 
@@ -224,14 +224,14 @@
 
 ### Implementation for User Story 7
 
-- [ ] T105 [US7] Add Binding for tab -> action_toggle_focus in TailApp BINDINGS in pgtail_py/tail_textual.py
-- [ ] T106 [US7] Implement action_toggle_focus() switching focus between log and input in pgtail_py/tail_textual.py
-- [ ] T107 [US7] Add Binding for slash -> action_focus_input in TailApp BINDINGS in pgtail_py/tail_textual.py
-- [ ] T108 [US7] Implement action_focus_input() focusing input widget in pgtail_py/tail_textual.py
-- [ ] T109 [US7] Verify on_input_submitted() returns focus to log after command execution in pgtail_py/tail_textual.py
-- [ ] T110 [US7] Test Tab toggles focus between log and input manually
-- [ ] T111 [US7] Test / focuses input from log manually
-- [ ] T112 [US7] Test Enter on command returns focus to log manually
+- [X] T105 [US7] Add Binding for tab -> action_toggle_focus in TailApp BINDINGS in pgtail_py/tail_textual.py
+- [X] T106 [US7] Implement action_toggle_focus() switching focus between log and input in pgtail_py/tail_textual.py
+- [X] T107 [US7] Add Binding for slash -> action_focus_input in TailApp BINDINGS in pgtail_py/tail_textual.py
+- [X] T108 [US7] Implement action_focus_input() focusing input widget in pgtail_py/tail_textual.py
+- [X] T109 [US7] Verify on_input_submitted() returns focus to log after command execution in pgtail_py/tail_textual.py
+- [X] T110 [US7] Test Tab toggles focus between log and input manually
+- [X] T111 [US7] Test / focuses input from log manually
+- [X] T112 [US7] Test Enter on command returns focus to log manually
 
 **Checkpoint**: User Story 7 complete - focus management works
 
@@ -243,31 +243,31 @@
 
 ### Edge Case Handling
 
-- [ ] T113 Handle live updates during selection: verify selection stable when new entries arrive (Log widget behavior)
-- [ ] T114 Handle large selection: verify pyperclip fallback handles >100KB text in pgtail_py/tail_log.py
-- [ ] T115 Handle filter changes during selection: clear selection when buffer rebuilds in pgtail_py/tail_textual.py
-- [ ] T116 Handle double-click word selection: verify built-in Textual behavior works
-- [ ] T117 Handle triple-click line selection: verify built-in Textual behavior works
-- [ ] T118 Handle empty log buffer: verify selection operations gracefully handle empty state in pgtail_py/tail_log.py
+- [X] T113 Handle live updates during selection: verify selection stable when new entries arrive (Log widget behavior)
+- [X] T114 Handle large selection: verify pyperclip fallback handles >100KB text in pgtail_py/tail_log.py
+- [X] T115 Handle filter changes during selection: clear selection when buffer rebuilds in pgtail_py/tail_textual.py
+- [X] T116 Handle double-click word selection: verify built-in Textual behavior works
+- [X] T117 Handle triple-click line selection: verify built-in Textual behavior works
+- [X] T118 Handle empty log buffer: verify selection operations gracefully handle empty state in pgtail_py/tail_log.py
 
 ### Existing Command Preservation (FR-023)
 
-- [ ] T119 Verify 'level' command works with new TailApp in pgtail_py/cli_tail.py
-- [ ] T120 Verify 'filter' command works with new TailApp in pgtail_py/cli_tail.py
-- [ ] T121 Verify 'since' command works with new TailApp in pgtail_py/cli_tail.py
-- [ ] T122 Verify 'until' command works with new TailApp in pgtail_py/cli_tail.py
-- [ ] T123 Verify 'clear' command clears TailLog in pgtail_py/cli_tail.py
-- [ ] T124 Verify 'errors' command shows error statistics in pgtail_py/cli_tail.py
-- [ ] T125 Verify 'connections' command shows connection stats in pgtail_py/cli_tail.py
-- [ ] T126 Verify 'help' command shows available commands in pgtail_py/cli_tail.py
+- [X] T119 Verify 'level' command works with new TailApp in pgtail_py/cli_tail.py
+- [X] T120 Verify 'filter' command works with new TailApp in pgtail_py/cli_tail.py
+- [X] T121 Verify 'since' command works with new TailApp in pgtail_py/cli_tail.py
+- [X] T122 Verify 'until' command works with new TailApp in pgtail_py/cli_tail.py
+- [X] T123 Verify 'clear' command clears TailLog in pgtail_py/cli_tail.py
+- [X] T124 Verify 'errors' command shows error statistics in pgtail_py/cli_tail.py
+- [X] T125 Verify 'connections' command shows connection stats in pgtail_py/cli_tail.py
+- [X] T126 Verify 'help' command shows available commands in pgtail_py/cli_tail.py
 
 ### Formatting Preservation (FR-020)
 
-- [ ] T127 Verify timestamp formatting matches compact display mode in pgtail_py/tail_rich.py
-- [ ] T128 Verify PID formatting matches compact display mode in pgtail_py/tail_rich.py
-- [ ] T129 Verify level colors match theme configuration in pgtail_py/tail_rich.py
-- [ ] T130 Verify SQL syntax highlighting works in log messages in pgtail_py/tail_rich.py
-- [ ] T131 Verify secondary fields (DETAIL, HINT, CONTEXT, STATEMENT) are formatted correctly in pgtail_py/tail_rich.py
+- [X] T127 Verify timestamp formatting matches compact display mode in pgtail_py/tail_rich.py
+- [X] T128 Verify PID formatting matches compact display mode in pgtail_py/tail_rich.py
+- [X] T129 Verify level colors match theme configuration in pgtail_py/tail_rich.py
+- [X] T130 Verify SQL syntax highlighting works in log messages in pgtail_py/tail_rich.py
+- [X] T131 Verify secondary fields (DETAIL, HINT, CONTEXT, STATEMENT) are formatted correctly in pgtail_py/tail_rich.py
 
 ### Performance Validation
 
@@ -278,35 +278,35 @@
 
 ### Final Verification
 
-- [ ] T136 Run `make test` to verify all tests pass
-- [ ] T137 Run `make lint` to verify code style compliance
-- [ ] T138 Update CLAUDE.md if any new modules or patterns were added beyond plan.md
-- [ ] T139 Test full workflow: start pgtail, list instances, tail, apply filters, select text, copy, quit
+- [X] T136 Run `make test` to verify all tests pass
+- [X] T137 Run `make lint` to verify code style compliance
+- [X] T138 Update CLAUDE.md if any new modules or patterns were added beyond plan.md
+- [X] T139 Test full workflow: start pgtail, list instances, tail, apply filters, select text, copy, quit
 
 ### Gap Coverage (Analysis Remediation)
 
-- [ ] T140 [US1] Implement on_mouse_up handler to auto-copy selection on mouse release (FR-002) in pgtail_py/tail_log.py
-- [ ] T141 [US5] Implement selection stability: save selection state before write_line(), restore after, in pgtail_py/tail_log.py
-- [ ] T142 [US5] Clear selection when buffer content changes due to filter update in pgtail_py/tail_textual.py _handle_command()
-- [ ] T143 [US3] Add guard in action_visual_mode() to no-op if line_count == 0 (empty buffer) in pgtail_py/tail_log.py
-- [ ] T144 [US3] Add guard in action_visual_line_mode() to no-op if line_count == 0 (empty buffer) in pgtail_py/tail_log.py
-- [ ] T145 Add format_as_rich_text() method to FormattedLogEntry in pgtail_py/tail_buffer.py returning Rich Text object
+- [X] T140 [US1] Implement on_mouse_up handler to auto-copy selection on mouse release (FR-002) in pgtail_py/tail_log.py
+- [X] T141 [US5] Implement selection stability: save selection state before write_line(), restore after, in pgtail_py/tail_log.py
+- [X] T142 [US5] Clear selection when buffer content changes due to filter update in pgtail_py/tail_textual.py _handle_command()
+- [X] T143 [US3] Add guard in action_visual_mode() to no-op if line_count == 0 (empty buffer) in pgtail_py/tail_log.py
+- [X] T144 [US3] Add guard in action_visual_line_mode() to no-op if line_count == 0 (empty buffer) in pgtail_py/tail_log.py
+- [X] T145 Add format_as_rich_text() method to FormattedLogEntry in pgtail_py/tail_buffer.py returning Rich Text object
 - [ ] T146 Test pyperclip fallback for selections >100KB (OSC 52 terminal limit bypass) in tests/test_tail_log.py
-- [ ] T147 Verify all new modules have complete module and class docstrings per constitution §Quality Standards
-- [ ] T148 Verify all public functions in tail_textual.py, tail_log.py, tail_rich.py have type annotations
+- [X] T147 Verify all new modules have complete module and class docstrings per constitution §Quality Standards
+- [X] T148 Verify all public functions in tail_textual.py, tail_log.py, tail_rich.py have type annotations
 - [ ] T149 [US7] Add automated test for `/` key focuses input from log area in tests/test_tail_textual.py
 - [ ] T150 [US4] Add automated test for Ctrl+A then Ctrl+C copies all content in tests/test_tail_log.py
 
 ### TailInput Module (plan.md Coverage)
 
-- [ ] T151 [P] [US7] Create empty module file pgtail_py/tail_input.py with module docstring
-- [ ] T152 [US7] Create TailInput class extending Input with id="input" and placeholder="tail> " in pgtail_py/tail_input.py
-- [ ] T153 [US7] Import and use TailInput in TailApp.compose() replacing bare Input in pgtail_py/tail_textual.py
+- [X] T151 [P] [US7] Create empty module file pgtail_py/tail_input.py with module docstring
+- [X] T152 [US7] Create TailInput class extending Input with id="input" and placeholder="tail> " in pgtail_py/tail_input.py
+- [X] T153 [US7] Import and use TailInput in TailApp.compose() replacing bare Input in pgtail_py/tail_textual.py
 - [ ] T154 [US7] Add test for TailInput widget instantiation and placeholder in tests/test_tail_input.py
 
 ### Display Module Rich Text (plan.md Coverage)
 
-- [ ] T155 Add format_entry_as_rich() function returning Rich Text object in pgtail_py/display.py
+- [X] T155 Add format_entry_as_rich() function returning Rich Text object in pgtail_py/display.py
 - [ ] T156 Add test for format_entry_as_rich() output in tests/test_display.py
 
 ### Performance Benchmarks (Success Criteria Coverage)
@@ -329,19 +329,19 @@
 
 ### Help System (Keybinding Discoverability)
 
-- [ ] T169 Add Binding for question_mark -> action_show_help in TailApp BINDINGS in pgtail_py/tail_textual.py
-- [ ] T170 Create TailHelp widget class extending Static with help content in pgtail_py/tail_help.py
-- [ ] T171 Define KEYBINDINGS constant dict mapping keys to descriptions in pgtail_py/tail_help.py
-- [ ] T172 Implement TailHelp.compose() rendering keybindings in two-column layout in pgtail_py/tail_help.py
-- [ ] T173 Add CSS for TailHelp overlay (centered modal, border, background) in pgtail_py/tail_textual.py
-- [ ] T174 Implement action_show_help() pushing TailHelp as modal screen in pgtail_py/tail_textual.py
-- [ ] T175 Add Binding for escape/q/question_mark to dismiss help overlay in TailHelp in pgtail_py/tail_help.py
-- [ ] T176 Add 'keys' subcommand handler to help command in pgtail_py/cli_tail.py
-- [ ] T177 Implement format_keybindings_text() returning plain text keybinding list in pgtail_py/tail_help.py
-- [ ] T178 Wire 'help keys' command to display keybindings in log area in pgtail_py/cli_tail.py
-- [ ] T179 Test ? key shows help overlay and escape dismisses it manually
-- [ ] T180 Test 'help keys' command outputs keybinding list manually
-- [ ] T181 Add automated test for ? key triggers help overlay in tests/test_tail_textual.py
+- [X] T169 Add Binding for question_mark -> action_show_help in TailApp BINDINGS in pgtail_py/tail_textual.py
+- [X] T170 Create TailHelp widget class extending Static with help content in pgtail_py/tail_help.py
+- [X] T171 Define KEYBINDINGS constant dict mapping keys to descriptions in pgtail_py/tail_help.py
+- [X] T172 Implement TailHelp.compose() rendering keybindings in two-column layout in pgtail_py/tail_help.py
+- [X] T173 Add CSS for TailHelp overlay (centered modal, border, background) in pgtail_py/tail_textual.py
+- [X] T174 Implement action_show_help() pushing TailHelp as modal screen in pgtail_py/tail_textual.py
+- [X] T175 Add Binding for escape/q/question_mark to dismiss help overlay in TailHelp in pgtail_py/tail_help.py
+- [X] T176 Add 'keys' subcommand handler to help command in pgtail_py/cli_tail.py
+- [X] T177 Implement format_keybindings_text() returning plain text keybinding list in pgtail_py/tail_help.py
+- [X] T178 Wire 'help keys' command to display keybindings in log area in pgtail_py/cli_tail.py
+- [x] T179 Test ? key shows help overlay and escape dismisses it manually
+- [x] T180 Test 'help keys' command outputs keybinding list manually
+- [X] T181 Add automated test for ? key triggers help overlay in tests/test_tail_textual.py
 
 ---
 

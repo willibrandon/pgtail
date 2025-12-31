@@ -292,6 +292,9 @@ class TailStatus:
         """
         text = Text()
 
+        # Left margin for breathing room
+        text.append(" ")
+
         # Mode indicator - bright green for FOLLOW, bright yellow for PAUSED
         if self.follow_mode:
             text.append("FOLLOW", style="bold bright_green")

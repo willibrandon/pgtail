@@ -12,6 +12,8 @@ Classes:
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
@@ -20,15 +22,33 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.widgets import Input, Static
 
+from pgtail_py.filter import LogLevel
+from pgtail_py.regex_filter import FilterState
+from pgtail_py.tail_input import TailInput
 from pgtail_py.tail_log import TailLog
 from pgtail_py.tail_rich import format_entry_compact
 from pgtail_py.tail_status import TailStatus
 from pgtail_py.tailer import LogTailer
+from pgtail_py.time_filter import TimeFilter
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
     from pgtail_py.instance import Instance
     from pgtail_py.parser import LogEntry
+
+
+@dataclass
+class FilterAnchor:
+    """Stores initial filter state for reset-to-anchor behavior.
+
+    When the user enters tail mode with filters (e.g., `tail 0 --since 1h`),
+    this captures those initial filters. The `clear` command resets to this
+    anchor, while `clear force` clears everything including the anchor.
+    """
+
+    active_levels: set[LogLevel] | None = None
+    regex_state: FilterState = field(default_factory=FilterState.empty)
+    time_filter: TimeFilter = field(default_factory=TimeFilter.empty)
 
 
 class TailApp(App[None]):
@@ -75,9 +95,9 @@ class TailApp(App[None]):
         background: $surface;
     }
 
-    /* Status bar - distinct panel background for visibility */
+    /* Status bar - 2 rows for status text + future footer hints */
     #status {
-        height: 1;
+        height: 2;
         width: 100%;
         background: $panel;
         color: $text;
@@ -87,6 +107,7 @@ class TailApp(App[None]):
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
+        Binding("question_mark", "show_help", "Help", show=False),
         Binding("slash", "focus_input", "Command", show=False),
         Binding("tab", "toggle_focus", "Toggle focus", show=False),
     ]
@@ -114,6 +135,12 @@ class TailApp(App[None]):
         self._tailer: LogTailer | None = None
         self._status: TailStatus | None = None
         self._running: bool = False
+        # Store all entries for filter-based rebuilding
+        self._entries: list[LogEntry] = []
+        # Anchor stores initial filter state for reset behavior
+        self._anchor: FilterAnchor | None = None
+        # Explicit pause flag - prevents auto-follow when user issues pause command
+        self._paused: bool = False
 
     @classmethod
     def run_tail_mode(
@@ -140,7 +167,7 @@ class TailApp(App[None]):
         Layout (top to bottom):
         - TailLog: Log display area (flexible height)
         - Static: Separator line above input
-        - Input: Command input line (tail> prompt)
+        - TailInput: Command input line (tail> prompt)
         - Static: Separator line below input
         - Static: Status bar (bottom, with reverse video styling)
 
@@ -149,7 +176,7 @@ class TailApp(App[None]):
         """
         yield TailLog(max_lines=self._max_lines, auto_scroll=True, id="log")
         yield Static("─" * 200, classes="separator")
-        yield Input(placeholder="tail> ", id="input")
+        yield TailInput()
         yield Static("─" * 200, classes="separator")
         yield Static(id="status")
 
@@ -159,6 +186,19 @@ class TailApp(App[None]):
         Initializes the status bar, creates the LogTailer, and starts
         the background consumer worker.
         """
+        # Capture initial filter state as anchor (for clear command reset)
+        self._anchor = FilterAnchor(
+            active_levels=(set(self._state.active_levels) if self._state.active_levels else None),
+            regex_state=(
+                deepcopy(self._state.regex_state)
+                if self._state.regex_state
+                else FilterState.empty()
+            ),
+            time_filter=(
+                deepcopy(self._state.time_filter) if self._state.time_filter else TimeFilter.empty()
+            ),
+        )
+
         # Initialize status
         self._status = TailStatus()
         self._status.set_instance_info(
@@ -201,8 +241,8 @@ class TailApp(App[None]):
         # Update initial status
         self._update_status()
 
-        # Focus the log widget
-        self.query_one("#log", TailLog).focus()
+        # Focus the input widget (tail> prompt) - users expect to type commands
+        self.query_one("#input", TailInput).focus()
 
     def on_unmount(self) -> None:
         """Called when app is unmounting.
@@ -237,6 +277,12 @@ class TailApp(App[None]):
             log_widget.focus()
         else:
             input_widget.focus()
+
+    def action_show_help(self) -> None:
+        """Show help overlay with keybindings (? key)."""
+        from pgtail_py.tail_help import HelpScreen
+
+        self.push_screen(HelpScreen())
 
     # Event handlers
 
@@ -302,6 +348,28 @@ class TailApp(App[None]):
         Args:
             entry: Parsed log entry to display.
         """
+        # Store entry for filter-based rebuilding (limit to max_lines)
+        self._entries.append(entry)
+        if len(self._entries) > self._max_lines:
+            self._entries.pop(0)
+
+        # Update global stats (always, regardless of filter)
+        if self._state:
+            self._state.error_stats.add(entry)
+            self._state.connection_stats.add(entry)
+
+        # Check if entry passes current filters
+        if not self._entry_matches_filters(entry):
+            return
+
+        # When paused, don't add to visible log - just count new entries
+        if self._paused:
+            if self._status:
+                self._status.update_from_entry(entry)
+                self._status.set_follow_mode(False, self._status.new_since_pause + 1)
+                self._update_status()
+            return
+
         log_widget = self.query_one("#log", TailLog)
 
         # Format entry as plain text
@@ -313,7 +381,7 @@ class TailApp(App[None]):
         # Add to log
         log_widget.write_line(formatted)
 
-        # Update status counts
+        # Update status counts (only for displayed entries)
         if self._status:
             self._status.update_from_entry(entry)
             self._status.set_total_lines(log_widget.line_count)
@@ -321,10 +389,101 @@ class TailApp(App[None]):
             self._status.set_follow_mode(was_at_end, new_count)
             self._update_status()
 
-        # Update stats
-        if self._state:
-            self._state.error_stats.add(entry)
-            self._state.connection_stats.add(entry)
+    def _entry_matches_filters(self, entry: LogEntry) -> bool:
+        """Check if an entry matches current filter settings.
+
+        Args:
+            entry: Log entry to check.
+
+        Returns:
+            True if entry should be displayed, False if filtered out.
+        """
+        # Level filter
+        if self._state.active_levels is not None and entry.level not in self._state.active_levels:
+            return False
+
+        # Regex filter
+        if (
+            self._state.regex_state
+            and self._state.regex_state.has_filters()
+            and not self._state.regex_state.should_show(entry.raw)
+        ):
+            return False
+
+        # Time filter
+        if self._state.time_filter and self._state.time_filter.is_active():
+            return self._state.time_filter.matches(entry)
+
+        return True
+
+    def _rebuild_log(self) -> None:
+        """Rebuild log display from stored entries with current filters.
+
+        Clears the log widget and re-adds all entries that match the
+        current filter settings. Called when filters change.
+        """
+        log_widget = self.query_one("#log", TailLog)
+
+        # Clear log and reset status counts
+        log_widget.clear()
+        if self._status:
+            self._status.error_count = 0
+            self._status.warning_count = 0
+
+        # Re-add entries that match current filters
+        for entry in self._entries:
+            if self._entry_matches_filters(entry):
+                formatted = format_entry_compact(entry)
+                log_widget.write_line(formatted)
+                if self._status:
+                    self._status.update_from_entry(entry)
+
+        # Update total line count
+        if self._status:
+            self._status.set_total_lines(log_widget.line_count)
+            self._update_status()
+
+    def _reset_to_anchor(self) -> None:
+        """Reset filters to the initial anchor state.
+
+        Restores filters to what they were when tail mode was entered
+        (e.g., `tail 0 --since 1h`). Called by `clear` command.
+        """
+        if self._anchor is None or self._tailer is None:
+            return
+
+        # Restore filter state from anchor
+        self._state.active_levels = (
+            set(self._anchor.active_levels) if self._anchor.active_levels else None
+        )
+        self._state.regex_state = deepcopy(self._anchor.regex_state)
+        self._state.time_filter = deepcopy(self._anchor.time_filter)
+
+        # Update tailer with restored filters
+        self._tailer.update_levels(self._state.active_levels)
+        self._tailer.update_regex_state(self._state.regex_state)
+        self._tailer.update_time_filter(self._state.time_filter)
+
+        # Update status bar
+        if self._status:
+            if self._state.active_levels is None:
+                self._status.set_level_filter(LogLevel.all_levels())
+            else:
+                self._status.set_level_filter(self._state.active_levels)
+
+            if self._state.regex_state and self._state.regex_state.has_filters():
+                patterns = [f.pattern for f in self._state.regex_state.includes]
+                self._status.set_regex_filter(patterns[0] if patterns else None)
+            else:
+                self._status.set_regex_filter(None)
+
+            if self._state.time_filter and self._state.time_filter.is_active():
+                self._status.set_time_filter(self._state.time_filter.format_description())
+            else:
+                self._status.set_time_filter(None)
+
+        # Rebuild log with restored filters
+        self._rebuild_log()
 
     def _update_status(self) -> None:
         """Update the status bar display with styled Rich text."""
@@ -356,6 +515,47 @@ class TailApp(App[None]):
         if self._status is None or self._tailer is None:
             return
 
+        # Handle clear command specially for anchor behavior
+        if cmd == "clear":
+            if args and args[0].lower() == "force":
+                # clear force: clear everything including anchor, start fresh
+                self._entries.clear()
+                handle_tail_command(
+                    cmd=cmd,
+                    args=[],  # Don't pass 'force' to cli_tail
+                    buffer=None,
+                    status=self._status,
+                    state=self._state,
+                    tailer=self._tailer,
+                    stop_callback=self._stop_tailing,
+                    log_widget=log_widget,
+                )
+            else:
+                # clear: reset to anchor (initial filters when tail mode started)
+                self._reset_to_anchor()
+            self._update_status()
+            return
+
+        # Handle pause/follow commands to set explicit pause flag
+        if cmd == "pause":
+            self._paused = True
+            self._status.set_follow_mode(False, 0)
+            self._update_status()
+            return
+
+        if cmd == "follow":
+            self._paused = False
+            self._status.set_follow_mode(True, 0)
+            # Rebuild log to include entries that arrived while paused
+            self._rebuild_log()
+            log_widget.scroll_end()
+            self._update_status()
+            return
+
+        # Track if this is a filter command that needs log rebuild
+        filter_commands = {"level", "filter", "since", "until", "between"}
+        needs_rebuild = cmd in filter_commands
+
         handle_tail_command(
             cmd=cmd,
             args=args,
@@ -366,5 +566,9 @@ class TailApp(App[None]):
             stop_callback=self._stop_tailing,
             log_widget=log_widget,
         )
+
+        # Rebuild log with new filters applied to stored entries
+        if needs_rebuild:
+            self._rebuild_log()
 
         self._update_status()

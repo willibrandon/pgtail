@@ -125,7 +125,7 @@ def handle_tail_command(
 
     # Help command
     if cmd == "help":
-        return _handle_help_command(buffer, log_widget)
+        return _handle_help_command(args, buffer, log_widget)
 
     # Unknown command - show inline error (only in prompt_toolkit mode)
     if buffer is not None:
@@ -184,6 +184,8 @@ def _handle_level_command(
     # Update buffer filters (prompt_toolkit mode only)
     if buffer is not None:
         _rebuild_buffer_filters(buffer, state, status)
+
+    # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
     return True
 
@@ -254,6 +256,8 @@ def _handle_filter_command(
         if buffer is not None:
             _rebuild_buffer_filters(buffer, state, status)
 
+        # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
+
     except Exception as e:
         if buffer is not None:
             error_msg = FormattedText([("class:error", f"Invalid pattern: {e}")])
@@ -308,6 +312,8 @@ def _handle_since_command(
         if buffer is not None:
             _rebuild_buffer_filters(buffer, state, status)
 
+        # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
+
     except Exception as e:
         if buffer is not None:
             error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
@@ -361,6 +367,8 @@ def _handle_until_command(
         # Update buffer filters (prompt_toolkit mode only)
         if buffer is not None:
             _rebuild_buffer_filters(buffer, state, status)
+
+        # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
     except Exception as e:
         if buffer is not None:
@@ -419,6 +427,8 @@ def _handle_between_command(
         # Update buffer filters (prompt_toolkit mode only)
         if buffer is not None:
             _rebuild_buffer_filters(buffer, state, status)
+
+        # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
     except Exception as e:
         if buffer is not None:
@@ -583,7 +593,21 @@ def _handle_errors_command(
 
     if buffer is not None:
         buffer.insert_command_output(FormattedText(lines))
-    # Textual mode: errors command output not displayed inline
+    elif log_widget is not None:
+        # Textual mode: write styled errors to log
+        log_widget.write_line(f"[bold cyan]Error Statistics[/bold cyan]  Total: [magenta]{total}[/magenta]")
+        if by_level:
+            log_widget.write_line("[dim]  By Level:[/dim]")
+            for level, count in sorted(by_level.items(), key=lambda x: x[1], reverse=True):
+                # Color by severity
+                color = {"PANIC": "bold red", "FATAL": "red", "ERROR": "yellow", "WARNING": "cyan"}.get(
+                    level.name, "white"
+                )
+                log_widget.write_line(f"    [{color}]{level.name}[/{color}]: [magenta]{count}[/magenta]")
+        if by_code:
+            log_widget.write_line("[dim]  By SQLSTATE:[/dim]")
+            for code, count in sorted(by_code.items(), key=lambda x: x[1], reverse=True)[:10]:
+                log_widget.write_line(f"    [cyan]{code}[/cyan]: [magenta]{count}[/magenta]")
     return True
 
 
@@ -630,7 +654,22 @@ def _handle_connections_command(
 
     if buffer is not None:
         buffer.insert_command_output(FormattedText(lines))
-    # Textual mode: connections command output not displayed inline
+    elif log_widget is not None:
+        # Textual mode: write styled connections to log
+        log_widget.write_line("[bold cyan]Connection Statistics[/bold cyan]")
+        log_widget.write_line(
+            f"  Active: [magenta]{conn_stats.active_count()}[/magenta]  "
+            f"Connects: [green]{conn_stats.connect_count}[/green]  "
+            f"Disconnects: [red]{conn_stats.disconnect_count}[/red]"
+        )
+        if by_db:
+            log_widget.write_line("[dim]  By Database:[/dim]")
+            for db, count in sorted(by_db.items(), key=lambda x: x[1], reverse=True)[:5]:
+                log_widget.write_line(f"    [cyan]{db}[/cyan]: [magenta]{count}[/magenta]")
+        if by_user:
+            log_widget.write_line("[dim]  By User:[/dim]")
+            for user, count in sorted(by_user.items(), key=lambda x: x[1], reverse=True)[:5]:
+                log_widget.write_line(f"    [cyan]{user}[/cyan]: [magenta]{count}[/magenta]")
     return True
 
 
@@ -684,17 +723,27 @@ def _rebuild_buffer_filters(
 
 
 def _handle_help_command(
-    buffer: TailBuffer | None, log_widget: TailLog | None = None
+    args: list[str],
+    buffer: TailBuffer | None,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'help' command to show available commands and shortcuts.
 
+    Subcommands:
+        help keys - Show keybinding reference
+
     Args:
+        args: Command arguments (e.g., ['keys'])
         buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
     """
+    # Handle 'help keys' subcommand
+    if args and args[0].lower() == "keys":
+        return _handle_help_keys_command(buffer, log_widget)
+
     # Build styled help text
     lines: list[tuple[str, str]] = []
 
@@ -728,6 +777,7 @@ def _handle_help_command(
     lines.append(("bold fg:ansicyan", "Commands\n"))
     commands = [
         ("help", "Show this help"),
+        ("help keys", "Show keybinding reference"),
         ("pause", "Enter PAUSED mode"),
         ("follow", "Resume FOLLOW mode"),
         ("level <lvl>", "Filter by level (e.g., 'level error,warning')"),
@@ -747,5 +797,45 @@ def _handle_help_command(
 
     if buffer is not None:
         buffer.insert_command_output(FormattedText(lines))
-    # Textual mode: help command output not displayed inline
+    elif log_widget is not None:
+        # Textual mode: write styled help to log
+        log_widget.write_line("[bold cyan]Navigation[/bold cyan]")
+        for key, desc in nav_keys:
+            log_widget.write_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
+        log_widget.write_line("")
+        log_widget.write_line("[bold cyan]Utility Keys[/bold cyan]")
+        for key, desc in utility_keys:
+            log_widget.write_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
+        log_widget.write_line("")
+        log_widget.write_line("[bold cyan]Commands[/bold cyan]")
+        for cmd, desc in commands:
+            log_widget.write_line(f"  [yellow]{cmd:<12}[/yellow] [dim]{desc}[/dim]")
+    return True
+
+
+def _handle_help_keys_command(buffer: TailBuffer | None, log_widget: TailLog | None = None) -> bool:
+    """Handle 'help keys' command to show keybinding reference.
+
+    Args:
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
+        log_widget: TailLog widget (Textual) or None
+
+    Returns:
+        True if command was handled
+    """
+    from pgtail_py.tail_help import KEYBINDINGS, format_keybindings_text
+
+    if buffer is not None:
+        # Format for prompt_toolkit
+        keybindings_text = format_keybindings_text()
+        lines: list[tuple[str, str]] = []
+        for line in keybindings_text.split("\n"):
+            lines.append(("", f"{line}\n"))
+        buffer.insert_command_output(FormattedText(lines))
+    elif log_widget is not None:
+        # Textual mode: write styled keybindings to log
+        for category, bindings in KEYBINDINGS.items():
+            log_widget.write_line(f"[bold cyan]{category}[/bold cyan]")
+            for key, desc in bindings:
+                log_widget.write_line(f"  [green]{key:<16}[/green] [dim]{desc}[/dim]")
     return True

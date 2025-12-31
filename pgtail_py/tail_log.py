@@ -49,8 +49,12 @@ class TailLog(Log):
         # Vim navigation
         Binding("j", "scroll_down", "Down", show=False),
         Binding("k", "scroll_up", "Up", show=False),
+        Binding("h", "cursor_left", "Left", show=False),
+        Binding("l", "cursor_right", "Right", show=False),
+        Binding("0", "cursor_line_start", "Line start", show=False),
+        Binding("$", "cursor_line_end", "Line end", show=False),
         Binding("g", "scroll_home", "Top", show=False),
-        Binding("shift+g", "scroll_end", "Bottom", show=False),
+        Binding("G", "scroll_end", "Bottom", show=False),
         Binding("f", "follow", "Follow", show=False),
         Binding("ctrl+d", "half_page_down", "Half page down", show=False),
         Binding("ctrl+u", "half_page_up", "Half page up", show=False),
@@ -60,7 +64,7 @@ class TailLog(Log):
         Binding("pageup", "page_up", "Page up", show=False),
         # Visual mode
         Binding("v", "visual_mode", "Visual mode", show=False),
-        Binding("shift+v", "visual_line_mode", "Visual line mode", show=False),
+        Binding("V", "visual_line_mode", "Visual line mode", show=False),
         Binding("y", "yank", "Yank", show=False),
         Binding("escape", "clear_selection", "Clear", show=False),
         # Standard shortcuts
@@ -134,7 +138,11 @@ class TailLog(Log):
         self._visual_mode: bool = False
         self._visual_line_mode: bool = False
         self._visual_anchor_line: int | None = None
+        self._visual_anchor_col: int = 0
         self._cursor_line: int = 0
+        self._cursor_col: int = 0
+        # Track mouse down position to detect drag vs click
+        self._mouse_down_pos: tuple[int, int] | None = None
 
     @property
     def cursor_line(self) -> int:
@@ -234,20 +242,80 @@ class TailLog(Log):
         self._select_cursor_line()
         self._scroll_cursor_visible()
 
+    # Column navigation actions (for character-wise visual mode)
+
+    def _get_line_length(self, line_idx: int) -> int:
+        """Get the plain text length of a line (without markup)."""
+        if line_idx < 0 or line_idx >= len(self._lines):
+            return 0
+        line = self._lines[line_idx]
+        plain_line = self._strip_markup(line)
+        return len(plain_line)
+
+    def action_cursor_left(self) -> None:
+        """Move cursor left one character (h key), wrapping to previous line."""
+        if self.line_count == 0:
+            return
+        wrapped = False
+        if self._cursor_col > 0:
+            self._cursor_col -= 1
+        elif self._cursor_line > 0:
+            # Wrap to end of previous line
+            self._cursor_line -= 1
+            self._cursor_col = self._get_line_length(self._cursor_line)
+            wrapped = True
+        if self._visual_mode and not self._visual_line_mode:
+            self._select_cursor_line()
+        if wrapped:
+            self._scroll_cursor_visible()
+
+    def action_cursor_right(self) -> None:
+        """Move cursor right one character (l key), wrapping to next line."""
+        if self.line_count == 0:
+            return
+        wrapped = False
+        line_len = self._get_line_length(self._cursor_line)
+        if self._cursor_col < line_len:
+            self._cursor_col += 1
+        elif self._cursor_line < self.line_count - 1:
+            # Wrap to start of next line
+            self._cursor_line += 1
+            self._cursor_col = 0
+            wrapped = True
+        if self._visual_mode and not self._visual_line_mode:
+            self._select_cursor_line()
+        if wrapped:
+            self._scroll_cursor_visible()
+
+    def action_cursor_line_start(self) -> None:
+        """Move cursor to start of line (0 key)."""
+        self._cursor_col = 0
+        if self._visual_mode and not self._visual_line_mode:
+            self._select_cursor_line()
+
+    def action_cursor_line_end(self) -> None:
+        """Move cursor to end of line ($ key)."""
+        if self.line_count == 0:
+            return
+        self._cursor_col = self._get_line_length(self._cursor_line)
+        if self._visual_mode and not self._visual_line_mode:
+            self._select_cursor_line()
+
     # Visual mode actions
 
     def action_visual_mode(self) -> None:
-        """Enter visual mode for single-line selection."""
+        """Enter visual mode for character-wise selection."""
         if self.line_count == 0:
             return
         self._visual_mode = True
         self._visual_line_mode = False
         self._visual_anchor_line = self._cursor_line
+        self._visual_anchor_col = self._cursor_col
         self._select_cursor_line()
         self.post_message(self.VisualModeChanged(active=True, line_mode=False))
 
     def action_visual_line_mode(self) -> None:
-        """Enter visual line mode for multi-line selection."""
+        """Enter visual line mode for full-line selection."""
         if self.line_count == 0:
             return
         self._visual_mode = True
@@ -263,12 +331,8 @@ class TailLog(Log):
         if selection is None:
             return
 
-        # Get selected text using get_selection
-        result = self.get_selection(selection)
-        if result is None:
-            return
-
-        selected_text, _ = result
+        # Get selected text directly from _lines to avoid coordinate issues
+        selected_text = self._get_selected_text(selection)
         if not selected_text:
             return
 
@@ -299,11 +363,8 @@ class TailLog(Log):
         if selection is None:
             return  # No-op with no selection
 
-        result = self.get_selection(selection)
-        if result is None:
-            return
-
-        selected_text, _ = result
+        # Get selected text directly from _lines to avoid coordinate issues
+        selected_text = self._get_selected_text(selection)
         if not selected_text:
             return
 
@@ -316,8 +377,19 @@ class TailLog(Log):
 
     # Event handlers
 
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        """Track mouse down position to detect drag vs click.
+
+        Args:
+            event: MouseDown event with position information.
+        """
+        self._mouse_down_pos = (event.x, event.y)
+
     def on_click(self, event: events.Click) -> None:
-        """Handle mouse click to select line.
+        """Handle mouse click to select line (but not after drag).
+
+        For simple clicks, select the clicked line. For clicks that follow
+        a drag (multi-line selection), don't override the selection.
 
         Args:
             event: Click event with position information.
@@ -325,18 +397,54 @@ class TailLog(Log):
         if self.line_count == 0:
             return
 
-        # Calculate which line was clicked and set cursor
+        # Check if this was a drag (mouse moved from down position)
+        was_drag = False
+        if self._mouse_down_pos is not None:
+            dx = abs(event.x - self._mouse_down_pos[0])
+            dy = abs(event.y - self._mouse_down_pos[1])
+            was_drag = dx > 1 or dy > 0  # Allow 1 char horizontal tolerance
+        self._mouse_down_pos = None
+
+        # Update cursor position for keyboard navigation
         clicked_line = self.scroll_offset.y + event.y
         self._cursor_line = max(0, min(clicked_line, self.line_count - 1))
+        self._cursor_col = 0  # Reset to start of line on click
 
         # Exit visual mode on click
         if self._visual_mode:
             self._visual_mode = False
             self._visual_line_mode = False
             self._visual_anchor_line = None
+            self.post_message(self.VisualModeChanged(active=False, line_mode=False))
 
-        # Select the clicked line
-        self._select_cursor_line()
+        # Only select line on simple click (not after drag)
+        if not was_drag:
+            self._select_cursor_line()
+
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        """Handle mouse release after drag selection.
+
+        Auto-copies selection to clipboard when mouse is released after
+        a drag selection (FR-002 requirement).
+
+        Args:
+            event: MouseUp event with position information.
+        """
+        # Check if there's a selection to copy
+        selection = self.text_selection
+        if selection is None:
+            return
+
+        # Get selected text directly from _lines to avoid coordinate issues
+        selected_text = self._get_selected_text(selection)
+        if not selected_text:
+            return
+
+        # Strip Rich markup before copying
+        plain_text = self._strip_markup(selected_text)
+
+        # Copy to clipboard (silent - no message for mouse-up auto-copy)
+        self._copy_with_fallback(plain_text)
 
     # Helper methods
 
@@ -345,17 +453,33 @@ class TailLog(Log):
         if self.line_count == 0:
             return
 
-        if self._visual_mode and self._visual_line_mode and self._visual_anchor_line is not None:
-            # Visual line mode: select from anchor to cursor
-            start_line = min(self._visual_anchor_line, self._cursor_line)
-            end_line = max(self._visual_anchor_line, self._cursor_line)
+        if self._visual_mode and self._visual_anchor_line is not None:
+            if self._visual_line_mode:
+                # Visual LINE mode (V): always select full lines
+                start_line = min(self._visual_anchor_line, self._cursor_line)
+                end_line = max(self._visual_anchor_line, self._cursor_line)
+                start = Offset(0, start_line)
+                end = Offset(10000, end_line)
+            else:
+                # Visual CHAR mode (v): select from anchor position to cursor position
+                # End is +1 to include character at cursor (vim behavior)
+                if self._visual_anchor_line < self._cursor_line:
+                    start = Offset(self._visual_anchor_col, self._visual_anchor_line)
+                    end = Offset(self._cursor_col + 1, self._cursor_line)
+                elif self._visual_anchor_line > self._cursor_line:
+                    start = Offset(self._cursor_col, self._cursor_line)
+                    end = Offset(self._visual_anchor_col + 1, self._visual_anchor_line)
+                else:
+                    # Same line - order by column
+                    start_col = min(self._visual_anchor_col, self._cursor_col)
+                    end_col = max(self._visual_anchor_col, self._cursor_col)
+                    start = Offset(start_col, self._cursor_line)
+                    end = Offset(end_col + 1, self._cursor_line)
         else:
-            # Single line selection
-            start_line = self._cursor_line
-            end_line = self._cursor_line
+            # Single line selection (no visual mode)
+            start = Offset(0, self._cursor_line)
+            end = Offset(10000, self._cursor_line)
 
-        start = Offset(0, start_line)
-        end = Offset(10000, end_line)
         self._set_selection(Selection(start, end))
 
     def _scroll_cursor_visible(self) -> None:
@@ -397,11 +521,67 @@ class TailLog(Log):
             self.screen.selections[self] = selection
         self.selection_updated(selection)
 
-    def _strip_markup(self, text: str) -> str:
-        """Strip Rich markup tags from text.
+    def _get_selected_text(self, selection: Selection) -> str:
+        """Get selected text directly from _lines.
 
-        Converts Rich console markup (e.g., [bold red]text[/]) to plain text
-        by parsing with Text.from_markup and extracting the plain string.
+        Handles both character-wise selection (respects column positions)
+        and line-wise selection (full lines).
+
+        Args:
+            selection: Selection with start/end coordinates.
+
+        Returns:
+            Selected text as a string, with lines joined by newlines.
+        """
+        if not self._lines:
+            return ""
+
+        # Get coordinates from selection
+        start_line = selection.start.y if selection.start else 0
+        start_col = selection.start.x if selection.start else 0
+        end_line = selection.end.y if selection.end else len(self._lines) - 1
+        end_col = selection.end.x if selection.end else 10000
+
+        # Clamp lines to valid range
+        start_line = max(0, min(start_line, len(self._lines) - 1))
+        end_line = max(0, min(end_line, len(self._lines) - 1))
+
+        # Ensure start <= end (swap if needed)
+        if start_line > end_line or (start_line == end_line and start_col > end_col):
+            start_line, end_line = end_line, start_line
+            start_col, end_col = end_col, start_col
+
+        # Get plain text lines using Rich's parser for accurate column slicing
+        # (matches how lines are rendered)
+        plain_lines = []
+        for i in range(start_line, end_line + 1):
+            rich_text = Text.from_markup(self._lines[i])
+            plain_lines.append(rich_text.plain)
+
+        if not plain_lines:
+            return ""
+
+        if start_line == end_line:
+            # Single line: slice from start_col to end_col
+            line = plain_lines[0]
+            return line[start_col:end_col]
+        else:
+            # Multi-line: first line from start_col, middle lines full, last line to end_col
+            result = []
+            # First line: from start_col to end
+            result.append(plain_lines[0][start_col:])
+            # Middle lines: full lines
+            for line in plain_lines[1:-1]:
+                result.append(line)
+            # Last line: from start to end_col
+            result.append(plain_lines[-1][:end_col])
+            return "\n".join(result)
+
+    def _strip_markup(self, text: str) -> str:
+        """Strip Rich markup tags from text using regex.
+
+        Uses regex to remove Rich console markup tags (e.g., [bold red], [/])
+        since partial selections can start mid-tag and break Rich's parser.
 
         Args:
             text: Text potentially containing Rich markup.
@@ -409,9 +589,14 @@ class TailLog(Log):
         Returns:
             Plain text with all markup tags removed.
         """
-        # Parse markup and extract plain text
-        parsed = Text.from_markup(text)
-        return parsed.plain
+        import re
+
+        # Use regex to strip markup - handles partial/broken markup from selections
+        # Remove markup tags like [bold], [/bold], [dim], [/], [bold red], etc.
+        result = re.sub(r"\[/?[^\]]*\]", "", text)
+        # Handle escaped brackets \\[ -> [
+        result = result.replace("\\[", "[")
+        return result
 
     def _copy_with_fallback(self, text: str) -> bool:
         """Copy text to clipboard with fallback mechanisms.
@@ -476,16 +661,22 @@ class TailLog(Log):
         # Parse Rich markup instead of plain text
         line_text = Text.from_markup(_line)
         line_text.no_wrap = True
-        # Note: Don't apply rich_style as base - it would override markup colors
 
-        if selection is not None and (select_span := selection.get_span(y - self._clear_y)) is not None:
+        # Apply ONLY background from rich_style to entire line for consistent bg
+        # (Don't apply foreground - it would override markup colors)
+        if rich_style.bgcolor:
+            bg_only = Style(bgcolor=rich_style.bgcolor)
+            line_text.stylize(bg_only, 0, len(line_text))
+
+        if (
+            selection is not None
+            and (select_span := selection.get_span(y - self._clear_y)) is not None
+        ):
             start, end = select_span
             if end == -1:
                 end = len(line_text)
 
-            selection_style = self.screen.get_component_rich_style(
-                "screen--selection"
-            )
+            selection_style = self.screen.get_component_rich_style("screen--selection")
             line_text.stylize(selection_style, start, end)
 
         line = Strip(line_text.render(self.app.console), line_text.cell_len)

@@ -35,9 +35,14 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "pytest-asyncio>=1.0.0",
     "ruff>=0.1.0",
     "pyinstaller>=6.0.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [project.scripts]
 pgtail = "pgtail_py.cli:main"
@@ -45,3 +50,8 @@ pgtail = "pgtail_py.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["pgtail_py*"]
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.3.0",
+]

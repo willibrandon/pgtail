@@ -131,10 +131,14 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/sql_tokenizer.py` - SQL tokenization (keywords, identifiers, strings, numbers, operators, comments, functions)
 - `pgtail_py/sql_highlighter.py` - SQL syntax highlighting with FormattedText output
 - `pgtail_py/sql_detector.py` - SQL content detection in PostgreSQL log messages
-- `pgtail_py/tail_buffer.py` - TailBuffer deque (10,000 line) with scroll position, FormattedLogEntry dataclass
+- `pgtail_py/tail_buffer.py` - TailBuffer deque (10,000 line) with scroll position, FormattedLogEntry dataclass (deprecated)
 - `pgtail_py/tail_status.py` - TailStatus for status bar state (counts, filters, mode, instance info)
-- `pgtail_py/tail_layout.py` - TailLayout with HSplit (log/status/input), TailModeCompleter
-- `pgtail_py/tail_app.py` - TailApp coordinator, asyncio entry consumer, Application lifecycle
+- `pgtail_py/tail_layout.py` - TailLayout with HSplit (log/status/input), TailModeCompleter (deprecated)
+- `pgtail_py/tail_app.py` - TailApp coordinator, asyncio entry consumer, Application lifecycle (deprecated)
+- `pgtail_py/tail_textual.py` - TailApp Textual Application, replaces prompt_toolkit-based tail mode
+- `pgtail_py/tail_log.py` - TailLog widget with vim-style navigation, visual mode selection, clipboard support
+- `pgtail_py/tail_rich.py` - Rich text formatting for log entries (LEVEL_STYLES, format_entry_compact)
+- `pgtail_py/tail_input.py` - TailInput widget for tail mode command entry
 - `pgtail_py/cli_tail.py` - Tail mode command handlers (level, filter, since, errors, etc.)
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
