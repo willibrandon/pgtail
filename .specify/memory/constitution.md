@@ -1,13 +1,13 @@
 <!--
 Sync Impact Report
 ==================
-Version Change: 2.0.0 → 2.1.0
-Bump Rationale: MINOR - Added Textual as approved TUI library for fullscreen interfaces
+Version Change: 2.1.0 → 2.2.0
+Bump Rationale: MINOR - Added file size constraint to Quality Standards
 
-Modified Principles:
-- VI. Minimal Dependencies: Expanded approved dependencies to include Textual for rich TUI applications
+Modified Principles: None
 
-Added Sections: None
+Added Sections:
+- Quality Standards: Added "File Size Limit" constraint (source files MUST NOT exceed 900 LOC)
 
 Removed Sections: None
 
@@ -119,6 +119,7 @@ pgtail MUST optimize for the developer experience, especially pgrx workflows:
 - **Documentation**: Each Python module MUST have a docstring explaining its purpose
 - **Linting**: Code MUST pass `ruff` or equivalent linter with default configuration
 - **Type Hints**: All public functions MUST have type annotations
+- **File Size Limit**: Source code files MUST NOT exceed 900 lines of code; files approaching this limit MUST be refactored into smaller, focused modules
 
 ## Governance
 
@@ -138,4 +139,4 @@ This constitution supersedes all other project guidelines. All contributions MUS
 - All PRs MUST be verified against these principles before merge
 - Complexity additions MUST be justified against Simplicity First and Minimal Dependencies principles
 
-**Version**: 2.1.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-31
+**Version**: 2.2.0 | **Ratified**: 2025-12-14 | **Last Amended**: 2025-12-31
