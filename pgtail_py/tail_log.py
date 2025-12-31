@@ -18,6 +18,7 @@ from typing import ClassVar
 
 from textual.binding import Binding, BindingType
 from textual.message import Message
+from textual.selection import Selection
 from textual.widgets import Log
 
 
@@ -215,7 +216,7 @@ class TailLog(Log):
     def action_yank(self) -> None:
         """Copy selection to clipboard and exit visual mode."""
         # Get selected text - no-op if no selection
-        selection = self.selection
+        selection = self.text_selection
         if selection is None:
             return
 
@@ -244,11 +245,11 @@ class TailLog(Log):
         """Select all content in the log."""
         from textual.selection import SELECT_ALL
 
-        self.selection = SELECT_ALL
+        self._set_selection(SELECT_ALL)
 
     def action_copy_selection(self) -> None:
         """Copy current selection to clipboard (Ctrl+C)."""
-        selection = self.selection
+        selection = self.text_selection
         if selection is None:
             return  # No-op with no selection
 
@@ -304,7 +305,7 @@ class TailLog(Log):
             start = Offset(0, start_line)
             end = Offset(10000, end_line)
 
-        self.selection = Selection(start, end)
+        self._set_selection(Selection(start, end))
 
     def _exit_visual_mode(self) -> None:
         """Exit visual mode and clear selection."""
@@ -314,10 +315,22 @@ class TailLog(Log):
         self._visual_mode = False
         self._visual_line_mode = False
         self._visual_anchor_line = None
-        self.selection = None
+        self._set_selection(None)
 
         if was_active:
             self.post_message(self.VisualModeChanged(active=False, line_mode=was_line_mode))
+
+    def _set_selection(self, selection: Selection | None) -> None:
+        """Set the selection for this widget.
+
+        Args:
+            selection: Selection to set, or None to clear.
+        """
+        if selection is None:
+            self.screen.selections.pop(self, None)
+        else:
+            self.screen.selections[self] = selection
+        self.selection_updated(selection)
 
     def _copy_with_fallback(self, text: str) -> bool:
         """Copy text to clipboard with fallback mechanisms.

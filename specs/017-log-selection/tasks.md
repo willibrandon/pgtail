@@ -20,12 +20,12 @@
 
 **Purpose**: Project initialization and dependency configuration
 
-- [X] T001 Add textual>=0.89.0 and pyperclip>=1.8.0 to dependencies in pyproject.toml
-- [X] T002 Run `uv sync` to install new dependencies and verify installation
-- [X] T003 [P] Create empty module file pgtail_py/tail_textual.py with module docstring
-- [X] T004 [P] Create empty module file pgtail_py/tail_log.py with module docstring
-- [X] T005 [P] Create empty module file pgtail_py/tail_rich.py with module docstring
-- [X] T006 Verify Textual installation with `python -c "from textual import __version__; print(__version__)"`
+- [ ] T001 Add textual>=0.89.0 and pyperclip>=1.8.0 to dependencies in pyproject.toml
+- [ ] T002 Run `uv sync` to install new dependencies and verify installation
+- [ ] T003 [P] Create empty module file pgtail_py/tail_textual.py with module docstring
+- [ ] T004 [P] Create empty module file pgtail_py/tail_log.py with module docstring
+- [ ] T005 [P] Create empty module file pgtail_py/tail_rich.py with module docstring
+- [ ] T006 Verify Textual installation with `python -c "from textual import __version__; print(__version__)"`
 
 ---
 
@@ -35,29 +35,29 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T007 Implement Rich text formatting for LogEntry in pgtail_py/tail_rich.py (LEVEL_STYLES dict, format_entry_as_rich function)
-- [X] T008 Implement format_entry_compact function returning plain string in pgtail_py/tail_rich.py
-- [X] T009 Create TailLog base class extending Log with ALLOW_SELECT=True in pgtail_py/tail_log.py
-- [X] T010 Create TailApp shell class extending App in pgtail_py/tail_textual.py with compose() yielding TailLog, Static, Input
-- [X] T011 Implement TailApp CSS for layout (TailLog height:1fr, status height:1, Input dock:bottom) in pgtail_py/tail_textual.py
-- [X] T012 Implement TailApp __init__ accepting state, instance, log_path, max_lines in pgtail_py/tail_textual.py
-- [X] T013 Implement TailApp.run_tail_mode() class method entry point in pgtail_py/tail_textual.py
-- [X] T014 Implement TailApp.on_mount() to start LogTailer and background consumer in pgtail_py/tail_textual.py
-- [X] T015 Implement TailApp.on_unmount() to stop tailer and set _running=False in pgtail_py/tail_textual.py
-- [X] T016 Implement background worker _start_consumer() using @work decorator in pgtail_py/tail_textual.py
-- [X] T017 Implement _add_entry() method to add formatted entries to TailLog in pgtail_py/tail_textual.py
-- [X] T018 Implement _update_status() method to update Static status bar in pgtail_py/tail_textual.py
-- [X] T019 Add format_plain() method to TailStatus class in pgtail_py/tail_status.py for plain text status output
-- [X] T020 Implement action_quit() bound to 'q' key in pgtail_py/tail_textual.py
-- [X] T021 Implement _handle_command() method to dispatch commands to cli_tail handlers in pgtail_py/tail_textual.py
-- [X] T022 Implement on_input_submitted() event handler to process command input in pgtail_py/tail_textual.py
-- [X] T023 Add log_widget parameter to handle_tail_command() function signature in pgtail_py/cli_tail.py
-- [X] T024 Update handle_tail_command() to use log_widget for clear command in pgtail_py/cli_tail.py
-- [X] T025 Update cli.py to import TailApp from tail_textual and call TailApp.run_tail_mode() in pgtail_py/cli.py
-- [X] T026 Add deprecation warning to tail_app.py module docstring in pgtail_py/tail_app.py
-- [X] T027 Add deprecation warning to tail_layout.py module docstring in pgtail_py/tail_layout.py
-- [X] T028 Run `make test` to verify no regressions from foundational changes
-- [X] T029 Run `make lint` to verify code style compliance
+- [ ] T007 Implement Rich text formatting for LogEntry in pgtail_py/tail_rich.py (LEVEL_STYLES dict, format_entry_as_rich function)
+- [ ] T008 Implement format_entry_compact function returning plain string in pgtail_py/tail_rich.py
+- [ ] T009 Create TailLog base class extending Log with ALLOW_SELECT=True in pgtail_py/tail_log.py
+- [ ] T010 Create TailApp shell class extending App in pgtail_py/tail_textual.py with compose() yielding TailLog, Static, Input
+- [ ] T011 Implement TailApp CSS for layout (TailLog height:1fr, status height:1, Input dock:bottom) in pgtail_py/tail_textual.py
+- [ ] T012 Implement TailApp __init__ accepting state, instance, log_path, max_lines in pgtail_py/tail_textual.py
+- [ ] T013 Implement TailApp.run_tail_mode() class method entry point in pgtail_py/tail_textual.py
+- [ ] T014 Implement TailApp.on_mount() to start LogTailer and background consumer in pgtail_py/tail_textual.py
+- [ ] T015 Implement TailApp.on_unmount() to stop tailer and set _running=False in pgtail_py/tail_textual.py
+- [ ] T016 Implement background worker _start_consumer() using @work decorator in pgtail_py/tail_textual.py
+- [ ] T017 Implement _add_entry() method to add formatted entries to TailLog in pgtail_py/tail_textual.py
+- [ ] T018 Implement _update_status() method to update Static status bar in pgtail_py/tail_textual.py
+- [ ] T019 Add format_plain() method to TailStatus class in pgtail_py/tail_status.py for plain text status output
+- [ ] T020 Implement action_quit() bound to 'q' key in pgtail_py/tail_textual.py
+- [ ] T021 Implement _handle_command() method to dispatch commands to cli_tail handlers in pgtail_py/tail_textual.py
+- [ ] T022 Implement on_input_submitted() event handler to process command input in pgtail_py/tail_textual.py
+- [ ] T023 Add log_widget parameter to handle_tail_command() function signature in pgtail_py/cli_tail.py
+- [ ] T024 Update handle_tail_command() to use log_widget for clear command in pgtail_py/cli_tail.py
+- [ ] T025 Update cli.py to import TailApp from tail_textual and call TailApp.run_tail_mode() in pgtail_py/cli.py
+- [ ] T026 Add deprecation warning to tail_app.py module docstring in pgtail_py/tail_app.py
+- [ ] T027 Add deprecation warning to tail_layout.py module docstring in pgtail_py/tail_layout.py
+- [ ] T028 Run `make test` to verify no regressions from foundational changes
+- [ ] T029 Run `make lint` to verify code style compliance
 
 **Checkpoint**: Foundation ready - TailApp can launch, display log entries, accept commands, and quit. User story implementation can now begin.
 
@@ -71,16 +71,16 @@
 
 ### Implementation for User Story 1
 
-- [X] T030 [US1] Verify TailLog ALLOW_SELECT=True enables mouse selection in pgtail_py/tail_log.py
-- [X] T031 [US1] Implement _copy_with_fallback() method with OSC 52 + pyperclip in pgtail_py/tail_log.py
-- [X] T032 [US1] Add action_copy_selection() bound to Ctrl+C in TailLog BINDINGS in pgtail_py/tail_log.py
-- [X] T033 [US1] Implement action_copy_selection() to call _copy_with_fallback with selected text in pgtail_py/tail_log.py
-- [X] T034 [US1] Add SelectionCopied Message class for clipboard copy events in pgtail_py/tail_log.py
-- [X] T035 [US1] Post SelectionCopied message after successful copy in pgtail_py/tail_log.py
-- [X] T036 [US1] Handle empty selection in _copy_with_fallback (return early, no-op) in pgtail_py/tail_log.py
-- [X] T037 [US1] Handle clipboard exceptions with graceful degradation (return False) in pgtail_py/tail_log.py
-- [X] T038 [US1] Test mouse selection and Ctrl+C copy manually in iTerm2/Kitty terminal
-- [X] T039 [US1] Test multi-line selection across ERROR with DETAIL and STATEMENT fields manually
+- [ ] T030 [US1] Verify TailLog ALLOW_SELECT=True enables mouse selection in pgtail_py/tail_log.py
+- [ ] T031 [US1] Implement _copy_with_fallback() method with OSC 52 + pyperclip in pgtail_py/tail_log.py
+- [ ] T032 [US1] Add action_copy_selection() bound to Ctrl+C in TailLog BINDINGS in pgtail_py/tail_log.py
+- [ ] T033 [US1] Implement action_copy_selection() to call _copy_with_fallback with selected text in pgtail_py/tail_log.py
+- [ ] T034 [US1] Add SelectionCopied Message class for clipboard copy events in pgtail_py/tail_log.py
+- [ ] T035 [US1] Post SelectionCopied message after successful copy in pgtail_py/tail_log.py
+- [ ] T036 [US1] Handle empty selection in _copy_with_fallback (return early, no-op) in pgtail_py/tail_log.py
+- [ ] T037 [US1] Handle clipboard exceptions with graceful degradation (return False) in pgtail_py/tail_log.py
+- [ ] T038 [US1] Test mouse selection and Ctrl+C copy manually in iTerm2/Kitty terminal
+- [ ] T039 [US1] Test multi-line selection across ERROR with DETAIL and STATEMENT fields manually
 
 **Checkpoint**: User Story 1 complete - mouse selection and copy works
 
@@ -327,6 +327,22 @@
 - [ ] T167 Add automated test for visual mode navigation at buffer top boundary in tests/test_tail_visual.py
 - [ ] T168 Add automated test for visual mode navigation at buffer bottom boundary in tests/test_tail_visual.py
 
+### Help System (Keybinding Discoverability)
+
+- [ ] T169 Add Binding for question_mark -> action_show_help in TailApp BINDINGS in pgtail_py/tail_textual.py
+- [ ] T170 Create TailHelp widget class extending Static with help content in pgtail_py/tail_help.py
+- [ ] T171 Define KEYBINDINGS constant dict mapping keys to descriptions in pgtail_py/tail_help.py
+- [ ] T172 Implement TailHelp.compose() rendering keybindings in two-column layout in pgtail_py/tail_help.py
+- [ ] T173 Add CSS for TailHelp overlay (centered modal, border, background) in pgtail_py/tail_textual.py
+- [ ] T174 Implement action_show_help() pushing TailHelp as modal screen in pgtail_py/tail_textual.py
+- [ ] T175 Add Binding for escape/q/question_mark to dismiss help overlay in TailHelp in pgtail_py/tail_help.py
+- [ ] T176 Add 'keys' subcommand handler to help command in pgtail_py/cli_tail.py
+- [ ] T177 Implement format_keybindings_text() returning plain text keybinding list in pgtail_py/tail_help.py
+- [ ] T178 Wire 'help keys' command to display keybindings in log area in pgtail_py/cli_tail.py
+- [ ] T179 Test ? key shows help overlay and escape dismisses it manually
+- [ ] T180 Test 'help keys' command outputs keybinding list manually
+- [ ] T181 Add automated test for ? key triggers help overlay in tests/test_tail_textual.py
+
 ---
 
 ## Dependencies & Execution Order
@@ -441,9 +457,10 @@ Complete all phases in order. Each checkpoint provides a working increment.
 | Phase 7: US5 Auto-Scroll | T087-T097 (11 tasks) | P2 - FOLLOW/SCROLL mode |
 | Phase 8: US6 Clipboard Fallback | T098-T104 (7 tasks) | P3 - Terminal.app support |
 | Phase 9: US7 Focus Management | T105-T112 (8 tasks) | P2 - Tab/slash navigation |
-| Phase 10: Polish | T113-T168 (56 tasks) | Edge cases, verification, gap coverage, performance benchmarks |
+| Phase 10: Polish | T113-T181 (69 tasks) | Edge cases, verification, gap coverage, performance benchmarks, help system |
 
-**Total**: 168 tasks
+**Total**: 181 tasks
 **User Story Task Counts**: US1=11, US2=20, US3=27, US4=6, US5=13, US6=7, US7=13
 **MVP Scope**: Phases 1-3 (39 tasks) delivers mouse selection and copy
 **Analysis Remediation**: +18 tasks added for plan.md coverage, performance benchmarks, and edge case automation
+**Help System**: +13 tasks added for ? overlay and help keys command (T169-T181)
