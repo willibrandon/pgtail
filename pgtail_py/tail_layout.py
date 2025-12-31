@@ -1,4 +1,9 @@
-"""HSplit-based layout builder for tail mode.
+"""HSplit-based layout builder for tail mode (DEPRECATED).
+
+.. deprecated:: 0.2.0
+    This module is deprecated in favor of tail_textual.TailApp which provides
+    Textual-based tail mode with built-in text selection and clipboard support.
+    See pgtail_py.tail_textual for the new implementation.
 
 This module provides the TailLayout class for building the three-pane
 split-screen interface: log output area (top), status bar (middle),

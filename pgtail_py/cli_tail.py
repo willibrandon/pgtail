@@ -17,6 +17,7 @@ from pgtail_py.filter import LogLevel, parse_levels
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
     from pgtail_py.tail_buffer import TailBuffer
+    from pgtail_py.tail_log import TailLog
     from pgtail_py.tail_status import TailStatus
     from pgtail_py.tailer import LogTailer
 
@@ -49,22 +50,24 @@ TAIL_MODE_COMMANDS: list[str] = [
 def handle_tail_command(
     cmd: str,
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
     stop_callback: Callable[[], None],
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle a command entered in tail mode.
 
     Args:
         cmd: Command name (e.g., 'level', 'filter', 'stop')
         args: Command arguments
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit mode) or None (Textual mode)
         status: TailStatus instance
         state: AppState with filter settings
         tailer: LogTailer instance
         stop_callback: Callback to stop the application
+        log_widget: TailLog widget (Textual mode) or None (prompt_toolkit mode)
 
     Returns:
         True if command was handled, False if unknown command
@@ -74,71 +77,81 @@ def handle_tail_command(
         stop_callback()
         return True
 
-    # Mode commands
+    # Mode commands - handle both buffer (prompt_toolkit) and log_widget (Textual)
     if cmd == "pause":
-        buffer.set_paused()
-        status.set_follow_mode(False, buffer.new_since_pause)
+        if buffer is not None:
+            buffer.set_paused()
+            status.set_follow_mode(False, buffer.new_since_pause)
+        else:
+            # Textual mode - just update status
+            status.set_follow_mode(False, 0)
         return True
 
     if cmd == "follow":
-        buffer.resume_follow()
+        if buffer is not None:
+            buffer.resume_follow()
+        # Textual Log widget auto-scrolls when at bottom
         status.set_follow_mode(True, 0)
         return True
 
-    # Filter commands
+    # Filter commands - pass log_widget for Textual mode
     if cmd == "level":
-        return _handle_level_command(args, buffer, status, state, tailer)
+        return _handle_level_command(args, buffer, status, state, tailer, log_widget)
 
     if cmd == "filter":
-        return _handle_filter_command(args, buffer, status, state, tailer)
+        return _handle_filter_command(args, buffer, status, state, tailer, log_widget)
 
     if cmd == "since":
-        return _handle_since_command(args, buffer, status, state, tailer)
+        return _handle_since_command(args, buffer, status, state, tailer, log_widget)
 
     if cmd == "until":
-        return _handle_until_command(args, buffer, status, state, tailer)
+        return _handle_until_command(args, buffer, status, state, tailer, log_widget)
 
     if cmd == "between":
-        return _handle_between_command(args, buffer, status, state, tailer)
+        return _handle_between_command(args, buffer, status, state, tailer, log_widget)
 
     if cmd == "slow":
-        return _handle_slow_command(args, buffer, status, state)
+        return _handle_slow_command(args, buffer, status, state, log_widget)
 
     if cmd == "clear":
-        return _handle_clear_command(buffer, status, state, tailer)
+        return _handle_clear_command(buffer, status, state, tailer, log_widget)
 
     # Display commands
     if cmd == "errors":
-        return _handle_errors_command(args, buffer, state)
+        return _handle_errors_command(args, buffer, state, log_widget)
 
     if cmd == "connections":
-        return _handle_connections_command(args, buffer, state)
+        return _handle_connections_command(args, buffer, state, log_widget)
 
     # Help command
     if cmd == "help":
-        return _handle_help_command(buffer)
+        return _handle_help_command(buffer, log_widget)
 
-    # Unknown command - show inline error
-    error_msg = FormattedText([("class:error", f"Unknown command: {cmd}")])
-    buffer.insert_command_output(error_msg)
+    # Unknown command - show inline error (only in prompt_toolkit mode)
+    if buffer is not None:
+        error_msg = FormattedText([("class:error", f"Unknown command: {cmd}")])
+        buffer.insert_command_output(error_msg)
+    # Textual mode - errors are silently ignored (no inline output)
     return False
 
 
 def _handle_level_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'level' command to filter by log levels.
 
     Args:
         args: Level names (e.g., ['error', 'warning'] or ['error,warning'])
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
@@ -151,8 +164,9 @@ def _handle_level_command(
     levels, invalid = parse_levels(level_args)
 
     if invalid:
-        error_msg = FormattedText([("class:error", f"Invalid levels: {', '.join(invalid)}")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", f"Invalid levels: {', '.join(invalid)}")])
+            buffer.insert_command_output(error_msg)
         return True
 
     # Update state
@@ -167,42 +181,46 @@ def _handle_level_command(
     else:
         status.set_level_filter(levels)
 
-    # Update buffer filters
-    _rebuild_buffer_filters(buffer, state, status)
+    # Update buffer filters (prompt_toolkit mode only)
+    if buffer is not None:
+        _rebuild_buffer_filters(buffer, state, status)
 
     return True
 
 
 def _handle_filter_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'filter' command for regex filtering.
 
     Args:
         args: Pattern argument (e.g., ['/deadlock/'] or ['/pattern/i'])
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        # No pattern - show current filter
-        if state.regex_state and state.regex_state.has_filters():
-            patterns: list[str] = [f.pattern for f in state.regex_state.includes]
-            if patterns:
-                msg = FormattedText([("", f"Active filter: /{patterns[0]}/")])
+        # No pattern - show current filter (prompt_toolkit mode only)
+        if buffer is not None:
+            if state.regex_state and state.regex_state.has_filters():
+                patterns: list[str] = [f.pattern for f in state.regex_state.includes]
+                if patterns:
+                    msg = FormattedText([("", f"Active filter: /{patterns[0]}/")])
+                else:
+                    msg = FormattedText([("", "No regex filter active")])
             else:
                 msg = FormattedText([("", "No regex filter active")])
-        else:
-            msg = FormattedText([("", "No regex filter active")])
-        buffer.insert_command_output(msg)
+            buffer.insert_command_output(msg)
         return True
 
     pattern_str = " ".join(args)
@@ -232,38 +250,43 @@ def _handle_filter_command(
         # Update status
         status.set_regex_filter(pattern_str)
 
-        # Update buffer filters
-        _rebuild_buffer_filters(buffer, state, status)
+        # Update buffer filters (prompt_toolkit mode only)
+        if buffer is not None:
+            _rebuild_buffer_filters(buffer, state, status)
 
     except Exception as e:
-        error_msg = FormattedText([("class:error", f"Invalid pattern: {e}")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", f"Invalid pattern: {e}")])
+            buffer.insert_command_output(error_msg)
 
     return True
 
 
 def _handle_since_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'since' command for time filtering.
 
     Args:
         args: Time specification (e.g., ['5m'] or ['14:30'])
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        error_msg = FormattedText([("class:error", "Usage: since <time> (e.g., 5m, 14:30)")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", "Usage: since <time> (e.g., 5m, 14:30)")])
+            buffer.insert_command_output(error_msg)
         return True
 
     time_str = args[0]
@@ -281,38 +304,43 @@ def _handle_since_command(
         # Update status
         status.set_time_filter(f"since:{time_str}")
 
-        # Update buffer filters
-        _rebuild_buffer_filters(buffer, state, status)
+        # Update buffer filters (prompt_toolkit mode only)
+        if buffer is not None:
+            _rebuild_buffer_filters(buffer, state, status)
 
     except Exception as e:
-        error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
+            buffer.insert_command_output(error_msg)
 
     return True
 
 
 def _handle_until_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'until' command for time filtering.
 
     Args:
         args: Time specification
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        error_msg = FormattedText([("class:error", "Usage: until <time>")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", "Usage: until <time>")])
+            buffer.insert_command_output(error_msg)
         return True
 
     time_str = args[0]
@@ -330,38 +358,43 @@ def _handle_until_command(
         # Update status
         status.set_time_filter(f"until:{time_str}")
 
-        # Update buffer filters
-        _rebuild_buffer_filters(buffer, state, status)
+        # Update buffer filters (prompt_toolkit mode only)
+        if buffer is not None:
+            _rebuild_buffer_filters(buffer, state, status)
 
     except Exception as e:
-        error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
+            buffer.insert_command_output(error_msg)
 
     return True
 
 
 def _handle_between_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'between' command for time range filtering.
 
     Args:
         args: Start and end time specifications
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
     """
     if len(args) < 2:
-        error_msg = FormattedText([("class:error", "Usage: between <start> <end>")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", "Usage: between <start> <end>")])
+            buffer.insert_command_output(error_msg)
         return True
 
     start_str = args[0]
@@ -383,42 +416,47 @@ def _handle_between_command(
         # Update status
         status.set_time_filter(f"between:{start_str}-{end_str}")
 
-        # Update buffer filters
-        _rebuild_buffer_filters(buffer, state, status)
+        # Update buffer filters (prompt_toolkit mode only)
+        if buffer is not None:
+            _rebuild_buffer_filters(buffer, state, status)
 
     except Exception as e:
-        error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
+            buffer.insert_command_output(error_msg)
 
     return True
 
 
 def _handle_slow_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'slow' command for slow query threshold.
 
     Args:
         args: Threshold in ms
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        # Show current threshold
-        if state.slow_query_config and state.slow_query_config.enabled:
-            msg = FormattedText(
-                [("", f"Slow query threshold: {state.slow_query_config.warning_ms}ms")]
-            )
-        else:
-            msg = FormattedText([("", "Slow query highlighting disabled")])
-        buffer.insert_command_output(msg)
+        # Show current threshold (prompt_toolkit mode only)
+        if buffer is not None:
+            if state.slow_query_config and state.slow_query_config.enabled:
+                msg = FormattedText(
+                    [("", f"Slow query threshold: {state.slow_query_config.warning_ms}ms")]
+                )
+            else:
+                msg = FormattedText([("", "Slow query highlighting disabled")])
+            buffer.insert_command_output(msg)
         return True
 
     try:
@@ -440,25 +478,28 @@ def _handle_slow_command(
         status.set_slow_threshold(threshold)
 
     except ValueError as e:
-        error_msg = FormattedText([("class:error", f"Invalid threshold: {e}")])
-        buffer.insert_command_output(error_msg)
+        if buffer is not None:
+            error_msg = FormattedText([("class:error", f"Invalid threshold: {e}")])
+            buffer.insert_command_output(error_msg)
 
     return True
 
 
 def _handle_clear_command(
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'clear' command to remove all filters.
 
     Args:
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
@@ -482,27 +523,37 @@ def _handle_clear_command(
     status.set_time_filter(None)
     status.set_slow_threshold(None)
 
-    # Clear buffer filters and recalculate counts
-    buffer.update_filters([])
-    error_count, warning_count = buffer.get_filtered_error_warning_counts()
-    status.error_count = error_count
-    status.warning_count = warning_count
-    status.set_total_lines(buffer.filtered_count)
+    # Clear buffer filters and recalculate counts (prompt_toolkit mode only)
+    if buffer is not None:
+        buffer.update_filters([])
+        error_count, warning_count = buffer.get_filtered_error_warning_counts()
+        status.error_count = error_count
+        status.warning_count = warning_count
+        status.set_total_lines(buffer.filtered_count)
+
+    # Textual mode: clear the log widget content
+    if log_widget is not None:
+        log_widget.clear()
+        status.error_count = 0
+        status.warning_count = 0
+        status.set_total_lines(0)
 
     return True
 
 
 def _handle_errors_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     state: AppState,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'errors' command to show error summary.
 
     Args:
         args: Command arguments (e.g., ['--trend'])
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         state: AppState instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
@@ -530,21 +581,25 @@ def _handle_errors_command(
         for code, count in sorted(by_code.items(), key=lambda x: x[1], reverse=True)[:10]:
             lines.append(("", f"    {code}: {count}\n"))
 
-    buffer.insert_command_output(FormattedText(lines))
+    if buffer is not None:
+        buffer.insert_command_output(FormattedText(lines))
+    # Textual mode: errors command output not displayed inline
     return True
 
 
 def _handle_connections_command(
     args: list[str],
-    buffer: TailBuffer,
+    buffer: TailBuffer | None,
     state: AppState,
+    log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'connections' command to show connection summary.
 
     Args:
         args: Command arguments
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         state: AppState instance
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
@@ -573,7 +628,9 @@ def _handle_connections_command(
         for user, count in sorted(by_user.items(), key=lambda x: x[1], reverse=True)[:5]:
             lines.append(("", f"    {user}: {count}\n"))
 
-    buffer.insert_command_output(FormattedText(lines))
+    if buffer is not None:
+        buffer.insert_command_output(FormattedText(lines))
+    # Textual mode: connections command output not displayed inline
     return True
 
 
@@ -626,11 +683,14 @@ def _rebuild_buffer_filters(
         status.set_total_lines(buffer.filtered_count)
 
 
-def _handle_help_command(buffer: TailBuffer) -> bool:
+def _handle_help_command(
+    buffer: TailBuffer | None, log_widget: TailLog | None = None
+) -> bool:
     """Handle 'help' command to show available commands and shortcuts.
 
     Args:
-        buffer: TailBuffer instance
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
+        log_widget: TailLog widget (Textual) or None
 
     Returns:
         True if command was handled
@@ -685,5 +745,7 @@ def _handle_help_command(buffer: TailBuffer) -> bool:
         lines.append(("fg:ansiyellow", f"  {cmd:<12} "))
         lines.append(("", f"{desc}\n"))
 
-    buffer.insert_command_output(FormattedText(lines))
+    if buffer is not None:
+        buffer.insert_command_output(FormattedText(lines))
+    # Textual mode: help command output not displayed inline
     return True

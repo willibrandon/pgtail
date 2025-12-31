@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from prompt_toolkit.formatted_text import FormattedText
+from rich.text import Text
 
 from pgtail_py.filter import LogLevel
 from pgtail_py.parser import LogEntry
@@ -204,3 +205,150 @@ class TailStatus:
             parts.append(("class:status.instance", f":{self.pg_port}"))
 
         return FormattedText(parts)
+
+    def format_plain(self) -> str:
+        """Render status bar as plain text string.
+
+        Format: MODE | E:N W:N | N lines | [filters...] | PGver:port
+
+        This is used for Textual's Static widget which doesn't support
+        prompt_toolkit FormattedText.
+
+        Returns:
+            Plain text status bar content.
+        """
+        parts: list[str] = []
+
+        # Mode indicator
+        if self.follow_mode:
+            parts.append("FOLLOW")
+        else:
+            if self.new_since_pause > 0:
+                parts.append(f"PAUSED +{self.new_since_pause} new")
+            else:
+                parts.append("PAUSED")
+
+        # Separator
+        parts.append("|")
+
+        # Error/Warning counts
+        parts.append(f"E:{self.error_count} W:{self.warning_count}")
+
+        # Separator
+        parts.append("|")
+
+        # Total lines
+        parts.append(f"{self.total_lines:,} lines")
+
+        # Separator
+        parts.append("|")
+
+        # Active filters
+        filter_parts: list[str] = []
+
+        # Level filter
+        if self.active_levels == LogLevel.all_levels():
+            filter_parts.append("levels:ALL")
+        else:
+            level_names = ",".join(sorted(lvl.name for lvl in self.active_levels))
+            filter_parts.append(f"levels:{level_names}")
+
+        # Regex filter
+        if self.regex_pattern:
+            filter_parts.append(f"filter:/{self.regex_pattern}/")
+
+        # Time filter
+        if self.time_filter_display:
+            filter_parts.append(self.time_filter_display)
+
+        # Slow query threshold
+        if self.slow_threshold is not None:
+            filter_parts.append(f"slow:>{self.slow_threshold}ms")
+
+        parts.append(" ".join(filter_parts))
+
+        # Separator
+        parts.append("|")
+
+        # PostgreSQL instance info
+        if self.pg_version:
+            parts.append(f"PG{self.pg_version}:{self.pg_port}")
+        else:
+            parts.append(f":{self.pg_port}")
+
+        return " ".join(parts)
+
+    def format_rich(self) -> Text:
+        """Render status bar as styled Rich Text.
+
+        Format: MODE | E:N W:N | N lines | [filters...] | PGver:port
+
+        The status bar background is set by CSS ($panel) which is typically
+        a dark surface color. Text colors use bright variants for high
+        contrast visibility.
+
+        Returns:
+            Rich Text object with styled status bar content.
+        """
+        text = Text()
+
+        # Mode indicator - bright green for FOLLOW, bright yellow for PAUSED
+        if self.follow_mode:
+            text.append("FOLLOW", style="bold bright_green")
+        else:
+            if self.new_since_pause > 0:
+                text.append(f"PAUSED +{self.new_since_pause} new", style="bold bright_yellow")
+            else:
+                text.append("PAUSED", style="bold bright_yellow")
+
+        # Separator - dim to not distract
+        text.append(" | ", style="dim")
+
+        # Error/Warning counts - bright red for errors, bright yellow for warnings
+        text.append(f"E:{self.error_count}", style="bold bright_red")
+        text.append(" ", style="dim")
+        text.append(f"W:{self.warning_count}", style="bold bright_yellow")
+
+        # Separator
+        text.append(" | ", style="dim")
+
+        # Total lines - standard text
+        text.append(f"{self.total_lines:,} lines")
+
+        # Separator
+        text.append(" | ", style="dim")
+
+        # Active filters - cyan for filter info
+        filter_parts: list[str] = []
+
+        # Level filter
+        if self.active_levels == LogLevel.all_levels():
+            filter_parts.append("levels:ALL")
+        else:
+            level_names = ",".join(sorted(lvl.name for lvl in self.active_levels))
+            filter_parts.append(f"levels:{level_names}")
+
+        # Regex filter
+        if self.regex_pattern:
+            filter_parts.append(f"filter:/{self.regex_pattern}/")
+
+        # Time filter
+        if self.time_filter_display:
+            filter_parts.append(self.time_filter_display)
+
+        # Slow query threshold
+        if self.slow_threshold is not None:
+            filter_parts.append(f"slow:>{self.slow_threshold}ms")
+
+        text.append(" ".join(filter_parts), style="bright_cyan")
+
+        # Separator
+        text.append(" | ", style="dim")
+
+        # PostgreSQL instance info - bright white for emphasis
+        if self.pg_version:
+            text.append(f"PG{self.pg_version}:{self.pg_port}", style="bright_white")
+        else:
+            text.append(f":{self.pg_port}", style="bright_white")
+
+        return text

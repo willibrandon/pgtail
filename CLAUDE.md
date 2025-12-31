@@ -77,6 +77,15 @@ Any remediation containing these patterns will be INSTANTLY REJECTED by the user
 - "resolve by deleting"
 
 
+## Debugging Policy
+
+**CRITICAL**: When the user reports a visual bug they can see in their terminal:
+- Do NOT create "minimal test apps" or "reproduction scripts"
+- Do NOT run headless tests to "verify" what the user already sees
+- The user's running app IS the test - trust what they report
+- Add debug logging directly to the actual code paths being executed
+- Ask the user to run the real app and report the debug output
+
 ## Commands
 
 ```bash

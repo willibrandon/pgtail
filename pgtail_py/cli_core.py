@@ -259,7 +259,7 @@ def _tail_status_bar_mode(state: AppState, instance: Instance) -> None:
         state: Current application state.
         instance: PostgreSQL instance to tail.
     """
-    from pgtail_py.tail_app import TailApp
+    from pgtail_py.tail_textual import TailApp
 
     # log_path is verified by caller before calling this function
     assert instance.log_path is not None
@@ -267,10 +267,9 @@ def _tail_status_bar_mode(state: AppState, instance: Instance) -> None:
     state.current_instance = instance
     state.tailing = True
 
-    # Create and start TailApp
-    app = TailApp()
+    # Create and start Textual TailApp
     try:
-        app.start(state, instance, instance.log_path)
+        TailApp.run_tail_mode(state, instance, instance.log_path)
     finally:
         # Clean up state after exit
         state.tailing = False

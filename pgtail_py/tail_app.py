@@ -1,4 +1,9 @@
-"""Main application coordinator for tail mode.
+"""Main application coordinator for tail mode (DEPRECATED).
+
+.. deprecated:: 0.2.0
+    This module is deprecated in favor of tail_textual.TailApp which provides
+    Textual-based tail mode with built-in text selection and clipboard support.
+    See pgtail_py.tail_textual for the new implementation.
 
 This module provides the TailApp class that coordinates the layout, buffer,
 status bar, and log streaming for the status bar tail mode. It manages the
