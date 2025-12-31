@@ -10,6 +10,7 @@ from pathlib import Path
 from queue import Empty, Queue
 
 from pgtail_py.colors import print_log_entry
+from pgtail_py.detector import _find_latest_log, read_current_logfiles
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
 from pgtail_py.format_detector import LogFormat, detect_format
@@ -23,6 +24,9 @@ class LogTailer:
 
     Uses simple polling for reliable cross-platform file monitoring.
     Handles log rotation by detecting file truncation or recreation.
+
+    Resilient to PostgreSQL restarts: automatically detects when a new log
+    file is created and switches to it seamlessly.
     """
 
     def __init__(
@@ -34,6 +38,9 @@ class LogTailer:
         field_filter: FieldFilterState | None = None,
         poll_interval: float = 0.1,
         on_entry: Callable[[LogEntry], None] | None = None,
+        data_dir: Path | None = None,
+        log_directory: Path | None = None,
+        on_file_change: Callable[[Path], None] | None = None,
     ) -> None:
         """Initialize the log tailer.
 
@@ -45,6 +52,9 @@ class LogTailer:
             field_filter: Field filter state. None means no field filtering.
             poll_interval: How often to check for new content (seconds).
             on_entry: Callback for ALL parsed entries (before filtering).
+            data_dir: PostgreSQL data directory for reading current_logfiles.
+            log_directory: Directory containing log files for fallback detection.
+            on_file_change: Callback when switching to a new log file.
         """
         self._log_path = log_path
         self._active_levels = active_levels
@@ -62,6 +72,13 @@ class LogTailer:
         self._detected_format: LogFormat | None = None
         self._format_callback: Callable[[LogFormat], None] | None = None
         self._on_entry = on_entry
+
+        # Resilience: detect new log files after restart/rotation
+        self._data_dir = data_dir
+        self._log_directory = log_directory
+        self._on_file_change = on_file_change
+        self._file_unavailable_since: float | None = None
+        self._last_directory_scan: float = 0
 
     def _get_file_inode(self) -> int | None:
         """Get the inode of the log file for rotation detection."""
@@ -94,6 +111,57 @@ class LogTailer:
 
         return False
 
+    def _check_for_new_log_file(self) -> bool:
+        """Check if a new log file should be tailed (after restart/rotation).
+
+        Uses PostgreSQL's current_logfiles (most reliable) or falls back to
+        finding the latest log file by modification time.
+
+        Returns:
+            True if switched to a new file, False otherwise.
+        """
+        # Rate limit directory scans to every 1 second
+        now = time.time()
+        if now - self._last_directory_scan < 1.0:
+            return False
+        self._last_directory_scan = now
+
+        # Try current_logfiles first (PostgreSQL 10+, most reliable)
+        if self._data_dir:
+            new_path = read_current_logfiles(self._data_dir)
+            if (
+                new_path
+                and new_path.exists()
+                and new_path.resolve() != self._log_path.resolve()
+            ):
+                self._switch_to_file(new_path)
+                return True
+
+        # Fall back to finding latest log file by mtime
+        if self._log_directory:
+            new_path = _find_latest_log(self._log_directory)
+            if new_path and new_path.resolve() != self._log_path.resolve():
+                self._switch_to_file(new_path)
+                return True
+
+        return False
+
+    def _switch_to_file(self, new_path: Path) -> None:
+        """Switch to tailing a new log file.
+
+        Args:
+            new_path: Path to the new log file.
+        """
+        self._log_path = new_path
+        self._position = 0
+        self._inode = self._get_file_inode()
+        self._detected_format = None
+        self._file_unavailable_since = None
+
+        # Notify caller about the file change
+        if self._on_file_change:
+            self._on_file_change(new_path)
+
     def _detect_format_if_needed(self, line: str) -> None:
         """Detect format from first non-empty line.
 
@@ -106,14 +174,21 @@ class LogTailer:
                 self._format_callback(self._detected_format)
 
     def _read_new_lines(self) -> None:
-        """Read new lines from the log file and queue them."""
+        """Read new lines from the log file and queue them.
+
+        Handles file unavailability (e.g., during PostgreSQL restart) by
+        checking for new log files and switching to them automatically.
+        Also proactively checks for new log files when at EOF.
+        """
         self._check_rotation()
 
         try:
             with open(self._log_path, encoding="utf-8", errors="replace") as f:
                 f.seek(self._position)
+                lines_read = 0
                 for line in f:
                     if line.strip():
+                        lines_read += 1
                         # Detect format on first non-empty line
                         self._detect_format_if_needed(line)
                         # Parse with detected format
@@ -125,8 +200,25 @@ class LogTailer:
                             self._queue.put(entry)
                             self._buffer.append(entry)
                 self._position = f.tell()
+
+            # File is available - clear unavailability tracking
+            if self._file_unavailable_since is not None:
+                self._file_unavailable_since = None
+
+            # Proactively check for new log file when at EOF (no new lines)
+            # This handles the case where PostgreSQL restarts and creates a new
+            # log file while the old one still exists
+            if lines_read == 0:
+                self._check_for_new_log_file()
+
         except OSError:
-            pass
+            # File unavailable - try to find a new log file
+            if self._file_unavailable_since is None:
+                self._file_unavailable_since = time.time()
+
+            # Check for new log file (e.g., after PostgreSQL restart)
+            if self._check_for_new_log_file():
+                return  # Found new file, will read on next poll
 
     def _should_show(self, entry: LogEntry) -> bool:
         """Check if a log entry should be displayed based on filters.
@@ -258,6 +350,11 @@ class LogTailer:
     def is_running(self) -> bool:
         """Check if the tailer is currently running."""
         return self._running
+
+    @property
+    def log_path(self) -> Path:
+        """Get the current log file path being tailed."""
+        return self._log_path
 
     @property
     def format(self) -> LogFormat:

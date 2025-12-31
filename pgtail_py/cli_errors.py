@@ -338,6 +338,8 @@ def _show_live(state: AppState) -> None:
         time_filter=None,
         field_filter=None,
         on_entry=state.error_stats.add,
+        data_dir=instance.data_dir,
+        log_directory=instance.log_directory,
     )
     live_tailer.start()
 

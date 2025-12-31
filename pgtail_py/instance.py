@@ -23,6 +23,7 @@ class Instance:
         version: PostgreSQL version string (e.g., "16.1")
         data_dir: Path to the data directory
         log_path: Path to log file, or None if logging is disabled
+        log_directory: Directory containing log files, for detecting new logs
         source: How this instance was detected
         running: Whether the postgres process is currently running
         pid: Process ID if running, None otherwise
@@ -34,6 +35,7 @@ class Instance:
     version: str
     data_dir: Path
     log_path: Path | None
+    log_directory: Path | None
     source: DetectionSource
     running: bool
     pid: int | None = None

@@ -452,6 +452,8 @@ def _show_watch(
         time_filter=None,
         field_filter=None,
         on_entry=on_entry,
+        data_dir=instance.data_dir,
+        log_directory=instance.log_directory,
     )
 
     print_formatted_text(

@@ -6,7 +6,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
 - Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
-- Real-time log tailing with polling (handles log rotation)
+- Real-time log tailing with polling (handles log rotation and PostgreSQL restarts)
 - Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
 - Filter by field values (app=, db=, user=) for CSV/JSON logs
 - Time-based filtering (since, until, between)

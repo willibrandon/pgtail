@@ -29,26 +29,29 @@ def get_version(data_dir: Path) -> str:
         return "unknown"
 
 
-def get_log_info(data_dir: Path) -> tuple[Path | None, bool]:
+def get_log_info(data_dir: Path) -> tuple[Path | None, Path | None, bool]:
     """Find the log file path for a PostgreSQL instance.
 
     Checks postgresql.conf for logging_collector, log_directory, and log_filename
     settings. Returns None if logging is not enabled.
 
+    First tries PostgreSQL's current_logfiles (PG 10+) for the most accurate
+    current log path, then falls back to finding the latest log by mtime.
+
     Args:
         data_dir: Path to the PostgreSQL data directory.
 
     Returns:
-        Tuple of (path to log file or None, logging_enabled bool).
+        Tuple of (log_file_path, log_directory, logging_enabled).
     """
     conf_file = data_dir / "postgresql.conf"
     if not conf_file.exists():
-        return None, False
+        return None, None, False
 
     try:
         conf_content = conf_file.read_text()
     except (OSError, PermissionError):
-        return None, False
+        return None, None, False
 
     # Check if logging_collector is enabled
     logging_enabled_str = _get_conf_value(conf_content, "logging_collector")
@@ -57,7 +60,7 @@ def get_log_info(data_dir: Path) -> tuple[Path | None, bool]:
     )
 
     if not logging_enabled:
-        return None, False
+        return None, None, False
 
     # Get log_directory (default: 'log' relative to data_dir)
     log_directory = _get_conf_value(conf_content, "log_directory") or "log"
@@ -70,10 +73,15 @@ def get_log_info(data_dir: Path) -> tuple[Path | None, bool]:
         # Try pg_log for older versions
         log_dir = data_dir / "pg_log"
         if not log_dir.is_dir():
-            return None, True  # logging enabled but no log dir yet
+            return None, None, True  # logging enabled but no log dir yet
 
-    # Find the most recent log file
-    return _find_latest_log(log_dir), True
+    # Try current_logfiles first (PostgreSQL 10+, most reliable)
+    log_path = read_current_logfiles(data_dir)
+    if log_path and log_path.exists():
+        return log_path, log_dir, True
+
+    # Fall back to finding most recent log file by mtime
+    return _find_latest_log(log_dir), log_dir, True
 
 
 def get_port(data_dir: Path) -> int | None:
@@ -139,6 +147,36 @@ def _find_latest_log(log_dir: Path) -> Path | None:
 
     # Return most recently modified
     return max(log_files, key=lambda f: f.stat().st_mtime)
+
+
+def read_current_logfiles(data_dir: Path) -> Path | None:
+    """Read the current log file path from PostgreSQL's current_logfiles.
+
+    PostgreSQL 10+ maintains a current_logfiles file in PGDATA that contains
+    the path to the current log file. This is updated atomically on every
+    log rotation and server restart.
+
+    Args:
+        data_dir: Path to the PostgreSQL data directory.
+
+    Returns:
+        Path to current log file, or None if file doesn't exist or is unreadable.
+    """
+    current_logfiles = data_dir / "current_logfiles"
+    try:
+        content = current_logfiles.read_text()
+        for line in content.splitlines():
+            # Format: "stderr log/postgresql.log" or "stderr /absolute/path.log"
+            parts = line.split(maxsplit=1)
+            if len(parts) == 2 and parts[0] in ("stderr", "csvlog", "jsonlog"):
+                log_path = Path(parts[1])
+                # Handle relative paths (relative to data_dir)
+                if not log_path.is_absolute():
+                    log_path = data_dir / log_path
+                return log_path
+    except OSError:
+        pass
+    return None
 
 
 def _is_process_running(data_dir: Path, known_pids: dict[Path, int]) -> tuple[bool, int | None]:
@@ -214,13 +252,14 @@ def detect_all() -> list[Instance]:
         if source == DetectionSource.PROCESS:
             running = True
 
-        log_path, logging_enabled = get_log_info(data_dir)
+        log_path, log_directory, logging_enabled = get_log_info(data_dir)
 
         instance = Instance(
             id=len(instances),  # 0-indexed like Go version
             version=get_version(data_dir),
             data_dir=data_dir,
             log_path=log_path,
+            log_directory=log_directory,
             source=source,
             running=running,
             pid=pid,

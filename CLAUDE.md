@@ -34,7 +34,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/field_filter.py` - Field-based filtering (app=, db=, user=) for structured logs
 - `pgtail_py/time_filter.py` - Time-based filtering (since, until, between)
 - `pgtail_py/slow_query.py` - Slow query detection, thresholds, duration stats
-- `pgtail_py/tailer.py` - Log file tailing with polling (handles rotation, format detection)
+- `pgtail_py/tailer.py` - Log file tailing with polling (handles rotation, format detection, resilient to restarts)
 - `pgtail_py/colors.py` - Color output using prompt_toolkit styles
 - `pgtail_py/display.py` - Display modes (compact, full, custom) and output formats (text, JSON)
 - `pgtail_py/commands.py` - Command definitions, PgtailCompleter for autocomplete
@@ -296,6 +296,7 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
 ## Recent Changes
+- 016-resilient-tailing: Tailer automatically detects new log files after PostgreSQL restart using current_logfiles
 - 015-remove-fullscreen: Removed fullscreen TUI mode (fullscreen/ package, cli_fullscreen.py, related tests)
 - 014-sql-highlighting: Added Python 3.10+ + prompt_toolkit >=3.0.0 (FormattedText styling), existing theme.py/ThemeManager
 - 013-color-themes: Added Python 3.10+ + prompt_toolkit >=3.0.0 (styling/FormattedText), tomlkit >=0.12.0 (config files)

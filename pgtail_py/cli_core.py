@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pgtail_py.cli_utils import find_instance, shorten_path
@@ -262,6 +263,10 @@ def tail_command(state: AppState, args: list[str]) -> None:
         if state.notification_manager:
             state.notification_manager.check(entry)
 
+    # Callback for when tailer switches to a new log file (after restart/rotation)
+    def on_file_change(new_path: Path) -> None:
+        print(f"\nSwitched to: {new_path.name}")
+
     state.tailer = LogTailer(
         instance.log_path,
         state.active_levels,
@@ -269,6 +274,9 @@ def tail_command(state: AppState, args: list[str]) -> None:
         state.time_filter if state.time_filter.is_active() else None,
         state.field_filter if state.field_filter.is_active() else None,
         on_entry=on_entry_callback,
+        data_dir=instance.data_dir,
+        log_directory=instance.log_directory,
+        on_file_change=on_file_change,
     )
 
     # Set callback to display format when detected
