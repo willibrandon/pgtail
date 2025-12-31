@@ -16,11 +16,14 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from rich.style import Style
+from rich.text import Text
 from textual import events
 from textual.binding import Binding, BindingType
 from textual.geometry import Offset
 from textual.message import Message
 from textual.selection import Selection
+from textual.strip import Strip
 from textual.widgets import Log
 
 
@@ -269,10 +272,13 @@ class TailLog(Log):
         if not selected_text:
             return
 
+        # Strip Rich markup before copying
+        plain_text = self._strip_markup(selected_text)
+
         # Copy to clipboard
-        success = self._copy_with_fallback(selected_text)
+        success = self._copy_with_fallback(plain_text)
         if success:
-            self.post_message(self.SelectionCopied(selected_text, len(selected_text)))
+            self.post_message(self.SelectionCopied(plain_text, len(plain_text)))
 
         # Exit visual mode and clear selection
         self._exit_visual_mode()
@@ -301,9 +307,12 @@ class TailLog(Log):
         if not selected_text:
             return
 
-        success = self._copy_with_fallback(selected_text)
+        # Strip Rich markup before copying
+        plain_text = self._strip_markup(selected_text)
+
+        success = self._copy_with_fallback(plain_text)
         if success:
-            self.post_message(self.SelectionCopied(selected_text, len(selected_text)))
+            self.post_message(self.SelectionCopied(plain_text, len(plain_text)))
 
     # Event handlers
 
@@ -388,6 +397,22 @@ class TailLog(Log):
             self.screen.selections[self] = selection
         self.selection_updated(selection)
 
+    def _strip_markup(self, text: str) -> str:
+        """Strip Rich markup tags from text.
+
+        Converts Rich console markup (e.g., [bold red]text[/]) to plain text
+        by parsing with Text.from_markup and extracting the plain string.
+
+        Args:
+            text: Text potentially containing Rich markup.
+
+        Returns:
+            Plain text with all markup tags removed.
+        """
+        # Parse markup and extract plain text
+        parsed = Text.from_markup(text)
+        return parsed.plain
+
     def _copy_with_fallback(self, text: str) -> bool:
         """Copy text to clipboard with fallback mechanisms.
 
@@ -426,3 +451,42 @@ class TailLog(Log):
             pass
 
         return success
+
+    # Rendering override for Rich markup support
+
+    def _render_line_strip(self, y: int, rich_style: Style) -> Strip:
+        """Render a line with Rich markup support.
+
+        Overrides parent to parse Rich console markup in log lines,
+        enabling colored output for log levels, timestamps, etc.
+
+        Args:
+            y: Y offset of line.
+            rich_style: Base Rich style for line.
+
+        Returns:
+            Strip with rendered line content.
+        """
+        selection = self.text_selection
+        # Skip cache to ensure markup is always parsed
+        # TODO: Re-enable cache after markup rendering confirmed working
+
+        _line = self._process_line(self._lines[y])
+
+        # Parse Rich markup instead of plain text
+        line_text = Text.from_markup(_line)
+        line_text.no_wrap = True
+        # Note: Don't apply rich_style as base - it would override markup colors
+
+        if selection is not None and (select_span := selection.get_span(y - self._clear_y)) is not None:
+            start, end = select_span
+            if end == -1:
+                end = len(line_text)
+
+            selection_style = self.screen.get_component_rich_style(
+                "screen--selection"
+            )
+            line_text.stylize(selection_style, start, end)
+
+        line = Strip(line_text.render(self.app.console), line_text.cell_len)
+        return line

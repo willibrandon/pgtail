@@ -38,6 +38,22 @@ LEVEL_STYLES: dict[LogLevel, str] = {
     LogLevel.DEBUG5: "dim",
 }
 
+# Rich markup tags for log levels (for console markup strings)
+LEVEL_MARKUP: dict[LogLevel, str] = {
+    LogLevel.PANIC: "bold white on red",
+    LogLevel.FATAL: "bold red reverse",
+    LogLevel.ERROR: "bold red",
+    LogLevel.WARNING: "yellow",
+    LogLevel.NOTICE: "cyan",
+    LogLevel.LOG: "green",
+    LogLevel.INFO: "blue",
+    LogLevel.DEBUG1: "dim",
+    LogLevel.DEBUG2: "dim",
+    LogLevel.DEBUG3: "dim",
+    LogLevel.DEBUG4: "dim",
+    LogLevel.DEBUG5: "dim",
+}
+
 
 def format_entry_as_rich(entry: LogEntry) -> Text:
     """Convert LogEntry to styled Rich Text object.
@@ -100,9 +116,9 @@ def format_entry_as_rich(entry: LogEntry) -> Text:
 
 
 def format_entry_compact(entry: LogEntry) -> str:
-    """Convert LogEntry to plain string for Textual Log widget.
+    """Convert LogEntry to Rich markup string for Textual Log widget.
 
-    Formats a log entry as a single-line plain string suitable for
+    Formats a log entry as a single-line Rich markup string suitable for
     the Textual Log widget's write_line() method. Uses a compact
     format: timestamp [pid] LEVEL sql_state: message
 
@@ -110,29 +126,35 @@ def format_entry_compact(entry: LogEntry) -> str:
         entry: Parsed log entry to format.
 
     Returns:
-        Plain text string representation of the entry.
+        Rich markup string representation of the entry.
     """
     parts: list[str] = []
 
-    # Timestamp
+    # Timestamp (dim)
     if entry.timestamp:
         ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]  # HH:MM:SS.mmm
-        parts.append(ts_str)
+        parts.append(f"[dim]{ts_str}[/dim]")
 
-    # PID
+    # PID (dim) - escape brackets
     if entry.pid:
-        parts.append(f"[{entry.pid}]")
+        parts.append(f"[dim]\\[{entry.pid}][/dim]")
 
-    # Level name (padded for alignment)
+    # Level name with color (padded for alignment)
+    level_style = LEVEL_MARKUP.get(entry.level, "")
     level_name = entry.level.name.ljust(7)
-    parts.append(level_name)
+    if level_style:
+        parts.append(f"[{level_style}]{level_name}[/]")
+    else:
+        parts.append(level_name)
 
-    # SQL state code and message
+    # SQL state code (cyan) and message
     if entry.sql_state:
-        parts.append(f"{entry.sql_state}:")
+        parts.append(f"[cyan]{entry.sql_state}[/]:")
     else:
         parts.append(":")
 
-    parts.append(entry.message)
+    # Message - escape any Rich markup in the message content
+    safe_message = entry.message.replace("[", "\\[")
+    parts.append(safe_message)
 
     return " ".join(parts)
