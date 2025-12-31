@@ -7,7 +7,6 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
 - Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
 - Real-time log tailing with polling (handles log rotation)
-- **Fullscreen TUI mode** with vim-style navigation, search, and mouse support
 - Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
 - Filter by field values (app=, db=, user=) for CSV/JSON logs
 - Time-based filtering (since, until, between)
@@ -59,7 +58,6 @@ python -m pgtail_py
 ```
 list               Show detected PostgreSQL instances
 tail <id|path>     Tail logs for an instance (supports --since flag)
-fullscreen         Enter fullscreen TUI mode (alias: fs) - see Fullscreen Mode below
 levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
 since <time>       Filter logs since time (e.g., 5m, 14:30, 2024-01-15T14:30)
 until <time>       Filter logs until time
@@ -113,56 +111,6 @@ Supported time formats:
 - **Relative**: `5m`, `30s`, `2h`, `1d` (minutes, seconds, hours, days from now)
 - **Time only**: `14:30`, `14:30:45` (today at specified time)
 - **ISO 8601**: `2024-01-15T14:30`, `2024-01-15T14:30:00Z`
-
-### Fullscreen Mode
-
-Enter a full-screen terminal UI for browsing logs with vim-style navigation:
-
-```
-pgtail> tail 0
-# ... logs streaming ...
-^C
-Paused. Use 'fullscreen' for live view, 'stop' to stop tailing.
-
-pgtail> fullscreen
-```
-
-**Keybindings:**
-
-| Key | Action |
-|-----|--------|
-| `q` | Exit fullscreen, return to REPL |
-| `j` / `↓` | Scroll down one line |
-| `k` / `↑` | Scroll up one line |
-| `Ctrl+D` | Scroll down half page |
-| `Ctrl+U` | Scroll up half page |
-| `g` | Jump to top (first line) |
-| `G` | Jump to bottom (last line) |
-| `/pattern` | Search forward |
-| `?pattern` | Search backward |
-| `n` | Next search match |
-| `N` | Previous search match |
-| `f` | Enter follow mode (auto-scroll to new entries) |
-| `Escape` | Clear search highlights, or toggle follow/browse mode |
-
-**Modes:**
-
-- **FOLLOW** (default): Auto-scrolls to show new log entries as they arrive
-- **BROWSE**: Manual navigation through buffer history
-
-**Mouse support:**
-
-- Scroll wheel navigates and triggers browse mode
-- Click in log area triggers browse mode
-- Scrollbar on right side for visual position
-
-**Features:**
-
-- Circular buffer stores last 10,000 log lines
-- Buffer persists between fullscreen sessions
-- Status bar shows current mode, line count, and key hints
-- Search highlights matches in the log view
-- SQL syntax highlighting (keywords, identifiers, strings, etc.)
 
 ### Log Format Support
 
@@ -468,7 +416,6 @@ Example output (colors shown as `[color]`):
 ```
 
 SQL highlighting:
-- Works in both streaming mode and fullscreen TUI mode
 - Respects current theme colors (each theme defines SQL colors)
 - Gracefully handles malformed SQL (highlights what it can recognize)
 - Disabled when `NO_COLOR=1` is set
@@ -591,8 +538,6 @@ Query Duration Statistics
 
 ## Keyboard Shortcuts
 
-### REPL Mode
-
 | Key | Action |
 |-----|--------|
 | Tab | Autocomplete |
@@ -600,26 +545,12 @@ Query Duration Statistics
 | Ctrl+C | Pause tail (enter prompt) |
 | Ctrl+D | Exit |
 
-### Fullscreen Mode
-
-| Key | Action |
-|-----|--------|
-| `q` | Exit fullscreen |
-| `j`/`k` or `↓`/`↑` | Scroll line |
-| `Ctrl+D`/`Ctrl+U` | Half-page scroll |
-| `g`/`G` | Jump to top/bottom |
-| `/` or `?` | Search forward/backward |
-| `n`/`N` | Next/previous match |
-| `f` | Follow mode |
-| `Escape` | Clear search or toggle mode |
-
 ## Requirements
 
 - Python 3.10+
 - prompt_toolkit
 - psutil
 - tomlkit
-- pygments
 
 ## License
 

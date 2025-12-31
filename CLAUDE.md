@@ -53,14 +53,12 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 **Key dependencies:**
 - `prompt_toolkit` - REPL with autocomplete and history
 - `psutil` - Cross-platform process detection
-- `pygments` - Syntax highlighting in fullscreen mode
 
 ## Tech Stack
 
 - Python 3.10+
-- prompt_toolkit >=3.0.0 (REPL, autocomplete, styled output, fullscreen)
+- prompt_toolkit >=3.0.0 (REPL, autocomplete, styled output)
 - psutil >=5.9.0 (process detection)
-- pygments >=2.0 (syntax highlighting)
 - re (stdlib, regex filtering)
 
 ## Configuration
@@ -243,52 +241,6 @@ The `theme` command manages color schemes for log output:
 - `pgtail_py/themes/` - Built-in theme definitions (dark.py, light.py, etc.)
 - `pgtail_py/cli_theme.py` - theme command handlers
 
-## Fullscreen TUI Mode
-
-The `fullscreen` (or `fs`) command enters a full-screen terminal UI for browsing logs:
-
-**Commands:**
-- `fullscreen` or `fs` - Enter fullscreen mode (requires active tail)
-
-**Keybindings:**
-- `q` - Exit fullscreen, return to REPL
-- `j`/`k` - Scroll down/up one line
-- `Down`/`Up` - Scroll down/up one line (arrow keys)
-- `Ctrl+D`/`Ctrl+U` - Half-page down/up
-- `g`/`G` - Jump to top/bottom
-- `/pattern` - Search forward
-- `?pattern` - Search backward
-- `n`/`N` - Next/previous search match
-- `f` - Enter follow mode (resume auto-scroll)
-- `Escape` - Clear search highlights or toggle follow/browse mode
-
-**Modes:**
-- **FOLLOW** - Auto-scroll to show new log entries (default)
-- **BROWSE** - Manual navigation through buffer history
-
-**Mouse support:**
-- Scroll wheel triggers browse mode
-- Click in log area triggers browse mode
-- Scrollbar on right side
-
-**Implementation:**
-- Uses prompt_toolkit full-screen Application with TextArea widget
-- Circular buffer stores last 10,000 log lines
-- Buffer is shared with REPL mode (persists between fullscreen sessions)
-- Status bar shows current mode, line count, and key hints
-- SQL syntax highlighting via custom Pygments lexer (LogLineLexer)
-- Theme colors applied through Pygments token mappings
-
-**New modules:**
-- `pgtail_py/fullscreen/__init__.py` - Package exports (LogBuffer, FullscreenState, etc.)
-- `pgtail_py/fullscreen/app.py` - Application setup, run_fullscreen(), update loop
-- `pgtail_py/fullscreen/buffer.py` - LogBuffer circular buffer implementation
-- `pgtail_py/fullscreen/keybindings.py` - Vim-style key bindings
-- `pgtail_py/fullscreen/layout.py` - HSplit layout with log view, search bar, status bar
-- `pgtail_py/fullscreen/lexer.py` - Pygments LogLineLexer for SQL syntax highlighting
-- `pgtail_py/fullscreen/state.py` - FullscreenState, DisplayMode enum
-- `pgtail_py/cli_fullscreen.py` - fullscreen command handler
-
 ## SQL Syntax Highlighting
 
 SQL syntax highlighting is an **always-on** feature that automatically colors SQL statements in PostgreSQL log messages. No configuration required.
@@ -318,7 +270,6 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `sql_tokenizer.py` - Tokenizes SQL into KEYWORD, IDENTIFIER, STRING, NUMBER, OPERATOR, COMMENT, FUNCTION types
 - `sql_highlighter.py` - Converts tokens to FormattedText with style classes
 - `display.py` - Integration via `_format_message_with_sql()` in all format functions
-- `fullscreen/lexer.py` - Pygments RegexLexer for TextArea highlighting
 
 **Token Matching Order** (per research.md):
 1. Whitespace
@@ -345,10 +296,9 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
 ## Recent Changes
+- 015-remove-fullscreen: Removed fullscreen TUI mode (fullscreen/ package, cli_fullscreen.py, related tests)
 - 014-sql-highlighting: Added Python 3.10+ + prompt_toolkit >=3.0.0 (FormattedText styling), existing theme.py/ThemeManager
 - 013-color-themes: Added Python 3.10+ + prompt_toolkit >=3.0.0 (styling/FormattedText), tomlkit >=0.12.0 (config files)
-- 012-fullscreen-tui: Added Python 3.10+ + prompt_toolkit >=3.0.0 (full-screen Application, KeyBindings, Layout, Buffer)
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0 (FormattedText styling), existing theme.py/ThemeManager (014-sql-highlighting)
-- N/A (stateless highlighting) (014-sql-highlighting)
+- Python 3.10+ + prompt_toolkit >=3.0.0, psutil >=5.9.0 (015-remove-fullscreen)

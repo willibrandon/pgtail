@@ -30,7 +30,6 @@ from pgtail_py.cli_core import (
 from pgtail_py.cli_errors import errors_command
 from pgtail_py.cli_export import export_command, pipe_command
 from pgtail_py.cli_filter import filter_command, highlight_command, levels_command
-from pgtail_py.cli_fullscreen import fullscreen_command
 from pgtail_py.cli_notify import notify_command
 from pgtail_py.cli_slow import slow_command, stats_command
 from pgtail_py.cli_theme import theme_command
@@ -54,7 +53,6 @@ from pgtail_py.display import DisplayState, OutputFormat, format_entry
 from pgtail_py.error_stats import ErrorStats
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
-from pgtail_py.fullscreen import FullscreenState, LogBuffer
 from pgtail_py.instance import Instance
 from pgtail_py.notifier import create_notifier
 from pgtail_py.notify import NotificationConfig, NotificationManager, NotificationRule, QuietHours
@@ -82,8 +80,6 @@ class AppState:
         error_stats: Session-scoped error statistics
         connection_stats: Session-scoped connection statistics
         notification_manager: Desktop notification coordinator
-        fullscreen_buffer: Circular buffer for fullscreen log display
-        fullscreen_state: State for fullscreen TUI mode (follow/browse mode)
         theme_manager: Color theme manager for styling
         tailing: Whether actively tailing a log file
         history_path: Path to command history file
@@ -105,8 +101,6 @@ class AppState:
     error_stats: ErrorStats = field(default_factory=ErrorStats)
     connection_stats: ConnectionStats = field(default_factory=ConnectionStats)
     notification_manager: NotificationManager | None = None
-    fullscreen_buffer: LogBuffer | None = None
-    fullscreen_state: FullscreenState | None = None
     theme_manager: ThemeManager = field(default_factory=ThemeManager)
     tailing: bool = False
     output_paused: bool = False
@@ -198,18 +192,6 @@ class AppState:
             config=notify_config,
             error_stats=self.error_stats,
         )
-
-    def get_or_create_buffer(self) -> LogBuffer:
-        """Get existing buffer or create new one."""
-        if self.fullscreen_buffer is None:
-            self.fullscreen_buffer = LogBuffer()
-        return self.fullscreen_buffer
-
-    def get_or_create_fullscreen_state(self) -> FullscreenState:
-        """Get existing fullscreen state or create new one."""
-        if self.fullscreen_state is None:
-            self.fullscreen_state = FullscreenState()
-        return self.fullscreen_state
 
 
 def handle_command(state: AppState, line: str) -> bool:
@@ -307,8 +289,6 @@ def handle_command(state: AppState, line: str) -> bool:
         display_command(state, args)
     elif cmd == "output":
         output_command(state, args)
-    elif cmd in ("fullscreen", "fs"):
-        fullscreen_command(" ".join(args), state)
     else:
         print(f"Unknown command: {cmd}")
         print("Type 'help' for available commands.")
@@ -469,12 +449,9 @@ def main() -> None:
                     while state.tailing and not state.output_paused:
                         _process_tail_output(state)
                 except KeyboardInterrupt:
-                    # Ctrl+C pauses output but keeps tailer running for fullscreen
+                    # Ctrl+C pauses output
                     state.output_paused = True
-                    print(
-                        "\nPaused. Use 'fullscreen' for live view, 'stop' to stop tailing.",
-                        flush=True,
-                    )
+                    print("\nPaused. Use 'stop' to stop tailing.", flush=True)
                     continue
 
             line = session.prompt(lambda: _get_prompt(state))

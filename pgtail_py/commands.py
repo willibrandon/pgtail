@@ -25,8 +25,6 @@ COMMANDS: dict[str, str] = {
     "between": "Filter logs in time range (e.g., 'between 14:30 15:00')",
     "display": "Control display mode (compact, full, fields)",
     "output": "Control output format (json, text)",
-    "fullscreen": "Enter fullscreen TUI mode with vim-style navigation",
-    "fs": "Enter fullscreen TUI mode (alias for fullscreen)",
     "slow": "Configure slow query highlighting (e.g., 'slow 100 500 1000')",
     "stats": "Show query duration statistics",
     "set": "Set a config value (e.g., 'set slow.warn 50')",

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from pgtail_py.cli_utils import find_instance, shorten_path
 from pgtail_py.detector import detect_all
-from pgtail_py.display import format_entry, get_valid_display_fields
+from pgtail_py.display import get_valid_display_fields
 from pgtail_py.format_detector import LogFormat
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import reset_terminal
@@ -87,15 +87,6 @@ Available commands:
   output [format]   Control output format
                     json      Output as JSON (one object per line)
                     text      Output as colored text (default)
-  fullscreen        Enter fullscreen TUI mode (alias: fs)
-                    q         Exit fullscreen, return to REPL
-                    j/k       Scroll up/down one line
-                    g/G       Jump to top/bottom
-                    Ctrl+D/U  Half-page down/up
-                    /pattern  Search forward (?=backward)
-                    n/N       Next/prev search match
-                    f         Resume follow mode
-                    Escape    Clear search or toggle follow/browse
   slow [w s c]      Configure slow query highlighting (thresholds in ms)
                     With no args, shows current settings
                     'slow off' disables highlighting
@@ -244,10 +235,6 @@ def tail_command(state: AppState, args: list[str]) -> None:
         state.tailer.stop()
         state.tailer = None
 
-    # Clear buffer for new tail session
-    if state.fullscreen_buffer is not None:
-        state.fullscreen_buffer.clear()
-
     # Start tailing
     state.current_instance = instance
     state.tailing = True
@@ -268,17 +255,12 @@ def tail_command(state: AppState, args: list[str]) -> None:
     print("Press Ctrl+C to stop")
     print()
 
-    # Create combined callback for error tracking, connection tracking, notifications, and fullscreen buffer
+    # Create combined callback for error tracking, connection tracking, and notifications
     def on_entry_callback(entry: LogEntry) -> None:
         state.error_stats.add(entry)
         state.connection_stats.add(entry)
         if state.notification_manager:
             state.notification_manager.check(entry)
-        # Feed formatted entry to fullscreen buffer (always, even when not in fullscreen)
-        # Buffer stores FormattedText directly to preserve styling for fullscreen TUI
-        buffer = state.get_or_create_buffer()
-        formatted = format_entry(entry, state.display_state)
-        buffer.append(formatted)
 
     state.tailer = LogTailer(
         instance.log_path,
