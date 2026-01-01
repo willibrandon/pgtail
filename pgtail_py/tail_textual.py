@@ -357,18 +357,34 @@ class TailApp(App[None]):
 
         Runs until self._running becomes False. Polls the tailer queue
         using run_in_executor to avoid blocking the event loop.
+
+        Optimized to process entries in batches - loops until queue is
+        empty before yielding, avoiding unnecessary sleeps when entries
+        are available.
         """
+        loop = asyncio.get_running_loop()
+
         while self._running and self._tailer:
             tailer = self._tailer  # Capture for lambda
-            try:
-                # Poll for entry in executor to avoid blocking
-                loop = asyncio.get_running_loop()
-                entry: LogEntry | None = await loop.run_in_executor(
-                    None, lambda t=tailer: t.get_entry(timeout=0.05)
-                )
+            entries_processed = 0
 
-                if entry is not None:
+            try:
+                # Process all available entries in a batch before yielding
+                while self._running:
+                    entry: LogEntry | None = await loop.run_in_executor(
+                        None, lambda t=tailer: t.get_entry(timeout=0.01)
+                    )
+
+                    if entry is None:
+                        # Queue is empty, break inner loop
+                        break
+
                     self._add_entry(entry)
+                    entries_processed += 1
+
+                    # Yield periodically during large batches to keep UI responsive
+                    if entries_processed % 50 == 0:
+                        await asyncio.sleep(0)
 
             except asyncio.CancelledError:
                 # Task was cancelled, stop cleanly
@@ -377,21 +393,29 @@ class TailApp(App[None]):
                 # Log error but don't crash on individual entry errors
                 logger.debug("Error processing log entry", exc_info=True)
 
-            # Small yield to keep UI responsive
-            await asyncio.sleep(0.01)
+            # Only sleep when queue was empty (no entries processed this cycle)
+            if entries_processed == 0:
+                await asyncio.sleep(0.01)
+            else:
+                # Brief yield after processing batch to let UI update
+                await asyncio.sleep(0)
 
     def _on_raw_entry(self, entry: LogEntry) -> None:
         """Callback for raw entries from tailer (before filtering).
 
-        Note: Error/warning counting and stats are handled in _add_entry
-        AFTER the entry is added to the log. This callback is kept for
-        potential future use (e.g., rate limiting alerts).
+        Handles notifications, error stats, and connection stats tracking
+        for ALL entries, matching stream mode behavior in cli_core.py.
 
         Args:
             entry: The raw log entry.
         """
-        # Counting handled in _add_entry
-        pass
+        # Track error/connection stats for all entries (before filtering)
+        self._state.error_stats.add(entry)
+        self._state.connection_stats.add(entry)
+
+        # Check notification rules
+        if self._state.notification_manager:
+            self._state.notification_manager.check(entry)
 
     def _add_entry(self, entry: LogEntry) -> None:
         """Add a log entry to the display.
@@ -406,10 +430,9 @@ class TailApp(App[None]):
         if len(self._entries) > self._max_lines:
             self._entries.pop(0)
 
-        # Update global stats (always, regardless of filter)
-        if self._state:
-            self._state.error_stats.add(entry)
-            self._state.connection_stats.add(entry)
+        # Note: Global stats (error_stats, connection_stats) and notifications
+        # are handled in _on_raw_entry() which is called for ALL entries before
+        # filtering, matching stream mode behavior.
 
         # Check if entry passes current filters
         if not self._entry_matches_filters(entry):

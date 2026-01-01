@@ -387,7 +387,9 @@ class TestScrollbarBehavior:
                 # Should be back at bottom
                 # Verify widget is at or near bottom
                 scroll_y = log_widget.scroll_offset.y
-                max_scroll = log_widget.virtual_size.height - log_widget.scrollable_content_region.height
+                max_scroll = (
+                    log_widget.virtual_size.height - log_widget.scrollable_content_region.height
+                )
                 # Should be close to bottom (within 2 lines tolerance)
                 assert max_scroll - scroll_y <= 2, "G key should scroll to bottom"
 
@@ -509,3 +511,101 @@ class TestTailLogSqlHighlighting:
 
                 # Verify line was written without causing markup parsing errors
                 assert log_widget.line_count == 1
+
+
+class TestTailAppNotifications:
+    """Tests for notification and stats callbacks in TailApp."""
+
+    def test_on_raw_entry_calls_notification_manager(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _on_raw_entry calls notification_manager.check().
+
+        This verifies the fix for notifications not firing in Textual mode.
+        """
+        from pgtail_py.filter import LogLevel
+        from pgtail_py.parser import LogEntry
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        # Setup notification manager mock
+        mock_notification_manager = MagicMock()
+        mock_state.notification_manager = mock_notification_manager
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        # Create a test entry
+        entry = LogEntry(
+            raw="2024-01-01 12:00:00 [12345] ERROR: test error",
+            timestamp=None,
+            pid=12345,
+            level=LogLevel.ERROR,
+            message="test error",
+        )
+
+        # Call _on_raw_entry directly
+        app._on_raw_entry(entry)
+
+        # Verify notification manager was called
+        mock_notification_manager.check.assert_called_once_with(entry)
+
+    def test_on_raw_entry_calls_error_stats(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _on_raw_entry calls error_stats.add()."""
+        from pgtail_py.filter import LogLevel
+        from pgtail_py.parser import LogEntry
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        entry = LogEntry(
+            raw="2024-01-01 12:00:00 [12345] ERROR: test",
+            timestamp=None,
+            pid=12345,
+            level=LogLevel.ERROR,
+            message="test",
+        )
+
+        app._on_raw_entry(entry)
+
+        mock_state.error_stats.add.assert_called_once_with(entry)
+
+    def test_on_raw_entry_calls_connection_stats(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _on_raw_entry calls connection_stats.add()."""
+        from pgtail_py.filter import LogLevel
+        from pgtail_py.parser import LogEntry
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        entry = LogEntry(
+            raw="2024-01-01 12:00:00 [12345] LOG: connection received",
+            timestamp=None,
+            pid=12345,
+            level=LogLevel.LOG,
+            message="connection received",
+        )
+
+        app._on_raw_entry(entry)
+
+        mock_state.connection_stats.add.assert_called_once_with(entry)
