@@ -7,7 +7,11 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
 - Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
 - Real-time log tailing with polling (handles log rotation and PostgreSQL restarts)
-- Filter by log level (ERROR, WARNING, NOTICE, INFO, LOG, DEBUG1-5)
+- **Textual-based tail mode** with split-screen interface (header, log, input, status bar)
+- **Vim-style navigation** (j/k, g/G, Ctrl+d/u/f/b, p/f for pause/follow)
+- **Visual mode selection** (v/V for character/line mode, y to yank, Ctrl+a/c)
+- **Clipboard support** via OSC 52 terminal escape + pyperclip fallback
+- Filter by log level with flexible syntax (ERROR, error+, warning-, abbreviations)
 - Filter by field values (app=, db=, user=) for CSV/JSON logs
 - Time-based filtering (since, until, between)
 - Regex pattern filtering (include, exclude, AND/OR logic)
@@ -538,56 +542,98 @@ Query Duration Statistics
 
 ## Tail Mode
 
-When you run `tail <id>`, pgtail enters a split-screen interface with three areas:
+When you run `tail <id>`, pgtail enters a Textual-based split-screen interface:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Log output area (scrollable)                                │
+│ q Quit   ? Help   / Cmd   v Visual   y Yank   p Pause   ... │
+├─────────────────────────────────────────────────────────────┤
+│ Log output area (scrollable, vim navigation, visual mode)   │
 │ 10:23:45.123 [12345] LOG    : statement: SELECT 1           │
 │ 10:23:46.456 [12345] ERROR   42P01: relation "foo" ...      │
 │ ...                                                         │
 ├─────────────────────────────────────────────────────────────┤
-│ tail> level error                                           │
+│ tail> level error+                                          │
 ├─────────────────────────────────────────────────────────────┤
 │ FOLLOW | E:2 W:0 | 150 lines | levels:ERROR | PG16:5432     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Status bar format:**
-- `FOLLOW` / `PAUSED +N new` - Following live or paused with N new entries
+**Status bar:**
+- `FOLLOW` (green) / `PAUSED +N new` (yellow) - Auto-scrolling or frozen display
 - `E:X W:Y` - Error and warning counts (respects active filters)
 - `N lines` - Entry count (respects active filters)
 - Active filters: `levels:`, `filter:/pattern/`, `since:`, `slow:>`
 - PostgreSQL version and port
 
-**Navigation keys:**
+**Navigation keys (vim-style):**
 
 | Key | Action |
 |-----|--------|
-| Up/Down | Scroll 1 line |
-| Page Up/Down | Scroll full page |
-| Ctrl+u/d | Scroll half page |
-| Ctrl+b/f | Scroll full page |
-| Home | Go to top (oldest) |
-| End | Go to bottom, resume FOLLOW mode |
-| Ctrl+L | Redraw screen |
-| Ctrl+C | Exit tail mode |
+| j / k | Scroll down/up one line |
+| g | Go to top |
+| G | Go to bottom (resume FOLLOW mode) |
+| Ctrl+d / Ctrl+u | Half page down/up |
+| Ctrl+f / Ctrl+b | Full page down/up |
+| PgDn / PgUp | Full page down/up |
+| p | Pause (freeze display) |
+| f | Resume FOLLOW mode |
+| q | Exit tail mode |
+| ? | Show help overlay |
+| / | Focus command input |
+| Tab | Toggle focus between log and input |
+
+**Visual mode (text selection):**
+
+| Key | Action |
+|-----|--------|
+| v | Enter character-wise visual mode |
+| V | Enter line-wise visual mode |
+| h / l | Move cursor left/right |
+| 0 / $ | Move to line start/end |
+| y | Yank (copy) selection and exit visual mode |
+| Escape | Clear selection and exit visual mode |
+| Ctrl+a | Select all content |
+| Ctrl+c | Copy current selection |
+
+Text is copied to clipboard using OSC 52 (terminal clipboard) with pyperclip fallback.
+Mouse drag selection auto-copies to clipboard on release.
 
 **Commands in tail mode:**
 
 | Command | Action |
 |---------|--------|
-| `level <levels>` | Filter by level (e.g., `level error,warning`) |
-| `filter /pattern/` | Filter by regex |
-| `since <time>` | Filter by time (e.g., `since 5m`) |
+| `level <levels>` | Filter by level (see Level Filter Syntax below) |
+| `filter /pattern/[i]` | Filter by regex (i = case-insensitive) |
+| `since <time>` | Filter by time (e.g., `since 5m`, `since 14:30`) |
+| `until <time>` | Filter until time |
+| `between <s> <e>` | Filter time range |
 | `slow <ms>` | Set slow query threshold |
-| `clear` | Remove all filters |
+| `clear` | Reset to initial filters |
+| `clear force` | Clear all filters |
 | `errors` | Show error statistics |
 | `connections` | Show connection statistics |
-| `pause` | Enter PAUSED mode |
-| `follow` | Resume FOLLOW mode |
-| `help` | Show available commands |
+| `pause` / `p` | Enter PAUSED mode |
+| `follow` / `f` | Resume FOLLOW mode |
+| `help` | Show all commands |
+| `help keys` | Show keybinding reference |
+| `help <cmd>` | Show command-specific help |
 | `stop` / `q` | Exit tail mode |
+
+**Level filter syntax:**
+- `level error` - Exact match (ERROR only)
+- `level error+` - ERROR and more severe (FATAL, PANIC)
+- `level warning-` - WARNING and less severe (NOTICE, LOG, INFO, DEBUG)
+- `level error,warning` - Multiple exact levels
+- Abbreviations: `e`=error, `w`=warning, `f`=fatal, `p`=panic, `n`=notice, `i`=info, `l`=log, `d`=debug
+
+Examples:
+```
+level e+         # ERROR, FATAL, PANIC
+level w          # WARNING only
+level e,w,f      # ERROR, WARNING, FATAL
+level all        # Clear level filter (show all)
+```
 
 ## Keyboard Shortcuts (REPL)
 
@@ -601,9 +647,11 @@ When you run `tail <id>`, pgtail enters a split-screen interface with three area
 ## Requirements
 
 - Python 3.10+
-- prompt_toolkit
-- psutil
-- tomlkit
+- prompt_toolkit (REPL with autocomplete)
+- textual >=0.89.0 (tail mode UI)
+- pyperclip (clipboard support)
+- psutil (process detection)
+- tomlkit (config file support)
 
 ## License
 

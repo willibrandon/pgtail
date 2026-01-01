@@ -131,15 +131,16 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/sql_tokenizer.py` - SQL tokenization (keywords, identifiers, strings, numbers, operators, comments, functions)
 - `pgtail_py/sql_highlighter.py` - SQL syntax highlighting with FormattedText output
 - `pgtail_py/sql_detector.py` - SQL content detection in PostgreSQL log messages
-- `pgtail_py/tail_buffer.py` - TailBuffer deque (10,000 line) with scroll position, FormattedLogEntry dataclass (deprecated)
-- `pgtail_py/tail_status.py` - TailStatus for status bar state (counts, filters, mode, instance info)
-- `pgtail_py/tail_layout.py` - TailLayout with HSplit (log/status/input), TailModeCompleter (deprecated)
-- `pgtail_py/tail_app.py` - TailApp coordinator, asyncio entry consumer, Application lifecycle (deprecated)
-- `pgtail_py/tail_textual.py` - TailApp Textual Application, replaces prompt_toolkit-based tail mode
+- `pgtail_py/tail_textual.py` - TailApp Textual Application, main tail mode coordinator
 - `pgtail_py/tail_log.py` - TailLog widget with vim-style navigation, visual mode selection, clipboard support
-- `pgtail_py/tail_rich.py` - Rich text formatting for log entries (LEVEL_STYLES, format_entry_compact)
 - `pgtail_py/tail_input.py` - TailInput widget for tail mode command entry
+- `pgtail_py/tail_status.py` - TailStatus for status bar state (counts, filters, mode, instance info)
+- `pgtail_py/tail_rich.py` - Rich text formatting for log entries (LEVEL_STYLES, format_entry_compact)
+- `pgtail_py/tail_help.py` - HelpScreen modal overlay with keybinding reference
 - `pgtail_py/cli_tail.py` - Tail mode command handlers (level, filter, since, errors, etc.)
+- `pgtail_py/tail_buffer.py` - TailBuffer for prompt_toolkit mode (deprecated)
+- `pgtail_py/tail_layout.py` - TailLayout for prompt_toolkit mode (deprecated)
+- `pgtail_py/tail_app.py` - TailApp for prompt_toolkit mode (deprecated)
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
 
@@ -388,40 +389,107 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `pgtail_py/sql_highlighter.py` - SQLHighlighter class, TOKEN_TO_STYLE mapping, highlight_sql() function
 - `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
-## Status Bar Tail Mode
+## Tail Mode (Textual)
 
-The `tail` command enters a split-screen interface with three areas:
-- **Log output** (top): Scrollable log entries, 10,000 line buffer
-- **Command input** (middle): Always-visible prompt for filter commands
-- **Status bar** (bottom): Live stats and filter state
+The `tail` command enters a Textual-based split-screen interface:
+
+**Layout (top to bottom):**
+1. Header bar - Keybinding hints (`q Quit  ? Help  / Cmd  v Visual  y Yank  p Pause  f Follow  g/G Top/End`)
+2. Separator line
+3. Log display - Scrollable log entries (10,000 line buffer), vim navigation, visual mode
+4. Separator line
+5. Command input - `tail>` prompt for commands
+6. Separator line
+7. Status bar - Mode, counts, filters, instance info
 
 **Status bar format:** `MODE | E:X W:Y | N lines | filters... | PGver:port`
+- `FOLLOW` (green) - Auto-scrolling, at bottom
+- `PAUSED +N new` (yellow) - Frozen display with new entry count
 - Error/warning counts and line count respect active filters
-- Filters shown: `levels:`, `filter:/pattern/`, `since:`, `slow:>`
 
-**Navigation keys:**
-- Up/Down: Scroll 1 line
-- Page Up/Down: Scroll full page
-- Ctrl+u/d: Scroll half page
-- Ctrl+b/f: Scroll full page
-- Home: Go to top
-- End: Resume FOLLOW mode
+**Navigation keys (vim-style):**
+| Key | Action |
+|-----|--------|
+| j/k | Scroll ±1 line |
+| g/G | Go to top/bottom (G resumes FOLLOW) |
+| Ctrl+d/u | Half page down/up |
+| Ctrl+f/b or PgDn/PgUp | Full page down/up |
+| p | Pause (freeze display) |
+| f | Resume FOLLOW mode |
+
+**Visual mode selection:**
+| Key | Action |
+|-----|--------|
+| v | Enter character-wise visual mode |
+| V | Enter line-wise visual mode |
+| h/l | Move cursor left/right |
+| 0/$ | Line start/end |
+| y | Yank (copy) and exit visual mode |
+| Escape | Clear selection and exit visual mode |
+| Ctrl+a | Select all content |
+| Ctrl+c | Copy current selection |
+
+**Clipboard integration:**
+- Primary: OSC 52 terminal escape sequence via `app.copy_to_clipboard()`
+- Fallback: pyperclip (pbcopy/xclip/xsel/wl-copy)
+- Mouse drag auto-copies selection on release
+- Rich markup tags stripped before copying
+
+**App-level keys:**
+| Key | Action |
+|-----|--------|
+| q | Quit tail mode |
+| ? | Show help overlay |
+| / | Focus command input |
+| Tab | Toggle focus between log and input |
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `level <lvl>[+\|-]` | Filter by level (e.g., `level error+`, `level warn-`) |
+| `filter /pattern/[i]` | Regex filter (i = case-insensitive) |
+| `since <time>` | Show from time onward (e.g., `5m`, `14:30`) |
+| `until <time>` | Show up to time |
+| `between <s> <e>` | Time range filter |
+| `slow <ms>` | Slow query threshold |
+| `clear [force]` | Reset to initial filters (force clears all) |
+| `errors` | Show error statistics |
+| `connections` | Show connection statistics |
+| `pause` / `p` | Pause auto-scroll |
+| `follow` / `f` | Resume FOLLOW mode |
+| `help [cmd\|keys]` | Show help (or `<cmd> help` / `<cmd> ?`) |
+| `stop` / `q` | Exit tail mode |
+
+**Level filter syntax:**
+- `level error` - Exact match (ERROR only)
+- `level error+` - ERROR and more severe (FATAL, PANIC)
+- `level warning-` - WARNING and less severe (NOTICE, LOG, INFO, DEBUG)
+- Abbreviations: e=error, w=warning, f=fatal, p=panic, n=notice, i=info, l=log, d=debug
+
+**Filter anchor pattern:**
+- Initial filters captured when tail mode starts (e.g., `tail 0 --since 1h`)
+- `clear` resets to anchor state
+- `clear force` clears everything including anchor
 
 **Implementation:**
-- `tail_app.py`: TailApp coordinator with asyncio entry consumer
-- `tail_buffer.py`: TailBuffer deque with scroll position and filter support
-- `tail_layout.py`: HSplit layout, key bindings, TailModeCompleter
-- `tail_status.py`: TailStatus for status bar state
-- `cli_tail.py`: Command handlers (level, filter, since, clear, errors, etc.)
+- `tail_textual.py`: TailApp coordinator, asyncio entry consumer, filter management
+- `tail_log.py`: TailLog widget (inherits from Textual Log), vim navigation, visual mode
+- `tail_input.py`: TailInput widget for command entry
+- `tail_status.py`: TailStatus state container, format_header(), format_rich()
+- `tail_rich.py`: format_entry_compact() with Rich markup, LEVEL_STYLES
+- `tail_help.py`: HelpScreen modal with keybinding categories
+- `cli_tail.py`: Command handlers, COMMAND_HELP dictionary
 
-Filter changes trigger `_rebuild_buffer_filters()` which recalculates error/warning counts from buffer.
+Filter changes trigger `_rebuild_log()` which re-applies filters to stored entries and recalculates counts.
 
 ## Recent Changes
-- 017-log-selection: Replace prompt_toolkit tail mode with Textual for built-in text selection and clipboard support (textual>=0.89.0, pyperclip>=1.8.0)
-- 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input. Error/warning/line counts respect active filters.
+- 017-log-selection: Textual-based tail mode with vim navigation, visual mode selection (v/V), clipboard support (OSC 52 + pyperclip), header bar with keybinding hints, help overlay (?), level filter syntax with +/- suffixes and abbreviations, command-specific help
+- 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input
 - 016-resilient-tailing: Tailer automatically detects new log files after PostgreSQL restart using current_logfiles
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0 (Application, HSplit, Window, FormattedTextControl, BufferControl, TextArea) (016-status-bar-tail)
-- textual>=0.89.0 + pyperclip>=1.8.0 (017-log-selection - new Textual-based tail mode)
-- In-memory ring buffer (10,000 lines max), no persistence (016-status-bar-tail)
+- Python 3.10+ + prompt_toolkit >=3.0.0 (REPL with autocomplete and history)
+- textual >=0.89.0 (TailApp, TailLog widget with ALLOW_SELECT, Log, ModalScreen, Static, Input)
+- pyperclip >=1.8.0 (clipboard fallback for OSC 52)
+- rich (built into Textual, markup parsing in TailLog._render_line_strip)
+- In-memory ring buffer (10,000 lines max), no persistence
