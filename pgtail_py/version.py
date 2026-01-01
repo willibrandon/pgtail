@@ -48,12 +48,15 @@ def get_version() -> str:
     """Get the installed version of pgtail.
 
     Returns:
-        Version string (e.g., "0.1.0") or "0.0.0-dev" if not installed as a package.
+        Version string (e.g., "0.2.0") or fallback from __version__ for compiled binaries.
     """
     try:
         return importlib.metadata.version("pgtail")
     except importlib.metadata.PackageNotFoundError:
-        return "0.0.0-dev"
+        # Fallback for compiled binaries without metadata
+        from pgtail_py import __version__
+
+        return __version__
 
 
 class InstallMethod(Enum):

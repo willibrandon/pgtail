@@ -1,4 +1,4 @@
-.PHONY: help run test test-perf lint format build clean shell docs docs-serve
+.PHONY: help run test test-perf lint format build build-test clean shell docs docs-serve
 
 # Detect OS for platform-specific commands
 ifeq ($(OS),Windows_NT)
@@ -18,7 +18,8 @@ help:
 	@echo "  test-perf  Run performance tests only"
 	@echo "  lint       Run ruff linter"
 	@echo "  format     Format code with ruff"
-	@echo "  build      Build standalone executable"
+	@echo "  build      Build standalone executable with Nuitka"
+	@echo "  build-test Verify build works (runs --version)"
 	@echo "  clean      Remove build artifacts"
 	@echo "  shell      Enter virtual environment shell"
 	@echo "  docs       Build documentation site"
@@ -49,7 +50,16 @@ format:
 	$(UV) run ruff format pgtail_py/
 
 build:
-	$(UV) run pyinstaller --onefile --name pgtail pgtail_py/__main__.py
+	./scripts/build-nuitka.sh
+
+build-test:
+	@echo "Testing build..."
+	@./dist/pgtail-*/pgtail --version
+	@echo ""
+	@echo "Testing list-instances command help..."
+	@./dist/pgtail-*/pgtail list-instances --help | head -5
+	@echo ""
+	@echo "Build test passed!"
 
 clean:
 ifeq ($(DETECTED_OS),Windows)
@@ -60,8 +70,12 @@ ifeq ($(DETECTED_OS),Windows)
 	-@if exist pgtail_py\__pycache__ rd /s /q pgtail_py\__pycache__
 	-@if exist tests\__pycache__ rd /s /q tests\__pycache__
 	-@if exist site rd /s /q site
+	-@if exist pgtail.build rd /s /q pgtail.build
+	-@if exist pgtail.dist rd /s /q pgtail.dist
+	-@if exist pgtail.onefile-build rd /s /q pgtail.onefile-build
 else
 	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/ site/
+	rm -rf pgtail.build/ pgtail.dist/ *.onefile-build/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 endif
 
