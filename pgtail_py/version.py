@@ -374,8 +374,16 @@ def fetch_latest_release() -> ReleaseInfo | None:
     except urllib.error.HTTPError:
         # 403 (rate limit), 404 (no releases), etc.
         return None
-    except urllib.error.URLError:
-        # Network errors, DNS failures, etc.
+    except urllib.error.URLError as e:
+        # Network errors, DNS failures, SSL errors, etc.
+        # Debug: print SSL errors to help diagnose PyInstaller issues
+        if os.environ.get("PGTAIL_DEBUG"):
+            print(f"DEBUG: URLError: {e}", file=sys.stderr)
+            print(f"DEBUG: ssl_context={ssl_context}", file=sys.stderr)
+            if hasattr(sys, "_MEIPASS"):
+                cacert = os.path.join(sys._MEIPASS, "certifi", "cacert.pem")  # type: ignore[attr-defined]
+                print(f"DEBUG: _MEIPASS={sys._MEIPASS}", file=sys.stderr)  # type: ignore[attr-defined]
+                print(f"DEBUG: cacert exists={os.path.exists(cacert)}", file=sys.stderr)
         return None
     except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         # Malformed JSON or missing fields
