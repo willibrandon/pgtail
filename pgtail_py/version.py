@@ -365,28 +365,17 @@ def fetch_latest_release() -> ReleaseInfo | None:
     req = urllib.request.Request(RELEASES_URL, headers=headers)
     ssl_context = _get_ssl_context()
 
-    if os.environ.get("PGTAIL_DEBUG"):
-        print(f"DEBUG: ssl_context={ssl_context}", file=sys.stderr)
-        if hasattr(sys, "_MEIPASS"):
-            cacert = os.path.join(sys._MEIPASS, "certifi", "cacert.pem")  # type: ignore[attr-defined]
-            print(f"DEBUG: _MEIPASS={sys._MEIPASS}", file=sys.stderr)  # type: ignore[attr-defined]
-            print(f"DEBUG: cacert exists={os.path.exists(cacert)}", file=sys.stderr)
-
     try:
         with urllib.request.urlopen(req, timeout=API_TIMEOUT, context=ssl_context) as resp:
             if resp.status != 200:
                 return None
             data = json.loads(resp.read().decode("utf-8"))
             return _parse_release_response(data)
-    except urllib.error.HTTPError as e:
+    except urllib.error.HTTPError:
         # 403 (rate limit), 404 (no releases), etc.
-        if os.environ.get("PGTAIL_DEBUG"):
-            print(f"DEBUG: HTTPError: {e}", file=sys.stderr)
         return None
-    except urllib.error.URLError as e:
+    except urllib.error.URLError:
         # Network errors, DNS failures, SSL errors, etc.
-        if os.environ.get("PGTAIL_DEBUG"):
-            print(f"DEBUG: URLError: {e}", file=sys.stderr)
         return None
     except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         # Malformed JSON or missing fields
