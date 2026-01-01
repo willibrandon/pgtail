@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,8 +18,34 @@ _RELATIVE_TIME_PATTERN = re.compile(r"^(\d+)([smhd])$", re.IGNORECASE)
 _TIME_ONLY_PATTERN = re.compile(r"^(\d{2}):(\d{2})(?::(\d{2}))?$")
 
 
+def _now_utc() -> datetime:
+    """Return current time in UTC with timezone info."""
+    return datetime.now(timezone.utc)
+
+
+def _to_utc(dt: datetime) -> datetime:
+    """Convert datetime to UTC.
+
+    If naive (no timezone), assumes local time and converts to UTC.
+    If already timezone-aware, converts to UTC.
+
+    Args:
+        dt: Datetime to convert.
+
+    Returns:
+        UTC-aware datetime.
+    """
+    if dt.tzinfo is None:
+        # Naive datetime - assume local time
+        local_dt = dt.astimezone()  # Add local timezone
+        return local_dt.astimezone(timezone.utc)
+    else:
+        # Already timezone-aware - convert to UTC
+        return dt.astimezone(timezone.utc)
+
+
 def parse_time(value: str) -> datetime:
-    """Parse time string into datetime.
+    """Parse time string into UTC-aware datetime.
 
     Supported formats:
     - Relative: 5m, 30s, 2h, 1d (duration from now)
@@ -30,7 +56,8 @@ def parse_time(value: str) -> datetime:
         value: Time specification string.
 
     Returns:
-        Resolved datetime.
+        UTC-aware datetime. All returned datetimes are timezone-aware
+        to enable safe comparison with log entry timestamps.
 
     Raises:
         ValueError: If value cannot be parsed.
@@ -50,7 +77,7 @@ def parse_time(value: str) -> datetime:
             "h": timedelta(hours=amount),
             "d": timedelta(days=amount),
         }[unit]
-        return datetime.now() - delta
+        return _now_utc() - delta
 
     # Try time-only format (HH:MM or HH:MM:SS)
     match = _TIME_ONLY_PATTERN.match(value)
@@ -64,8 +91,10 @@ def parse_time(value: str) -> datetime:
                 f"Invalid time '{value}'. Hours must be 0-23, minutes and seconds must be 0-59."
             )
 
+        # Combine with today's date in local timezone, then convert to UTC
         today = datetime.now().date()
-        return datetime.combine(today, time(hour, minute, second))
+        naive_dt = datetime.combine(today, time(hour, minute, second))
+        return _to_utc(naive_dt)
 
     # Try ISO 8601 format (with or without Z suffix)
     try:
@@ -73,7 +102,9 @@ def parse_time(value: str) -> datetime:
         if value.endswith("Z"):
             # fromisoformat doesn't handle Z directly in older Python
             value = value[:-1] + "+00:00"
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
+        # Always return UTC-aware datetime
+        return _to_utc(parsed)
     except ValueError:
         pass
 
@@ -90,12 +121,14 @@ def is_future_time(dt: datetime) -> bool:
     """Check if datetime is in the future.
 
     Args:
-        dt: Datetime to check.
+        dt: Datetime to check (can be naive or timezone-aware).
 
     Returns:
         True if dt > now.
     """
-    return dt > datetime.now()
+    # Normalize both to UTC for comparison
+    dt_utc = _to_utc(dt)
+    return dt_utc > _now_utc()
 
 
 def format_time_range(
@@ -106,8 +139,8 @@ def format_time_range(
     """Format time range for human-readable display.
 
     Args:
-        since: Start time or None.
-        until: End time or None.
+        since: Start time or None (can be naive or timezone-aware).
+        until: End time or None (can be naive or timezone-aware).
         original_input: Original user input for context.
 
     Returns:
@@ -118,13 +151,23 @@ def format_time_range(
 
     time_fmt = "%H:%M:%S"
     date_time_fmt = "%Y-%m-%d %H:%M:%S"
+    today = datetime.now().date()
 
     def format_dt(dt: datetime, include_today: bool = False) -> str:
-        """Format datetime, using time only if today."""
-        if dt.date() == datetime.now().date():
-            time_str = dt.strftime(time_fmt)
+        """Format datetime, using time only if today.
+
+        Converts to local time for display.
+        """
+        # Convert to local time for display
+        if dt.tzinfo is not None:
+            local_dt = dt.astimezone()  # Convert to local timezone
+        else:
+            local_dt = dt
+
+        if local_dt.date() == today:
+            time_str = local_dt.strftime(time_fmt)
             return f"{time_str} today" if include_today else time_str
-        return dt.strftime(date_time_fmt)
+        return local_dt.strftime(date_time_fmt)
 
     if since is not None and until is not None:
         return f"between {format_dt(since)} and {format_dt(until)}"
@@ -159,6 +202,9 @@ class TimeFilter:
     def matches(self, entry: LogEntry) -> bool:
         """Check if a log entry falls within the time filter.
 
+        Handles both naive and timezone-aware timestamps by normalizing
+        to UTC for comparison.
+
         Args:
             entry: Log entry to check.
 
@@ -174,12 +220,22 @@ class TimeFilter:
         if entry.timestamp is None:
             return False
 
-        # Check lower bound
-        if self.since is not None and entry.timestamp < self.since:
-            return False
+        # Normalize entry timestamp to UTC for comparison
+        entry_ts = _to_utc(entry.timestamp)
 
-        # Check upper bound
-        return not (self.until is not None and entry.timestamp > self.until)
+        # Check lower bound (self.since is already UTC-aware from parse_time)
+        if self.since is not None:
+            since_utc = _to_utc(self.since) if self.since.tzinfo is None else self.since
+            if entry_ts < since_utc:
+                return False
+
+        # Check upper bound (self.until is already UTC-aware from parse_time)
+        if self.until is not None:
+            until_utc = _to_utc(self.until) if self.until.tzinfo is None else self.until
+            if entry_ts > until_utc:
+                return False
+
+        return True
 
     def is_active(self) -> bool:
         """Check if any time constraint is set."""

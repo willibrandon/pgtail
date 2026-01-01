@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from pathlib import Path
 from queue import Empty, Queue
@@ -17,6 +18,9 @@ from pgtail_py.format_detector import LogFormat, detect_format
 from pgtail_py.parser import LogEntry, parse_log_line
 from pgtail_py.regex_filter import FilterState
 from pgtail_py.time_filter import TimeFilter
+
+# Default maximum buffer size for storing entries
+DEFAULT_BUFFER_MAX_SIZE = 10000
 
 
 class LogTailer:
@@ -41,6 +45,7 @@ class LogTailer:
         data_dir: Path | None = None,
         log_directory: Path | None = None,
         on_file_change: Callable[[Path], None] | None = None,
+        buffer_max_size: int = DEFAULT_BUFFER_MAX_SIZE,
     ) -> None:
         """Initialize the log tailer.
 
@@ -55,6 +60,8 @@ class LogTailer:
             data_dir: PostgreSQL data directory for reading current_logfiles.
             log_directory: Directory containing log files for fallback detection.
             on_file_change: Callback when switching to a new log file.
+            buffer_max_size: Maximum number of entries to store in buffer.
+                Oldest entries are discarded when limit is reached. Default 10000.
         """
         self._log_path = log_path
         self._active_levels = active_levels
@@ -68,7 +75,7 @@ class LogTailer:
         self._queue: Queue[LogEntry] = Queue()
         self._stop_event = threading.Event()
         self._poll_thread: threading.Thread | None = None
-        self._buffer: list[LogEntry] = []  # Store entries for export
+        self._buffer: deque[LogEntry] = deque(maxlen=buffer_max_size)
         self._detected_format: LogFormat | None = None
         self._format_callback: Callable[[LogFormat], None] | None = None
         self._on_entry = on_entry
@@ -370,12 +377,24 @@ class LogTailer:
 
         Returns:
             List of log entries in chronological order.
+            Note: Buffer has a maximum size (default 10000). Older entries
+            are discarded when the limit is reached.
         """
         return list(self._buffer)
 
     def clear_buffer(self) -> None:
         """Clear the buffer of collected entries."""
         self._buffer.clear()
+
+    @property
+    def buffer_size(self) -> int:
+        """Get the current number of entries in the buffer."""
+        return len(self._buffer)
+
+    @property
+    def buffer_max_size(self) -> int | None:
+        """Get the maximum buffer size. None means unlimited."""
+        return self._buffer.maxlen
 
 
 def tail_file(

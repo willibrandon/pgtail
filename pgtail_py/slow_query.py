@@ -7,7 +7,6 @@ and session-scoped statistics collection for query duration analysis.
 from __future__ import annotations
 
 import re
-import statistics
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -136,7 +135,8 @@ class DurationStats:
     """Session-scoped collection of query duration samples for statistics.
 
     Maintains running counters for O(1) access to basic statistics,
-    while storing all samples for percentile calculations.
+    while storing all samples for percentile calculations. Sorted samples
+    are cached and invalidated on modification for efficient repeated access.
 
     Attributes:
         samples: All observed duration values in milliseconds.
@@ -146,6 +146,7 @@ class DurationStats:
     _sum: float = 0.0
     _min: float = field(default=float("inf"))
     _max: float = 0.0
+    _sorted_cache: list[float] | None = field(default=None, repr=False)
 
     def add(self, duration_ms: float) -> None:
         """Add a duration sample and update running statistics.
@@ -159,6 +160,8 @@ class DurationStats:
             self._min = duration_ms
         if duration_ms > self._max:
             self._max = duration_ms
+        # Invalidate sorted cache
+        self._sorted_cache = None
 
     def clear(self) -> None:
         """Reset all statistics."""
@@ -166,6 +169,17 @@ class DurationStats:
         self._sum = 0.0
         self._min = float("inf")
         self._max = 0.0
+        self._sorted_cache = None
+
+    def _get_sorted(self) -> list[float]:
+        """Get sorted samples, using cache if available.
+
+        Returns:
+            Sorted list of sample values.
+        """
+        if self._sorted_cache is None:
+            self._sorted_cache = sorted(self.samples)
+        return self._sorted_cache
 
     def is_empty(self) -> bool:
         """Check if no samples have been collected."""
@@ -195,35 +209,52 @@ class DurationStats:
         """Maximum observed duration in milliseconds."""
         return self._max
 
-    @property
-    def p50(self) -> float:
-        """50th percentile (median) duration in milliseconds."""
+    def _percentile(self, p: float) -> float:
+        """Calculate a percentile from samples.
+
+        Uses linear interpolation for accurate percentile calculation
+        that works with any sample size >= 1. Leverages cached sorted
+        samples for efficient repeated access.
+
+        Args:
+            p: Percentile to calculate (0.0 to 1.0).
+
+        Returns:
+            Percentile value, or 0.0 if no samples.
+        """
         if self.is_empty():
             return 0.0
         if self.count == 1:
             return self.samples[0]
-        quantiles = statistics.quantiles(self.samples, n=100, method="inclusive")
-        return quantiles[49]  # 50th percentile
+
+        # Use cached sorted samples
+        sorted_samples = self._get_sorted()
+        n = len(sorted_samples)
+
+        # Calculate index using linear interpolation
+        # This matches the "inclusive" method behavior
+        idx = p * (n - 1)
+        lower = int(idx)
+        upper = min(lower + 1, n - 1)
+        fraction = idx - lower
+
+        # Linear interpolation between adjacent values
+        return sorted_samples[lower] + fraction * (sorted_samples[upper] - sorted_samples[lower])
+
+    @property
+    def p50(self) -> float:
+        """50th percentile (median) duration in milliseconds."""
+        return self._percentile(0.50)
 
     @property
     def p95(self) -> float:
         """95th percentile duration in milliseconds."""
-        if self.is_empty():
-            return 0.0
-        if self.count == 1:
-            return self.samples[0]
-        quantiles = statistics.quantiles(self.samples, n=100, method="inclusive")
-        return quantiles[94]  # 95th percentile
+        return self._percentile(0.95)
 
     @property
     def p99(self) -> float:
         """99th percentile duration in milliseconds."""
-        if self.is_empty():
-            return 0.0
-        if self.count == 1:
-            return self.samples[0]
-        quantiles = statistics.quantiles(self.samples, n=100, method="inclusive")
-        return quantiles[98]  # 99th percentile
+        return self._percentile(0.99)
 
     def format_summary(self) -> str:
         """Format statistics for display.

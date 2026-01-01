@@ -5,11 +5,10 @@ Converts tokenized SQL into styled FormattedText for prompt_toolkit rendering.
 
 from __future__ import annotations
 
-import os
-
 from prompt_toolkit.formatted_text import FormattedText
 
 from pgtail_py.sql_tokenizer import SQLToken, SQLTokenizer, SQLTokenType
+from pgtail_py.utils import is_color_disabled
 
 # Style class mapping for token types
 TOKEN_TO_STYLE: dict[SQLTokenType, str] = {
@@ -25,15 +24,6 @@ TOKEN_TO_STYLE: dict[SQLTokenType, str] = {
     SQLTokenType.WHITESPACE: "",  # Preserved as-is
     SQLTokenType.UNKNOWN: "",  # No special styling
 }
-
-
-def is_color_disabled() -> bool:
-    """Check if colors are disabled via NO_COLOR environment variable.
-
-    Returns:
-        True if NO_COLOR is set (any value), False otherwise.
-    """
-    return os.environ.get("NO_COLOR") is not None
 
 
 class SQLHighlighter:

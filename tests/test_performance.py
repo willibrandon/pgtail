@@ -64,6 +64,7 @@ def mock_state() -> MagicMock:
     return state
 
 
+@pytest.mark.performance
 class TestVimKeyLatency:
     """Tests for vim key response latency (SC-002: <50ms).
 
@@ -103,6 +104,7 @@ class TestVimKeyLatency:
         assert avg_ms < 1, f"Cursor state update {avg_ms:.2f}ms is too slow"
 
 
+@pytest.mark.performance
 class TestMemoryBaseline:
     """Tests for memory usage (SC-008: baseline for 10,000 entries).
 
@@ -122,6 +124,7 @@ class TestMemoryBaseline:
         assert widget.max_lines is not None
 
 
+@pytest.mark.performance
 class TestStartupTime:
     """Tests for startup time (SC-009: <500ms)."""
 
@@ -152,6 +155,7 @@ class TestStartupTime:
             assert elapsed < 0.5, f"App mount time {elapsed:.3f}s exceeds 500ms"
 
 
+@pytest.mark.performance
 class TestFocusSwitchLatency:
     """Tests for focus switch latency (SC-010: <50ms)."""
 
@@ -190,6 +194,7 @@ class TestFocusSwitchLatency:
                 assert avg_ms < 50, f"Focus switch {avg_ms:.2f}ms exceeds 50ms"
 
 
+@pytest.mark.performance
 class TestClipboardLatency:
     """Tests for clipboard latency (SC-001: <2s for mouse-drag-to-clipboard)."""
 
@@ -210,6 +215,7 @@ class TestClipboardLatency:
             assert elapsed < 2.0, f"Copy latency {elapsed:.3f}s exceeds 2s"
 
 
+@pytest.mark.performance
 class TestAutoScrollStress:
     """Stress test for 100+ entries/sec auto-scroll (SC-003, T160)."""
 

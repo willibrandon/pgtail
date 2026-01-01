@@ -8,7 +8,7 @@ from pathlib import Path
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 
 from pgtail_py.cli_config import (
     config_command,
@@ -376,9 +376,9 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
     bindings = KeyBindings()
 
     @bindings.add("!")
-    def handle_exclamation(event: object) -> None:
+    def handle_exclamation(event: KeyPressEvent) -> None:
         """Handle ! key - enter shell mode if buffer is empty."""
-        app = event.app  # type: ignore[attr-defined]
+        app = event.app
         buf = app.current_buffer
         if buf.text == "":
             state.shell_mode = True
@@ -387,15 +387,15 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
             buf.insert_text("!")
 
     @bindings.add("escape")
-    def handle_escape(event: object) -> None:
+    def handle_escape(event: KeyPressEvent) -> None:
         """Handle Escape key - exit shell mode."""
         state.shell_mode = False
-        event.app.invalidate()  # type: ignore[attr-defined]
+        event.app.invalidate()
 
     @bindings.add("backspace")
-    def handle_backspace(event: object) -> None:
+    def handle_backspace(event: KeyPressEvent) -> None:
         """Handle Backspace - exit shell mode if buffer empty."""
-        app = event.app  # type: ignore[attr-defined]
+        app = event.app
         buf = app.current_buffer
         if state.shell_mode and buf.text == "":
             state.shell_mode = False

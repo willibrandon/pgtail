@@ -22,6 +22,10 @@ FIELD_ALIASES: dict[str, str] = {
     "user": "user",
     "pid": "pid",
     "backend": "backend",
+    "host": "host",
+    "ip": "host",
+    "client": "host",
+    "connection_from": "host",
 }
 
 # Canonical name -> LogEntry attribute name
@@ -31,6 +35,7 @@ FIELD_ATTRIBUTES: dict[str, str] = {
     "user": "user_name",
     "pid": "pid",
     "backend": "backend_type",
+    "host": "connection_from",
 }
 
 

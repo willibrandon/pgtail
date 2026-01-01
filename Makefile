@@ -1,4 +1,4 @@
-.PHONY: help run test lint format build clean shell
+.PHONY: help run test test-perf lint format build clean shell docs docs-serve
 
 # Detect OS for platform-specific commands
 ifeq ($(OS),Windows_NT)
@@ -13,13 +13,16 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  run     Run pgtail from source"
-	@echo "  test    Run pytest"
-	@echo "  lint    Run ruff linter"
-	@echo "  format  Format code with ruff"
-	@echo "  build   Build standalone executable"
-	@echo "  clean   Remove build artifacts"
-	@echo "  shell   Enter virtual environment shell"
+	@echo "  run        Run pgtail from source"
+	@echo "  test       Run pytest (excludes performance tests)"
+	@echo "  test-perf  Run performance tests only"
+	@echo "  lint       Run ruff linter"
+	@echo "  format     Format code with ruff"
+	@echo "  build      Build standalone executable"
+	@echo "  clean      Remove build artifacts"
+	@echo "  shell      Enter virtual environment shell"
+	@echo "  docs       Build documentation site"
+	@echo "  docs-serve Serve documentation locally"
 
 shell:
 ifeq ($(DETECTED_OS),Windows)
@@ -34,7 +37,10 @@ run:
 	$(UV) run python -m pgtail_py
 
 test:
-	$(UV) run python -m pytest tests/ -v
+	$(UV) run python -m pytest tests/ -v -m "not performance"
+
+test-perf:
+	$(UV) run python -m pytest tests/ -v -m "performance"
 
 lint:
 	$(UV) run ruff check pgtail_py/
@@ -53,7 +59,14 @@ ifeq ($(DETECTED_OS),Windows)
 	-@if exist .ruff_cache rd /s /q .ruff_cache
 	-@if exist pgtail_py\__pycache__ rd /s /q pgtail_py\__pycache__
 	-@if exist tests\__pycache__ rd /s /q tests\__pycache__
+	-@if exist site rd /s /q site
 else
-	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/
+	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/ site/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 endif
+
+docs:
+	$(UV) run --extra docs mkdocs build
+
+docs-serve:
+	$(UV) run --extra docs mkdocs serve

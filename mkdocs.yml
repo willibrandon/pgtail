@@ -1,0 +1,60 @@
+site_name: pgtail
+site_description: Interactive PostgreSQL log tailer with auto-detection and color output
+site_url: https://pgtail.dev
+repo_url: https://github.com/user/pgtail
+repo_name: pgtail
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - toc.follow
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+  - User Guide:
+      - Tail Mode: guide/tail-mode.md
+      - Filtering: guide/filtering.md
+      - Time Filters: guide/time-filters.md
+      - Slow Queries: guide/slow-queries.md
+      - Notifications: guide/notifications.md
+      - Themes: guide/themes.md
+      - Export: guide/export.md
+  - Configuration: configuration.md
+  - CLI Reference: cli-reference.md

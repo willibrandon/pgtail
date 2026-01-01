@@ -133,6 +133,16 @@ class NotificationsSection:
 
 
 @dataclass
+class BufferSection:
+    """Buffer size limit settings."""
+
+    tailer_max: int = 10000  # LogTailer entry buffer
+    error_stats_max: int = 10000  # ErrorStats event buffer
+    connection_stats_max: int = 10000  # ConnectionStats event buffer
+    tail_log_max: int = 10000  # TailLog line buffer
+
+
+@dataclass
 class ConfigSchema:
     """Complete configuration schema with all sections."""
 
@@ -141,6 +151,7 @@ class ConfigSchema:
     display: DisplaySection = field(default_factory=DisplaySection)
     theme: ThemeSection = field(default_factory=ThemeSection)
     notifications: NotificationsSection = field(default_factory=NotificationsSection)
+    buffer: BufferSection = field(default_factory=BufferSection)
 
 
 # =============================================================================
@@ -307,6 +318,10 @@ SETTINGS_SCHEMA: dict[str, SettingDef] = {
     "notifications.error_rate": (None, validate_optional_positive_int, "int"),
     "notifications.slow_query_ms": (None, validate_optional_positive_int, "int"),
     "notifications.quiet_hours": (None, validate_quiet_hours, "str"),
+    "buffer.tailer_max": (10000, validate_positive_int, "int"),
+    "buffer.error_stats_max": (10000, validate_positive_int, "int"),
+    "buffer.connection_stats_max": (10000, validate_positive_int, "int"),
+    "buffer.tail_log_max": (10000, validate_positive_int, "int"),
 }
 
 SETTING_KEYS = list(SETTINGS_SCHEMA.keys())
@@ -410,6 +425,12 @@ DEFAULT_CONFIG_TEMPLATE = """\
 # error_rate = 10                # Alert when errors/min exceeds this threshold
 # slow_query_ms = 500            # Alert when query duration exceeds this (ms)
 # quiet_hours = "22:00-08:00"    # Suppress notifications during these hours
+
+[buffer]
+# tailer_max = 10000           # Max entries in log tailer buffer
+# error_stats_max = 10000      # Max events in error statistics
+# connection_stats_max = 10000 # Max events in connection statistics
+# tail_log_max = 10000         # Max lines in tail mode display
 """
 
 

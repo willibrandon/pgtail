@@ -12,6 +12,7 @@ Classes:
 from __future__ import annotations
 
 import asyncio
+import logging
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -30,6 +31,8 @@ from pgtail_py.tail_rich import format_entry_compact
 from pgtail_py.tail_status import TailStatus
 from pgtail_py.tailer import LogTailer
 from pgtail_py.time_filter import TimeFilter
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
@@ -245,6 +248,9 @@ class TailApp(App[None]):
             log_directory=self._log_path.parent if self._log_path else None,
         )
 
+        # Expose tailer on state for export/pipe commands to access buffer
+        self._state.tailer = self._tailer
+
         # Start tailer and consumer
         self._running = True
         self._tailer.start()
@@ -351,16 +357,20 @@ class TailApp(App[None]):
             tailer = self._tailer  # Capture for lambda
             try:
                 # Poll for entry in executor to avoid blocking
-                entry: LogEntry | None = await asyncio.get_event_loop().run_in_executor(
+                loop = asyncio.get_running_loop()
+                entry: LogEntry | None = await loop.run_in_executor(
                     None, lambda t=tailer: t.get_entry(timeout=0.05)
                 )
 
                 if entry is not None:
                     self._add_entry(entry)
 
+            except asyncio.CancelledError:
+                # Task was cancelled, stop cleanly
+                break
             except Exception:
-                # Don't crash on individual entry errors
-                pass
+                # Log error but don't crash on individual entry errors
+                logger.debug("Error processing log entry", exc_info=True)
 
             # Small yield to keep UI responsive
             await asyncio.sleep(0.01)

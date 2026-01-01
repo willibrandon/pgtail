@@ -14,8 +14,10 @@ Classes:
 
 from __future__ import annotations
 
+import sys
 from typing import ClassVar
 
+from rich.errors import MarkupError
 from rich.style import Style
 from rich.text import Text
 from textual import events
@@ -25,6 +27,11 @@ from textual.message import Message
 from textual.selection import Selection
 from textual.strip import Strip
 from textual.widgets import Log
+
+# Sentinel value for "end of line" in column positions.
+# Using sys.maxsize instead of a magic number ensures correct behavior
+# even for extremely long lines.
+END_OF_LINE = sys.maxsize
 
 
 class TailLog(Log):
@@ -475,7 +482,7 @@ class TailLog(Log):
                 start_line = min(self._visual_anchor_line, self._cursor_line)
                 end_line = max(self._visual_anchor_line, self._cursor_line)
                 start = Offset(0, start_line)
-                end = Offset(10000, end_line)
+                end = Offset(END_OF_LINE, end_line)
             else:
                 # Visual CHAR mode (v): select from anchor position to cursor position
                 # End is +1 to include character at cursor (vim behavior)
@@ -494,7 +501,7 @@ class TailLog(Log):
         else:
             # Single line selection (no visual mode)
             start = Offset(0, self._cursor_line)
-            end = Offset(10000, self._cursor_line)
+            end = Offset(END_OF_LINE, self._cursor_line)
 
         self._set_selection(Selection(start, end))
 
@@ -556,7 +563,7 @@ class TailLog(Log):
         start_line = selection.start.y if selection.start else 0
         start_col = selection.start.x if selection.start else 0
         end_line = selection.end.y if selection.end else len(self._lines) - 1
-        end_col = selection.end.x if selection.end else 10000
+        end_col = selection.end.x if selection.end else END_OF_LINE
 
         # Clamp lines to valid range
         start_line = max(0, min(start_line, len(self._lines) - 1))
@@ -571,8 +578,12 @@ class TailLog(Log):
         # (matches how lines are rendered)
         plain_lines = []
         for i in range(start_line, end_line + 1):
-            rich_text = Text.from_markup(self._lines[i])
-            plain_lines.append(rich_text.plain)
+            try:
+                rich_text = Text.from_markup(self._lines[i])
+                plain_lines.append(rich_text.plain)
+            except MarkupError:
+                # Fall back to raw text if markup is malformed
+                plain_lines.append(self._lines[i])
 
         if not plain_lines:
             return ""

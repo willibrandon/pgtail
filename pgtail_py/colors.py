@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 from prompt_toolkit import print_formatted_text
@@ -12,6 +11,7 @@ from prompt_toolkit.styles import Style
 from pgtail_py.filter import LogLevel
 from pgtail_py.parser import LogEntry
 from pgtail_py.slow_query import SlowQueryLevel
+from pgtail_py.utils import is_color_disabled
 
 if TYPE_CHECKING:
     from pgtail_py.theme import ThemeManager
@@ -75,14 +75,6 @@ SLOW_QUERY_STYLES = {
     SlowQueryLevel.SLOW: "fg:yellow bold",
     SlowQueryLevel.CRITICAL: "fg:red bold",
 }
-
-
-def _is_color_disabled() -> bool:
-    """Check if color output should be disabled.
-
-    Respects NO_COLOR environment variable (https://no-color.org/).
-    """
-    return "NO_COLOR" in os.environ
 
 
 def format_log_entry(entry: LogEntry) -> FormattedText:
@@ -217,7 +209,7 @@ def print_log_entry(entry: LogEntry, style: Style | None = None) -> None:
         entry: The log entry to print.
         style: Optional custom style. Uses LOG_STYLE if not provided.
     """
-    if _is_color_disabled():
+    if is_color_disabled():
         # Plain output when NO_COLOR is set
         print(entry.raw)
         return

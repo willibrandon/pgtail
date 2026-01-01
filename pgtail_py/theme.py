@@ -521,15 +521,26 @@ class ThemeManager:
         self.builtin_themes = dict(BUILTIN_THEMES)
 
     def scan_custom_themes(self) -> None:
-        """Scan custom themes directory and load all valid themes."""
+        """Scan custom themes directory and load all valid themes.
+
+        Validates that theme files are within the themes directory to
+        prevent symlink attacks that could load themes from arbitrary paths.
+        """
         themes_dir = get_themes_dir()
         if not themes_dir.exists():
             return
 
         self.custom_themes.clear()
+        themes_dir_resolved = themes_dir.resolve()
 
         for theme_file in themes_dir.glob("*.toml"):
             try:
+                # Resolve symlinks and verify path is within themes_dir
+                resolved_path = theme_file.resolve()
+                if not str(resolved_path).startswith(str(themes_dir_resolved)):
+                    # Skip files that resolve outside themes directory (symlink attack)
+                    continue
+
                 theme = load_custom_theme(theme_file)
                 if theme:
                     self.custom_themes[theme.name] = theme

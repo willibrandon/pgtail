@@ -5,10 +5,13 @@ Uses osascript on macOS and notify-send on Linux.
 
 from __future__ import annotations
 
+import logging
 import shutil
 import subprocess
 
 from pgtail_py.notifier import Notifier
+
+logger = logging.getLogger(__name__)
 
 
 class MacOSNotifier(Notifier):
@@ -36,26 +39,36 @@ class MacOSNotifier(Notifier):
         if not self._osascript_path:
             return False
 
-        # Escape double quotes for AppleScript
-        title_escaped = title.replace('"', '\\"')
-        body_escaped = body.replace('"', '\\"')
+        # Escape backslashes first, then double quotes for AppleScript
+        title_escaped = title.replace("\\", "\\\\").replace('"', '\\"')
+        body_escaped = body.replace("\\", "\\\\").replace('"', '\\"')
 
         # Build AppleScript command
         script = f'display notification "{body_escaped}"'
         if subtitle:
-            subtitle_escaped = subtitle.replace('"', '\\"')
+            subtitle_escaped = subtitle.replace("\\", "\\\\").replace('"', '\\"')
             script += f' subtitle "{subtitle_escaped}"'
         script += f' with title "{title_escaped}"'
 
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [self._osascript_path, "-e", script],
                 capture_output=True,
                 timeout=5,
                 check=False,
             )
+            if result.returncode != 0:
+                logger.debug(
+                    "osascript notification failed: %s",
+                    result.stderr.decode("utf-8", errors="replace").strip(),
+                )
+                return False
             return True
-        except (subprocess.TimeoutExpired, OSError):
+        except subprocess.TimeoutExpired:
+            logger.debug("osascript notification timed out")
+            return False
+        except OSError as e:
+            logger.debug("osascript notification error: %s", e)
             return False
 
     def is_available(self) -> bool:
@@ -109,7 +122,7 @@ class LinuxNotifier(Notifier):
             full_body = f"{subtitle}\n{body}"
 
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [
                     self._notify_send_path,
                     "-u",
@@ -123,8 +136,18 @@ class LinuxNotifier(Notifier):
                 timeout=5,
                 check=False,
             )
+            if result.returncode != 0:
+                logger.debug(
+                    "notify-send failed: %s",
+                    result.stderr.decode("utf-8", errors="replace").strip(),
+                )
+                return False
             return True
-        except (subprocess.TimeoutExpired, OSError):
+        except subprocess.TimeoutExpired:
+            logger.debug("notify-send timed out")
+            return False
+        except OSError as e:
+            logger.debug("notify-send error: %s", e)
             return False
 
     def is_available(self) -> bool:
