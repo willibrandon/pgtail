@@ -5,9 +5,10 @@ on:
     tags:
       - 'v*'
 
-# Permissions required for creating releases and pushing to homebrew-tap
+# Permissions required for creating releases, pushing to homebrew-tap, and creating issues
 permissions:
   contents: write
+  issues: write
 
 jobs:
   # Build binaries for Unix-like systems (macOS and Linux)
@@ -273,10 +274,9 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
           $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.exe"
 
-          # Update manifest and submit PR to microsoft/winget-pkgs
-          .\wingetcreate.exe update willibrandon.pgtail `
+          # Submit manifest PR to microsoft/winget-pkgs
+          .\wingetcreate.exe new $url `
             --version $version `
-            --urls $url `
             --token $env:WINGET_PKGS_TOKEN `
             --submit
 
