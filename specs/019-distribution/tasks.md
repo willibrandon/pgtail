@@ -224,27 +224,27 @@
 
 **Purpose**: Documentation and final verification
 
-- [ ] T102 [P] Add Installation section to README.md with pip/pipx/uv commands
-- [ ] T103 [P] Add Homebrew installation instructions (brew tap, brew install) to README.md
-- [ ] T104 [P] Add winget installation instructions to README.md
-- [ ] T105 [P] Add Binary Download section with platform table to README.md
-- [ ] T106 [P] Add Upgrading section with method-specific commands table to README.md
-- [ ] T107 [P] Add macOS Gatekeeper workaround documentation (xattr -d com.apple.quarantine) to README.md
-- [ ] T108 [P] Add Windows SmartScreen workaround documentation (click "More info" → "Run anyway") to README.md
-- [ ] T109 Add Release Process section documenting tag creation workflow to README.md
-- [ ] T118 [P] Add summary table of installation methods, platforms, and Python requirements per FR-028 to README.md
-- [ ] T121 [P] Document expected OS error behavior for incompatible architecture binaries in README.md troubleshooting
-- [ ] T122 [P] Document authentication error behavior when repository is inaccessible in README.md troubleshooting
-- [ ] T123 [P] Document download resumption/retry behavior for interrupted downloads in README.md troubleshooting
-- [ ] T124 [P] Document binary update path (manual re-download required) in README.md troubleshooting
-- [ ] T110 Configure HOMEBREW_TAP_TOKEN secret in pgtail repository settings
-- [ ] T111 Configure WINGET_PKGS_TOKEN secret in pgtail repository settings
-- [ ] T112 Run full release workflow test with v0.1.0 tag
-- [ ] T113 Verify all 5 binaries are attached to GitHub Release
-- [ ] T114 Verify SHA256 checksums are attached to GitHub Release
-- [ ] T115 Verify Homebrew formula is updated in homebrew-tap repository
-- [ ] T116 Verify winget PR is submitted to microsoft/winget-pkgs
-- [ ] T117 Run quickstart.md validation checklist
+- [x] T102 [P] Add Installation section to README.md with pip/pipx/uv commands
+- [x] T103 [P] Add Homebrew installation instructions (brew tap, brew install) to README.md
+- [x] T104 [P] Add winget installation instructions to README.md
+- [x] T105 [P] Add Binary Download section with platform table to README.md
+- [x] T106 [P] Add Upgrading section with method-specific commands table to README.md
+- [x] T107 [P] Add macOS Gatekeeper workaround documentation (xattr -d com.apple.quarantine) to README.md
+- [x] T108 [P] Add Windows SmartScreen workaround documentation (click "More info" → "Run anyway") to README.md
+- [x] T109 Add Release Process section documenting tag creation workflow to README.md
+- [x] T118 [P] Add summary table of installation methods, platforms, and Python requirements per FR-028 to README.md
+- [x] T121 [P] Document expected OS error behavior for incompatible architecture binaries in README.md troubleshooting
+- [x] T122 [P] Document authentication error behavior when repository is inaccessible in README.md troubleshooting
+- [x] T123 [P] Document download resumption/retry behavior for interrupted downloads in README.md troubleshooting
+- [x] T124 [P] Document binary update path (manual re-download required) in README.md troubleshooting
+- [ ] T110 Configure HOMEBREW_TAP_TOKEN secret in pgtail repository settings (MANUAL: requires repository admin access)
+- [ ] T111 Configure WINGET_PKGS_TOKEN secret in pgtail repository settings (MANUAL: requires repository admin access)
+- [ ] T112 Run full release workflow test with v0.1.0 tag (MANUAL: requires pushing tag to trigger workflow)
+- [ ] T113 Verify all 5 binaries are attached to GitHub Release (MANUAL: post-release verification)
+- [ ] T114 Verify SHA256 checksums are attached to GitHub Release (MANUAL: post-release verification)
+- [ ] T115 Verify Homebrew formula is updated in homebrew-tap repository (MANUAL: post-release verification)
+- [ ] T116 Verify winget PR is submitted to microsoft/winget-pkgs (MANUAL: post-release verification)
+- [x] T117 Run quickstart.md validation checklist
 
 ---
 
