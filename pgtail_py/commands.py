@@ -88,9 +88,7 @@ class PgtailCompleter(Completer):
     - Log level names for 'levels' command
     """
 
-    def __init__(
-        self, get_instances: Callable[[], list[Instance]] | None = None
-    ) -> None:
+    def __init__(self, get_instances: Callable[[], list[Instance]] | None = None) -> None:
         """Initialize the completer.
 
         Args:

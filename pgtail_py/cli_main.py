@@ -118,7 +118,9 @@ def tail(
         raise typer.Exit(1)
 
     if instance_id < 0 or instance_id >= len(instances):
-        typer.echo(f"Invalid instance ID: {instance_id}. Use 'pgtail list' to see instances.", err=True)
+        typer.echo(
+            f"Invalid instance ID: {instance_id}. Use 'pgtail list' to see instances.", err=True
+        )
         raise typer.Exit(1)
 
     instance = instances[instance_id]

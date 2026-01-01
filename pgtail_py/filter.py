@@ -74,8 +74,7 @@ class LogLevel(IntEnum):
             valid = ", ".join(level.name for level in cls)
             abbrevs = ", ".join(sorted(set(_LEVEL_ALIASES.keys())))
             raise ValueError(
-                f"Unknown log level '{name}'. Valid levels: {valid}. "
-                f"Abbreviations: {abbrevs}"
+                f"Unknown log level '{name}'. Valid levels: {valid}. Abbreviations: {abbrevs}"
             ) from None
 
     @classmethod

@@ -315,9 +315,7 @@ def handle_help_command(
     return True
 
 
-def handle_help_keys_command(
-    buffer: TailBuffer | None, log_widget: TailLog | None = None
-) -> bool:
+def handle_help_keys_command(buffer: TailBuffer | None, log_widget: TailLog | None = None) -> bool:
     """Handle 'help keys' command to show keybinding reference.
 
     Args:
