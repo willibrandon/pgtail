@@ -18,6 +18,7 @@ import importlib.metadata
 import json
 import os
 import platform
+import ssl
 import sys
 import threading
 import urllib.error
@@ -334,7 +335,6 @@ def _get_ssl_context() -> ssl.SSLContext | None:
     """Get SSL context with certifi CA bundle for PyInstaller compatibility."""
     try:
         import certifi
-        import ssl
 
         ctx = ssl.create_default_context(cafile=certifi.where())
         return ctx
