@@ -330,6 +330,18 @@ def get_upgrade_command(method: InstallMethod) -> str:
 # =============================================================================
 
 
+def _get_ssl_context() -> ssl.SSLContext | None:
+    """Get SSL context with certifi CA bundle for PyInstaller compatibility."""
+    try:
+        import certifi
+        import ssl
+
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        return ctx
+    except ImportError:
+        return None
+
+
 def fetch_latest_release() -> ReleaseInfo | None:
     """Fetch latest release from GitHub Releases API.
 
@@ -345,9 +357,10 @@ def fetch_latest_release() -> ReleaseInfo | None:
     }
 
     req = urllib.request.Request(RELEASES_URL, headers=headers)
+    ssl_context = _get_ssl_context()
 
     try:
-        with urllib.request.urlopen(req, timeout=API_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=API_TIMEOUT, context=ssl_context) as resp:
             if resp.status != 200:
                 return None
             data = json.loads(resp.read().decode("utf-8"))
