@@ -137,7 +137,10 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/tail_status.py` - TailStatus for status bar state (counts, filters, mode, instance info)
 - `pgtail_py/tail_rich.py` - Rich text formatting for log entries (LEVEL_STYLES, format_entry_compact)
 - `pgtail_py/tail_help.py` - HelpScreen modal overlay with keybinding reference
-- `pgtail_py/cli_tail.py` - Tail mode command handlers (level, filter, since, errors, etc.)
+- `pgtail_py/cli_tail.py` - Tail mode command dispatcher and routing (262 LOC)
+- `pgtail_py/cli_tail_filters.py` - Filter command handlers (level, filter, since, until, between, slow, clear)
+- `pgtail_py/cli_tail_display.py` - Display command handlers (errors, connections)
+- `pgtail_py/cli_tail_help.py` - Help command handlers and COMMAND_HELP dictionary
 - `pgtail_py/tail_buffer.py` - TailBuffer for prompt_toolkit mode (deprecated)
 - `pgtail_py/tail_layout.py` - TailLayout for prompt_toolkit mode (deprecated)
 - `pgtail_py/tail_app.py` - TailApp for prompt_toolkit mode (deprecated)
@@ -478,7 +481,10 @@ The `tail` command enters a Textual-based split-screen interface:
 - `tail_status.py`: TailStatus state container, format_header(), format_rich()
 - `tail_rich.py`: format_entry_compact() with Rich markup, LEVEL_STYLES
 - `tail_help.py`: HelpScreen modal with keybinding categories
-- `cli_tail.py`: Command handlers, COMMAND_HELP dictionary
+- `cli_tail.py`: Command dispatcher and routing
+- `cli_tail_filters.py`: Filter command handlers (level, filter, since, until, between, slow, clear)
+- `cli_tail_display.py`: Display command handlers (errors, connections)
+- `cli_tail_help.py`: Help command handlers and COMMAND_HELP dictionary
 
 Filter changes trigger `_rebuild_log()` which re-applies filters to stored entries and recalculates counts.
 
