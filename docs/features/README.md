@@ -90,7 +90,3 @@ Or reference the file directly when planning.
 11. themes - completed
 12. sql-syntax-highlighting - completed
 
-### Phase 5: Advanced
-13. split-panes
-14. webhooks
-15. query-explain
