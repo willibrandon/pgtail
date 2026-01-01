@@ -499,5 +499,52 @@ Filter changes trigger `_rebuild_log()` which re-applies filters to stored entri
 - 017-log-selection: Textual-based tail mode with vim navigation, visual mode selection (v/V), clipboard support (OSC 52 + pyperclip), header bar with keybinding hints, help overlay (?), level filter syntax with +/- suffixes and abbreviations, command-specific help
 - 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input
 
+## MCP Tools: Textual Documentation
+
+Claude has access to Textual framework documentation via MCP tools. **Use these tools proactively** when working on any Textual UI code in pgtail (tail mode, widgets, styling, testing).
+
+**Available tools:**
+
+| Tool | Use Case |
+|------|----------|
+| `mcp__textual-docs__search_textual_docs` | Search docs with keywords or natural language (e.g., "how to test button clicks", "custom widget events") |
+| `mcp__textual-docs__get_textual_doc` | Fetch specific doc page by path (e.g., `widgets/button.md`, `guide/testing.md`) |
+| `mcp__textual-docs__get_testing_recipe` | Get proven testing patterns (click, input, keyboard, worker, screen, focus, mock, scroll, datatable) |
+| `mcp__textual-docs__list_testing_recipes` | List all available curated testing recipes |
+| `mcp__textual-docs__list_textual_docs` | Browse doc categories or list documents in a category |
+
+**When to use during spec-driven development:**
+
+1. **During `/speckit.plan`** - Research Textual patterns, widgets, and APIs before designing implementation
+2. **During `/speckit.implement`** - Look up specific widget APIs, event handling, styling, and composition patterns
+3. **When writing tests** - Use `get_testing_recipe` FIRST to get proven patterns before writing Textual tests
+4. **When debugging UI issues** - Search for known issues, workarounds, and best practices
+
+**Search parameters:**
+- `query` - Keywords or natural language question
+- `category` - Filter by: widget, style, guide, api, event, how-to, blog, css_type
+- `testing_only` - Set `true` to only return testing-related content
+- `limit` - Max results (default 5)
+
+**Example usage in tail mode development:**
+```
+# Research before implementing a new widget
+search_textual_docs(query="custom scrollable container", category="widget")
+
+# Get testing patterns before writing tests
+get_testing_recipe(query="keyboard navigation")
+
+# Look up specific widget API
+get_textual_doc(path="widgets/log.md")
+```
+
+**Textual-related pgtail modules:**
+- `tail_textual.py` - TailApp (main Application)
+- `tail_log.py` - TailLog widget (extends Log)
+- `tail_input.py` - TailInput widget
+- `tail_status.py` - Status bar state
+- `tail_help.py` - HelpScreen modal
+- `tail_rich.py` - Rich text formatting
+
 ## Active Technologies
 - N/A (no persistence required) (018-textual-sql-highlighting)
