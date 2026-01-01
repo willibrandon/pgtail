@@ -260,13 +260,26 @@ jobs:
           echo "version=$version" >> $env:GITHUB_OUTPUT
           echo "Updating winget manifest to version $version"
 
-      - name: Install wingetcreate
+      - name: Check if package exists in winget-pkgs
+        id: check
         shell: pwsh
         run: |
-          # Download and install wingetcreate
+          $response = Invoke-WebRequest -Uri "https://api.github.com/repos/microsoft/winget-pkgs/contents/manifests/w/willibrandon/pgtail" -Method Head -SkipHttpErrorCheck
+          if ($response.StatusCode -eq 200) {
+            echo "exists=true" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "exists=false" >> $env:GITHUB_OUTPUT
+            echo "Package not yet in winget-pkgs, skipping update"
+          }
+
+      - name: Install wingetcreate
+        if: steps.check.outputs.exists == 'true'
+        shell: pwsh
+        run: |
           Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
 
       - name: Update and submit winget manifest
+        if: steps.check.outputs.exists == 'true'
         shell: pwsh
         env:
           WINGET_PKGS_TOKEN: ${{ secrets.WINGET_PKGS_TOKEN }}
@@ -274,7 +287,6 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
           $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.exe"
 
-          # Update manifest and submit PR to microsoft/winget-pkgs
           .\wingetcreate.exe update willibrandon.pgtail `
             --version $version `
             --urls $url `
