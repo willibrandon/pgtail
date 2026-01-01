@@ -143,6 +143,15 @@ class BufferSection:
 
 
 @dataclass
+class UpdatesSection:
+    """Update checking settings."""
+
+    check: bool = True  # Enable startup update check
+    last_check: str = ""  # ISO 8601 timestamp of last check
+    last_version: str = ""  # Latest version seen at last check
+
+
+@dataclass
 class ConfigSchema:
     """Complete configuration schema with all sections."""
 
@@ -152,6 +161,7 @@ class ConfigSchema:
     theme: ThemeSection = field(default_factory=ThemeSection)
     notifications: NotificationsSection = field(default_factory=NotificationsSection)
     buffer: BufferSection = field(default_factory=BufferSection)
+    updates: UpdatesSection = field(default_factory=UpdatesSection)
 
 
 # =============================================================================
@@ -299,6 +309,42 @@ def validate_optional_positive_int(value: Any) -> int | None:
     raise ValueError("must be a positive integer or null")
 
 
+def validate_iso8601(value: Any) -> str:
+    """Validate ISO 8601 datetime string.
+
+    Accepts empty string or valid ISO 8601 datetime.
+    """
+    if not isinstance(value, str):
+        raise ValueError("must be an ISO 8601 datetime string")
+    if value == "":
+        return ""
+    try:
+        # Normalize Z suffix to +00:00 for fromisoformat
+        normalized = value.replace("Z", "+00:00")
+        datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise ValueError(f"invalid ISO 8601 datetime: {e}") from None
+    return value
+
+
+def validate_semver(value: Any) -> str:
+    """Validate semantic version string.
+
+    Accepts empty string or valid semver (e.g., "0.1.0", "1.0.0-beta.1").
+    """
+    import re
+
+    if not isinstance(value, str):
+        raise ValueError("must be a semver string")
+    if value == "":
+        return ""
+    # Basic semver pattern
+    pattern = r"^\d+\.\d+\.\d+(-[\w.]+)?$"
+    if not re.match(pattern, value):
+        raise ValueError("must be a valid semver string (e.g., 0.1.0)")
+    return value
+
+
 # Settings schema: maps dotted key to (default_value, validator, type_hint)
 SettingDef = tuple[Any, Callable[[Any], Any], str]
 
@@ -322,6 +368,9 @@ SETTINGS_SCHEMA: dict[str, SettingDef] = {
     "buffer.error_stats_max": (10000, validate_positive_int, "int"),
     "buffer.connection_stats_max": (10000, validate_positive_int, "int"),
     "buffer.tail_log_max": (10000, validate_positive_int, "int"),
+    "updates.check": (True, validate_bool, "bool"),
+    "updates.last_check": ("", validate_iso8601, "str"),
+    "updates.last_version": ("", validate_semver, "str"),
 }
 
 SETTING_KEYS = list(SETTINGS_SCHEMA.keys())
@@ -431,6 +480,11 @@ DEFAULT_CONFIG_TEMPLATE = """\
 # error_stats_max = 10000      # Max events in error statistics
 # connection_stats_max = 10000 # Max events in connection statistics
 # tail_log_max = 10000         # Max lines in tail mode display
+
+[updates]
+# check = true                 # Enable startup update check (set to false to disable)
+# last_check = ""              # Timestamp of last update check (managed automatically)
+# last_version = ""            # Latest version seen (managed automatically)
 """
 
 

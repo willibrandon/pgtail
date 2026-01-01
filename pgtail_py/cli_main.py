@@ -12,8 +12,7 @@ import typer
 
 from pgtail_py.detector import detect_all
 from pgtail_py.terminal import enable_vt100_mode
-
-__version__ = "0.1.0"
+from pgtail_py.version import get_version
 
 app = typer.Typer(
     name="pgtail",
@@ -26,7 +25,7 @@ app = typer.Typer(
 def version_callback(value: bool) -> None:
     """Show version and exit."""
     if value:
-        typer.echo(f"pgtail version {__version__}")
+        typer.echo(f"pgtail {get_version()}")
         raise typer.Exit()
 
 

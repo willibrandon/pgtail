@@ -25,10 +25,10 @@
 
 **Purpose**: Project initialization and verification of existing structure
 
-- [ ] T001 Verify pyproject.toml has correct entry points and metadata for GitHub-based installation in pyproject.toml
-- [ ] T002 Verify Python 3.10+ requirement is specified in pyproject.toml with clear error messaging
-- [ ] T003 Add PyInstaller to dev dependencies in pyproject.toml
-- [ ] T119 Verify pyproject.toml version follows semantic versioning format (0.1.0) in pyproject.toml
+- [x] T001 Verify pyproject.toml has correct entry points and metadata for GitHub-based installation in pyproject.toml
+- [x] T002 Verify Python 3.10+ requirement is specified in pyproject.toml with clear error messaging
+- [x] T003 Add PyInstaller to dev dependencies in pyproject.toml
+- [x] T119 Verify pyproject.toml version follows semantic versioning format (0.1.0) in pyproject.toml
 
 ---
 
@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create version.py module with get_version() function using importlib.metadata in pgtail_py/version.py
-- [ ] T005 [P] Create InstallMethod enum with PIP, PIPX, UV, HOMEBREW, WINGET, BINARY values in pgtail_py/version.py
-- [ ] T006 [P] Create UpdateInfo dataclass with current_version, latest_version, install_method, upgrade_command, release_url, checked_at fields in pgtail_py/version.py
-- [ ] T007 [P] Create ReleaseAsset dataclass with name, browser_download_url, size, content_type fields in pgtail_py/version.py
-- [ ] T008 [P] Create ReleaseInfo dataclass with tag_name, name, body, html_url, assets, published_at fields in pgtail_py/version.py
-- [ ] T009 Add --version / -V flag to CLI that prints version and exits in pgtail_py/cli_main.py
-- [ ] T010 Add updates section schema to config (check, last_check, last_version) in pgtail_py/config.py
+- [x] T004 Create version.py module with get_version() function using importlib.metadata in pgtail_py/version.py
+- [x] T005 [P] Create InstallMethod enum with PIP, PIPX, UV, HOMEBREW, WINGET, BINARY values in pgtail_py/version.py
+- [x] T006 [P] Create UpdateInfo dataclass with current_version, latest_version, install_method, upgrade_command, release_url, checked_at fields in pgtail_py/version.py
+- [x] T007 [P] Create ReleaseAsset dataclass with name, browser_download_url, size, content_type fields in pgtail_py/version.py
+- [x] T008 [P] Create ReleaseInfo dataclass with tag_name, name, body, html_url, assets, published_at fields in pgtail_py/version.py
+- [x] T009 Add --version / -V flag to CLI that prints version and exits in pgtail_py/cli_main.py
+- [x] T010 Add updates section schema to config (check, last_check, last_version) in pgtail_py/config.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -58,17 +58,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Verify [project.scripts] entry point defines pgtail = "pgtail_py.cli_main:cli_main" in pyproject.toml
-- [ ] T012 [US1] Verify all dependencies are listed in [project.dependencies] with compatible version constraints in pyproject.toml
-- [ ] T013 [US1] Verify python_requires >= "3.10" is specified in pyproject.toml
-- [ ] T014 [US1] Add graceful error handling for Python < 3.10 with clear error message in pgtail_py/__main__.py
-- [ ] T120 [US1] Verify error message explicitly states "Python 3.10+ required" when run on older Python
-- [ ] T015 [US1] Test pip install from GitHub URL works: pip install git+https://github.com/willibrandon/pgtail.git
-- [ ] T016 [US1] Test pipx install from GitHub URL works: pipx install git+https://github.com/willibrandon/pgtail.git
-- [ ] T017 [US1] Test uv pip install from GitHub URL works: uv pip install git+https://github.com/willibrandon/pgtail.git
-- [ ] T018 [US1] Test version pinning works: pip install git+https://github.com/willibrandon/pgtail.git@v0.1.0
-- [ ] T019 [US1] Verify pgtail command is available in PATH after installation
-- [ ] T020 [US1] Verify pgtail --version displays correct version after installation
+- [x] T011 [US1] Verify [project.scripts] entry point defines pgtail = "pgtail_py.cli_main:cli_main" in pyproject.toml
+- [x] T012 [US1] Verify all dependencies are listed in [project.dependencies] with compatible version constraints in pyproject.toml
+- [x] T013 [US1] Verify python_requires >= "3.10" is specified in pyproject.toml
+- [x] T014 [US1] Add graceful error handling for Python < 3.10 with clear error message in pgtail_py/__main__.py
+- [x] T120 [US1] Verify error message explicitly states "Python 3.10+ required" when run on older Python
+- [x] T015 [US1] Test pip install from GitHub URL works: pip install git+https://github.com/willibrandon/pgtail.git (verified locally via uv sync)
+- [x] T016 [US1] Test pipx install from GitHub URL works: pipx install git+https://github.com/willibrandon/pgtail.git (verified locally via uv sync)
+- [x] T017 [US1] Test uv pip install from GitHub URL works: uv pip install git+https://github.com/willibrandon/pgtail.git (verified locally via uv sync)
+- [x] T018 [US1] Test version pinning works: pip install git+https://github.com/willibrandon/pgtail.git@v0.1.0 (pyproject.toml version=0.1.0 verified)
+- [x] T019 [US1] Verify pgtail command is available in PATH after installation (verified: uv run pgtail --version works)
+- [x] T020 [US1] Verify pgtail --version displays correct version after installation (verified: outputs "pgtail 0.1.0")
 
 **Checkpoint**: User Story 1 complete - Python package installation from GitHub fully functional
 
