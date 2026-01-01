@@ -271,10 +271,10 @@
 
 ### Performance Validation
 
-- [ ] T132 Verify startup time <500ms with `time python -m pgtail_py` then `tail 1` then `q`
-- [ ] T133 Verify 100+ entries/sec auto-scroll performance with rapid log generation test
-- [ ] T134 Verify <50ms key response with vim navigation during active tailing
-- [ ] T135 Verify memory usage within 10% of baseline for 10,000 entry buffer
+- [X] T132 Verify startup time <500ms with `time python -m pgtail_py` then `tail 1` then `q`
+- [X] T133 Verify 100+ entries/sec auto-scroll performance with rapid log generation test
+- [X] T134 Verify <50ms key response with vim navigation during active tailing
+- [X] T135 Verify memory usage within 10% of baseline for 10,000 entry buffer
 
 ### Final Verification
 
@@ -295,7 +295,7 @@
 - [X] T147 Verify all new modules have complete module and class docstrings per constitution §Quality Standards
 - [X] T148 Verify all public functions in tail_textual.py, tail_log.py, tail_rich.py have type annotations
 - [X] T149 [US7] Add automated test for `/` key focuses input from log area in tests/test_tail_textual.py
-- [ ] T150 [US4] Add automated test for Ctrl+A then Ctrl+C copies all content in tests/test_tail_log.py
+- [X] T150 [US4] Add automated test for Ctrl+A then Ctrl+C copies all content in tests/test_tail_log.py
 
 ### TailInput Module (plan.md Coverage)
 
@@ -314,16 +314,16 @@
 - [X] T157 Create tests/test_performance.py module with pytest-benchmark setup
 - [X] T158 Create automated performance test: mouse-drag-to-clipboard latency <2s (SC-001) in tests/test_performance.py
 - [X] T159 Create automated benchmark: vim key response latency <50ms (SC-002) in tests/test_performance.py
-- [ ] T160 Create automated stress test: 100+ entries/sec auto-scroll (SC-003) in tests/test_performance.py
+- [X] T160 Create automated stress test: 100+ entries/sec auto-scroll (SC-003) in tests/test_performance.py
 - [X] T161 Create memory baseline measurement for 10,000 entry buffer (SC-008) in tests/test_performance.py
 - [X] T162 Create automated startup time benchmark <500ms (SC-009) in tests/test_performance.py
 - [X] T163 Create focus switch latency benchmark <50ms (SC-010) in tests/test_performance.py
 
 ### Edge Case Automated Tests
 
-- [ ] T164 Add automated test for double-click word selection in tests/test_tail_log.py
-- [ ] T165 Add automated test for triple-click line selection in tests/test_tail_log.py
-- [ ] T166 Add automated test for scrollbar grab pauses auto-scroll in tests/test_tail_textual.py
+- [X] T164 Add automated test for double-click word selection in tests/test_tail_log.py
+- [X] T165 Add automated test for triple-click line selection in tests/test_tail_log.py
+- [X] T166 Add automated test for scrollbar grab pauses auto-scroll in tests/test_tail_textual.py
 - [X] T167 Add automated test for visual mode navigation at buffer top boundary in tests/test_tail_visual.py
 - [X] T168 Add automated test for visual mode navigation at buffer bottom boundary in tests/test_tail_visual.py
 

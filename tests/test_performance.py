@@ -208,3 +208,104 @@ class TestClipboardLatency:
             elapsed = time.perf_counter() - start
 
             assert elapsed < 2.0, f"Copy latency {elapsed:.3f}s exceeds 2s"
+
+
+class TestAutoScrollStress:
+    """Stress test for 100+ entries/sec auto-scroll (SC-003, T160)."""
+
+    @pytest.mark.asyncio
+    async def test_hundred_entries_per_second(self) -> None:
+        """Test that TailLog can handle 100+ entries/sec with auto-scroll.
+
+        This test writes 100 entries and measures total time to ensure
+        the widget can keep up with high-frequency log output.
+        """
+        from textual.app import App, ComposeResult
+
+        class TestApp(App):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log", auto_scroll=True)
+
+        app = TestApp()
+
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+
+            # Write 100 entries and measure time
+            start = time.perf_counter()
+            for i in range(100):
+                log.write_line(f"Entry {i:04d}: Test log message with some content")
+            await pilot.pause()
+            elapsed = time.perf_counter() - start
+
+            # Should complete in <1 second (allowing margin for test overhead)
+            assert elapsed < 1.0, f"100 entries took {elapsed:.3f}s, exceeds 1s threshold"
+            assert log.line_count == 100
+
+    @pytest.mark.asyncio
+    async def test_sustained_high_throughput(self) -> None:
+        """Test sustained high throughput over multiple batches.
+
+        This test simulates continuous log streaming at 100+ entries/sec
+        for 5 batches to verify sustained performance.
+        """
+        from textual.app import App, ComposeResult
+
+        class TestApp(App):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log", auto_scroll=True)
+
+        app = TestApp()
+
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+
+            # Write 5 batches of 100 entries each
+            batch_times: list[float] = []
+            for batch in range(5):
+                start = time.perf_counter()
+                for i in range(100):
+                    log.write_line(f"Batch {batch} Entry {i:04d}: Log message")
+                await pilot.pause()
+                batch_times.append(time.perf_counter() - start)
+
+            # All batches should complete in <1 second each
+            for idx, elapsed in enumerate(batch_times):
+                assert elapsed < 1.0, f"Batch {idx} took {elapsed:.3f}s, exceeds 1s"
+
+            assert log.line_count == 500
+
+    @pytest.mark.asyncio
+    async def test_auto_scroll_follows_new_entries(self) -> None:
+        """Test that auto-scroll keeps up with rapid entry addition.
+
+        When auto_scroll=True, the view should stay at the bottom
+        as new entries are added rapidly.
+        """
+        from textual.app import App, ComposeResult
+
+        class TestApp(App):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log", auto_scroll=True)
+
+        app = TestApp()
+
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+
+            # Write many entries rapidly
+            for i in range(200):
+                log.write_line(f"Rapid entry {i:04d}")
+
+            await pilot.pause()
+
+            # Verify all entries were written
+            assert log.line_count == 200
+
+            # Verify widget is at or near bottom (auto-scroll working)
+            # is_vertical_scroll_end should be True when at bottom
+            # (allowing for small differences due to viewport size)
+            scroll_y = log.scroll_offset.y
+            max_scroll = log.virtual_size.height - log.scrollable_content_region.height
+            # Should be close to bottom (within 5 lines)
+            assert max_scroll - scroll_y <= 5, "Auto-scroll should keep view near bottom"
