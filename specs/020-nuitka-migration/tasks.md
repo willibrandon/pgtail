@@ -94,17 +94,17 @@
 
 ### Implementation for User Story 6
 
-- [ ] T020 [US6] Verify scripts/build-nuitka.sh includes `--include-package=pgtail_py` flag
-- [ ] T021 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-package=psutil` flag (native extension)
-- [ ] T022 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-package-data=certifi` flag (CA bundle)
-- [ ] T023 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.detector_unix` flag
-- [ ] T024 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.detector_windows` flag
-- [ ] T025 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.notifier_unix` flag
-- [ ] T026 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.notifier_windows` flag
-- [ ] T027 [US6] Test REPL mode: run `./dist/pgtail-*/pgtail`, enter help command, exit with Ctrl+D
-- [ ] T028 [US6] Test list command: run `./dist/pgtail-*/pgtail list` and verify PostgreSQL detection works
-- [ ] T029 [US6] Test tail mode: run `./dist/pgtail-*/pgtail tail 0` (if instance available) and verify UI renders
-- [ ] T030 [US6] Test --check-update: run `./dist/pgtail-*/pgtail --check-update` and verify HTTPS works (certifi CA bundle)
+- [x] T020 [US6] Verify scripts/build-nuitka.sh includes `--include-package=pgtail_py` flag
+- [x] T021 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-package=psutil` flag (native extension)
+- [x] T022 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-package-data=certifi` flag (CA bundle)
+- [x] T023 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.detector_unix` flag
+- [x] T024 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.detector_windows` flag
+- [x] T025 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.notifier_unix` flag
+- [x] T026 [P] [US6] Verify scripts/build-nuitka.sh includes `--include-module=pgtail_py.notifier_windows` flag
+- [x] T027 [US6] Test REPL mode: run `./dist/pgtail-*/pgtail`, enter help command, exit with Ctrl+D
+- [x] T028 [US6] Test list command: run `./dist/pgtail-*/pgtail list` and verify PostgreSQL detection works
+- [x] T029 [US6] Test tail mode: run `./dist/pgtail-*/pgtail tail 0` (if instance available) and verify UI renders
+- [x] T030 [US6] Test --check-update: run `./dist/pgtail-*/pgtail --check-update` and verify HTTPS works (certifi CA bundle)
 
 **Checkpoint**: All core functionality verified in compiled binary
 
@@ -118,30 +118,30 @@
 
 ### CI Workflow Implementation
 
-- [ ] T031 [US2] Create .github/workflows/release.yml with Nuitka build (replace PyInstaller workflow)
-- [ ] T032 [P] [US2] Add build matrix in release.yml: macos-14 (arm64), macos-15-intel (x86_64), ubuntu-latest (x86_64), ubuntu-24.04-arm (arm64), windows-latest (x86_64)
-- [ ] T098 [US2] Configure `timeout-minutes: 30` for each build job in release.yml (SC-003)
-- [ ] T033 [P] [US2] Add Python 3.12 setup step in release.yml using actions/setup-python
-- [ ] T034 [P] [US2] Add uv setup step in release.yml using astral-sh/setup-uv
-- [ ] T035 [US2] Add uv sync step: `uv sync --extra dev`
-- [ ] T036 [US2] Add Nuitka build step: `uv run nuitka <flags>` with all required flags from research.md
-- [ ] T037 [US2] Add post-build rename step: pgtail.dist/ -> pgtail-{platform}-{arch}/
-- [ ] T038 [US2] Add verification step: run `./dist/pgtail-*/pgtail --version` and assert exit code 0
+- [x] T031 [US2] Create .github/workflows/release.yml with Nuitka build (replace PyInstaller workflow)
+- [x] T032 [P] [US2] Add build matrix in release.yml: macos-14 (arm64), macos-15-intel (x86_64), ubuntu-latest (x86_64), ubuntu-24.04-arm (arm64), windows-latest (x86_64)
+- [x] T098 [US2] Configure `timeout-minutes: 30` for each build job in release.yml (SC-003)
+- [x] T033 [P] [US2] Add Python 3.12 setup step in release.yml using actions/setup-python
+- [x] T034 [P] [US2] Add uv setup step in release.yml using astral-sh/setup-uv
+- [x] T035 [US2] Add uv sync step: `uv sync --extra dev`
+- [x] T036 [US2] Add Nuitka build step: `uv run nuitka <flags>` with all required flags from research.md
+- [x] T037 [US2] Add post-build rename step: pgtail.dist/ -> pgtail-{platform}-{arch}/
+- [x] T038 [US2] Add verification step: run `./dist/pgtail-*/pgtail --version` and assert exit code 0
 
 ### Archive Creation
 
-- [ ] T039 [P] [US2] Add tar.gz creation step for Unix platforms in release.yml
-- [ ] T040 [P] [US2] Add ZIP creation step for Windows platform in release.yml
-- [ ] T041 [US2] Add SHA256 checksum generation step for all archives in release.yml
+- [x] T039 [P] [US2] Add tar.gz creation step for Unix platforms in release.yml
+- [x] T040 [P] [US2] Add ZIP creation step for Windows platform in release.yml
+- [x] T041 [US2] Add SHA256 checksum generation step for all archives in release.yml
 
 ### Artifact Upload
 
-- [ ] T042 [US2] Add upload-artifact step for archives and checksums in release.yml
+- [x] T042 [US2] Add upload-artifact step for archives and checksums in release.yml
 
 ### GitHub Release
 
-- [ ] T043 [US2] Add release job that downloads artifacts and creates GitHub Release with all files
-- [ ] T044 [US2] Add failure notification job that creates GitHub issue if any build step fails (FR-021)
+- [x] T043 [US2] Add release job that downloads artifacts and creates GitHub Release with all files
+- [x] T044 [US2] Add failure notification job that creates GitHub issue if any build step fails (FR-021)
 
 ### CI Verification
 
