@@ -274,8 +274,12 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
           $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.exe"
 
-          # Submit manifest PR to microsoft/winget-pkgs
-          .\wingetcreate.exe new $url --token $env:WINGET_PKGS_TOKEN
+          # Update manifest and submit PR to microsoft/winget-pkgs
+          .\wingetcreate.exe update willibrandon.pgtail `
+            --version $version `
+            --urls $url `
+            --token $env:WINGET_PKGS_TOKEN `
+            --submit
 
   # Notify on failure
   notify-failure:
