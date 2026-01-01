@@ -486,7 +486,9 @@ class TailApp(App[None]):
         # Re-add entries that match current filters
         for entry in self._entries:
             if self._entry_matches_filters(entry):
-                formatted = format_entry_compact(entry, theme=self._state.theme_manager.current_theme)
+                formatted = format_entry_compact(
+                    entry, theme=self._state.theme_manager.current_theme
+                )
                 log_widget.write_line(formatted)
                 if self._status:
                     self._status.update_from_entry(entry)
@@ -623,11 +625,15 @@ class TailApp(App[None]):
                     # Rebuild log to re-render all entries with new theme colors
                     self._rebuild_log()
                     # Show success message with theme name in color
-                    log_widget.write_line(f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]")
+                    log_widget.write_line(
+                        f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]"
+                    )
                 else:
                     # Show error - theme not found
                     available = ", ".join(sorted(self._state.theme_manager._themes.keys()))
-                    log_widget.write_line(f"[bold red]✗[/] Unknown theme [bold yellow]{theme_name}[/]. Available: {available}")
+                    log_widget.write_line(
+                        f"[bold red]✗[/] Unknown theme [bold yellow]{theme_name}[/]. Available: {available}"
+                    )
             self._update_status()
             return
 
