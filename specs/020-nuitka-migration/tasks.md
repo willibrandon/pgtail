@@ -145,10 +145,10 @@
 
 ### CI Verification
 
-- [ ] T045 [US2] Push test tag (e.g., v0.2.0-rc1) to trigger CI workflow
-- [ ] T046 [US2] Verify all 5 platform builds complete successfully
-- [ ] T047 [US2] Verify each platform artifact runs `--version` in CI logs
-- [ ] T048 [US2] Verify SHA256 checksums attached to release
+- [x] T045 [US2] Push test tag (e.g., v0.2.0-rc1) to trigger CI workflow
+- [x] T046 [US2] Verify all 5 platform builds complete successfully
+- [x] T047 [US2] Verify each platform artifact runs `--version` in CI logs
+- [x] T048 [US2] Verify SHA256 checksums attached to release
 
 **Checkpoint**: All 5 platforms build in CI, verification passes
 
