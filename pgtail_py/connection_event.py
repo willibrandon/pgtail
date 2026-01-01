@@ -90,14 +90,18 @@ class ConnectionEvent:
         port: int | None = None
         if entry.remote_port is not None:
             port = entry.remote_port
-        elif data.get("port"):
-            with contextlib.suppress(ValueError, TypeError):
-                port = int(data["port"])
+        else:
+            port_str = data.get("port")
+            if port_str:
+                with contextlib.suppress(ValueError, TypeError):
+                    port = int(port_str)
 
         # Parse duration for disconnect events
         duration_seconds: float | None = None
-        if event_type == ConnectionEventType.DISCONNECT and "duration" in data:
-            duration_seconds = _parse_duration(data["duration"])
+        if event_type == ConnectionEventType.DISCONNECT:
+            duration_str = data.get("duration")
+            if duration_str:
+                duration_seconds = _parse_duration(duration_str)
 
         # Use entry timestamp or default to now
         timestamp = entry.timestamp or datetime.now()

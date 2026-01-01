@@ -13,6 +13,7 @@ from prompt_toolkit.formatted_text import HTML
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
+    from pgtail_py.parser import LogEntry
 
 
 def connections_command(state: AppState, args: list[str]) -> None:
@@ -117,10 +118,7 @@ def _show_summary(
     )
 
     # Get filtered active connections
-    if conn_filter.is_empty():
-        filtered_active = list(stats._active.values())
-    else:
-        filtered_active = [e for e in stats._active.values() if conn_filter.matches(e)]
+    filtered_active = stats.get_active_connections(conn_filter)
 
     active_count = len(filtered_active)
 
@@ -129,7 +127,7 @@ def _show_summary(
 
     if has_filter:
         # Filtered view - show filter context
-        filter_parts = []
+        filter_parts: list[str] = []
         if db_filter:
             filter_parts.append(f"db='{db_filter}'")
         if user_filter:
@@ -235,7 +233,7 @@ def _show_history(
     # Build filter description for header
     filter_desc = ""
     if not conn_filter.is_empty():
-        filter_parts = []
+        filter_parts: list[str] = []
         if db_filter:
             filter_parts.append(f"db='{db_filter}'")
         if user_filter:
@@ -251,7 +249,7 @@ def _show_history(
     buckets: list[tuple[int, int]] = [(0, 0) for _ in range(num_buckets)]
     now = datetime.now()
 
-    for event in stats._events:
+    for event in stats.get_events():
         # Apply filter
         if not conn_filter.is_empty() and not conn_filter.matches(event):
             continue
@@ -387,7 +385,7 @@ def _show_watch(
     # Build filter description for header
     filter_desc = ""
     if not conn_filter.is_empty():
-        filter_parts = []
+        filter_parts: list[str] = []
         if db_filter:
             filter_parts.append(f"db='{db_filter}'")
         if user_filter:
@@ -432,7 +430,7 @@ def _show_watch(
         else:  # CONNECTION_FAILED
             return f"\033[91m[!]\033[0m {ts}  {details} FAILED"  # Red
 
-    def on_entry(entry):
+    def on_entry(entry: LogEntry) -> None:
         """Handle incoming log entries."""
         nonlocal events_seen
         event = ConnectionEvent.from_log_entry(entry)

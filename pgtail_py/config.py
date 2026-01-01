@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import tomlkit
 from tomlkit.exceptions import TOMLKitError
@@ -91,7 +91,7 @@ def get_config_path() -> Path:
 class DefaultSection:
     """Default behavior settings."""
 
-    levels: list[str] = field(default_factory=list)  # Empty = all levels
+    levels: list[str] = field(default_factory=lambda: [])  # Empty = all levels
     follow: bool = True
 
 
@@ -126,7 +126,7 @@ class NotificationsSection:
 
     enabled: bool = False
     levels: list[str] = field(default_factory=lambda: ["FATAL", "PANIC"])
-    patterns: list[str] = field(default_factory=list)
+    patterns: list[str] = field(default_factory=lambda: [])
     error_rate: int | None = None  # Errors per minute threshold
     slow_query_ms: int | None = None  # Slow query threshold in ms
     quiet_hours: str | None = None
@@ -181,8 +181,8 @@ def validate_log_levels(value: Any) -> list[str]:
     """Validate log level list."""
     if not isinstance(value, list):
         raise ValueError("must be a list of log levels")
-    result = []
-    for item in value:
+    result: list[str] = []
+    for item in cast(list[Any], value):
         if not isinstance(item, str):
             raise ValueError(f"invalid log level: {item}")
         level = item.upper()
@@ -267,10 +267,10 @@ def validate_patterns(value: Any) -> list[str]:
     """Validate notification patterns list."""
     if not isinstance(value, list):
         raise ValueError("must be a list of regex patterns")
-    result = []
+    result: list[str] = []
     import re as re_module
 
-    for item in value:
+    for item in cast(list[Any], value):
         if not isinstance(item, str):
             raise ValueError(f"invalid pattern: {item}")
         # Extract pattern from /pattern/ or /pattern/i syntax
@@ -543,13 +543,13 @@ def save_config(key: str, value: Any, warn_func: Callable[[str], None] | None = 
     if section_name not in doc:
         doc[section_name] = tomlkit.table()
 
-    section = doc[section_name]
+    section = cast(dict[str, Any], doc[section_name])
     attr_name = parts[1]
     section[attr_name] = value
 
     # Write back
     try:
-        config_path.write_text(tomlkit.dumps(doc))
+        config_path.write_text(tomlkit.dumps(doc))  # type: ignore[arg-type]
         return True
     except OSError as e:
         if warn_func:
@@ -584,7 +584,7 @@ def delete_config_key(key: str, warn_func: Callable[[str], None] | None = None) 
     if section_name not in doc:
         return False
 
-    section = doc[section_name]
+    section = cast(dict[str, Any], doc[section_name])
     if attr_name not in section:
         return False
 
@@ -592,7 +592,7 @@ def delete_config_key(key: str, warn_func: Callable[[str], None] | None = None) 
 
     # Write back
     try:
-        config_path.write_text(tomlkit.dumps(doc))
+        config_path.write_text(tomlkit.dumps(doc))  # type: ignore[arg-type]
         return True
     except OSError as e:
         if warn_func:
@@ -660,7 +660,7 @@ def parse_value(key: str, raw: str | list[str]) -> Any:
     if key not in SETTINGS_SCHEMA:
         raise ValueError(f"Unknown setting: {key}")
 
-    _, validator, type_hint = SETTINGS_SCHEMA[key]
+    _, _validator, type_hint = SETTINGS_SCHEMA[key]
 
     if type_hint == "bool":
         if isinstance(raw, list):

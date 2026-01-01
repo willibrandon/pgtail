@@ -40,7 +40,7 @@ class NotificationRule:
     rule_type: NotificationRuleType
 
     # LEVEL type fields
-    levels: set[LogLevel] = field(default_factory=set)
+    levels: set[LogLevel] = field(default_factory=lambda: set())
 
     # PATTERN type fields
     pattern: re.Pattern[str] | None = None
@@ -284,7 +284,7 @@ class NotificationConfig:
     """Collection of active notification rules and settings."""
 
     enabled: bool = False
-    rules: list[NotificationRule] = field(default_factory=list)
+    rules: list[NotificationRule] = field(default_factory=lambda: [])
     quiet_hours: QuietHours | None = None
 
     def add_rule(self, rule: NotificationRule) -> None:
@@ -559,7 +559,7 @@ class NotificationManager:
 
     def _format_entry_body(self, entry: LogEntry) -> str:
         """Format log entry for notification body."""
-        parts = []
+        parts: list[str] = []
 
         if entry.message:
             msg = entry.message

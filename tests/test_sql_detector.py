@@ -1,7 +1,5 @@
 """Unit tests for SQL detector."""
 
-import pytest
-
 from pgtail_py.sql_detector import SQLDetectionResult, detect_sql_content
 
 

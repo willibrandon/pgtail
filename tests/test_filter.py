@@ -169,6 +169,7 @@ class TestParseLevels:
         """Test that - suffix includes level and less severe."""
         levels, invalid = parse_levels(["ERROR-"])
         # ERROR- should include ERROR, WARNING, NOTICE, LOG, INFO, DEBUG1-5
+        assert levels is not None
         assert LogLevel.ERROR in levels
         assert LogLevel.WARNING in levels
         assert LogLevel.LOG in levels
@@ -194,6 +195,7 @@ class TestParseLevels:
         """Test combining + suffix with exact match."""
         levels, invalid = parse_levels(["ERROR+", "LOG"])
         # ERROR+ gives PANIC, FATAL, ERROR; plus exact LOG
+        assert levels is not None
         assert LogLevel.PANIC in levels
         assert LogLevel.FATAL in levels
         assert LogLevel.ERROR in levels
@@ -218,6 +220,7 @@ class TestParseLevels:
 
         # err- should give ERROR and all less severe
         levels, invalid = parse_levels(["err-"])
+        assert levels is not None
         assert LogLevel.ERROR in levels
         assert LogLevel.WARNING in levels
         assert LogLevel.DEBUG5 in levels

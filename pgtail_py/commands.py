@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING
 
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion
@@ -87,7 +88,9 @@ class PgtailCompleter(Completer):
     - Log level names for 'levels' command
     """
 
-    def __init__(self, get_instances: callable | None = None) -> None:
+    def __init__(
+        self, get_instances: Callable[[], list[Instance]] | None = None
+    ) -> None:
         """Initialize the completer.
 
         Args:
@@ -97,7 +100,7 @@ class PgtailCompleter(Completer):
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
-    ) -> list[Completion]:
+    ) -> Iterable[Completion]:
         """Generate completions for the current input.
 
         Args:
@@ -163,7 +166,7 @@ class PgtailCompleter(Completer):
         elif cmd == "theme":
             yield from self._complete_theme(arg_text, parts)
 
-    def _complete_commands(self, prefix: str) -> list[Completion]:
+    def _complete_commands(self, prefix: str) -> Iterable[Completion]:
         """Complete command names.
 
         Args:
@@ -180,7 +183,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_tail(self, prefix: str, parts: list[str]) -> list[Completion]:
+    def _complete_tail(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
         """Complete tail command arguments.
 
         Args:
@@ -209,7 +212,7 @@ class PgtailCompleter(Completer):
         # Complete instances
         yield from self._complete_instances(prefix)
 
-    def _complete_instances(self, prefix: str) -> list[Completion]:
+    def _complete_instances(self, prefix: str) -> Iterable[Completion]:
         """Complete instance IDs and paths.
 
         Args:
@@ -242,7 +245,7 @@ class PgtailCompleter(Completer):
                     display_meta=f"Instance {inst.id}",
                 )
 
-    def _complete_levels(self, prefix: str, already_selected: list[str]) -> list[Completion]:
+    def _complete_levels(self, prefix: str, already_selected: list[str]) -> Iterable[Completion]:
         """Complete log level names.
 
         Args:
@@ -272,7 +275,7 @@ class PgtailCompleter(Completer):
                     display_meta=f"Severity {level.value}",
                 )
 
-    def _complete_filter(self, prefix: str) -> list[Completion]:
+    def _complete_filter(self, prefix: str) -> Iterable[Completion]:
         """Complete filter subcommands and field names.
 
         Args:
@@ -301,7 +304,7 @@ class PgtailCompleter(Completer):
                         display_meta=f"Filter by {field}",
                     )
 
-    def _complete_highlight(self, prefix: str) -> list[Completion]:
+    def _complete_highlight(self, prefix: str) -> Iterable[Completion]:
         """Complete highlight subcommands.
 
         Args:
@@ -317,7 +320,7 @@ class PgtailCompleter(Completer):
                 display_meta="Clear all highlights",
             )
 
-    def _complete_slow(self, prefix: str) -> list[Completion]:
+    def _complete_slow(self, prefix: str) -> Iterable[Completion]:
         """Complete slow query subcommands.
 
         Args:
@@ -333,7 +336,7 @@ class PgtailCompleter(Completer):
                 display_meta="Disable slow query highlighting",
             )
 
-    def _complete_set(self, prefix: str, num_parts: int) -> list[Completion]:
+    def _complete_set(self, prefix: str, num_parts: int) -> Iterable[Completion]:
         """Complete setting keys for 'set' command.
 
         Args:
@@ -358,7 +361,7 @@ class PgtailCompleter(Completer):
                     display_meta=f"{section} setting",
                 )
 
-    def _complete_unset(self, prefix: str, num_parts: int) -> list[Completion]:
+    def _complete_unset(self, prefix: str, num_parts: int) -> Iterable[Completion]:
         """Complete setting keys for 'unset' command.
 
         Args:
@@ -383,7 +386,7 @@ class PgtailCompleter(Completer):
                     display_meta=f"reset {section} setting to default",
                 )
 
-    def _complete_config(self, prefix: str) -> list[Completion]:
+    def _complete_config(self, prefix: str) -> Iterable[Completion]:
         """Complete config subcommands.
 
         Args:
@@ -406,7 +409,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_export(self, prefix: str) -> list[Completion]:
+    def _complete_export(self, prefix: str) -> Iterable[Completion]:
         """Complete export command options.
 
         Args:
@@ -447,7 +450,7 @@ class PgtailCompleter(Completer):
                         display_meta=description,
                     )
 
-    def _complete_pipe(self, prefix: str) -> list[Completion]:
+    def _complete_pipe(self, prefix: str) -> Iterable[Completion]:
         """Complete pipe command options.
 
         Args:
@@ -485,7 +488,7 @@ class PgtailCompleter(Completer):
                         display_meta=description,
                     )
 
-    def _complete_since(self, prefix: str) -> list[Completion]:
+    def _complete_since(self, prefix: str) -> Iterable[Completion]:
         """Complete since command options.
 
         Args:
@@ -511,7 +514,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_between(self, prefix: str, num_parts: int) -> list[Completion]:
+    def _complete_between(self, prefix: str, num_parts: int) -> Iterable[Completion]:
         """Complete between command options.
 
         Args:
@@ -547,7 +550,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_until(self, prefix: str) -> list[Completion]:
+    def _complete_until(self, prefix: str) -> Iterable[Completion]:
         """Complete until command options.
 
         Args:
@@ -572,7 +575,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_output(self, prefix: str) -> list[Completion]:
+    def _complete_output(self, prefix: str) -> Iterable[Completion]:
         """Complete output command options.
 
         Args:
@@ -594,7 +597,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_display(self, prefix: str, parts: list[str]) -> list[Completion]:
+    def _complete_display(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
         """Complete display command options.
 
         Args:
@@ -627,7 +630,7 @@ class PgtailCompleter(Completer):
             if len(parts) >= 3:
                 selected = {f.strip().lower() for f in parts[2].split(",") if f.strip()}
             else:
-                selected = set()
+                selected: set[str] = set()
 
             prefix_lower = prefix.lower()
             # Handle comma continuation
@@ -651,7 +654,7 @@ class PgtailCompleter(Completer):
                             display_meta=f"Show {field} field",
                         )
 
-    def _complete_errors(self, prefix: str, parts: list[str]) -> list[Completion]:
+    def _complete_errors(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
         """Complete errors command options.
 
         Args:
@@ -692,7 +695,7 @@ class PgtailCompleter(Completer):
         has_trend = "--trend" in parts
         has_live = "--live" in parts
 
-        options = {}
+        options: dict[str, str] = {}
         if not has_trend and not has_live:
             options["--trend"] = "Show error rate sparkline"
         if not has_live and not has_trend:
@@ -712,7 +715,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_connections(self, prefix: str, parts: list[str]) -> list[Completion]:
+    def _complete_connections(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
         """Complete connections command options.
 
         Args:
@@ -756,7 +759,7 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_notify(self, prefix: str, parts: list[str]) -> list[Completion]:
+    def _complete_notify(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
         """Complete notify command options.
 
         Args:
@@ -838,7 +841,7 @@ class PgtailCompleter(Completer):
                 display_meta="Disable quiet hours",
             )
 
-    def _complete_theme(self, prefix: str, parts: list[str]) -> list[Completion]:
+    def _complete_theme(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
         """Complete theme command options.
 
         Args:

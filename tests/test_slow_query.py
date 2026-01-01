@@ -1,7 +1,5 @@
 """Tests for slow query detection and highlighting."""
 
-import pytest
-
 from pgtail_py.slow_query import (
     DEFAULT_CRITICAL_MS,
     DEFAULT_SLOW_MS,

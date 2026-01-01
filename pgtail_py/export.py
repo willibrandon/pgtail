@@ -5,7 +5,7 @@ import json
 import shlex
 import subprocess
 import sys
-from collections.abc import Generator, Iterable
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -61,7 +61,7 @@ class ExportOptions:
 
     def validate(self) -> list[str]:
         """Return list of validation errors, empty if valid."""
-        errors = []
+        errors: list[str] = []
         if self.follow and self.append:
             errors.append("Cannot use --follow with --append")
         return errors
@@ -76,7 +76,7 @@ class PipeOptions:
 
     def validate(self) -> list[str]:
         """Return list of validation errors, empty if valid."""
-        errors = []
+        errors: list[str] = []
         if not self.command.strip():
             errors.append("Command cannot be empty")
         return errors
@@ -291,7 +291,7 @@ def follow_export(
     fmt: ExportFormat = ExportFormat.TEXT,
     levels: "set[LogLevel] | None" = None,
     regex_state: "FilterState | None" = None,
-    on_entry: "callable[[LogEntry], None] | None" = None,
+    on_entry: "Callable[[LogEntry], None] | None" = None,
 ) -> int:
     """Export entries in real-time as they arrive from tailer.
 

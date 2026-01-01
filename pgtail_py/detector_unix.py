@@ -23,7 +23,7 @@ def detect_from_processes() -> Iterator[tuple[Path, int]]:
             if name not in ("postgres", "postmaster"):
                 continue
 
-            cmdline = info.get("cmdline") or []
+            cmdline: list[str] = info.get("cmdline") or []
             data_dir = _extract_data_dir(cmdline)
             if data_dir and data_dir.is_dir():
                 yield (data_dir, info["pid"])

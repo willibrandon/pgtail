@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pgtail_py.tail_log import TailLog
 
 
@@ -18,7 +16,7 @@ class TestVisualModeBoundaries:
     def test_visual_anchor_initialized_none(self) -> None:
         """Test that visual anchor starts as None."""
         widget = TailLog()
-        assert widget._visual_anchor_line is None
+        assert widget.visual_anchor_line is None
 
     def test_empty_buffer_visual_mode_no_crash(self) -> None:
         """Test visual mode with empty buffer doesn't crash."""
@@ -32,42 +30,42 @@ class TestVisualModeBoundaries:
     def test_cursor_line_starts_at_zero(self) -> None:
         """Test that cursor line is initialized to 0."""
         widget = TailLog()
-        assert widget._cursor_line == 0
+        assert widget.cursor_line == 0
 
     def test_visual_mode_flags_independent(self) -> None:
         """Test visual_mode and visual_line_mode are independent."""
         widget = TailLog()
-        widget._visual_mode = True
-        widget._visual_line_mode = False
+        setattr(widget, "_visual_mode", True)
+        setattr(widget, "_visual_line_mode", False)
         assert widget.visual_mode is True
         assert widget.visual_line_mode is False
 
-        widget._visual_line_mode = True
+        setattr(widget, "_visual_line_mode", True)
         assert widget.visual_line_mode is True
 
     def test_visual_state_can_be_cleared(self) -> None:
         """Test visual state can be cleared directly."""
         widget = TailLog()
-        widget._visual_mode = True
-        widget._visual_line_mode = True
-        widget._visual_anchor_line = 10
-        widget._visual_anchor_col = 5
+        setattr(widget, "_visual_mode", True)
+        setattr(widget, "_visual_line_mode", True)
+        setattr(widget, "_visual_anchor_line", 10)
+        setattr(widget, "_visual_anchor_col", 5)
 
         # Clear directly (avoid _exit_visual_mode which posts message)
-        widget._visual_mode = False
-        widget._visual_line_mode = False
-        widget._visual_anchor_line = None
+        setattr(widget, "_visual_mode", False)
+        setattr(widget, "_visual_line_mode", False)
+        setattr(widget, "_visual_anchor_line", None)
 
-        assert widget._visual_mode is False
-        assert widget._visual_line_mode is False
-        assert widget._visual_anchor_line is None
+        assert widget.visual_mode is False
+        assert widget.visual_line_mode is False
+        assert widget.visual_anchor_line is None
 
     def test_cursor_col_initial_value(self) -> None:
         """Test cursor column starts at 0."""
         widget = TailLog()
-        assert widget._cursor_col == 0
+        assert widget.cursor_col == 0
 
     def test_visual_anchor_col_initial_value(self) -> None:
         """Test visual anchor column starts at 0."""
         widget = TailLog()
-        assert widget._visual_anchor_col == 0
+        assert widget.visual_anchor_col == 0

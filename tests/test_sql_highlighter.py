@@ -321,15 +321,15 @@ LIMIT 100"""
             highlighter.highlight(sql)
 
         # Measure multiple runs
-        times = []
+        times: list[float] = []
         for _ in range(100):
             start = time.perf_counter()
             highlighter.highlight(sql)
             elapsed_ms = (time.perf_counter() - start) * 1000
             times.append(elapsed_ms)
 
-        avg_time = sum(times) / len(times)
-        max_time = max(times)
+        avg_time: float = sum(times) / len(times)
+        max_time: float = max(times)
 
         # Average should be well under 1ms for short SQL
         assert avg_time < 1, f"Average time {avg_time:.3f}ms too slow"

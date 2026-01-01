@@ -11,7 +11,7 @@ from pathlib import Path
 from queue import Empty, Queue
 
 from pgtail_py.colors import print_log_entry
-from pgtail_py.detector import _find_latest_log, read_current_logfiles
+from pgtail_py.detector import find_latest_log, read_current_logfiles
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
 from pgtail_py.format_detector import LogFormat, detect_format
@@ -142,7 +142,7 @@ class LogTailer:
 
         # Fall back to finding latest log file by mtime
         if self._log_directory:
-            new_path = _find_latest_log(self._log_directory)
+            new_path = find_latest_log(self._log_directory)
             if new_path and new_path.resolve() != self._log_path.resolve():
                 self._switch_to_file(new_path)
                 return True

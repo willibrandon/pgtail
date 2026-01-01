@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry
@@ -108,7 +108,7 @@ _TZ_OFFSETS: dict[str, int] = {
 _ISO_OFFSET_RE = re.compile(r"([+-])(\d{2}):?(\d{2})?$")
 
 
-def _parse_timestamp(ts_str: str | None) -> datetime | None:
+def parse_timestamp(ts_str: str | None) -> datetime | None:
     """Parse a PostgreSQL JSON timestamp string to UTC-aware datetime.
 
     Handles formats:
@@ -203,12 +203,13 @@ def parse_json_line(line: str) -> LogEntry:
     line = line.rstrip("\n\r")
 
     try:
-        data: dict[str, Any] = json.loads(line)
+        raw_data = json.loads(line)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format: {e}") from e
 
-    if not isinstance(data, dict):
+    if not isinstance(raw_data, dict):
         raise ValueError("JSON log entry must be an object")
+    data: dict[str, Any] = cast(dict[str, Any], raw_data)
 
     # Parse error_severity to LogLevel
     severity_str = data.get("error_severity", "LOG")
@@ -244,7 +245,7 @@ def parse_json_line(line: str) -> LogEntry:
     # Build the LogEntry
     return LogEntry(
         # Core fields
-        timestamp=_parse_timestamp(data.get("timestamp")),
+        timestamp=parse_timestamp(data.get("timestamp")),
         level=level,
         message=message,
         raw=line,
@@ -257,7 +258,7 @@ def parse_json_line(line: str) -> LogEntry:
         remote_port=get_int("remote_port"),
         session_id=get_str("session_id"),
         session_line_num=get_int("line_num"),
-        session_start=_parse_timestamp(data.get("session_start")),
+        session_start=parse_timestamp(data.get("session_start")),
         virtual_transaction_id=get_str("vxid"),
         transaction_id=get_str("txid"),
         sql_state=get_str("state_code"),

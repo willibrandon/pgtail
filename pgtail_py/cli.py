@@ -90,7 +90,7 @@ class AppState:
         display_state: Display and output format settings
     """
 
-    instances: list[Instance] = field(default_factory=list)
+    instances: list[Instance] = field(default_factory=lambda: [])
     current_instance: Instance | None = None
     active_levels: set[LogLevel] | None = field(default_factory=LogLevel.all_levels)
     regex_state: FilterState = field(default_factory=FilterState.empty)
@@ -376,7 +376,7 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
     bindings = KeyBindings()
 
     @bindings.add("!")
-    def handle_exclamation(event: KeyPressEvent) -> None:
+    def _handle_exclamation(event: KeyPressEvent) -> None:
         """Handle ! key - enter shell mode if buffer is empty."""
         app = event.app
         buf = app.current_buffer
@@ -387,13 +387,13 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
             buf.insert_text("!")
 
     @bindings.add("escape")
-    def handle_escape(event: KeyPressEvent) -> None:
+    def _handle_escape(event: KeyPressEvent) -> None:
         """Handle Escape key - exit shell mode."""
         state.shell_mode = False
         event.app.invalidate()
 
     @bindings.add("backspace")
-    def handle_backspace(event: KeyPressEvent) -> None:
+    def _handle_backspace(event: KeyPressEvent) -> None:
         """Handle Backspace - exit shell mode if buffer empty."""
         app = event.app
         buf = app.current_buffer
@@ -402,6 +402,9 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
             app.invalidate()  # Force prompt refresh
         elif buf.text:
             buf.delete_before_cursor(1)
+
+    # Reference handlers to satisfy type checker (decorators register them)
+    _ = (_handle_exclamation, _handle_escape, _handle_backspace)
 
     return bindings
 

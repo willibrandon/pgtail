@@ -68,7 +68,7 @@ def format_keybindings_text() -> str:
     Returns:
         Plain text representation of all keybindings.
     """
-    lines = []
+    lines: list[str] = []
     for category, bindings in KEYBINDINGS.items():
         lines.append(f"\n{category}:")
         for key, desc in bindings:
@@ -156,6 +156,6 @@ class HelpScreen(ModalScreen[None]):
 
             yield Static("Press Escape, q, or ? to close", id="help-footer")
 
-    def action_dismiss(self) -> None:
+    async def action_dismiss(self, result: None = None) -> None:
         """Dismiss the help screen."""
-        self.dismiss()
+        self.dismiss(result)

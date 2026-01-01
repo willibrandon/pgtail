@@ -340,7 +340,7 @@ class TestConnectionStatsEdgeCases:
         # Add more events than maxlen (10,000)
         # We'll just verify the deque has maxlen set
         # Adding 10,001 events would be slow, so check the structure
-        assert stats._events.maxlen == 10000
+        assert stats.events.maxlen == 10000
 
     def test_connection_failed_tracking(self) -> None:
         """Test tracking of connection failures."""

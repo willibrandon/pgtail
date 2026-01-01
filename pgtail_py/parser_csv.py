@@ -107,7 +107,7 @@ _TZ_OFFSETS: dict[str, int] = {
 _ISO_OFFSET_RE = re.compile(r"([+-])(\d{2}):?(\d{2})?$")
 
 
-def _parse_timestamp(ts_str: str) -> datetime | None:
+def parse_timestamp(ts_str: str) -> datetime | None:
     """Parse a PostgreSQL CSV timestamp string to UTC-aware datetime.
 
     Handles formats:
@@ -252,7 +252,7 @@ def parse_csv_line(line: str) -> LogEntry:
     # Build the LogEntry
     return LogEntry(
         # Core fields
-        timestamp=_parse_timestamp(get_field(0)),
+        timestamp=parse_timestamp(get_field(0)),
         level=level,
         message=get_field(13),
         raw=line,
@@ -265,7 +265,7 @@ def parse_csv_line(line: str) -> LogEntry:
         session_id=_non_empty(get_field(5)),
         session_line_num=_safe_int(get_field(6)),
         command_tag=_non_empty(get_field(7)),
-        session_start=_parse_timestamp(get_field(8)),
+        session_start=parse_timestamp(get_field(8)),
         virtual_transaction_id=_non_empty(get_field(9)),
         transaction_id=_non_empty(get_field(10)),
         sql_state=_non_empty(get_field(12)),

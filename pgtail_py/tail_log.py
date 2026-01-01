@@ -15,7 +15,7 @@ Classes:
 from __future__ import annotations
 
 import sys
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from rich.errors import MarkupError
 from rich.style import Style
@@ -176,6 +176,21 @@ class TailLog(Log):
     def visual_line_mode(self) -> bool:
         """True if in visual line mode (selecting full lines)."""
         return self._visual_line_mode
+
+    @property
+    def visual_anchor_line(self) -> int | None:
+        """Visual mode anchor line (where selection started)."""
+        return self._visual_anchor_line
+
+    @property
+    def cursor_col(self) -> int:
+        """Current cursor column position."""
+        return self._cursor_col
+
+    @property
+    def visual_anchor_col(self) -> int:
+        """Visual mode anchor column (where selection started)."""
+        return self._visual_anchor_col
 
     # Navigation actions
 
@@ -363,7 +378,7 @@ class TailLog(Log):
         plain_text = self._strip_markup(selected_text)
 
         # Copy to clipboard
-        success = self._copy_with_fallback(plain_text)
+        success = self.copy_with_fallback(plain_text)
         if success:
             self.post_message(self.SelectionCopied(plain_text, len(plain_text)))
 
@@ -394,7 +409,7 @@ class TailLog(Log):
         # Strip Rich markup before copying
         plain_text = self._strip_markup(selected_text)
 
-        success = self._copy_with_fallback(plain_text)
+        success = self.copy_with_fallback(plain_text)
         if success:
             self.post_message(self.SelectionCopied(plain_text, len(plain_text)))
 
@@ -467,7 +482,7 @@ class TailLog(Log):
         plain_text = self._strip_markup(selected_text)
 
         # Copy to clipboard (silent - no message for mouse-up auto-copy)
-        self._copy_with_fallback(plain_text)
+        self.copy_with_fallback(plain_text)
 
     # Helper methods
 
@@ -576,7 +591,7 @@ class TailLog(Log):
 
         # Get plain text lines using Rich's parser for accurate column slicing
         # (matches how lines are rendered)
-        plain_lines = []
+        plain_lines: list[str] = []
         for i in range(start_line, end_line + 1):
             try:
                 rich_text = Text.from_markup(self._lines[i])
@@ -594,7 +609,7 @@ class TailLog(Log):
             return line[start_col:end_col]
         else:
             # Multi-line: first line from start_col, middle lines full, last line to end_col
-            result = []
+            result: list[str] = []
             # First line: from start_col to end
             result.append(plain_lines[0][start_col:])
             # Middle lines: full lines
@@ -625,7 +640,7 @@ class TailLog(Log):
         result = result.replace("\\[", "[")
         return result
 
-    def _copy_with_fallback(self, text: str) -> bool:
+    def copy_with_fallback(self, text: str) -> bool:
         """Copy text to clipboard with fallback mechanisms.
 
         Primary: OSC 52 escape sequence via Textual's app.copy_to_clipboard()
@@ -644,7 +659,8 @@ class TailLog(Log):
 
         # Primary: OSC 52 via Textual
         try:
-            self.app.copy_to_clipboard(text)
+            app: Any = self.app  # type: ignore[assignment]
+            app.copy_to_clipboard(text)
             success = True
         except Exception:
             pass
@@ -706,5 +722,6 @@ class TailLog(Log):
             selection_style = self.screen.get_component_rich_style("screen--selection")
             line_text.stylize(selection_style, start, end)
 
-        line = Strip(line_text.render(self.app.console), line_text.cell_len)
+        app: Any = self.app  # type: ignore[assignment]
+        line = Strip(line_text.render(app.console), line_text.cell_len)
         return line

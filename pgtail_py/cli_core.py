@@ -246,13 +246,13 @@ def tail_command(state: AppState, args: list[str]) -> None:
     # Use status bar mode by default, streaming mode with --stream
     if not stream_mode:
         # Status bar tail mode (default)
-        _tail_status_bar_mode(state, instance)
+        tail_status_bar_mode(state, instance)
     else:
         # Legacy streaming mode
-        _tail_stream_mode(state, instance)
+        tail_stream_mode(state, instance)
 
 
-def _tail_status_bar_mode(state: AppState, instance: Instance) -> None:
+def tail_status_bar_mode(state: AppState, instance: Instance) -> None:
     """Launch the status bar tail mode interface.
 
     Args:
@@ -277,7 +277,7 @@ def _tail_status_bar_mode(state: AppState, instance: Instance) -> None:
         reset_terminal()
 
 
-def _tail_stream_mode(state: AppState, instance: Instance) -> None:
+def tail_stream_mode(state: AppState, instance: Instance) -> None:
     """Legacy streaming tail mode.
 
     Args:

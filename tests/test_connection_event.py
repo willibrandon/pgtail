@@ -135,7 +135,8 @@ class TestConnectionEventFromLogEntry:
         event = ConnectionEvent.from_log_entry(entry)
         assert event is not None
         assert event.event_type == ConnectionEventType.DISCONNECT
-        assert event.duration_seconds == pytest.approx(65.123, rel=1e-3)
+        assert event.duration_seconds is not None
+        assert abs(event.duration_seconds - 65.123) < 0.1
 
     def test_from_log_entry_non_connection_message(self) -> None:
         """Test that non-connection messages return None."""

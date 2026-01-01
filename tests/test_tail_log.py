@@ -31,19 +31,37 @@ class TestTailLogBasic:
 
     def test_has_vim_bindings(self) -> None:
         """Test that TailLog has vim navigation bindings."""
-        binding_keys = {b.key for b in TailLog.BINDINGS}
+        # BINDINGS can be Binding objects or tuples, extract key from both
+        binding_keys: set[str] = set()
+        for b in TailLog.BINDINGS:
+            if hasattr(b, "key"):
+                binding_keys.add(str(getattr(b, "key")))
+            elif isinstance(b, tuple):
+                binding_keys.add(str(b[0]))
         expected = {"j", "k", "g", "G", "ctrl+d", "ctrl+u", "ctrl+f", "ctrl+b"}
         assert expected.issubset(binding_keys)
 
     def test_has_visual_mode_bindings(self) -> None:
         """Test that TailLog has visual mode bindings."""
-        binding_keys = {b.key for b in TailLog.BINDINGS}
+        # BINDINGS can be Binding objects or tuples, extract key from both
+        binding_keys: set[str] = set()
+        for b in TailLog.BINDINGS:
+            if hasattr(b, "key"):
+                binding_keys.add(str(getattr(b, "key")))
+            elif isinstance(b, tuple):
+                binding_keys.add(str(b[0]))
         expected = {"v", "V", "y", "escape"}
         assert expected.issubset(binding_keys)
 
     def test_has_standard_shortcuts(self) -> None:
         """Test that TailLog has standard shortcuts."""
-        binding_keys = {b.key for b in TailLog.BINDINGS}
+        # BINDINGS can be Binding objects or tuples, extract key from both
+        binding_keys: set[str] = set()
+        for b in TailLog.BINDINGS:
+            if hasattr(b, "key"):
+                binding_keys.add(str(getattr(b, "key")))
+            elif isinstance(b, tuple):
+                binding_keys.add(str(b[0]))
         expected = {"ctrl+a", "ctrl+c"}
         assert expected.issubset(binding_keys)
 
@@ -54,21 +72,22 @@ class TestTailLogClipboard:
     def test_copy_with_fallback_empty_text_is_noop_success(self) -> None:
         """Test that copying empty text returns True (no-op success)."""
         widget = TailLog()
-        result = widget._copy_with_fallback("")
+        result = widget.copy_with_fallback("")
         assert result is True
 
     def test_copy_with_fallback_calls_pyperclip(self) -> None:
         """Test that copy calls pyperclip as fallback."""
         widget = TailLog()
         # Mock app.copy_to_clipboard to fail, so pyperclip is called
-        widget._app = MagicMock()
-        widget._app.copy_to_clipboard.side_effect = Exception("No app")
+        mock_app = MagicMock()
+        mock_app.copy_to_clipboard.side_effect = Exception("No app")
+        setattr(widget, "_app", mock_app)
 
         with patch.dict("sys.modules", {"pyperclip": MagicMock()}):
             import sys
 
             mock_pyperclip = sys.modules["pyperclip"]
-            result = widget._copy_with_fallback("test text")
+            result = widget.copy_with_fallback("test text")
             mock_pyperclip.copy.assert_called_once_with("test text")
             assert result is True
 
@@ -78,12 +97,13 @@ class TestTailLogClipboard:
         OSC 52 has terminal-specific size limits, pyperclip handles larger content.
         """
         widget = TailLog()
-        widget._app = MagicMock()
-        widget._app.copy_to_clipboard.side_effect = Exception("No app")
+        mock_app = MagicMock()
+        mock_app.copy_to_clipboard.side_effect = Exception("No app")
+        setattr(widget, "_app", mock_app)
 
         large_text = "x" * (100 * 1024 + 1)
         with patch.dict("sys.modules", {"pyperclip": MagicMock()}):
-            result = widget._copy_with_fallback(large_text)
+            result = widget.copy_with_fallback(large_text)
             assert result is True
 
 
@@ -93,38 +113,40 @@ class TestTailLogVisualMode:
     def test_visual_mode_initial_state(self) -> None:
         """Test that visual mode is off initially."""
         widget = TailLog()
-        assert widget._visual_mode is False
-        assert widget._visual_line_mode is False
-        assert widget._visual_anchor_line is None
+        assert widget.visual_mode is False
+        assert widget.visual_line_mode is False
+        assert widget.visual_anchor_line is None
 
     def test_visual_mode_state_can_be_cleared(self) -> None:
         """Test that visual mode state can be cleared directly."""
         widget = TailLog()
-        widget._visual_mode = True
-        widget._visual_line_mode = True
-        widget._visual_anchor_line = 5
+        # Use setattr to access internals for testing
+        setattr(widget, "_visual_mode", True)
+        setattr(widget, "_visual_line_mode", True)
+        setattr(widget, "_visual_anchor_line", 5)
 
         # Clear state directly (without post_message which needs app context)
-        widget._visual_mode = False
-        widget._visual_line_mode = False
-        widget._visual_anchor_line = None
+        setattr(widget, "_visual_mode", False)
+        setattr(widget, "_visual_line_mode", False)
+        setattr(widget, "_visual_anchor_line", None)
 
-        assert widget._visual_mode is False
-        assert widget._visual_line_mode is False
-        assert widget._visual_anchor_line is None
+        assert widget.visual_mode is False
+        assert widget.visual_line_mode is False
+        assert widget.visual_anchor_line is None
 
     def test_cursor_line_initial_value(self) -> None:
         """Test that cursor line starts at 0."""
         widget = TailLog()
-        assert widget._cursor_line == 0
+        assert widget.cursor_line == 0
 
     def test_visual_properties(self) -> None:
         """Test visual_mode and visual_line_mode properties."""
         widget = TailLog()
         assert widget.visual_mode is False
         assert widget.visual_line_mode is False
-        widget._visual_mode = True
-        widget._visual_line_mode = True
+        # Use setattr to access internals for testing
+        setattr(widget, "_visual_mode", True)
+        setattr(widget, "_visual_line_mode", True)
         assert widget.visual_mode is True
         assert widget.visual_line_mode is True
 
@@ -153,21 +175,20 @@ class TestSelectAllThenCopy:
         3. Press Ctrl+C to copy
         4. Verify clipboard contains all content
         """
-        from pathlib import Path
-        from unittest.mock import MagicMock
-
         from textual.app import App, ComposeResult
+        from textual.pilot import Pilot
 
         from pgtail_py.tail_log import TailLog
 
         # Create a minimal app for testing
-        class TestApp(App):
+        class TestApp(App[None]):
             def compose(self) -> ComposeResult:
                 yield TailLog(id="log")
 
         app = TestApp()
         copied_text: list[str] = []
 
+        pilot: Pilot[None]
         async with app.run_test() as pilot:
             log = app.query_one("#log", TailLog)
 
@@ -178,13 +199,11 @@ class TestSelectAllThenCopy:
             await pilot.pause()
 
             # Mock clipboard capture
-            original_copy = log._copy_with_fallback
-
             def capture_copy(text: str) -> bool:
                 copied_text.append(text)
                 return True
 
-            log._copy_with_fallback = capture_copy
+            log.copy_with_fallback = capture_copy
 
             # Focus the log widget
             log.focus()
@@ -221,15 +240,17 @@ class TestMouseClickSelection:
         widget responds to double-click events.
         """
         from textual.app import App, ComposeResult
+        from textual.pilot import Pilot
 
         from pgtail_py.tail_log import TailLog
 
-        class TestApp(App):
+        class TestApp(App[None]):
             def compose(self) -> ComposeResult:
                 yield TailLog(id="log")
 
         app = TestApp()
 
+        pilot: Pilot[None]
         async with app.run_test() as pilot:
             log = app.query_one("#log", TailLog)
 
@@ -260,15 +281,17 @@ class TestMouseClickSelection:
         widget responds to triple-click events.
         """
         from textual.app import App, ComposeResult
+        from textual.pilot import Pilot
 
         from pgtail_py.tail_log import TailLog
 
-        class TestApp(App):
+        class TestApp(App[None]):
             def compose(self) -> ComposeResult:
                 yield TailLog(id="log")
 
         app = TestApp()
 
+        pilot: Pilot[None]
         async with app.run_test() as pilot:
             log = app.query_one("#log", TailLog)
 

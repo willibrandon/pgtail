@@ -11,6 +11,7 @@ import json
 from enum import Enum
 from io import StringIO
 from pathlib import Path
+from typing import Any, cast
 
 # Valid PostgreSQL log severity levels
 _VALID_SEVERITY_LEVELS = frozenset(
@@ -67,13 +68,16 @@ def is_valid_json_log(line: str) -> bool:
     if not isinstance(data, dict):
         return False
 
+    # Cast to proper type after isinstance check
+    json_data: dict[str, Any] = cast(dict[str, Any], data)
+
     # Must have essential keys for PostgreSQL jsonlog
     # At minimum, we need error_severity and message
-    if "error_severity" not in data or "message" not in data:
+    if "error_severity" not in json_data or "message" not in json_data:
         return False
 
     # Validate error_severity is a known level
-    severity = data.get("error_severity", "")
+    severity = str(json_data.get("error_severity", ""))
     return severity.upper() in _VALID_SEVERITY_LEVELS
 
 

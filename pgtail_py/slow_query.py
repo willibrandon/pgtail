@@ -142,7 +142,7 @@ class DurationStats:
         samples: All observed duration values in milliseconds.
     """
 
-    samples: list[float] = field(default_factory=list)
+    samples: list[float] = field(default_factory=lambda: [])
     _sum: float = 0.0
     _min: float = field(default=float("inf"))
     _max: float = 0.0

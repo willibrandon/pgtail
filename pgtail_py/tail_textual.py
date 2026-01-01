@@ -153,6 +153,11 @@ class TailApp(App[None]):
         # Explicit pause flag - prevents auto-follow when user issues pause command
         self._paused: bool = False
 
+    @property
+    def status(self) -> TailStatus | None:
+        """Get the status object (for testing)."""
+        return self._status
+
     @classmethod
     def run_tail_mode(
         cls,

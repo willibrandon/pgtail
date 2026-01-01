@@ -80,7 +80,7 @@ def _show_status(state: AppState) -> None:
         # Show pattern rules
         patterns = config.get_pattern_rules()
         if patterns:
-            pattern_strs = []
+            pattern_strs: list[str] = []
             for rule in patterns:
                 if rule.case_sensitive:
                     pattern_strs.append(f"/{rule.pattern_str}/")
@@ -415,7 +415,7 @@ def _persist_notification_config(state: AppState) -> None:
 
     # Save pattern rules
     patterns = config.get_pattern_rules()
-    pattern_strs = []
+    pattern_strs: list[str] = []
     for rule in patterns:
         if rule.case_sensitive:
             pattern_strs.append(f"/{rule.pattern_str}/")

@@ -173,7 +173,9 @@ def format_time_range(
         return f"between {format_dt(since)} and {format_dt(until)}"
     elif since is not None:
         return f"since {format_dt(since, include_today=True)}"
-    else:  # until is not None
+    else:
+        # until must be not None here (since is None, and caller ensures at least one is set)
+        assert until is not None
         return f"until {format_dt(until, include_today=True)}"
 
 

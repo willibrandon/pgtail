@@ -53,8 +53,9 @@ class FormattedLogEntry:
             return format_entry_compact(self.entry)
         # For non-entry items (separators, command output), extract plain text
         parts: list[str] = []
-        for _style, text in self.formatted:
-            parts.append(str(text))
+        for item in self.formatted:
+            # item can be 2-tuple (style, text) or 3-tuple (style, text, mouse_handler)
+            parts.append(str(item[1]))
         return "".join(parts)
 
 
@@ -111,6 +112,11 @@ class TailBuffer:
     def new_since_pause(self) -> int:
         """Count of entries added while paused."""
         return self._new_since_pause
+
+    @property
+    def scroll_offset(self) -> int:
+        """Lines from bottom (0 = at end, viewing latest)."""
+        return self._scroll_offset
 
     @property
     def total_entries(self) -> int:
@@ -202,8 +208,10 @@ class TailBuffer:
             Number of visual lines (1 + number of newlines in content)
         """
         line_count = 1
-        for _, text in entry.formatted:
-            line_count += text.count("\n")
+        for item in entry.formatted:
+            # item can be 2-tuple (style, text) or 3-tuple (style, text, mouse_handler)
+            text = item[1]
+            line_count += str(text).count("\n")
         return line_count
 
     def get_visible_lines(self, height: int) -> FormattedText:

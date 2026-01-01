@@ -199,6 +199,14 @@ class ErrorStats:
         """
         return len(self._events) == 0
 
+    def get_events(self) -> list[ErrorEvent]:
+        """Get all tracked events.
+
+        Returns:
+            List of all error events in chronological order.
+        """
+        return list(self._events)
+
     def get_by_level(self) -> dict[LogLevel, int]:
         """Get error counts by severity level.
 

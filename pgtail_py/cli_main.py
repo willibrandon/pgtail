@@ -134,7 +134,7 @@ def tail(
 
     # Import here to avoid circular imports and speed up CLI startup
     from pgtail_py.cli import AppState
-    from pgtail_py.cli_core import _tail_status_bar_mode, _tail_stream_mode
+    from pgtail_py.cli_core import tail_status_bar_mode, tail_stream_mode
     from pgtail_py.terminal import reset_terminal
     from pgtail_py.time_filter import TimeFilter, parse_time
 
@@ -154,9 +154,9 @@ def tail(
 
     try:
         if stream:
-            _tail_stream_mode(state, instance)
+            tail_stream_mode(state, instance)
         else:
-            _tail_status_bar_mode(state, instance)
+            tail_status_bar_mode(state, instance)
     except KeyboardInterrupt:
         pass
     finally:

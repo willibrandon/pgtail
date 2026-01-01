@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pgtail_py.tail_input import TailInput
 
 

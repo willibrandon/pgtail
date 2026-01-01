@@ -201,7 +201,7 @@ def generate_sample_log_entries() -> list[LogEntry]:
         (LogLevel.DEBUG1, "replication slot 'sub1' advanced to 0/1234567"),
     ]
 
-    entries = []
+    entries: list[LogEntry] = []
     for level, message in samples:
         entries.append(
             LogEntry(
@@ -229,7 +229,7 @@ def format_preview_entry(entry: LogEntry, theme: Theme) -> FormattedText:
     ts_style = theme.get_ui_style("timestamp")
     pid_style = theme.get_ui_style("pid")
 
-    parts = []
+    parts: list[tuple[str, str]] = []
 
     # Timestamp
     if entry.timestamp:
@@ -349,5 +349,5 @@ def handle_theme_reload(state: AppState) -> None:
     Args:
         state: Current application state.
     """
-    success, message = state.theme_manager.reload_current()
+    _success, message = state.theme_manager.reload_current()
     print(message)

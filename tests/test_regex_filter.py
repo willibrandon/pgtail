@@ -333,12 +333,12 @@ class TestParseFilterArg:
 
     def test_pattern_with_regex_chars(self) -> None:
         """Parse pattern with regex special characters."""
-        pattern, case_sensitive = parse_filter_arg(r"/duration: \d+/")
+        pattern, _ = parse_filter_arg(r"/duration: \d+/")
         assert pattern == r"duration: \d+"
 
     def test_pattern_with_slashes(self) -> None:
         """Parse pattern containing forward slashes."""
-        pattern, case_sensitive = parse_filter_arg("/path/to/file/")
+        pattern, _ = parse_filter_arg("/path/to/file/")
         assert pattern == "path/to/file"
 
     def test_missing_start_slash(self) -> None:

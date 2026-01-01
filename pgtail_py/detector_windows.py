@@ -22,7 +22,7 @@ def detect_from_processes() -> Iterator[tuple[Path, int]]:
             if name.lower() not in ("postgres.exe", "pg_ctl.exe"):
                 continue
 
-            cmdline = info.get("cmdline") or []
+            cmdline: list[str] = info.get("cmdline") or []
             data_dir = _extract_data_dir(cmdline)
             if data_dir and data_dir.is_dir():
                 yield (data_dir, info["pid"])
@@ -82,7 +82,7 @@ def detect_from_known_paths() -> Iterator[tuple[Path, DetectionSource]]:
     Yields:
         Tuples of (data_dir, DetectionSource.KNOWN_PATH) for each found directory.
     """
-    known_paths = []
+    known_paths: list[Path] = []
 
     # Program Files locations
     program_files = os.environ.get("ProgramFiles", r"C:\Program Files")

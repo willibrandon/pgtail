@@ -10,7 +10,7 @@ import json
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.formatted_text import FormattedText, OneStyleAndTextTuple
 
 from pgtail_py.sql_detector import detect_sql_content
 from pgtail_py.sql_highlighter import highlight_sql
@@ -102,7 +102,7 @@ def get_valid_display_fields() -> list[str]:
     return sorted(VALID_DISPLAY_FIELDS)
 
 
-def _format_message_with_sql(message: str, level_class: str) -> list[tuple[str, str]]:
+def _format_message_with_sql(message: str, level_class: str) -> list[OneStyleAndTextTuple]:
     """Format a log message with SQL syntax highlighting if SQL is detected.
 
     Args:
@@ -120,7 +120,7 @@ def _format_message_with_sql(message: str, level_class: str) -> list[tuple[str, 
         return [(level_class, message)]
 
     # SQL detected - format with highlighting
-    parts: list[tuple[str, str]] = []
+    parts: list[OneStyleAndTextTuple] = []
 
     # Add prefix with level class
     if detection.prefix:
@@ -230,7 +230,7 @@ def format_entry_compact(entry: LogEntry) -> FormattedText:
         FormattedText for prompt_toolkit
     """
     level_class = f"class:{entry.level.name.lower()}"
-    parts: list[tuple[str, str]] = []
+    parts: list[OneStyleAndTextTuple] = []
 
     # Timestamp
     if entry.timestamp:
@@ -278,7 +278,7 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
         FormattedText for prompt_toolkit
     """
     level_class = f"class:{entry.level.name.lower()}"
-    parts: list[tuple[str, str]] = []
+    parts: list[OneStyleAndTextTuple] = []
 
     # Primary line (same as compact)
     if entry.timestamp:
@@ -341,7 +341,7 @@ def format_entry_custom(entry: LogEntry, fields: list[str]) -> FormattedText:
         FormattedText for prompt_toolkit
     """
     level_class = f"class:{entry.level.name.lower()}"
-    parts: list[tuple[str, str]] = []
+    parts: list[OneStyleAndTextTuple] = []
     first = True
 
     for field_name in fields:

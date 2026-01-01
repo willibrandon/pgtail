@@ -151,7 +151,7 @@ class TailApp:
             # Use theme-based styles
             layout_styles = generate_layout_styles_from_theme(state.theme_manager.current_theme)
             # Get level styles from theme manager
-            level_style_rules = []
+            level_style_rules: list[tuple[str, str]] = []
             theme = state.theme_manager.current_theme
             for level_name in [
                 "PANIC",
@@ -452,7 +452,7 @@ class TailApp:
             info["total_entries"] = self._buffer.total_entries
             info["filtered_count"] = self._buffer.filtered_count
             info["visual_lines"] = self._buffer.total_visual_lines
-            info["scroll_offset"] = self._buffer._scroll_offset
+            info["scroll_offset"] = self._buffer.scroll_offset
             info["follow_mode"] = self._buffer.follow_mode
             info["new_since_pause"] = self._buffer.new_since_pause
             info["max_size"] = self._buffer.max_size

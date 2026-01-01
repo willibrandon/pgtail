@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from datetime import timezone
 
-import pytest
-
-from pgtail_py.parser_csv import _parse_timestamp as parse_csv_timestamp
-from pgtail_py.parser_json import _parse_timestamp as parse_json_timestamp
+from pgtail_py.parser_csv import parse_timestamp as parse_csv_timestamp
+from pgtail_py.parser_json import parse_timestamp as parse_json_timestamp
 
 
 class TestCSVTimestampParsing:

@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 import os
-import tempfile
-import threading
 import time
 from pathlib import Path
-
-import pytest
 
 from pgtail_py.filter import LogLevel
 from pgtail_py.format_detector import LogFormat
@@ -323,7 +319,7 @@ class TestLogTailerCallback:
         log_file = tmp_path / "test.log"
         log_file.write_text("")
 
-        all_entries: list = []
+        all_entries: list[object] = []
 
         tailer = LogTailer(
             log_file,

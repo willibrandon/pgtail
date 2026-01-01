@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pgtail_py.connection_parser import (
     parse_connection_message,
     PATTERN_CONNECTION_AUTHORIZED,
@@ -121,7 +119,7 @@ class TestParseConnectionMessage:
         msg = "sorry, too many clients already"
         result = parse_connection_message(msg, is_fatal=True)
         assert result is not None
-        event_type, data = result
+        event_type, _ = result
         assert event_type == ConnectionEventType.CONNECTION_FAILED
 
     def test_parse_fatal_auth_failed(self) -> None:
@@ -129,7 +127,7 @@ class TestParseConnectionMessage:
         msg = "password authentication failed for user \"unknown\""
         result = parse_connection_message(msg, is_fatal=True)
         assert result is not None
-        event_type, data = result
+        event_type, _ = result
         assert event_type == ConnectionEventType.CONNECTION_FAILED
 
 

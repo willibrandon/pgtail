@@ -81,7 +81,7 @@ def get_log_info(data_dir: Path) -> tuple[Path | None, Path | None, bool]:
         return log_path, log_dir, True
 
     # Fall back to finding most recent log file by mtime
-    return _find_latest_log(log_dir), log_dir, True
+    return find_latest_log(log_dir), log_dir, True
 
 
 def get_port(data_dir: Path) -> int | None:
@@ -132,9 +132,9 @@ def _get_conf_value(content: str, key: str) -> str | None:
     return None
 
 
-def _find_latest_log(log_dir: Path) -> Path | None:
+def find_latest_log(log_dir: Path) -> Path | None:
     """Find the most recently modified log file in a directory."""
-    log_files = []
+    log_files: list[Path] = []
     try:
         for f in log_dir.iterdir():
             if f.suffix == ".log" or f.name.startswith("postgresql"):

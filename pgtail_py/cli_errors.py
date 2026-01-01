@@ -138,7 +138,7 @@ def _show_summary(state: AppState, since: datetime | None = None) -> None:
             print_formatted_text(f"No errors recorded {time_desc}.")
             return
     else:
-        events = list(stats._events)
+        events = stats.get_events()
 
     # Calculate counts from filtered events
     error_count = sum(1 for e in events if e.level in ERROR_LEVELS)

@@ -9,8 +9,10 @@ from __future__ import annotations
 import os
 import re
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, cast
 
 from prompt_toolkit.styles import Style
 
@@ -316,7 +318,7 @@ class ColorStyle:
         return errors
 
     @classmethod
-    def from_dict(cls, data: dict) -> ColorStyle:
+    def from_dict(cls, data: dict[str, Any]) -> ColorStyle:
         """Create ColorStyle from dictionary (e.g., from TOML).
 
         Args:
@@ -325,13 +327,15 @@ class ColorStyle:
         Returns:
             ColorStyle instance.
         """
+        fg_val = data.get("fg")
+        bg_val = data.get("bg")
         return cls(
-            fg=data.get("fg"),
-            bg=data.get("bg"),
-            bold=data.get("bold", False),
-            dim=data.get("dim", False),
-            italic=data.get("italic", False),
-            underline=data.get("underline", False),
+            fg=str(fg_val) if fg_val is not None else None,
+            bg=str(bg_val) if bg_val is not None else None,
+            bold=bool(data.get("bold", False)),
+            dim=bool(data.get("dim", False)),
+            italic=bool(data.get("italic", False)),
+            underline=bool(data.get("underline", False)),
         )
 
 
@@ -353,8 +357,8 @@ class Theme:
 
     name: str
     description: str = ""
-    levels: dict[str, ColorStyle] = field(default_factory=dict)
-    ui: dict[str, ColorStyle] = field(default_factory=dict)
+    levels: dict[str, ColorStyle] = field(default_factory=lambda: {})
+    ui: dict[str, ColorStyle] = field(default_factory=lambda: {})
 
     def validate(self) -> list[str]:
         """Validate theme definition.
@@ -744,15 +748,19 @@ def load_custom_theme_with_errors(path: Path) -> tuple[Theme | None, list[str]]:
     name = path.stem
 
     # Parse meta section
-    meta = doc.get("meta", {})
-    description = meta.get("description", "")
+    meta_raw: Any = doc.get("meta", {})  # type: ignore[union-attr]
+    meta: dict[str, Any] = dict(cast(Mapping[str, Any], meta_raw)) if meta_raw else {}
+    description = str(meta.get("description", ""))
 
     # Parse levels section
     levels: dict[str, ColorStyle] = {}
-    levels_data = doc.get("levels", {})
-    for level_name, style_data in levels_data.items():
+    levels_raw: Any = doc.get("levels", {})  # type: ignore[union-attr]
+    levels_data: dict[str, Any] = dict(cast(Mapping[str, Any], levels_raw)) if levels_raw else {}
+    for level_name_raw, style_data_raw in levels_data.items():
+        level_name = str(level_name_raw)
+        style_data: Any = style_data_raw
         if isinstance(style_data, dict):
-            style = ColorStyle.from_dict(dict(style_data))
+            style = ColorStyle.from_dict(cast(dict[str, Any], style_data))
             style_errors = style.validate()
             for err in style_errors:
                 errors.append(f"[levels.{level_name}] {err}")
@@ -762,10 +770,13 @@ def load_custom_theme_with_errors(path: Path) -> tuple[Theme | None, list[str]]:
 
     # Parse ui section
     ui: dict[str, ColorStyle] = {}
-    ui_data = doc.get("ui", {})
-    for ui_name, style_data in ui_data.items():
+    ui_raw: Any = doc.get("ui", {})  # type: ignore[union-attr]
+    ui_data: dict[str, Any] = dict(cast(Mapping[str, Any], ui_raw)) if ui_raw else {}
+    for ui_name_raw, style_data_raw in ui_data.items():
+        ui_name = str(ui_name_raw)
+        style_data = style_data_raw
         if isinstance(style_data, dict):
-            style = ColorStyle.from_dict(dict(style_data))
+            style = ColorStyle.from_dict(cast(dict[str, Any], style_data))
             style_errors = style.validate()
             for err in style_errors:
                 errors.append(f"[ui.{ui_name}] {err}")

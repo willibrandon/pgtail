@@ -10,6 +10,7 @@ import pytest
 
 from pgtail_py.instance import DetectionSource, Instance
 from pgtail_py.tail_help import HelpScreen
+from pgtail_py.tail_log import TailLog
 from pgtail_py.tail_textual import TailApp
 
 if TYPE_CHECKING:
@@ -284,8 +285,8 @@ class TestTailAppAutoScroll:
 
             async with app.run_test():
                 # Check status shows FOLLOW mode
-                assert app._status is not None
-                assert app._status.follow_mode is True
+                assert app.status is not None
+                assert app.status.follow_mode is True
 
 
 class TestScrollbarBehavior:
@@ -317,7 +318,7 @@ class TestScrollbarBehavior:
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
-                log_widget = app.query_one("#log")
+                log_widget = app.query_one("#log", TailLog)
 
                 # Write enough lines to enable scrolling
                 for i in range(50):
@@ -325,7 +326,8 @@ class TestScrollbarBehavior:
                 await pilot.pause()
 
                 # Start in FOLLOW mode at bottom
-                assert app._status.follow_mode is True
+                assert app.status is not None
+                assert app.status.follow_mode is True
 
                 # Focus log and scroll up (simulates user scrolling)
                 log_widget.focus()
@@ -363,7 +365,7 @@ class TestScrollbarBehavior:
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
-                log_widget = app.query_one("#log")
+                log_widget = app.query_one("#log", TailLog)
 
                 # Write lines
                 for i in range(50):

@@ -130,7 +130,7 @@ class LogEntry:
         Returns:
             Sorted list of field names with values set.
         """
-        result = []
+        result: list[str] = []
         for field_name in [
             "timestamp",
             "level",

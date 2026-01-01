@@ -82,11 +82,16 @@ class ConnectionStats:
     """
 
     _events: deque[ConnectionEvent] = field(default_factory=lambda: deque(maxlen=10000))
-    _active: dict[int, ConnectionEvent] = field(default_factory=dict)
+    _active: dict[int, ConnectionEvent] = field(default_factory=lambda: {})
     session_start: datetime = field(default_factory=datetime.now)
     connect_count: int = 0
     disconnect_count: int = 0
     failed_count: int = 0
+
+    @property
+    def events(self) -> deque[ConnectionEvent]:
+        """Get the events deque (read-only access for testing)."""
+        return self._events
 
     def add(self, entry: LogEntry) -> bool:
         """Process a LogEntry and track if it's a connection event.
@@ -138,6 +143,29 @@ class ConnectionStats:
             True if no events recorded, False otherwise.
         """
         return len(self._events) == 0
+
+    def get_events(self) -> list[ConnectionEvent]:
+        """Get all tracked events.
+
+        Returns:
+            List of all connection events in chronological order.
+        """
+        return list(self._events)
+
+    def get_active_connections(
+        self, conn_filter: ConnectionFilter | None = None
+    ) -> list[ConnectionEvent]:
+        """Get active connections, optionally filtered.
+
+        Args:
+            conn_filter: Optional filter to apply. If None, returns all active.
+
+        Returns:
+            List of active connection events matching the filter.
+        """
+        if conn_filter is None or conn_filter.is_empty():
+            return list(self._active.values())
+        return [e for e in self._active.values() if conn_filter.matches(e)]
 
     def active_count(self) -> int:
         """Get the number of currently active connections.

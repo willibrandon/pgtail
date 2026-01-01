@@ -132,6 +132,10 @@ def _export_follow_mode(state: AppState, path: Path, fmt: ExportFormat) -> None:
         path: Output file path.
         fmt: Output format.
     """
+    if state.tailer is None:
+        print("No log file loaded. Use 'tail <instance>' first.")
+        return
+
     # Restart tailer if it was stopped
     if not state.tailer.is_running:
         state.tailer.start()

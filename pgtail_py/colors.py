@@ -87,7 +87,7 @@ def format_log_entry(entry: LogEntry) -> FormattedText:
         FormattedText suitable for print_formatted_text().
     """
     level_class = f"class:{entry.level.name.lower()}"
-    parts = []
+    parts: list[tuple[str, str]] = []
 
     # Timestamp
     if entry.timestamp:
@@ -123,7 +123,7 @@ def format_log_entry_with_highlights(
         FormattedText suitable for print_formatted_text().
     """
     level_class = f"class:{entry.level.name.lower()}"
-    parts = []
+    parts: list[tuple[str, str]] = []
 
     # Timestamp
     if entry.timestamp:
@@ -181,7 +181,7 @@ def format_slow_query_entry(entry: LogEntry, level: SlowQueryLevel) -> Formatted
         FormattedText suitable for print_formatted_text().
     """
     style_class = f"class:slow_{level.value}"
-    parts = []
+    parts: list[tuple[str, str]] = []
 
     # Timestamp
     if entry.timestamp:

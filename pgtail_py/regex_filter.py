@@ -126,10 +126,10 @@ class FilterState:
         highlights: Visual highlight patterns
     """
 
-    includes: list[RegexFilter] = field(default_factory=list)
-    excludes: list[RegexFilter] = field(default_factory=list)
-    ands: list[RegexFilter] = field(default_factory=list)
-    highlights: list[Highlight] = field(default_factory=list)
+    includes: list[RegexFilter] = field(default_factory=lambda: [])
+    excludes: list[RegexFilter] = field(default_factory=lambda: [])
+    ands: list[RegexFilter] = field(default_factory=lambda: [])
+    highlights: list[Highlight] = field(default_factory=lambda: [])
 
     @classmethod
     def empty(cls) -> FilterState:
