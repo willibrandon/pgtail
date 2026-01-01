@@ -47,7 +47,7 @@ jobs:
 
       - name: Build binary with PyInstaller
         run: |
-          uv run pyinstaller --onefile --name pgtail-${{ matrix.platform }}-${{ matrix.arch }} pgtail_py/__main__.py
+          uv run pyinstaller --onefile --collect-data certifi --name pgtail-${{ matrix.platform }}-${{ matrix.arch }} pgtail_py/__main__.py
 
       - name: Verify binary runs
         run: |
@@ -80,7 +80,7 @@ jobs:
 
       - name: Build binary with PyInstaller
         run: |
-          uv run pyinstaller --onefile --name pgtail-windows-x86_64 pgtail_py/__main__.py
+          uv run pyinstaller --onefile --collect-data certifi --name pgtail-windows-x86_64 pgtail_py/__main__.py
 
       - name: Verify binary runs
         run: |
@@ -225,15 +225,29 @@ jobs:
           # Update version
           sed -i "s/version \".*\"/version \"$VERSION\"/" Formula/pgtail.rb
 
-          # Update SHA256 checksums for each platform
-          # macOS arm64
-          sed -i "/on_macos do/,/end/{/on_arm do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_macos_arm64 }}\"/}}" Formula/pgtail.rb
-          # macOS x86_64
-          sed -i "/on_macos do/,/end/{/on_intel do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_macos_x86_64 }}\"/}}" Formula/pgtail.rb
-          # Linux arm64
-          sed -i "/on_linux do/,/end/{/on_arm do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_linux_arm64 }}\"/}}" Formula/pgtail.rb
-          # Linux x86_64
-          sed -i "/on_linux do/,/end/{/on_intel do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_linux_x86_64 }}\"/}}" Formula/pgtail.rb
+          # Update SHA256 checksums using Python for reliable replacement
+          python3 << 'EOF'
+          import re
+
+          with open('Formula/pgtail.rb', 'r') as f:
+              content = f.read()
+
+          # Define SHA256 values
+          shas = {
+              'macos-arm64': '${{ needs.release.outputs.sha256_macos_arm64 }}',
+              'macos-x86_64': '${{ needs.release.outputs.sha256_macos_x86_64 }}',
+              'linux-arm64': '${{ needs.release.outputs.sha256_linux_arm64 }}',
+              'linux-x86_64': '${{ needs.release.outputs.sha256_linux_x86_64 }}',
+          }
+
+          # Replace each platform's SHA256
+          for platform, sha in shas.items():
+              pattern = rf'(pgtail-{platform}"\s+sha256 ")[^"]*(")'
+              content = re.sub(pattern, rf'\g<1>{sha}\2', content)
+
+          with open('Formula/pgtail.rb', 'w') as f:
+              f.write(content)
+          EOF
 
           echo "Updated Formula/pgtail.rb:"
           cat Formula/pgtail.rb
