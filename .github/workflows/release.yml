@@ -197,9 +197,58 @@ jobs:
             echo "Release job completed within target time."
           fi
 
+  # Update Homebrew formula with new version and checksums
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Updating Homebrew formula to version $VERSION"
+
+      - name: Clone homebrew-tap repository
+        run: |
+          git clone https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/willibrandon/homebrew-tap.git
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update formula with new version and checksums
+        run: |
+          cd homebrew-tap
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Update version
+          sed -i "s/version \".*\"/version \"$VERSION\"/" Formula/pgtail.rb
+
+          # Update SHA256 checksums for each platform
+          # macOS arm64
+          sed -i "/on_macos do/,/end/{/on_arm do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_macos_arm64 }}\"/}}" Formula/pgtail.rb
+          # macOS x86_64
+          sed -i "/on_macos do/,/end/{/on_intel do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_macos_x86_64 }}\"/}}" Formula/pgtail.rb
+          # Linux arm64
+          sed -i "/on_linux do/,/end/{/on_arm do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_linux_arm64 }}\"/}}" Formula/pgtail.rb
+          # Linux x86_64
+          sed -i "/on_linux do/,/end/{/on_intel do/,/end/{s/sha256 \".*\"/sha256 \"${{ needs.release.outputs.sha256_linux_x86_64 }}\"/}}" Formula/pgtail.rb
+
+          echo "Updated Formula/pgtail.rb:"
+          cat Formula/pgtail.rb
+
+      - name: Commit and push changes
+        run: |
+          cd homebrew-tap
+          VERSION="${{ steps.version.outputs.version }}"
+
+          git add Formula/pgtail.rb
+          git diff --staged --quiet || git commit -m "Update pgtail to $VERSION"
+          git push origin main
+
   # Notify on failure
   notify-failure:
-    needs: [build-unix, build-windows, release]
+    needs: [build-unix, build-windows, release, update-homebrew]
     if: failure()
     runs-on: ubuntu-latest
     steps:
