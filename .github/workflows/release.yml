@@ -275,10 +275,7 @@ jobs:
           $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.exe"
 
           # Submit manifest PR to microsoft/winget-pkgs
-          .\wingetcreate.exe new $url `
-            --version $version `
-            --token $env:WINGET_PKGS_TOKEN `
-            --submit
+          .\wingetcreate.exe new $url --token $env:WINGET_PKGS_TOKEN
 
   # Notify on failure
   notify-failure:
