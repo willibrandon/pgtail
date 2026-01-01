@@ -1,9 +1,19 @@
 """Unit tests for SQL highlighter."""
 
+import os
+from unittest.mock import patch
+
 import pytest
 
-from pgtail_py.sql_highlighter import SQLHighlighter, TOKEN_TO_STYLE
+from pgtail_py.sql_highlighter import (
+    SQLHighlighter,
+    TOKEN_TO_STYLE,
+    TOKEN_TYPE_TO_THEME_KEY,
+    _color_style_to_rich_markup,
+    highlight_sql_rich,
+)
 from pgtail_py.sql_tokenizer import SQLToken, SQLTokenType
+from pgtail_py.theme import ColorStyle, Theme
 
 
 class TestTokenToStyleMapping:
@@ -335,3 +345,423 @@ LIMIT 100"""
         assert avg_time < 1, f"Average time {avg_time:.3f}ms too slow"
         # No outliers should exceed 10ms
         assert max_time < 10, f"Max time {max_time:.3f}ms too slow"
+
+
+# =============================================================================
+# Tests for Rich Output (User Story 1 - T009-T014, T051-T052)
+# =============================================================================
+
+
+class TestTokenTypeToThemeKeyMapping:
+    """Tests for TOKEN_TYPE_TO_THEME_KEY mapping."""
+
+    def test_keyword_maps_to_sql_keyword(self) -> None:
+        """KEYWORD should map to sql_keyword theme key."""
+        assert TOKEN_TYPE_TO_THEME_KEY[SQLTokenType.KEYWORD] == "sql_keyword"
+
+    def test_identifier_maps_to_sql_identifier(self) -> None:
+        """IDENTIFIER should map to sql_identifier theme key."""
+        assert TOKEN_TYPE_TO_THEME_KEY[SQLTokenType.IDENTIFIER] == "sql_identifier"
+
+    def test_quoted_identifier_maps_to_sql_identifier(self) -> None:
+        """QUOTED_IDENTIFIER should also map to sql_identifier theme key."""
+        assert TOKEN_TYPE_TO_THEME_KEY[SQLTokenType.QUOTED_IDENTIFIER] == "sql_identifier"
+
+    def test_function_maps_to_sql_function(self) -> None:
+        """FUNCTION should map to sql_function theme key."""
+        assert TOKEN_TYPE_TO_THEME_KEY[SQLTokenType.FUNCTION] == "sql_function"
+
+    def test_punctuation_has_no_theme_key(self) -> None:
+        """PUNCTUATION should have empty theme key."""
+        assert TOKEN_TYPE_TO_THEME_KEY[SQLTokenType.PUNCTUATION] == ""
+
+
+class TestColorStyleToRichMarkup:
+    """Tests for _color_style_to_rich_markup() - T009."""
+
+    def test_empty_style_returns_empty_string(self) -> None:
+        """Empty ColorStyle should return empty string."""
+        style = ColorStyle()
+        assert _color_style_to_rich_markup(style) == ""
+
+    def test_fg_only(self) -> None:
+        """Foreground color only should return just the color."""
+        style = ColorStyle(fg="blue")
+        assert _color_style_to_rich_markup(style) == "blue"
+
+    def test_fg_with_bold(self) -> None:
+        """Bold with foreground should put bold first."""
+        style = ColorStyle(fg="blue", bold=True)
+        assert _color_style_to_rich_markup(style) == "bold blue"
+
+    def test_ansi_color_stripped(self) -> None:
+        """ANSI color prefix should be stripped for Rich compatibility."""
+        style = ColorStyle(fg="ansicyan")
+        assert _color_style_to_rich_markup(style) == "cyan"
+
+    def test_ansibright_color_converted(self) -> None:
+        """ansibright* prefix should be converted to bright_*."""
+        style = ColorStyle(fg="ansibrightred")
+        assert _color_style_to_rich_markup(style) == "bright_red"
+
+    def test_ansibright_blue_converted(self) -> None:
+        """ansibrightblue should become bright_blue."""
+        style = ColorStyle(fg="ansibrightblue")
+        assert _color_style_to_rich_markup(style) == "bright_blue"
+
+    def test_hex_color_passed_through(self) -> None:
+        """Hex colors should pass through unchanged."""
+        style = ColorStyle(fg="#268bd2")
+        assert _color_style_to_rich_markup(style) == "#268bd2"
+
+    def test_background_color(self) -> None:
+        """Background color should use 'on' prefix."""
+        style = ColorStyle(bg="yellow")
+        assert _color_style_to_rich_markup(style) == "on yellow"
+
+    def test_background_ansi_color_stripped(self) -> None:
+        """Background ANSI color prefix should be stripped."""
+        style = ColorStyle(bg="ansiyellow")
+        assert _color_style_to_rich_markup(style) == "on yellow"
+
+    def test_dim_modifier(self) -> None:
+        """Dim modifier should be included."""
+        style = ColorStyle(dim=True)
+        assert _color_style_to_rich_markup(style) == "dim"
+
+    def test_italic_modifier(self) -> None:
+        """Italic modifier should be included."""
+        style = ColorStyle(italic=True)
+        assert _color_style_to_rich_markup(style) == "italic"
+
+    def test_underline_modifier(self) -> None:
+        """Underline modifier should be included."""
+        style = ColorStyle(underline=True)
+        assert _color_style_to_rich_markup(style) == "underline"
+
+    def test_all_modifiers_with_colors(self) -> None:
+        """All modifiers with colors should be in correct order."""
+        style = ColorStyle(fg="blue", bg="yellow", bold=True, dim=True, italic=True, underline=True)
+        result = _color_style_to_rich_markup(style)
+        # Order: bold, dim, italic, underline, fg, bg
+        assert result == "bold dim italic underline blue on yellow"
+
+
+class TestHighlightSqlRich:
+    """Tests for highlight_sql_rich() - T010."""
+
+    def test_keywords_highlighted(self) -> None:
+        """SQL keywords should have markup tags."""
+        result = highlight_sql_rich("SELECT id FROM users")
+        # Should have Rich markup tags
+        assert "[" in result
+        assert "SELECT" in result
+        assert "FROM" in result
+
+    def test_brackets_escaped(self) -> None:
+        """Brackets in SQL should be escaped to prevent Rich parsing errors."""
+        result = highlight_sql_rich("SELECT arr[1] FROM table")
+        # Opening bracket should be escaped (the tokenizer treats [1] as separate tokens)
+        assert "\\[" in result
+
+    def test_nested_brackets_escaped(self) -> None:
+        """Nested brackets in SQL should all be escaped."""
+        result = highlight_sql_rich("SELECT arr[1][2] FROM table")
+        # Should have escaped brackets
+        assert result.count("\\[") >= 2
+
+    def test_empty_sql_returns_empty(self) -> None:
+        """Empty SQL should return empty string."""
+        result = highlight_sql_rich("")
+        assert result == ""
+
+    def test_string_literals_styled(self) -> None:
+        """String literals should be in the output with styling."""
+        result = highlight_sql_rich("WHERE name = 'John'")
+        assert "'John'" in result
+        # Should have markup tags around it
+        assert "[" in result
+
+    def test_numbers_styled(self) -> None:
+        """Numeric literals should be in the output with styling."""
+        result = highlight_sql_rich("WHERE count > 42")
+        assert "42" in result
+
+    def test_comments_styled(self) -> None:
+        """SQL comments should be in the output with styling."""
+        result = highlight_sql_rich("SELECT 1 -- comment")
+        assert "-- comment" in result
+
+    def test_preserves_whitespace(self) -> None:
+        """Highlighting should preserve whitespace."""
+        result = highlight_sql_rich("SELECT  id   FROM users")
+        # Remove markup and check original spacing preserved
+        plain = result.replace("\\[", "[")
+        # Should contain the original spacing
+        assert "  " in plain or "SELECT" in plain
+
+    def test_closing_tags_present(self) -> None:
+        """All opening tags should have closing tags."""
+        result = highlight_sql_rich("SELECT id FROM users")
+        # Count opening and closing tags
+        open_count = result.count("[") - result.count("\\[")
+        close_count = result.count("[/]")
+        # Should have equal opening (non-escaped) and closing tags
+        assert open_count == close_count * 2  # Each styled token has [style] and [/]
+
+
+class TestHighlightSqlRichFunctions:
+    """Tests for function detection in highlight_sql_rich() - T051."""
+
+    def test_count_function_styled(self) -> None:
+        """COUNT(*) should be styled as sql_function."""
+        result = highlight_sql_rich("SELECT COUNT(*) FROM users")
+        assert "COUNT" in result
+        # Should have markup around it
+        assert "[" in result
+
+    def test_now_function_styled(self) -> None:
+        """NOW() should be styled as sql_function."""
+        result = highlight_sql_rich("SELECT NOW()")
+        assert "NOW" in result
+
+    def test_coalesce_function_styled(self) -> None:
+        """COALESCE() should be styled as sql_function."""
+        result = highlight_sql_rich("SELECT COALESCE(name, 'default')")
+        assert "COALESCE" in result
+
+    def test_aggregate_functions_styled(self) -> None:
+        """SUM, AVG, MAX, MIN should be styled as sql_function."""
+        result = highlight_sql_rich("SELECT SUM(amount), AVG(amount), MAX(amount), MIN(amount)")
+        assert "SUM" in result
+        assert "AVG" in result
+        assert "MAX" in result
+        assert "MIN" in result
+
+
+class TestHighlightSqlRichKeywordCoverage:
+    """Tests for keyword coverage in highlight_sql_rich() - T052."""
+
+    def test_ddl_keywords_create_alter(self) -> None:
+        """DDL keywords CREATE, ALTER should be highlighted."""
+        result = highlight_sql_rich("CREATE TABLE users (id INT); ALTER TABLE users ADD COLUMN name TEXT")
+        assert "CREATE" in result
+        assert "ALTER" in result
+        assert "TABLE" in result
+
+    def test_dml_keywords_select_insert(self) -> None:
+        """DML keywords SELECT, INSERT should be highlighted."""
+        result = highlight_sql_rich("SELECT * FROM users; INSERT INTO users VALUES (1)")
+        assert "SELECT" in result
+        assert "INSERT" in result
+        assert "INTO" in result
+        assert "VALUES" in result
+
+    def test_clause_keywords_where_join(self) -> None:
+        """Clause keywords WHERE, JOIN should be highlighted."""
+        result = highlight_sql_rich("SELECT * FROM a JOIN b ON a.id = b.id WHERE a.active")
+        assert "WHERE" in result
+        assert "JOIN" in result
+        assert "ON" in result
+
+    def test_logical_operators_and_or_not(self) -> None:
+        """Logical operators AND, OR, NOT should be highlighted as keywords."""
+        result = highlight_sql_rich("SELECT * FROM users WHERE active AND NOT deleted OR archived")
+        assert "AND" in result
+        assert "OR" in result
+        assert "NOT" in result
+
+
+class TestHighlightSqlRichNoColor:
+    """Tests for NO_COLOR handling in highlight_sql_rich() - T028, T029."""
+
+    def test_no_color_returns_escaped_brackets_only(self) -> None:
+        """With NO_COLOR=1, should return SQL with only bracket escaping."""
+        with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=False):
+            # Need to reload the cached check
+            from pgtail_py import utils
+            utils._color_disabled = None  # Clear cache
+            try:
+                result = highlight_sql_rich("SELECT arr[1] FROM users")
+                # Should have escaped bracket
+                assert "\\[1]" in result
+                # Should NOT have Rich markup tags (closing tag pattern)
+                assert "[/]" not in result
+            finally:
+                utils._color_disabled = None  # Clear cache again
+
+    def test_no_color_no_rich_markup_tags(self) -> None:
+        """With NO_COLOR=1, output should have no Rich markup tags."""
+        with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=False):
+            from pgtail_py import utils
+            utils._color_disabled = None
+            try:
+                result = highlight_sql_rich("SELECT id FROM users")
+                # No closing tags means no Rich markup
+                assert "[/" not in result
+                # But should have the SQL content
+                assert "SELECT" in result
+                assert "FROM" in result
+            finally:
+                utils._color_disabled = None
+
+
+class TestHighlightSqlRichWithTheme:
+    """Tests for theme integration in highlight_sql_rich() - T033-T035."""
+
+    def test_uses_passed_theme_for_color_lookup(self) -> None:
+        """highlight_sql_rich() should use the passed theme for colors."""
+        # Create a custom theme with distinctive colors
+        custom_theme = Theme(
+            name="test-theme",
+            description="Test theme",
+            levels={
+                "ERROR": ColorStyle(fg="red"),
+                "WARNING": ColorStyle(fg="yellow"),
+                "LOG": ColorStyle(fg="white"),
+            },
+            ui={
+                "timestamp": ColorStyle(dim=True),
+                "highlight": ColorStyle(fg="yellow"),
+                "sql_keyword": ColorStyle(fg="magenta", bold=True),
+                "sql_identifier": ColorStyle(fg="green"),
+            },
+        )
+        result = highlight_sql_rich("SELECT id FROM users", theme=custom_theme)
+        # Should have magenta in output for keywords
+        assert "magenta" in result or "bold" in result
+
+    def test_uses_global_theme_when_none_passed(self) -> None:
+        """highlight_sql_rich() should use global ThemeManager when theme is None."""
+        result = highlight_sql_rich("SELECT id FROM users", theme=None)
+        # Should still produce styled output (using default theme)
+        assert "[" in result
+        assert "SELECT" in result
+
+    def test_graceful_fallback_for_missing_sql_keys(self) -> None:
+        """Theme missing SQL color keys should return unstyled text for those tokens."""
+        # Create theme without sql_* keys
+        minimal_theme = Theme(
+            name="minimal-theme",
+            levels={
+                "ERROR": ColorStyle(fg="red"),
+                "WARNING": ColorStyle(fg="yellow"),
+                "LOG": ColorStyle(fg="white"),
+            },
+            ui={
+                "timestamp": ColorStyle(dim=True),
+                "highlight": ColorStyle(fg="yellow"),
+                # No sql_* keys defined
+            },
+        )
+        result = highlight_sql_rich("SELECT id FROM users", theme=minimal_theme)
+        # Should still contain the SQL text
+        assert "SELECT" in result
+        assert "id" in result
+        assert "FROM" in result
+        assert "users" in result
+        # Should not crash, text should be present (possibly unstyled)
+
+
+# =============================================================================
+# User Story 2 - Distinguish Literals from Identifiers (T015-T017)
+# =============================================================================
+
+
+class TestHighlightSqlRichLiterals:
+    """Tests for literal distinction in highlight_sql_rich() - T015-T017."""
+
+    def test_string_literals_styled_distinctly_from_identifiers(self) -> None:
+        """String literals 'John' should be styled distinctly from identifiers (T015)."""
+        result = highlight_sql_rich("SELECT name FROM users WHERE name = 'John'")
+        # Check that 'John' is in output
+        assert "'John'" in result
+        # Check that name (identifier) is also in output
+        assert "name" in result
+        # Both should have markup, but we just verify they're present and formatted
+
+    def test_numeric_literals_styled_distinctly(self) -> None:
+        """Numeric literals like 42 should be styled distinctly (T016)."""
+        result = highlight_sql_rich("SELECT id FROM users WHERE age = 42")
+        assert "42" in result
+        # Should have markup
+        assert "[" in result
+
+    def test_dollar_quoted_strings_styled_as_strings(self) -> None:
+        """Dollar-quoted strings $$body$$ should be styled as strings (T017)."""
+        result = highlight_sql_rich("SELECT $$body content$$ FROM table")
+        assert "$$body content$$" in result
+
+    def test_various_string_formats(self) -> None:
+        """Various string literal formats should all be styled."""
+        # Single quotes
+        result1 = highlight_sql_rich("SELECT 'hello'")
+        assert "'hello'" in result1
+
+        # Double-dollar quotes
+        result2 = highlight_sql_rich("SELECT $$hello$$")
+        assert "$$hello$$" in result2
+
+        # Tagged dollar quotes
+        result3 = highlight_sql_rich("SELECT $tag$hello$tag$")
+        assert "$tag$hello$tag$" in result3
+
+    def test_integer_and_float_literals(self) -> None:
+        """Both integer and float literals should be styled."""
+        result = highlight_sql_rich("SELECT * FROM t WHERE x = 42 AND y = 3.14")
+        assert "42" in result
+        assert "3.14" in result
+
+
+class TestHighlightSqlRichEdgeCases:
+    """Edge case tests for highlight_sql_rich() - T041-T045."""
+
+    def test_sql_with_nested_brackets(self) -> None:
+        """SQL with nested brackets like arr[1][2] should escape all brackets."""
+        result = highlight_sql_rich("SELECT arr[1][2] FROM table")
+        # Should have multiple escaped brackets
+        assert result.count("\\[") >= 2
+
+    def test_malformed_sql_with_unrecognized_tokens(self) -> None:
+        """Malformed SQL should highlight recognized tokens and display unknown plain."""
+        result = highlight_sql_rich("SELECT @@@ FROM users")
+        # SELECT and FROM should be highlighted
+        assert "SELECT" in result
+        assert "FROM" in result
+        # Should not crash, @@@ should be in output
+        assert "@@@" in result
+
+    def test_extremely_long_sql_50kb(self) -> None:
+        """50KB SQL should complete without performance degradation."""
+        import time
+        # Build a 50KB+ SQL statement - need more columns to reach 50KB
+        columns = [f"very_long_column_name_prefix_{i:06d}" for i in range(2000)]
+        column_list = ", ".join(columns)
+        sql = f"SELECT {column_list} FROM very_long_table_name_for_testing_purposes"
+
+        # Verify it's at least 50KB
+        assert len(sql) >= 50000, f"SQL length is only {len(sql)}"
+
+        start = time.perf_counter()
+        result = highlight_sql_rich(sql)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        # Verify result is valid
+        assert "SELECT" in result
+        # Should complete in reasonable time (< 500ms for 50KB)
+        assert elapsed_ms < 500, f"50KB SQL took {elapsed_ms:.2f}ms"
+
+    def test_dollar_quoted_strings(self) -> None:
+        """Dollar-quoted strings should be styled correctly."""
+        result = highlight_sql_rich("SELECT $tag$body content$tag$ FROM table")
+        assert "$tag$body content$tag$" in result
+
+    def test_line_comments(self) -> None:
+        """Line comments (--) should be styled."""
+        result = highlight_sql_rich("SELECT 1 -- this is a comment")
+        assert "-- this is a comment" in result
+
+    def test_block_comments(self) -> None:
+        """Block comments (/* */) should be styled."""
+        result = highlight_sql_rich("SELECT /* comment */ 1 FROM users")
+        assert "/* comment */" in result

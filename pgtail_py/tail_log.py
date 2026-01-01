@@ -634,10 +634,13 @@ class TailLog(Log):
         import re
 
         # Use regex to strip markup - handles partial/broken markup from selections
+        # First, temporarily replace escaped brackets to protect them
+        placeholder = "\x00ESCAPED_BRACKET\x00"
+        text = text.replace("\\[", placeholder)
         # Remove markup tags like [bold], [/bold], [dim], [/], [bold red], etc.
         result = re.sub(r"\[/?[^\]]*\]", "", text)
-        # Handle escaped brackets \\[ -> [
-        result = result.replace("\\[", "[")
+        # Restore escaped brackets as literal [
+        result = result.replace(placeholder, "[")
         return result
 
     def copy_with_fallback(self, text: str) -> bool:

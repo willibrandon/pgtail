@@ -390,3 +390,122 @@ class TestScrollbarBehavior:
                 max_scroll = log_widget.virtual_size.height - log_widget.scrollable_content_region.height
                 # Should be close to bottom (within 2 lines tolerance)
                 assert max_scroll - scroll_y <= 2, "G key should scroll to bottom"
+
+
+# =============================================================================
+# SQL Highlighting Widget Tests (T053, T056)
+# =============================================================================
+
+
+class TestTailLogSqlHighlighting:
+    """Tests for SQL highlighting in TailLog widget - T053, T056."""
+
+    @pytest.mark.asyncio
+    async def test_taillog_renders_sql_with_rich_markup(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that TailLog renders SQL with Rich markup correctly (T056)."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.queue = MagicMock()
+            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Write a line with SQL content including Rich markup
+                sql_line = "[bold blue]SELECT[/] [cyan]id[/] [bold blue]FROM[/] [cyan]users[/]"
+                log_widget.write_line(sql_line)
+                await pilot.pause()
+
+                # Verify line was written
+                assert log_widget.line_count == 1
+
+                # The line should be stored (we can't easily inspect rendered content,
+                # but we can verify the widget accepted the markup)
+
+    @pytest.mark.asyncio
+    async def test_sql_highlighting_works_in_paused_mode(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that SQL highlighting works identically in PAUSED mode (T053, FR-012)."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.queue = MagicMock()
+            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Write some lines
+                log_widget.write_line("Line 1: Regular message")
+                log_widget.write_line("[bold blue]SELECT[/] * [bold blue]FROM[/] [cyan]users[/]")
+                await pilot.pause()
+
+                # Focus log and scroll up to pause
+                log_widget.focus()
+                await pilot.press("g")  # Go to top (pauses follow mode)
+                await pilot.pause()
+
+                # Status should show not in follow mode (paused)
+                # The SQL highlighting should still render correctly
+                assert log_widget.line_count == 2
+
+                # Write more lines while paused
+                log_widget.write_line("[bold blue]INSERT[/] [bold blue]INTO[/] [cyan]orders[/]")
+                await pilot.pause()
+
+                # New line should still be added
+                assert log_widget.line_count == 3
+
+    @pytest.mark.asyncio
+    async def test_sql_highlighting_with_escaped_brackets(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that SQL with escaped brackets renders correctly."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.queue = MagicMock()
+            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Write SQL with array bracket that should be escaped
+                # The [1] is the array subscript, should be escaped as \[1]
+                sql_line = "[bold blue]SELECT[/] [cyan]arr[/]\\[1] [bold blue]FROM[/] [cyan]t[/]"
+                log_widget.write_line(sql_line)
+                await pilot.pause()
+
+                # Verify line was written without causing markup parsing errors
+                assert log_widget.line_count == 1

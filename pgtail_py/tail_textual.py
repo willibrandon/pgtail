@@ -425,8 +425,8 @@ class TailApp(App[None]):
 
         log_widget = self.query_one("#log", TailLog)
 
-        # Format entry as plain text
-        formatted = format_entry_compact(entry)
+        # Format entry with current theme for SQL highlighting
+        formatted = format_entry_compact(entry, theme=self._state.theme_manager.current_theme)
 
         # Track if we were at end (for FOLLOW mode)
         was_at_end = log_widget.is_vertical_scroll_end
@@ -486,7 +486,7 @@ class TailApp(App[None]):
         # Re-add entries that match current filters
         for entry in self._entries:
             if self._entry_matches_filters(entry):
-                formatted = format_entry_compact(entry)
+                formatted = format_entry_compact(entry, theme=self._state.theme_manager.current_theme)
                 log_widget.write_line(formatted)
                 if self._status:
                     self._status.update_from_entry(entry)
@@ -605,6 +605,29 @@ class TailApp(App[None]):
             # Rebuild log to include entries that arrived while paused
             self._rebuild_log()
             log_widget.scroll_end()
+            self._update_status()
+            return
+
+        # Handle theme command - switch theme and rebuild log with new colors
+        if cmd == "theme":
+            if not args:
+                # Show current theme
+                current = self._state.theme_manager.current_theme
+                if current:
+                    log_widget.write_line(f"[dim]Current theme:[/] [bold cyan]{current.name}[/]")
+                else:
+                    log_widget.write_line("[dim]No theme set[/]")
+            else:
+                theme_name = args[0]
+                if self._state.theme_manager.switch_theme(theme_name):
+                    # Rebuild log to re-render all entries with new theme colors
+                    self._rebuild_log()
+                    # Show success message with theme name in color
+                    log_widget.write_line(f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]")
+                else:
+                    # Show error - theme not found
+                    available = ", ".join(sorted(self._state.theme_manager._themes.keys()))
+                    log_widget.write_line(f"[bold red]✗[/] Unknown theme [bold yellow]{theme_name}[/]. Available: {available}")
             self._update_status()
             return
 

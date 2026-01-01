@@ -66,6 +66,70 @@ class TestTailLogBasic:
         assert expected.issubset(binding_keys)
 
 
+# =============================================================================
+# User Story 3 - Copy SQL Without Markup (T022-T027)
+# =============================================================================
+
+
+class TestTailLogStripMarkup:
+    """Tests for _strip_markup() method - T022-T024."""
+
+    def test_strip_markup_removes_opening_tags(self) -> None:
+        """_strip_markup() should remove Rich opening tags like [bold blue] (T022)."""
+        widget = TailLog()
+        text = "[bold blue]SELECT[/] id FROM users"
+        result = widget._strip_markup(text)
+        assert "[bold blue]" not in result
+        assert "SELECT" in result
+
+    def test_strip_markup_removes_closing_tags(self) -> None:
+        """_strip_markup() should remove Rich closing tags like [/] (T023)."""
+        widget = TailLog()
+        text = "[bold]text[/]"
+        result = widget._strip_markup(text)
+        assert "[/]" not in result
+        assert "text" in result
+
+    def test_strip_markup_unescapes_brackets(self) -> None:
+        """_strip_markup() should unescape brackets: \\[ becomes [ (T024)."""
+        widget = TailLog()
+        text = "SELECT arr\\[1] FROM t"
+        result = widget._strip_markup(text)
+        assert "arr[1]" in result
+        assert "\\[" not in result
+
+    def test_strip_markup_full_sql_flow(self) -> None:
+        """Full SQL yank flow: Rich markup → _strip_markup() → clean SQL (T027)."""
+        widget = TailLog()
+        # Simulated Rich markup output from highlight_sql_rich
+        markup = "[bold blue]SELECT[/] [cyan]arr[/]\\[1] [bold blue]FROM[/] [cyan]users[/]"
+        result = widget._strip_markup(markup)
+        # Should be plain SQL with proper brackets
+        assert result == "SELECT arr[1] FROM users"
+
+    def test_strip_markup_complex_sql(self) -> None:
+        """Complex SQL with multiple markup types should be stripped cleanly."""
+        widget = TailLog()
+        markup = (
+            "[dim]10:00:00[/] [green]LOG[/]: [bold blue]SELECT[/] "
+            "[cyan]id[/], [green]'John'[/] [bold blue]FROM[/] [cyan]users[/]"
+        )
+        result = widget._strip_markup(markup)
+        assert "10:00:00" in result
+        assert "LOG" in result
+        assert "SELECT" in result
+        assert "'John'" in result
+        assert "[bold blue]" not in result
+        assert "[/]" not in result
+
+    def test_strip_markup_preserves_text_without_markup(self) -> None:
+        """Plain text without markup should pass through unchanged."""
+        widget = TailLog()
+        text = "Just plain text"
+        result = widget._strip_markup(text)
+        assert result == "Just plain text"
+
+
 class TestTailLogClipboard:
     """Tests for TailLog clipboard functionality."""
 

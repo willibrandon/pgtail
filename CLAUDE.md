@@ -365,8 +365,14 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 **Implementation:**
 - `sql_detector.py` - Regex patterns to detect SQL content in log messages
 - `sql_tokenizer.py` - Tokenizes SQL into KEYWORD, IDENTIFIER, STRING, NUMBER, OPERATOR, COMMENT, FUNCTION types
-- `sql_highlighter.py` - Converts tokens to FormattedText with style classes
-- `display.py` - Integration via `_format_message_with_sql()` in all format functions
+- `sql_highlighter.py` - Converts tokens to Rich markup (Textual) or FormattedText (prompt_toolkit)
+- `tail_rich.py` - Textual mode: `format_entry_compact()` calls `highlight_sql_rich()`
+- `display.py` - REPL mode: Integration via `_format_message_with_sql()` in format functions
+
+**Theme Integration:**
+- SQL colors defined in each theme under `ui.sql_*` keys
+- Theme switching in tail mode triggers `_rebuild_log()` to re-render all entries with new colors
+- Current theme passed through call chain: `tail_textual.py` → `tail_rich.py` → `sql_highlighter.py`
 
 **Token Matching Order** (per research.md):
 1. Whitespace
@@ -387,9 +393,9 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - NO_COLOR=1: All SQL highlighting disabled
 - Missing theme keys: Falls back to default text color
 
-**New modules:**
+**Modules:**
 - `pgtail_py/sql_tokenizer.py` - SQLTokenType enum, SQLToken dataclass, SQLTokenizer class
-- `pgtail_py/sql_highlighter.py` - SQLHighlighter class, TOKEN_TO_STYLE mapping, highlight_sql() function
+- `pgtail_py/sql_highlighter.py` - TOKEN_TYPE_TO_THEME_KEY mapping, highlight_sql_rich() for Textual, highlight_sql() for prompt_toolkit
 - `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
 
 ## Tail Mode (Textual)

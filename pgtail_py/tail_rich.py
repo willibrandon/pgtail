@@ -17,9 +17,12 @@ from typing import TYPE_CHECKING
 from rich.text import Text
 
 from pgtail_py.filter import LogLevel
+from pgtail_py.sql_detector import detect_sql_content
+from pgtail_py.sql_highlighter import highlight_sql_rich
 
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry
+    from pgtail_py.theme import Theme
 
 
 # Rich styles for log levels - maps LogLevel to Rich style string
@@ -115,7 +118,7 @@ def format_entry_as_rich(entry: LogEntry) -> Text:
     return text
 
 
-def format_entry_compact(entry: LogEntry) -> str:
+def format_entry_compact(entry: LogEntry, theme: Theme | None = None) -> str:
     """Convert LogEntry to Rich markup string for Textual Log widget.
 
     Formats a log entry as a single-line Rich markup string suitable for
@@ -124,6 +127,7 @@ def format_entry_compact(entry: LogEntry) -> str:
 
     Args:
         entry: Parsed log entry to format.
+        theme: Theme for SQL highlighting. If None, uses default colors.
 
     Returns:
         Rich markup string representation of the entry.
@@ -153,8 +157,17 @@ def format_entry_compact(entry: LogEntry) -> str:
     else:
         parts.append(":")
 
-    # Message - escape any Rich markup in the message content
-    safe_message = entry.message.replace("[", "\\[")
-    parts.append(safe_message)
+    # Message - detect and highlight SQL content
+    detection = detect_sql_content(entry.message)
+    if detection:
+        # SQL detected: escape prefix, highlight SQL, escape suffix
+        prefix = detection.prefix.replace("[", "\\[")
+        highlighted_sql = highlight_sql_rich(detection.sql, theme=theme)
+        suffix = detection.suffix.replace("[", "\\[")
+        parts.append(f"{prefix}{highlighted_sql}{suffix}")
+    else:
+        # No SQL: just escape brackets to prevent Rich markup parsing
+        safe_message = entry.message.replace("[", "\\[")
+        parts.append(safe_message)
 
     return " ".join(parts)
