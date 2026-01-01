@@ -45,6 +45,28 @@ class TestLogLevel:
         with pytest.raises(ValueError, match="Unknown log level"):
             LogLevel.from_string("DEBUG6")
 
+    def test_from_string_abbreviations(self) -> None:
+        """Test that common abbreviations are recognized."""
+        assert LogLevel.from_string("err") == LogLevel.ERROR
+        assert LogLevel.from_string("warn") == LogLevel.WARNING
+        assert LogLevel.from_string("inf") == LogLevel.INFO
+        assert LogLevel.from_string("dbg") == LogLevel.DEBUG1
+        assert LogLevel.from_string("debug") == LogLevel.DEBUG1
+        assert LogLevel.from_string("fat") == LogLevel.FATAL
+        assert LogLevel.from_string("pan") == LogLevel.PANIC
+        assert LogLevel.from_string("ntc") == LogLevel.NOTICE
+
+    def test_from_string_single_letter(self) -> None:
+        """Test that single-letter shortcuts work."""
+        assert LogLevel.from_string("e") == LogLevel.ERROR
+        assert LogLevel.from_string("w") == LogLevel.WARNING
+        assert LogLevel.from_string("i") == LogLevel.INFO
+        assert LogLevel.from_string("l") == LogLevel.LOG
+        assert LogLevel.from_string("d") == LogLevel.DEBUG1
+        assert LogLevel.from_string("f") == LogLevel.FATAL
+        assert LogLevel.from_string("p") == LogLevel.PANIC
+        assert LogLevel.from_string("n") == LogLevel.NOTICE
+
     def test_all_levels(self) -> None:
         """Test that all_levels() returns all log levels."""
         all_levels = LogLevel.all_levels()
@@ -130,24 +152,54 @@ class TestParseLevels:
         assert levels is None
         assert invalid == []
 
-    def test_single_level_includes_more_severe(self) -> None:
-        """Test that single level includes that level and all more severe."""
+    def test_single_level_exact_match(self) -> None:
+        """Test that single level without suffix is exact match."""
         levels, invalid = parse_levels(["ERROR"])
-        # ERROR (2) should include PANIC (0), FATAL (1), ERROR (2)
+        assert levels == {LogLevel.ERROR}
+        assert invalid == []
+
+    def test_level_plus_suffix(self) -> None:
+        """Test that + suffix includes level and more severe."""
+        levels, invalid = parse_levels(["ERROR+"])
+        # ERROR+ should include PANIC, FATAL, ERROR
         assert levels == {LogLevel.PANIC, LogLevel.FATAL, LogLevel.ERROR}
         assert invalid == []
 
-    def test_single_level_warning_and_up(self) -> None:
-        """Test that WARNING includes WARNING, ERROR, FATAL, PANIC."""
-        levels, invalid = parse_levels(["WARNING"])
+    def test_level_minus_suffix(self) -> None:
+        """Test that - suffix includes level and less severe."""
+        levels, invalid = parse_levels(["ERROR-"])
+        # ERROR- should include ERROR, WARNING, NOTICE, LOG, INFO, DEBUG1-5
+        assert LogLevel.ERROR in levels
+        assert LogLevel.WARNING in levels
+        assert LogLevel.LOG in levels
+        assert LogLevel.DEBUG5 in levels
+        # Should NOT include FATAL or PANIC
+        assert LogLevel.FATAL not in levels
+        assert LogLevel.PANIC not in levels
+        assert invalid == []
+
+    def test_warning_plus_suffix(self) -> None:
+        """Test that WARNING+ includes WARNING, ERROR, FATAL, PANIC."""
+        levels, invalid = parse_levels(["WARNING+"])
         assert levels == {LogLevel.PANIC, LogLevel.FATAL, LogLevel.ERROR, LogLevel.WARNING}
         assert invalid == []
 
     def test_multiple_levels_exact_match(self) -> None:
         """Test that multiple levels returns exact levels specified."""
         levels, invalid = parse_levels(["ERROR", "WARNING", "FATAL"])
-        # Multiple levels = exact match, no "and up" expansion
         assert levels == {LogLevel.ERROR, LogLevel.WARNING, LogLevel.FATAL}
+        assert invalid == []
+
+    def test_mixed_suffix_and_exact(self) -> None:
+        """Test combining + suffix with exact match."""
+        levels, invalid = parse_levels(["ERROR+", "LOG"])
+        # ERROR+ gives PANIC, FATAL, ERROR; plus exact LOG
+        assert LogLevel.PANIC in levels
+        assert LogLevel.FATAL in levels
+        assert LogLevel.ERROR in levels
+        assert LogLevel.LOG in levels
+        # WARNING should NOT be included (not in ERROR+ or exact LOG)
+        assert LogLevel.WARNING not in levels
         assert invalid == []
 
     def test_case_insensitive(self) -> None:
@@ -155,6 +207,31 @@ class TestParseLevels:
         levels, invalid = parse_levels(["error", "WARNING", "Fatal"])
         # Multiple levels = exact match
         assert levels == {LogLevel.ERROR, LogLevel.WARNING, LogLevel.FATAL}
+        assert invalid == []
+
+    def test_abbreviations_with_suffix(self) -> None:
+        """Test that abbreviations work with + and - suffixes."""
+        # warn+ should give WARNING, ERROR, FATAL, PANIC
+        levels, invalid = parse_levels(["warn+"])
+        assert levels == {LogLevel.WARNING, LogLevel.ERROR, LogLevel.FATAL, LogLevel.PANIC}
+        assert invalid == []
+
+        # err- should give ERROR and all less severe
+        levels, invalid = parse_levels(["err-"])
+        assert LogLevel.ERROR in levels
+        assert LogLevel.WARNING in levels
+        assert LogLevel.DEBUG5 in levels
+        assert LogLevel.PANIC not in levels
+        assert invalid == []
+
+        # Single letter with suffix: e+ for ERROR+
+        levels, invalid = parse_levels(["e+"])
+        assert levels == {LogLevel.ERROR, LogLevel.FATAL, LogLevel.PANIC}
+        assert invalid == []
+
+        # w for WARNING exact match
+        levels, invalid = parse_levels(["w"])
+        assert levels == {LogLevel.WARNING}
         assert invalid == []
 
     def test_invalid_level_name(self) -> None:

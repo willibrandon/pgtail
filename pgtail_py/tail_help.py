@@ -29,6 +29,7 @@ KEYBINDINGS: dict[str, list[tuple[str, str]]] = {
         ("Ctrl+u", "Half page up"),
         ("Ctrl+f / PgDn", "Full page down"),
         ("Ctrl+b / PgUp", "Full page up"),
+        ("p", "Pause (freeze display)"),
         ("f", "Resume FOLLOW mode"),
     ],
     "Selection": [

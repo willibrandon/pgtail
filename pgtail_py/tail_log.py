@@ -56,6 +56,7 @@ class TailLog(Log):
         Binding("g", "scroll_home", "Top", show=False),
         Binding("G", "scroll_end", "Bottom", show=False),
         Binding("f", "follow", "Follow", show=False),
+        Binding("p", "pause", "Pause", show=False),
         Binding("ctrl+d", "half_page_down", "Half page down", show=False),
         Binding("ctrl+u", "half_page_up", "Half page up", show=False),
         Binding("ctrl+f", "page_down", "Page down", show=False),
@@ -109,6 +110,16 @@ class TailLog(Log):
             self.active = active
             self.line_mode = line_mode
             super().__init__()
+
+    class PauseRequested(Message):
+        """Emitted when user requests pause mode (p key)."""
+
+        pass
+
+    class FollowRequested(Message):
+        """Emitted when user requests follow mode (f key)."""
+
+        pass
 
     def __init__(
         self,
@@ -195,16 +206,21 @@ class TailLog(Log):
 
     def action_follow(self) -> None:
         """Enter follow mode: go to tail, clear selection, enable auto-scroll."""
-        if self.line_count == 0:
-            return
         # Exit visual mode
         self._visual_mode = False
         self._visual_line_mode = False
         self._visual_anchor_line = None
-        # Move to end
-        self._cursor_line = self.line_count - 1
         self._set_selection(None)
-        self.scroll_end()
+        # Navigate to end if we have content
+        if self.line_count > 0:
+            self._cursor_line = self.line_count - 1
+            self.scroll_end()
+        # Tell app to resume following (always, even if empty)
+        self.post_message(self.FollowRequested())
+
+    def action_pause(self) -> None:
+        """Request pause mode (stop auto-scroll, freeze display)."""
+        self.post_message(self.PauseRequested())
 
     def action_half_page_down(self) -> None:
         """Move cursor/selection down half a page."""

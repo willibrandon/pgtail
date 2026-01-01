@@ -279,18 +279,21 @@ class TailStatus:
         return " ".join(parts)
 
     def format_rich(self) -> Text:
-        """Render status bar as styled Rich Text.
+        """Render status bar as styled Rich Text (2 lines).
 
-        Format: MODE | E:N W:N | N lines | [filters...] | PGver:port
+        Line 1: MODE | E:N W:N | N lines | [filters...] | PGver:port
+        Line 2: Footer hints for key bindings
 
         The status bar background is set by CSS ($panel) which is typically
         a dark surface color. Text colors use bright variants for high
         contrast visibility.
 
         Returns:
-            Rich Text object with styled status bar content.
+            Rich Text object with styled 2-line status bar content.
         """
         text = Text()
+
+        # === Line 1: Status info ===
 
         # Left margin for breathing room
         text.append(" ")
@@ -353,5 +356,35 @@ class TailStatus:
             text.append(f"PG{self.pg_version}:{self.pg_port}", style="bright_white")
         else:
             text.append(f":{self.pg_port}", style="bright_white")
+
+        return text
+
+    def format_header(self) -> Text:
+        """Render header bar with keybinding hints as Rich Text.
+
+        Returns:
+            Rich Text object with styled keybinding hints.
+        """
+        text = Text()
+        text.append(" ")
+
+        # Key hints - bright keys, dim descriptions
+        hints = [
+            ("q", "Quit"),
+            ("?", "Help"),
+            ("/", "Cmd"),
+            ("v", "Visual"),
+            ("y", "Yank"),
+            ("p", "Pause"),
+            ("f", "Follow"),
+            ("g/G", "Top/End"),
+        ]
+
+        for i, (key, desc) in enumerate(hints):
+            if i > 0:
+                text.append("  ", style="dim")
+            text.append(key, style="bold bright_white")
+            text.append(" ", style="dim")
+            text.append(desc, style="dim")
 
         return text

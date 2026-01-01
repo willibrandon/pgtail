@@ -37,7 +37,9 @@ TAIL_MODE_COMMANDS: list[str] = [
     "connections",  # show connection summary
     # Mode commands
     "pause",  # enter PAUSED mode
+    "p",  # alias for pause
     "follow",  # enter FOLLOW mode
+    "f",  # alias for follow
     # Help
     "help",  # show help
     # Exit commands
@@ -45,6 +47,138 @@ TAIL_MODE_COMMANDS: list[str] = [
     "exit",  # return to REPL
     "q",  # return to REPL
 ]
+
+# Detailed help for each command (displayed via 'help <cmd>' or '<cmd> help')
+COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
+    "level": {
+        "usage": "level <level>[+|-] [level2...]",
+        "short": "Filter log entries by severity level",
+        "description": "Show only entries matching the specified log level(s).",
+        "examples": [
+            "level error        Show only ERROR entries",
+            "level error+       Show ERROR and more severe (FATAL, PANIC)",
+            "level warning-     Show WARNING and less severe (NOTICE, LOG, etc.)",
+            "level error,warn   Show ERROR and WARNING only",
+            "level e+           Same as 'level error+' (abbreviation)",
+            "level all          Show all levels (clear level filter)",
+        ],
+        "aliases": "e=error, w=warning, f=fatal, p=panic, n=notice, i=info, l=log, d=debug",
+    },
+    "filter": {
+        "usage": "filter /pattern/[i]",
+        "short": "Filter log entries by regex pattern",
+        "description": "Show only entries matching the regular expression pattern.",
+        "examples": [
+            "filter /error/      Match lines containing 'error' (case-sensitive)",
+            "filter /error/i     Match 'error' case-insensitively",
+            "filter /user_\\d+/   Match 'user_' followed by digits",
+            "filter clear        Remove regex filter",
+        ],
+    },
+    "since": {
+        "usage": "since <time>",
+        "short": "Show entries from a specific time onward",
+        "description": "Filter to show only log entries from the specified time.",
+        "examples": [
+            "since 5m           Entries from last 5 minutes",
+            "since 2h           Entries from last 2 hours",
+            "since 14:30        Entries since 2:30 PM today",
+            "since 14:30:00     Entries since 2:30:00 PM today",
+            "since clear        Remove time filter",
+        ],
+    },
+    "until": {
+        "usage": "until <time>",
+        "short": "Show entries up to a specific time",
+        "description": "Filter to show only log entries up to the specified time.",
+        "examples": [
+            "until 5m           Entries up to 5 minutes ago",
+            "until 14:30        Entries until 2:30 PM today",
+            "until clear        Remove time filter",
+        ],
+    },
+    "between": {
+        "usage": "between <start> <end>",
+        "short": "Show entries in a time range",
+        "description": "Filter to show only log entries between start and end times.",
+        "examples": [
+            "between 14:00 15:00    Entries between 2 PM and 3 PM",
+            "between 1h 30m         Entries from 1 hour ago to 30 min ago",
+        ],
+    },
+    "slow": {
+        "usage": "slow <milliseconds>",
+        "short": "Highlight slow queries above threshold",
+        "description": "Set a threshold to highlight queries exceeding the duration.",
+        "examples": [
+            "slow 100           Highlight queries over 100ms",
+            "slow 1000          Highlight queries over 1 second",
+            "slow clear         Remove slow query threshold",
+        ],
+    },
+    "clear": {
+        "usage": "clear [force]",
+        "short": "Reset filters to initial state",
+        "description": "Clear all filters and return to the state when tail mode started.",
+        "examples": [
+            "clear              Reset to initial filters",
+            "clear force        Clear ALL filters (ignore initial state)",
+        ],
+    },
+    "errors": {
+        "usage": "errors [--trend|--code CODE|--since TIME]",
+        "short": "Show error statistics",
+        "description": "Display error/warning counts, trends, and SQLSTATE codes.",
+        "examples": [
+            "errors             Summary with counts by SQLSTATE",
+            "errors --trend     Sparkline of error rate (last 60 min)",
+            "errors --code 23505  Filter by SQLSTATE code",
+            "errors --since 30m   Time-scoped statistics",
+            "errors clear       Reset all statistics",
+        ],
+    },
+    "connections": {
+        "usage": "connections [--history|--watch|--db=X|--user=X]",
+        "short": "Show connection statistics",
+        "description": "Display connection/disconnection counts and active sessions.",
+        "examples": [
+            "connections            Summary with breakdowns",
+            "connections --history  Connect/disconnect rate history",
+            "connections --watch    Live stream of connection events",
+            "connections --db=mydb  Filter by database name",
+            "connections clear      Reset statistics",
+        ],
+    },
+    "pause": {
+        "usage": "pause",
+        "short": "Pause log updates (freeze display)",
+        "description": "Stop auto-scrolling and freeze the display. New entries are buffered.",
+        "examples": [
+            "pause              Freeze display",
+        ],
+        "see_also": "follow, p key",
+    },
+    "follow": {
+        "usage": "follow",
+        "short": "Resume following new entries",
+        "description": "Resume auto-scrolling and show any entries that arrived while paused.",
+        "examples": [
+            "follow             Resume following",
+        ],
+        "see_also": "pause, f key",
+    },
+    "help": {
+        "usage": "help [command|keys]",
+        "short": "Show help information",
+        "description": "Display general help or detailed help for a specific command.",
+        "examples": [
+            "help               Show all commands",
+            "help keys          Show keybinding reference",
+            "help level         Show level command help",
+            "help filter        Show filter command help",
+        ],
+    },
+}
 
 
 def handle_tail_command(
@@ -72,13 +206,17 @@ def handle_tail_command(
     Returns:
         True if command was handled, False if unknown command
     """
+    # Handle '<cmd> help' or '<cmd> ?' variant - e.g., 'level help', 'filter ?'
+    if args and args[0].lower() in ("help", "?") and cmd in COMMAND_HELP:
+        return _show_command_help(cmd, buffer, log_widget)
+
     # Exit commands
     if cmd in ("stop", "exit", "q"):
         stop_callback()
         return True
 
     # Mode commands - handle both buffer (prompt_toolkit) and log_widget (Textual)
-    if cmd == "pause":
+    if cmd in ("pause", "p"):
         if buffer is not None:
             buffer.set_paused()
             status.set_follow_mode(False, buffer.new_since_pause)
@@ -87,7 +225,7 @@ def handle_tail_command(
             status.set_follow_mode(False, 0)
         return True
 
-    if cmd == "follow":
+    if cmd in ("follow", "f"):
         if buffer is not None:
             buffer.resume_follow()
         # Textual Log widget auto-scrolls when at bottom
@@ -722,6 +860,77 @@ def _rebuild_buffer_filters(
         status.set_total_lines(buffer.filtered_count)
 
 
+def _show_command_help(
+    cmd_name: str,
+    buffer: TailBuffer | None,
+    log_widget: TailLog | None = None,
+) -> bool:
+    """Display detailed help for a specific command.
+
+    Args:
+        cmd_name: Command name to show help for
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
+        log_widget: TailLog widget (Textual) or None
+
+    Returns:
+        True if help was displayed, False if command not found
+    """
+    cmd_lower = cmd_name.lower()
+    if cmd_lower not in COMMAND_HELP:
+        return False
+
+    help_info = COMMAND_HELP[cmd_lower]
+    usage = help_info.get("usage", cmd_lower)
+    short = help_info.get("short", "")
+    description = help_info.get("description", "")
+    examples = help_info.get("examples", [])
+    aliases = help_info.get("aliases", "")
+    see_also = help_info.get("see_also", "")
+
+    if log_widget is not None:
+        # Textual mode
+        log_widget.write_line(f"[bold cyan]{cmd_lower.upper()}[/bold cyan]")
+        log_widget.write_line(f"  [dim]{short}[/dim]")
+        log_widget.write_line("")
+        log_widget.write_line(f"[bold]Usage:[/bold] [green]{usage}[/green]")
+        log_widget.write_line("")
+        if description:
+            log_widget.write_line(f"  {description}")
+            log_widget.write_line("")
+        if examples:
+            log_widget.write_line("[bold]Examples:[/bold]")
+            for ex in examples:
+                log_widget.write_line(f"  [yellow]{ex}[/yellow]")
+            log_widget.write_line("")
+        if aliases:
+            log_widget.write_line(f"[bold]Aliases:[/bold] [dim]{aliases}[/dim]")
+        if see_also:
+            log_widget.write_line(f"[bold]See also:[/bold] [dim]{see_also}[/dim]")
+    elif buffer is not None:
+        # prompt_toolkit mode
+        lines: list[tuple[str, str]] = []
+        lines.append(("bold fg:ansicyan", f"{cmd_lower.upper()}\n"))
+        lines.append(("fg:ansigray", f"  {short}\n\n"))
+        lines.append(("bold", "Usage: "))
+        lines.append(("fg:ansigreen", f"{usage}\n\n"))
+        if description:
+            lines.append(("", f"  {description}\n\n"))
+        if examples:
+            lines.append(("bold", "Examples:\n"))
+            for ex in examples:
+                lines.append(("fg:ansiyellow", f"  {ex}\n"))
+            lines.append(("", "\n"))
+        if aliases:
+            lines.append(("bold", "Aliases: "))
+            lines.append(("fg:ansigray", f"{aliases}\n"))
+        if see_also:
+            lines.append(("bold", "See also: "))
+            lines.append(("fg:ansigray", f"{see_also}\n"))
+        buffer.insert_command_output(FormattedText(lines))
+
+    return True
+
+
 def _handle_help_command(
     args: list[str],
     buffer: TailBuffer | None,
@@ -731,9 +940,10 @@ def _handle_help_command(
 
     Subcommands:
         help keys - Show keybinding reference
+        help <cmd> - Show detailed help for a specific command
 
     Args:
-        args: Command arguments (e.g., ['keys'])
+        args: Command arguments (e.g., ['keys', 'level'])
         buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         log_widget: TailLog widget (Textual) or None
 
@@ -743,6 +953,10 @@ def _handle_help_command(
     # Handle 'help keys' subcommand
     if args and args[0].lower() == "keys":
         return _handle_help_keys_command(buffer, log_widget)
+
+    # Handle 'help <command>' - show command-specific help
+    if args and args[0].lower() in COMMAND_HELP:
+        return _show_command_help(args[0], buffer, log_widget)
 
     # Build styled help text
     lines: list[tuple[str, str]] = []

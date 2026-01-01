@@ -95,9 +95,17 @@ class TailApp(App[None]):
         background: $surface;
     }
 
-    /* Status bar - 2 rows for status text + future footer hints */
+    /* Header bar with keybinding hints */
+    #header {
+        height: 1;
+        width: 100%;
+        background: $panel;
+        color: $text-muted;
+    }
+
+    /* Status bar at bottom */
     #status {
-        height: 2;
+        height: 1;
         width: 100%;
         background: $panel;
         color: $text;
@@ -165,15 +173,19 @@ class TailApp(App[None]):
         """Compose the application layout.
 
         Layout (top to bottom):
+        - Static: Header with keybinding hints
+        - Static: Separator line
         - TailLog: Log display area (flexible height)
-        - Static: Separator line above input
+        - Static: Separator line
         - TailInput: Command input line (tail> prompt)
-        - Static: Separator line below input
-        - Static: Status bar (bottom, with reverse video styling)
+        - Static: Separator line
+        - Static: Status bar (FOLLOW/PAUSED, counts, filters)
 
         Yields:
             Widgets in layout order.
         """
+        yield Static(id="header")
+        yield Static("─" * 200, classes="separator")
         yield TailLog(max_lines=self._max_lines, auto_scroll=True, id="log")
         yield Static("─" * 200, classes="separator")
         yield TailInput()
@@ -299,6 +311,32 @@ class TailApp(App[None]):
             self._handle_command(command)
         # Return focus to log
         self.query_one("#log", TailLog).focus()
+
+    @on(TailLog.PauseRequested)
+    def on_pause_requested(self, event: TailLog.PauseRequested) -> None:
+        """Handle pause request from TailLog (p key).
+
+        Args:
+            event: PauseRequested event.
+        """
+        self._paused = True
+        if self._status:
+            self._status.set_follow_mode(False, 0)
+            self._update_status()
+
+    @on(TailLog.FollowRequested)
+    def on_follow_requested(self, event: TailLog.FollowRequested) -> None:
+        """Handle follow request from TailLog (f key).
+
+        Args:
+            event: FollowRequested event.
+        """
+        self._paused = False
+        # Rebuild log to include entries that arrived while paused
+        self._rebuild_log()
+        if self._status:
+            self._status.set_follow_mode(True, 0)
+            self._update_status()
 
     # Background worker
 
@@ -486,12 +524,15 @@ class TailApp(App[None]):
         self._rebuild_log()
 
     def _update_status(self) -> None:
-        """Update the status bar display with styled Rich text."""
-        status_widget = self.query_one("#status", Static)
+        """Update the header and status bar displays with styled Rich text."""
         if self._status:
-            # Use format_rich for styled Textual Static widget
-            status_text = self._status.format_rich()
-            status_widget.update(status_text)
+            # Update header with keybinding hints
+            header_widget = self.query_one("#header", Static)
+            header_widget.update(self._status.format_header())
+
+            # Update status bar with mode, counts, filters
+            status_widget = self.query_one("#status", Static)
+            status_widget.update(self._status.format_rich())
 
     def _handle_command(self, command_text: str) -> None:
         """Handle a command entered in the input line.
@@ -537,13 +578,13 @@ class TailApp(App[None]):
             return
 
         # Handle pause/follow commands to set explicit pause flag
-        if cmd == "pause":
+        if cmd in ("pause", "p"):
             self._paused = True
             self._status.set_follow_mode(False, 0)
             self._update_status()
             return
 
-        if cmd == "follow":
+        if cmd in ("follow", "f"):
             self._paused = False
             self._status.set_follow_mode(True, 0)
             # Rebuild log to include entries that arrived while paused
@@ -552,9 +593,12 @@ class TailApp(App[None]):
             self._update_status()
             return
 
+        # Check if this is a help request (don't rebuild log for help)
+        is_help_request = args and args[0].lower() in ("help", "?")
+
         # Track if this is a filter command that needs log rebuild
         filter_commands = {"level", "filter", "since", "until", "between"}
-        needs_rebuild = cmd in filter_commands
+        needs_rebuild = cmd in filter_commands and not is_help_request
 
         handle_tail_command(
             cmd=cmd,
