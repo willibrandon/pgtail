@@ -62,6 +62,7 @@ from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode
 from pgtail_py.theme import ThemeManager
 from pgtail_py.time_filter import TimeFilter
+from pgtail_py.version import check_update_async
 
 
 @dataclass
@@ -420,6 +421,9 @@ def main() -> None:
     # Initialize state with detected instances
     state = AppState()
     state.instances = detect_all()
+
+    # T089: Start background update check (non-blocking)
+    check_update_async(state.config)
 
     # Show instance count on startup
     count = len(state.instances)

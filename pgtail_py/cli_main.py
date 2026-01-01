@@ -12,7 +12,7 @@ import typer
 
 from pgtail_py.detector import detect_all
 from pgtail_py.terminal import enable_vt100_mode
-from pgtail_py.version import get_version
+from pgtail_py.version import check_update_sync, get_version
 
 app = typer.Typer(
     name="pgtail",
@@ -29,6 +29,14 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def check_update_callback(value: bool) -> None:
+    """Check for updates and exit."""
+    if value:
+        _available, message = check_update_sync()
+        typer.echo(message)
+        raise typer.Exit()
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -40,6 +48,15 @@ def main(
             callback=version_callback,
             is_eager=True,
             help="Show version and exit.",
+        ),
+    ] = False,
+    check_update: Annotated[
+        bool,
+        typer.Option(
+            "--check-update",
+            callback=check_update_callback,
+            is_eager=True,
+            help="Check for updates and exit.",
         ),
     ] = False,
 ) -> None:

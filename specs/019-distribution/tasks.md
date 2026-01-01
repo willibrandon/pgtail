@@ -179,42 +179,42 @@
 
 ### Implementation for User Story 5
 
-- [ ] T069 [US5] Implement detect_install_method() function with heuristic-based detection in pgtail_py/version.py
-- [ ] T070 [US5] Add pip detection: check if sys.prefix contains site-packages and not in venv in pgtail_py/version.py
-- [ ] T071 [US5] Add pipx detection: check if sys.executable contains .local/pipx/venvs/pgtail in pgtail_py/version.py
-- [ ] T072 [US5] Add uv detection: check if sys.executable contains .venv or uv marker in pgtail_py/version.py
-- [ ] T073 [US5] Add Homebrew detection: check if sys.executable starts with /opt/homebrew, /usr/local/Cellar, or /home/linuxbrew in pgtail_py/version.py
-- [ ] T074 [US5] Add winget detection: check Windows registry or LOCALAPPDATA/Microsoft/winget path in pgtail_py/version.py
-- [ ] T075 [US5] Add binary fallback when no other method detected in pgtail_py/version.py
-- [ ] T076 [US5] Implement get_upgrade_command() function mapping InstallMethod to command strings in pgtail_py/version.py
-- [ ] T077 [US5] Implement fetch_latest_release() function using urllib.request to GitHub Releases API in pgtail_py/version.py
-- [ ] T078 [US5] Add Accept: application/vnd.github+json and User-Agent headers to API request in pgtail_py/version.py
-- [ ] T079 [US5] Add 5-second timeout to API request in pgtail_py/version.py
-- [ ] T080 [US5] Implement parse_version() to strip v prefix from tag_name in pgtail_py/version.py
-- [ ] T081 [US5] Implement is_newer_available() using packaging.version.Version comparison in pgtail_py/version.py
-- [ ] T082 [US5] Implement should_check_update() function checking config and 24-hour rate limit in pgtail_py/version.py
-- [ ] T083 [US5] Implement check_update_async() function running update check in background thread in pgtail_py/version.py
-- [ ] T084 [US5] Implement notify_update() to print one-line notification to stderr in pgtail_py/version.py
-- [ ] T085 [US5] Add NO_COLOR environment variable support to notification styling in pgtail_py/version.py
-- [ ] T086 [US5] Add color styling to notification (version bold, "available" green, command cyan) in pgtail_py/version.py
-- [ ] T087 [US5] Implement check_update_sync() for --check-update flag (bypasses rate limit) in pgtail_py/version.py
-- [ ] T088 [US5] Add --check-update flag to CLI that calls check_update_sync() and exits in pgtail_py/cli_main.py
-- [ ] T089 [US5] Add startup update check call (check_update_async) before REPL loop in pgtail_py/cli.py
-- [ ] T090 [US5] Update config last_check timestamp after successful API call in pgtail_py/version.py
-- [ ] T091 [US5] Handle network errors silently (return None, continue normal operation) in pgtail_py/version.py
-- [ ] T092 [US5] Handle malformed JSON gracefully (return None) in pgtail_py/version.py
-- [ ] T093 [US5] Handle API rate limit (403) silently in pgtail_py/version.py
-- [ ] T094 [US5] Handle 404 (no releases) silently in pgtail_py/version.py
-- [ ] T095 [US5] Test --check-update shows "up to date" when current version equals latest
-- [ ] T096 [US5] Test --check-update shows update available with correct upgrade command
-- [ ] T097 [US5] Test startup notification appears when newer version exists
-- [ ] T098 [US5] Test startup notification is rate-limited (skip if < 24 hours)
-- [ ] T099 [US5] Test updates.check = false skips startup check
-- [ ] T100 [US5] Test --check-update works even when updates.check = false
-- [ ] T101 [US5] Test offline handling (no error, continues normally)
-- [ ] T126 [US5] Handle dev version (0.0.0-dev) comparison in is_newer_available() in pgtail_py/version.py
-- [ ] T130 [US5] Verify check_update_async() completes without blocking startup (<500ms per SC-012) in pgtail_py/version.py
-- [ ] T131 [US5] Verify --check-update timing under 2 seconds per SC-013 on typical network
+- [x] T069 [US5] Implement detect_install_method() function with heuristic-based detection in pgtail_py/version.py
+- [x] T070 [US5] Add pip detection: check if sys.prefix contains site-packages and not in venv in pgtail_py/version.py
+- [x] T071 [US5] Add pipx detection: check if sys.executable contains .local/pipx/venvs/pgtail in pgtail_py/version.py
+- [x] T072 [US5] Add uv detection: check if sys.executable contains .venv or uv marker in pgtail_py/version.py
+- [x] T073 [US5] Add Homebrew detection: check if sys.executable starts with /opt/homebrew, /usr/local/Cellar, or /home/linuxbrew in pgtail_py/version.py
+- [x] T074 [US5] Add winget detection: check Windows registry or LOCALAPPDATA/Microsoft/winget path in pgtail_py/version.py
+- [x] T075 [US5] Add binary fallback when no other method detected in pgtail_py/version.py
+- [x] T076 [US5] Implement get_upgrade_command() function mapping InstallMethod to command strings in pgtail_py/version.py
+- [x] T077 [US5] Implement fetch_latest_release() function using urllib.request to GitHub Releases API in pgtail_py/version.py
+- [x] T078 [US5] Add Accept: application/vnd.github+json and User-Agent headers to API request in pgtail_py/version.py
+- [x] T079 [US5] Add 5-second timeout to API request in pgtail_py/version.py
+- [x] T080 [US5] Implement parse_version() to strip v prefix from tag_name in pgtail_py/version.py
+- [x] T081 [US5] Implement is_newer_available() using packaging.version.Version comparison in pgtail_py/version.py
+- [x] T082 [US5] Implement should_check_update() function checking config and 24-hour rate limit in pgtail_py/version.py
+- [x] T083 [US5] Implement check_update_async() function running update check in background thread in pgtail_py/version.py
+- [x] T084 [US5] Implement notify_update() to print one-line notification to stderr in pgtail_py/version.py
+- [x] T085 [US5] Add NO_COLOR environment variable support to notification styling in pgtail_py/version.py
+- [x] T086 [US5] Add color styling to notification (version bold, "available" green, command cyan) in pgtail_py/version.py
+- [x] T087 [US5] Implement check_update_sync() for --check-update flag (bypasses rate limit) in pgtail_py/version.py
+- [x] T088 [US5] Add --check-update flag to CLI that calls check_update_sync() and exits in pgtail_py/cli_main.py
+- [x] T089 [US5] Add startup update check call (check_update_async) before REPL loop in pgtail_py/cli.py
+- [x] T090 [US5] Update config last_check timestamp after successful API call in pgtail_py/version.py
+- [x] T091 [US5] Handle network errors silently (return None, continue normal operation) in pgtail_py/version.py
+- [x] T092 [US5] Handle malformed JSON gracefully (return None) in pgtail_py/version.py
+- [x] T093 [US5] Handle API rate limit (403) silently in pgtail_py/version.py
+- [x] T094 [US5] Handle 404 (no releases) silently in pgtail_py/version.py
+- [x] T095 [US5] Test --check-update shows "up to date" when current version equals latest
+- [x] T096 [US5] Test --check-update shows update available with correct upgrade command
+- [x] T097 [US5] Test startup notification appears when newer version exists
+- [x] T098 [US5] Test startup notification is rate-limited (skip if < 24 hours)
+- [x] T099 [US5] Test updates.check = false skips startup check
+- [x] T100 [US5] Test --check-update works even when updates.check = false
+- [x] T101 [US5] Test offline handling (no error, continues normally)
+- [x] T126 [US5] Handle dev version (0.0.0-dev) comparison in is_newer_available() in pgtail_py/version.py
+- [x] T130 [US5] Verify check_update_async() completes without blocking startup (<500ms per SC-012) in pgtail_py/version.py
+- [x] T131 [US5] Verify --check-update timing under 2 seconds per SC-013 on typical network
 
 **Checkpoint**: User Story 5 complete - Update checking fully functional with method-specific commands
 
