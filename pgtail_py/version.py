@@ -334,11 +334,17 @@ def get_upgrade_command(method: InstallMethod) -> str:
 def _get_ssl_context() -> ssl.SSLContext | None:
     """Get SSL context with certifi CA bundle for PyInstaller compatibility."""
     try:
+        # PyInstaller bundles certifi data at _MEIPASS/certifi/cacert.pem
+        if hasattr(sys, "_MEIPASS"):
+            cacert_path = os.path.join(sys._MEIPASS, "certifi", "cacert.pem")  # type: ignore[attr-defined]
+            if os.path.exists(cacert_path):
+                return ssl.create_default_context(cafile=cacert_path)
+
+        # Fall back to certifi module (normal Python environment)
         import certifi
 
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        return ctx
-    except ImportError:
+        return ssl.create_default_context(cafile=certifi.where())
+    except (ImportError, OSError):
         return None
 
 
