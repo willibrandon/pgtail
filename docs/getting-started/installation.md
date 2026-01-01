@@ -14,7 +14,7 @@ pip install pgtail
 ## Install from Source
 
 ```bash
-git clone https://github.com/user/pgtail
+git clone https://github.com/willibrandon/pgtail
 cd pgtail
 pip install -e .
 ```
@@ -22,7 +22,7 @@ pip install -e .
 ## Development Setup
 
 ```bash
-git clone https://github.com/user/pgtail
+git clone https://github.com/willibrandon/pgtail
 cd pgtail
 make run  # Run from source
 make test # Run tests

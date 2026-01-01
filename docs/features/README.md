@@ -18,8 +18,8 @@ Or reference the file directly when planning.
 ### Full Screen TUI
 | Feature | Description | Complexity |
 |---------|-------------|------------|
-| [full-screen-tui](full-screen-tui.md) | Scrollable buffer with vim navigation | High |
-| [split-panes](split-panes.md) | Multiple instances in split view | High |
+| full-screen-tui | Scrollable buffer with vim navigation | High |
+| split-panes | Multiple instances in split view | High |
 
 ### Display & Formatting
 | Feature | Description | Complexity |
@@ -49,7 +49,7 @@ Or reference the file directly when planning.
 | Feature | Description | Complexity |
 |---------|-------------|------------|
 | [desktop-notifications](desktop-notifications.md) | Native OS notifications | Low |
-| [webhooks](webhooks.md) | Slack, PagerDuty, custom webhooks | Medium |
+| webhooks | Slack, PagerDuty, custom webhooks | Medium |
 
 ### Export & Output
 | Feature | Description | Complexity |

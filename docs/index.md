@@ -38,7 +38,7 @@ tail> level error
 ## Requirements
 
 - Python 3.10+
-- PostgreSQL with logging enabled (`log_destination = 'stderr'`, `csvlog`, or `jsonlog`)
+- PostgreSQL with `logging_collector = on` and `log_destination` set to `stderr`, `csvlog`, or `jsonlog`
 
 ## Installation
 
@@ -49,7 +49,7 @@ pip install pgtail
 Or run from source:
 
 ```bash
-git clone https://github.com/user/pgtail
+git clone https://github.com/willibrandon/pgtail
 cd pgtail
 make run
 ```

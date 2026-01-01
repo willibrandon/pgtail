@@ -1,7 +1,7 @@
 site_name: pgtail
 site_description: Interactive PostgreSQL log tailer with auto-detection and color output
 site_url: https://pgtail.dev
-repo_url: https://github.com/user/pgtail
+repo_url: https://github.com/willibrandon/pgtail
 repo_name: pgtail
 
 theme:
@@ -50,6 +50,7 @@ nav:
       - Quick Start: getting-started/quickstart.md
   - User Guide:
       - Tail Mode: guide/tail-mode.md
+      - Log Formats: guide/log-formats.md
       - Filtering: guide/filtering.md
       - Time Filters: guide/time-filters.md
       - Slow Queries: guide/slow-queries.md

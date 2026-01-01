@@ -795,7 +795,7 @@ def load_custom_theme_with_errors(path: Path) -> tuple[Theme | None, list[str]]:
 
 THEME_TEMPLATE = """\
 # Custom pgtail theme
-# See: https://github.com/user/pgtail#themes
+# See: https://github.com/willibrandon/pgtail#themes
 
 [meta]
 name = "{name}"

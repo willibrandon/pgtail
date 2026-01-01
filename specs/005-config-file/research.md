@@ -71,7 +71,7 @@ def get_config_path() -> Path:
 **Template Structure**:
 ```toml
 # pgtail configuration file
-# Documentation: https://github.com/user/pgtail#configuration
+# Documentation: https://github.com/willibrandon/pgtail#configuration
 
 [default]
 # levels = ["ERROR", "WARNING", "FATAL"]  # Filter to specific log levels

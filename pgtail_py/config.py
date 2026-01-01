@@ -399,7 +399,7 @@ def delete_nested(data: dict[str, Any], key: str) -> bool:
 
 DEFAULT_CONFIG_TEMPLATE = """\
 # pgtail configuration file
-# https://github.com/user/pgtail#configuration
+# https://github.com/willibrandon/pgtail#configuration
 
 [default]
 # levels = ["ERROR", "WARNING", "FATAL"]  # Filter to specific log levels (empty = all)
