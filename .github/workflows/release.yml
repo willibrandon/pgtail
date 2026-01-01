@@ -59,15 +59,19 @@ jobs:
             --include-module=pgtail_py.detector_windows \
             --include-module=pgtail_py.notifier_unix \
             --include-module=pgtail_py.notifier_windows \
+            --nofollow-import-to=psutil.tests \
             --python-flag=no_asserts \
+            --python-flag=-m \
             --assume-yes-for-downloads \
-            pgtail_py/__main__.py
+            pgtail_py
 
       - name: Rename output directory
         run: |
-          # Nuitka outputs to either pgtail.dist/ or __main__.dist/
+          # Nuitka outputs to pgtail.dist/, pgtail_py.dist/, or __main__.dist/
           if [ -d "dist/pgtail.dist" ]; then
             mv dist/pgtail.dist dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          elif [ -d "dist/pgtail_py.dist" ]; then
+            mv dist/pgtail_py.dist dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
           elif [ -d "dist/__main__.dist" ]; then
             mv dist/__main__.dist dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
           else
@@ -124,16 +128,20 @@ jobs:
             --include-module=pgtail_py.detector_windows `
             --include-module=pgtail_py.notifier_unix `
             --include-module=pgtail_py.notifier_windows `
+            --nofollow-import-to=psutil.tests `
             --python-flag=no_asserts `
+            --python-flag=-m `
             --assume-yes-for-downloads `
-            pgtail_py/__main__.py
+            pgtail_py
 
       - name: Rename output directory
         shell: pwsh
         run: |
-          # Nuitka outputs to either pgtail.dist/ or __main__.dist/
+          # Nuitka outputs to pgtail.dist/, pgtail_py.dist/, or __main__.dist/
           if (Test-Path "dist\pgtail.dist") {
             Move-Item "dist\pgtail.dist" "dist\pgtail-windows-x86_64"
+          } elseif (Test-Path "dist\pgtail_py.dist") {
+            Move-Item "dist\pgtail_py.dist" "dist\pgtail-windows-x86_64"
           } elseif (Test-Path "dist\__main__.dist") {
             Move-Item "dist\__main__.dist" "dist\pgtail-windows-x86_64"
           } else {

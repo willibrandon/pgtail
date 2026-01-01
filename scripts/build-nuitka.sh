@@ -66,12 +66,14 @@ echo "Building for platform: $PLATFORM"
 # =============================================================================
 
 # Clean previous build artifacts
-rm -rf dist/pgtail.build dist/pgtail.dist dist/pgtail.onefile-build
+rm -rf dist/pgtail.build dist/pgtail.dist dist/pgtail.onefile-build dist/pgtail_py.build dist/pgtail_py.dist
 
 # Run Nuitka with all required flags per research.md
 # IMPORTANT:
 #   - Use --mode=standalone (NOT --mode=onefile) for instant startup
 #   - NEVER use --python-flag=no_docstrings (breaks Typer CLI help)
+#   - Use package name with --python-flag=-m (not __main__.py directly)
+#   - Exclude psutil.tests to avoid pytest dependency and speed up build
 echo "Running Nuitka build..."
 
 uv run nuitka \
@@ -85,25 +87,29 @@ uv run nuitka \
     --include-module=pgtail_py.detector_windows \
     --include-module=pgtail_py.notifier_unix \
     --include-module=pgtail_py.notifier_windows \
+    --nofollow-import-to=psutil.tests \
     --python-flag=no_asserts \
+    --python-flag=-m \
     --assume-yes-for-downloads \
-    pgtail_py/__main__.py
+    pgtail_py
 
 # =============================================================================
 # Post-Build Rename (T010)
 # =============================================================================
 
-# Nuitka outputs to either pgtail.dist/ or __main__.dist/ depending on input
+# Nuitka outputs to pgtail.dist/, pgtail_py.dist/, or __main__.dist/ depending on input
 # Rename to pgtail-{platform}-{arch}/
 OUTPUT_DIR="dist/pgtail-$PLATFORM"
 
 NUITKA_OUTPUT=""
 if [ -d "dist/pgtail.dist" ]; then
     NUITKA_OUTPUT="dist/pgtail.dist"
+elif [ -d "dist/pgtail_py.dist" ]; then
+    NUITKA_OUTPUT="dist/pgtail_py.dist"
 elif [ -d "dist/__main__.dist" ]; then
     NUITKA_OUTPUT="dist/__main__.dist"
 else
-    echo "ERROR: Nuitka output directory not found (looked for dist/pgtail.dist and dist/__main__.dist)" >&2
+    echo "ERROR: Nuitka output directory not found (looked for dist/pgtail.dist, dist/pgtail_py.dist, and dist/__main__.dist)" >&2
     exit 1
 fi
 
@@ -112,7 +118,7 @@ mv "$NUITKA_OUTPUT" "$OUTPUT_DIR"
 echo "Renamed $NUITKA_OUTPUT to: $OUTPUT_DIR"
 
 # Clean up intermediate build directories
-rm -rf dist/pgtail.build dist/__main__.build dist/pgtail.onefile-build dist/__main__.onefile-build
+rm -rf dist/pgtail.build dist/pgtail_py.build dist/__main__.build dist/pgtail.onefile-build dist/pgtail_py.onefile-build dist/__main__.onefile-build
 
 # Verify build
 EXECUTABLE="$OUTPUT_DIR/pgtail"
