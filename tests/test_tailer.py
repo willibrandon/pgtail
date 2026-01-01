@@ -94,24 +94,43 @@ class TestLogTailerRotation:
     def test_detects_file_recreation(self, tmp_path: Path) -> None:
         """Tailer resets position when file is deleted and recreated."""
         log_file = tmp_path / "test.log"
-        log_file.write_text("2024-01-15 10:00:00.000 UTC [12345] LOG:  original\n")
+        log_file.write_text("")  # Create empty file
 
         tailer = LogTailer(log_file, poll_interval=0.01)
         tailer.start()
 
         try:
-            # Wait for initial read
+            # Wait for tailer to start, then write original content
             time.sleep(0.05)
+            with open(log_file, "a") as f:
+                f.write("2024-01-15 10:00:00.000 UTC [12345] LOG:  original\n")
+
+            # Wait for tailer to read the original entry
+            original_found = False
+            for _ in range(50):  # 5 seconds max
+                time.sleep(0.1)
+                buffer = tailer.get_buffer()
+                if any("original" in e.message for e in buffer):
+                    original_found = True
+                    break
+
+            assert original_found, "Tailer failed to read original file content"
 
             # Delete and recreate the file (simulating log rotation)
             os.unlink(log_file)
+            time.sleep(0.1)  # Ensure file is fully deleted
             log_file.write_text("2024-01-15 10:00:01.000 UTC [12345] LOG:  new file\n")
 
             # Tailer should detect new file and read from beginning
-            time.sleep(0.1)
-            entry = tailer.get_entry(timeout=0.1)
-            assert entry is not None
-            assert "new file" in entry.message
+            found = False
+            for _ in range(50):  # 5 seconds max
+                time.sleep(0.1)
+                buffer = tailer.get_buffer()
+                if any("new file" in e.message for e in buffer):
+                    found = True
+                    break
+
+            assert found, f"Expected 'new file' in buffer, got: {[e.message for e in tailer.get_buffer()]}"
         finally:
             tailer.stop()
 

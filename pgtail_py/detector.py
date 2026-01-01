@@ -169,9 +169,16 @@ def read_current_logfiles(data_dir: Path) -> Path | None:
             # Format: "stderr log/postgresql.log" or "stderr /absolute/path.log"
             parts = line.split(maxsplit=1)
             if len(parts) == 2 and parts[0] in ("stderr", "csvlog", "jsonlog"):
-                log_path = Path(parts[1])
+                path_str = parts[1]
+                # Check for absolute path (Unix-style / or Windows drive letter)
+                # On Windows, Path("/var/log").is_absolute() returns False,
+                # but we should treat paths starting with / as absolute
+                is_absolute = path_str.startswith("/") or (
+                    len(path_str) >= 2 and path_str[1] == ":"
+                )
+                log_path = Path(path_str)
                 # Handle relative paths (relative to data_dir)
-                if not log_path.is_absolute():
+                if not is_absolute:
                     log_path = data_dir / log_path
                 return log_path
     except OSError:

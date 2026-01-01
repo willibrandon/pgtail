@@ -71,6 +71,8 @@ class LogTailer:
         self._poll_interval = poll_interval
         self._position = 0
         self._inode: int | None = None
+        self._mtime: float | None = None  # Track modification time for rotation detection
+        self._last_size: int = 0  # Track file size for rotation detection
         self._running = False
         self._queue: Queue[LogEntry] = Queue()
         self._stop_event = threading.Event()
@@ -97,25 +99,54 @@ class LogTailer:
     def _check_rotation(self) -> bool:
         """Check if the log file has been rotated.
 
+        Detects rotation via:
+        - Inode change (file replaced)
+        - File truncation (size < position)
+        - Modification time change with SAME size at EOF (file recreated with same inode)
+
+        The mtime check handles Linux inode reuse, where a deleted file's inode
+        may be immediately reused for a new file at the same path.
+
         Returns:
             True if file was rotated, False otherwise.
         """
-        current_inode = self._get_file_inode()
-        if current_inode is None:
+        try:
+            stat_info = os.stat(self._log_path)
+            current_inode = stat_info.st_ino
+            current_mtime = stat_info.st_mtime
+            size = stat_info.st_size
+        except OSError:
             return False
 
-        # File was rotated if inode changed or file was truncated
-        try:
-            size = os.path.getsize(self._log_path)
-            if current_inode != self._inode or size < self._position:
-                self._inode = current_inode
-                self._position = 0
-                # Reset format detection on rotation - new file may have different format
-                self._detected_format = None
-                return True
-        except OSError:
-            pass
+        # File was rotated if:
+        # 1. Inode changed (obvious replacement)
+        # 2. File truncated (size < our position)
+        # 3. Size unchanged but mtime changed while we're at EOF (inode reuse case)
+        inode_changed = current_inode != self._inode
+        file_truncated = size < self._position
+        # Same inode, same size, but mtime changed and we're at EOF
+        # This catches Linux inode reuse after delete+recreate with same-size content
+        mtime_rotation = (
+            self._mtime is not None
+            and current_mtime != self._mtime
+            and size == self._last_size  # Size must be same (not just growing)
+            and self._position >= size  # We must be at EOF
+            and size > 0  # File must have content
+        )
+        rotated = inode_changed or file_truncated or mtime_rotation
 
+        if rotated:
+            self._inode = current_inode
+            self._mtime = current_mtime
+            self._last_size = size
+            self._position = 0
+            # Reset format detection on rotation - new file may have different format
+            self._detected_format = None
+            return True
+
+        # Update tracking for next check
+        self._mtime = current_mtime
+        self._last_size = size
         return False
 
     def _check_for_new_log_file(self) -> bool:
@@ -157,7 +188,15 @@ class LogTailer:
         """
         self._log_path = new_path
         self._position = 0
-        self._inode = self._get_file_inode()
+        try:
+            stat_info = os.stat(new_path)
+            self._inode = stat_info.st_ino
+            self._mtime = stat_info.st_mtime
+            self._last_size = stat_info.st_size
+        except OSError:
+            self._inode = None
+            self._mtime = None
+            self._last_size = 0
         self._detected_format = None
         self._file_unavailable_since = None
 
@@ -272,14 +311,19 @@ class LogTailer:
         # If time filter is active, start from beginning to show historical entries
         # Otherwise, start from end (only new entries)
         try:
+            stat_info = os.stat(self._log_path)
             if self._time_filter is not None and self._time_filter.is_active():
                 self._position = 0
             else:
-                self._position = os.path.getsize(self._log_path)
-            self._inode = self._get_file_inode()
+                self._position = stat_info.st_size
+            self._inode = stat_info.st_ino
+            self._mtime = stat_info.st_mtime
+            self._last_size = stat_info.st_size
         except OSError:
             self._position = 0
             self._inode = None
+            self._mtime = None
+            self._last_size = 0
 
         # Start polling thread
         self._poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
