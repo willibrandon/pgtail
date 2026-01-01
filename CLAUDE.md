@@ -495,9 +495,9 @@ The `tail` command enters a Textual-based split-screen interface:
 Filter changes trigger `_rebuild_log()` which re-applies filters to stored entries and recalculates counts.
 
 ## Recent Changes
+- 019-distribution: Added Python 3.10+ + PyInstaller (binary building), GitHub Actions, Homebrew (Ruby formula), winget (YAML manifest)
 - 018-textual-sql-highlighting: Added Python 3.10+
 - 017-log-selection: Textual-based tail mode with vim navigation, visual mode selection (v/V), clipboard support (OSC 52 + pyperclip), header bar with keybinding hints, help overlay (?), level filter syntax with +/- suffixes and abbreviations, command-specific help
-- 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input
 
 ## MCP Tools: Textual Documentation
 
@@ -548,3 +548,5 @@ get_textual_doc(path="widgets/log.md")
 
 ## Active Technologies
 - N/A (no persistence required) (018-textual-sql-highlighting)
+- Python 3.10+ + PyInstaller (binary building), GitHub Actions, Homebrew (Ruby formula), winget (YAML manifest) (019-distribution)
+- N/A (no persistence for distribution; update check uses config file already in place) (019-distribution)
