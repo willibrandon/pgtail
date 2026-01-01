@@ -184,3 +184,105 @@ class TestTailAppHelpOverlay:
                 # Dismiss with ? again
                 await pilot.press("?")
                 assert len(app.screen_stack) == 1
+
+
+class TestTailAppFocusManagement:
+    """Tests for focus management between log and input widgets."""
+
+    @pytest.mark.asyncio
+    async def test_slash_focuses_input_from_log(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that pressing / focuses the input widget from log area."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.queue = MagicMock()
+            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                # Focus the log widget first
+                log_widget = app.query_one("#log")
+                log_widget.focus()
+                await pilot.pause()  # Wait for focus to take effect
+
+                # Press / to focus input
+                await pilot.press("/")
+                await pilot.pause()  # Wait for focus change
+
+                # Verify input now has focus
+                input_widget = app.query_one("#input")
+                assert input_widget.has_focus
+
+    @pytest.mark.asyncio
+    async def test_tab_toggles_focus(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that Tab toggles focus between log and input."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.queue = MagicMock()
+            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                input_widget = app.query_one("#input")
+                log_widget = app.query_one("#log")
+
+                # Input starts focused (per on_mount)
+                assert input_widget.has_focus
+
+                # Tab should toggle to log
+                await pilot.press("tab")
+                assert log_widget.has_focus
+
+                # Tab again should toggle back to input
+                await pilot.press("tab")
+                assert input_widget.has_focus
+
+
+class TestTailAppAutoScroll:
+    """Tests for auto-scroll (FOLLOW/SCROLL) behavior."""
+
+    @pytest.mark.asyncio
+    async def test_app_starts_in_follow_mode(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that app starts in FOLLOW mode."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=mock_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.queue = MagicMock()
+            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test():
+                # Check status shows FOLLOW mode
+                assert app._status is not None
+                assert app._status.follow_mode is True

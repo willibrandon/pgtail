@@ -291,10 +291,10 @@
 - [X] T143 [US3] Add guard in action_visual_mode() to no-op if line_count == 0 (empty buffer) in pgtail_py/tail_log.py
 - [X] T144 [US3] Add guard in action_visual_line_mode() to no-op if line_count == 0 (empty buffer) in pgtail_py/tail_log.py
 - [X] T145 Add format_as_rich_text() method to FormattedLogEntry in pgtail_py/tail_buffer.py returning Rich Text object
-- [ ] T146 Test pyperclip fallback for selections >100KB (OSC 52 terminal limit bypass) in tests/test_tail_log.py
+- [X] T146 Test pyperclip fallback for selections >100KB (OSC 52 terminal limit bypass) in tests/test_tail_log.py
 - [X] T147 Verify all new modules have complete module and class docstrings per constitution §Quality Standards
 - [X] T148 Verify all public functions in tail_textual.py, tail_log.py, tail_rich.py have type annotations
-- [ ] T149 [US7] Add automated test for `/` key focuses input from log area in tests/test_tail_textual.py
+- [X] T149 [US7] Add automated test for `/` key focuses input from log area in tests/test_tail_textual.py
 - [ ] T150 [US4] Add automated test for Ctrl+A then Ctrl+C copies all content in tests/test_tail_log.py
 
 ### TailInput Module (plan.md Coverage)
@@ -302,30 +302,30 @@
 - [X] T151 [P] [US7] Create empty module file pgtail_py/tail_input.py with module docstring
 - [X] T152 [US7] Create TailInput class extending Input with id="input" and placeholder="tail> " in pgtail_py/tail_input.py
 - [X] T153 [US7] Import and use TailInput in TailApp.compose() replacing bare Input in pgtail_py/tail_textual.py
-- [ ] T154 [US7] Add test for TailInput widget instantiation and placeholder in tests/test_tail_input.py
+- [X] T154 [US7] Add test for TailInput widget instantiation and placeholder in tests/test_tail_input.py
 
 ### Display Module Rich Text (plan.md Coverage)
 
 - [X] T155 Add format_entry_as_rich() function returning Rich Text object in pgtail_py/display.py
-- [ ] T156 Add test for format_entry_as_rich() output in tests/test_display.py
+- [X] T156 Add test for format_entry_as_rich() output in tests/test_tail_rich.py
 
 ### Performance Benchmarks (Success Criteria Coverage)
 
-- [ ] T157 Create tests/test_performance.py module with pytest-benchmark setup
-- [ ] T158 Create automated performance test: mouse-drag-to-clipboard latency <2s (SC-001) in tests/test_performance.py
-- [ ] T159 Create automated benchmark: vim key response latency <50ms (SC-002) in tests/test_performance.py
+- [X] T157 Create tests/test_performance.py module with pytest-benchmark setup
+- [X] T158 Create automated performance test: mouse-drag-to-clipboard latency <2s (SC-001) in tests/test_performance.py
+- [X] T159 Create automated benchmark: vim key response latency <50ms (SC-002) in tests/test_performance.py
 - [ ] T160 Create automated stress test: 100+ entries/sec auto-scroll (SC-003) in tests/test_performance.py
-- [ ] T161 Create memory baseline measurement for 10,000 entry buffer (SC-008) in tests/test_performance.py
-- [ ] T162 Create automated startup time benchmark <500ms (SC-009) in tests/test_performance.py
-- [ ] T163 Create focus switch latency benchmark <50ms (SC-010) in tests/test_performance.py
+- [X] T161 Create memory baseline measurement for 10,000 entry buffer (SC-008) in tests/test_performance.py
+- [X] T162 Create automated startup time benchmark <500ms (SC-009) in tests/test_performance.py
+- [X] T163 Create focus switch latency benchmark <50ms (SC-010) in tests/test_performance.py
 
 ### Edge Case Automated Tests
 
 - [ ] T164 Add automated test for double-click word selection in tests/test_tail_log.py
 - [ ] T165 Add automated test for triple-click line selection in tests/test_tail_log.py
 - [ ] T166 Add automated test for scrollbar grab pauses auto-scroll in tests/test_tail_textual.py
-- [ ] T167 Add automated test for visual mode navigation at buffer top boundary in tests/test_tail_visual.py
-- [ ] T168 Add automated test for visual mode navigation at buffer bottom boundary in tests/test_tail_visual.py
+- [X] T167 Add automated test for visual mode navigation at buffer top boundary in tests/test_tail_visual.py
+- [X] T168 Add automated test for visual mode navigation at buffer bottom boundary in tests/test_tail_visual.py
 
 ### Help System (Keybinding Discoverability)
 

@@ -45,3 +45,6 @@ htmlcov/
 
 # Distribution / Packaging
 pgtail.spec
+
+# MCP servers
+.mcp.json
