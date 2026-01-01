@@ -1,0 +1,220 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Permissions required for creating releases and pushing to homebrew-tap
+permissions:
+  contents: write
+
+jobs:
+  # Build binaries for Unix-like systems (macOS and Linux)
+  build-unix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: macos
+            arch: arm64
+          - os: macos-13
+            platform: macos
+            arch: x86_64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build binary with PyInstaller
+        run: |
+          uv run pyinstaller --onefile --name pgtail-${{ matrix.platform }}-${{ matrix.arch }} pgtail_py/__main__.py
+
+      - name: Verify binary runs
+        run: |
+          ./dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }} --version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 1
+
+  # Build binary for Windows (separate job due to different shell syntax)
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build binary with PyInstaller
+        run: |
+          uv run pyinstaller --onefile --name pgtail-windows-x86_64 pgtail_py/__main__.py
+
+      - name: Verify binary runs
+        run: |
+          .\dist\pgtail-windows-x86_64.exe --version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtail-windows-x86_64
+          path: dist/pgtail-windows-x86_64.exe
+          retention-days: 1
+
+  # Create release with all binaries
+  release:
+    needs: [build-unix, build-windows]
+    runs-on: ubuntu-latest
+    outputs:
+      sha256_macos_arm64: ${{ steps.checksums.outputs.sha256_macos_arm64 }}
+      sha256_macos_x86_64: ${{ steps.checksums.outputs.sha256_macos_x86_64 }}
+      sha256_linux_x86_64: ${{ steps.checksums.outputs.sha256_linux_x86_64 }}
+      sha256_linux_arm64: ${{ steps.checksums.outputs.sha256_linux_arm64 }}
+      sha256_windows_x86_64: ${{ steps.checksums.outputs.sha256_windows_x86_64 }}
+
+    steps:
+      - name: Record workflow start time
+        id: timing
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          # Move binaries to release directory with correct names
+          mv artifacts/pgtail-macos-arm64/pgtail-macos-arm64 release/
+          mv artifacts/pgtail-macos-x86_64/pgtail-macos-x86_64 release/
+          mv artifacts/pgtail-linux-x86_64/pgtail-linux-x86_64 release/
+          mv artifacts/pgtail-linux-arm64/pgtail-linux-arm64 release/
+          mv artifacts/pgtail-windows-x86_64/pgtail-windows-x86_64.exe release/
+
+      - name: Set executable permissions
+        run: |
+          chmod +x release/pgtail-macos-arm64
+          chmod +x release/pgtail-macos-x86_64
+          chmod +x release/pgtail-linux-x86_64
+          chmod +x release/pgtail-linux-arm64
+
+      - name: Check binary sizes
+        run: |
+          echo "Checking binary sizes (max 50MB = 52428800 bytes)..."
+          for binary in release/pgtail-*; do
+            size=$(stat -c%s "$binary" 2>/dev/null || stat -f%z "$binary")
+            echo "$binary: $size bytes"
+            if [ "$size" -gt 52428800 ]; then
+              echo "::error::Binary $binary exceeds 50MB limit: $size bytes"
+              exit 1
+            fi
+          done
+          echo "All binaries within size limit."
+
+      - name: Calculate SHA256 checksums
+        id: checksums
+        run: |
+          cd release
+          # Calculate and save checksums
+          sha256sum pgtail-macos-arm64 > pgtail-macos-arm64.sha256
+          sha256sum pgtail-macos-x86_64 > pgtail-macos-x86_64.sha256
+          sha256sum pgtail-linux-x86_64 > pgtail-linux-x86_64.sha256
+          sha256sum pgtail-linux-arm64 > pgtail-linux-arm64.sha256
+          sha256sum pgtail-windows-x86_64.exe > pgtail-windows-x86_64.exe.sha256
+
+          # Export checksums as outputs for downstream jobs
+          echo "sha256_macos_arm64=$(cut -d' ' -f1 pgtail-macos-arm64.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_macos_x86_64=$(cut -d' ' -f1 pgtail-macos-x86_64.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_linux_x86_64=$(cut -d' ' -f1 pgtail-linux-x86_64.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_linux_arm64=$(cut -d' ' -f1 pgtail-linux-arm64.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_windows_x86_64=$(cut -d' ' -f1 pgtail-windows-x86_64.exe.sha256)" >> $GITHUB_OUTPUT
+
+          # Display checksums
+          echo "SHA256 Checksums:"
+          cat *.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/pgtail-macos-arm64
+            release/pgtail-macos-arm64.sha256
+            release/pgtail-macos-x86_64
+            release/pgtail-macos-x86_64.sha256
+            release/pgtail-linux-x86_64
+            release/pgtail-linux-x86_64.sha256
+            release/pgtail-linux-arm64
+            release/pgtail-linux-arm64.sha256
+            release/pgtail-windows-x86_64.exe
+            release/pgtail-windows-x86_64.exe.sha256
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check workflow timing
+        run: |
+          end_time=$(date +%s)
+          start_time=${{ steps.timing.outputs.start_time }}
+          duration=$((end_time - start_time))
+          max_duration=$((15 * 60))  # 15 minutes in seconds
+
+          echo "Release job duration: ${duration}s"
+          if [ "$duration" -gt "$max_duration" ]; then
+            echo "::warning::Release job exceeded 15 minute target: ${duration}s"
+          else
+            echo "Release job completed within target time."
+          fi
+
+  # Notify on failure
+  notify-failure:
+    needs: [build-unix, build-windows, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const tag = context.ref.replace('refs/tags/', '');
+
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: `Release ${tag} failed`,
+              body: `The release workflow for ${tag} failed.\n\nSee the [workflow run](${runUrl}) for details.`,
+              labels: ['bug', 'release']
+            });
