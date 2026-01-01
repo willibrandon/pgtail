@@ -489,13 +489,9 @@ The `tail` command enters a Textual-based split-screen interface:
 Filter changes trigger `_rebuild_log()` which re-applies filters to stored entries and recalculates counts.
 
 ## Recent Changes
+- 018-textual-sql-highlighting: Added Python 3.10+
 - 017-log-selection: Textual-based tail mode with vim navigation, visual mode selection (v/V), clipboard support (OSC 52 + pyperclip), header bar with keybinding hints, help overlay (?), level filter syntax with +/- suffixes and abbreviations, command-specific help
 - 016-status-bar-tail: Split-screen tail mode with scrollable log output, status bar, command input
-- 016-resilient-tailing: Tailer automatically detects new log files after PostgreSQL restart using current_logfiles
 
 ## Active Technologies
-- Python 3.10+ + prompt_toolkit >=3.0.0 (REPL with autocomplete and history)
-- textual >=0.89.0 (TailApp, TailLog widget with ALLOW_SELECT, Log, ModalScreen, Static, Input)
-- pyperclip >=1.8.0 (clipboard fallback for OSC 52)
-- rich (built into Textual, markup parsing in TailLog._render_line_strip)
-- In-memory ring buffer (10,000 lines max), no persistence
+- N/A (no persistence required) (018-textual-sql-highlighting)
