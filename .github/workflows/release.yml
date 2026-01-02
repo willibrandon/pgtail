@@ -200,8 +200,9 @@ jobs:
         run: |
           # WiX v5 uses Files element for harvesting (no heat required)
           # Use MSI-compatible version (numeric only, no prerelease suffix)
+          # SourceDir must be relative to the .wxs file location (wix\), so use ..\dist\...
           wix build wix\pgtail.wxs `
-            -d SourceDir=dist\pgtail-windows-x86_64 `
+            -d SourceDir=..\dist\pgtail-windows-x86_64 `
             -d Version=${{ steps.version.outputs.msi_version }} `
             -arch x64 `
             -out dist\pgtail-windows-x86_64.msi
