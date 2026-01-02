@@ -189,20 +189,11 @@ jobs:
       - name: Install WiX Toolset
         run: dotnet tool install --global wix --version 5.0.2
 
-      - name: Harvest files with WiX heat
-        shell: pwsh
-        run: |
-          wix heat dir dist\pgtail-windows-x86_64 `
-            -cg PgtailFiles `
-            -dr INSTALLFOLDER `
-            -gg -sfrag -srd -sreg `
-            -var var.SourceDir `
-            -out wix\files.wxs
-
       - name: Build MSI with WiX
         shell: pwsh
         run: |
-          wix build wix\pgtail.wxs wix\files.wxs `
+          # WiX v5 uses Files element for harvesting (no heat required)
+          wix build wix\pgtail.wxs `
             -d SourceDir=dist\pgtail-windows-x86_64 `
             -d Version=${{ steps.version.outputs.version }} `
             -arch x64 `

@@ -6,10 +6,10 @@
     - UpgradeCode MUST remain constant across all versions (F8E7D6C5-B4A3-9281-7654-321098FEDCBA)
     - ProductCode uses Id="*" to auto-generate per build (MUST change each version)
     - Version is passed via -d Version=X.Y.Z during build
-    - Source files are harvested by wix heat into files.wxs
+    - SourceDir is passed via -d SourceDir=path/to/files during build
+    - Uses WiX v5 Files element for automatic harvesting (no heat required)
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
   <Package Name="pgtail"
            Version="$(var.Version).0"
@@ -26,12 +26,6 @@
     <!-- Embed CAB files for single MSI distribution -->
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <!-- Main feature containing all components -->
-    <Feature Id="MainFeature" Title="pgtail" Level="1">
-      <ComponentGroupRef Id="PgtailFiles" />
-      <ComponentRef Id="PathEnvComponent" />
-    </Feature>
-
     <!-- Install to Program Files\pgtail -->
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="pgtail">
@@ -47,6 +41,13 @@
         </Component>
       </Directory>
     </StandardDirectory>
+
+    <!-- Main feature containing all components -->
+    <Feature Id="MainFeature" Title="pgtail" Level="1">
+      <!-- Harvest all files from SourceDir using WiX v5 Files element -->
+      <Files Directory="INSTALLFOLDER" Include="$(var.SourceDir)\**" />
+      <ComponentRef Id="PathEnvComponent" />
+    </Feature>
 
   </Package>
 </Wix>
