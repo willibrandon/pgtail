@@ -215,7 +215,7 @@ jobs:
           $msiPath = "dist\pgtail-windows-x86_64.msi"
           $pattern = 'ProductCode(\{[0-9a-fA-F-]{36}\})'
           $stream = [System.IO.File]::OpenRead($msiPath)
-          $reader = [System.IO.StreamReader]::New($stream, [System.Text.Encoding]::Unicode)
+          $reader = [System.IO.StreamReader]::New($stream, [System.Text.Encoding]::ASCII)
           $productCode = $null
           while ($null -ne ($line = $reader.ReadLine())) {
             if ($line -match $pattern) {
