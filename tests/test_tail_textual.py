@@ -379,10 +379,16 @@ class TestScrollbarBehavior:
                 # Scroll up
                 await pilot.press("g")  # Go to top
                 await pilot.pause()
+                # Wait for scroll animation to complete (needed on Windows)
+                for _ in range(3):
+                    await pilot.pause()
 
                 # Now scroll to bottom with G
                 await pilot.press("G")
                 await pilot.pause()
+                # Wait for scroll animation to complete (needed on Windows)
+                for _ in range(3):
+                    await pilot.pause()
 
                 # Should be back at bottom
                 # Verify widget is at or near bottom
