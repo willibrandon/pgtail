@@ -67,6 +67,14 @@ def main(
     """
     if ctx.invoked_subcommand is None:
         # No subcommand provided - start REPL
+        import sys
+
+        # Check if stdin is a TTY - if not, show help instead of hanging
+        if not sys.stdin.isatty():
+            typer.echo("pgtail: interactive mode requires a terminal")
+            typer.echo("Run 'pgtail --help' for usage information")
+            raise typer.Exit(0)
+
         from pgtail_py.cli import main as repl_main
 
         repl_main()
