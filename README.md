@@ -66,20 +66,47 @@ winget install willibrandon.pgtail
 
 ### Binary Download
 
-Download pre-built binaries from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest).
+Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest).
 
-| Platform | Binary | Python Required |
-|----------|--------|-----------------|
-| macOS (Apple Silicon) | `pgtail-macos-arm64` | No |
-| macOS (Intel) | `pgtail-macos-x86_64` | No |
-| Linux (x86_64) | `pgtail-linux-x86_64` | No |
-| Linux (ARM64) | `pgtail-linux-arm64` | No |
-| Windows (x86_64) | `pgtail-windows-x86_64.exe` | No |
+| Platform | Archive | Python Required |
+|----------|---------|-----------------|
+| macOS (Apple Silicon) | `pgtail-macos-arm64.tar.gz` | No |
+| macOS (Intel) | `pgtail-macos-x86_64.tar.gz` | No |
+| Linux (x86_64) | `pgtail-linux-x86_64.tar.gz` | No |
+| Linux (ARM64) | `pgtail-linux-arm64.tar.gz` | No |
+| Windows (x86_64) | `pgtail-windows-x86_64.zip` or `.msi` | No |
 
-After downloading, make the binary executable (macOS/Linux):
+**macOS / Linux:**
 ```bash
-chmod +x pgtail-macos-arm64
-./pgtail-macos-arm64 --version
+# Extract the archive
+tar -xzf pgtail-macos-arm64.tar.gz
+
+# Run pgtail from the extracted folder
+./pgtail-macos-arm64/pgtail --version
+
+# Optional: Add to PATH
+sudo cp -r pgtail-macos-arm64 /usr/local/lib/
+sudo ln -s /usr/local/lib/pgtail-macos-arm64/pgtail /usr/local/bin/pgtail
+```
+
+**Windows (ZIP - portable, no admin):**
+```powershell
+# Extract the ZIP
+Expand-Archive pgtail-windows-x86_64.zip -DestinationPath .
+
+# Run pgtail from the extracted folder
+.\pgtail-windows-x86_64\pgtail.exe --version
+
+# Optional: Add to PATH manually via System Properties
+```
+
+**Windows (MSI - admin, adds to PATH):**
+```powershell
+# Run the installer (requires admin)
+msiexec /i pgtail-windows-x86_64.msi
+
+# After install, pgtail is available system-wide
+pgtail --version
 ```
 
 ### From Source
@@ -92,20 +119,27 @@ pip install -e .
 
 ### Build Standalone Executable
 
+pgtail is compiled with Nuitka for optimal performance. To build locally:
+
 ```bash
-pip install pyinstaller
-pyinstaller --onefile --name pgtail pgtail_py/__main__.py
-# Output: dist/pgtail
+# Install build dependencies
+pip install nuitka
+
+# Build standalone folder distribution
+make build
+
+# Output: dist/pgtail-{platform}-{arch}/pgtail
 ```
 
 ### Installation Summary
 
-| Method | Platforms | Python Required | Auto-Update |
-|--------|-----------|-----------------|-------------|
-| pip / pipx / uv | All | Yes (3.10+) | Manual |
-| Homebrew | macOS, Linux | No | `brew upgrade` |
-| winget | Windows | No | `winget upgrade` |
-| Binary | All | No | Manual re-download |
+| Method | Platforms | Python Required | Auto-Update | Notes |
+|--------|-----------|-----------------|-------------|-------|
+| pip / pipx / uv | All | Yes (3.10+) | Manual | |
+| Homebrew | macOS, Linux | No | `brew upgrade` | |
+| winget | Windows | No | `winget upgrade` | |
+| MSI | Windows | No | Manual | Admin required, adds to PATH |
+| ZIP/tar.gz | All | No | Manual | Portable, extract and run |
 
 ## Upgrading
 
@@ -729,33 +763,50 @@ level all        # Clear level filter (show all)
 
 ### macOS: Binary won't run (Gatekeeper)
 
-macOS blocks unsigned binaries downloaded from the internet. Remove the quarantine flag:
+macOS blocks unsigned binaries downloaded from the internet. Remove the quarantine flag from the extracted folder:
 
 ```bash
-xattr -d com.apple.quarantine pgtail-macos-arm64
+xattr -dr com.apple.quarantine pgtail-macos-arm64/
 ```
 
 Or: **System Preferences → Security & Privacy → General → Allow Anyway**
 
 ### macOS: Wrong architecture binary
 
-If you see `Bad CPU type in executable`, download the correct binary:
-- Apple Silicon (M1/M2/M3): `pgtail-macos-arm64`
-- Intel Mac: `pgtail-macos-x86_64`
+If you see `Bad CPU type in executable`, download the correct archive:
+- Apple Silicon (M1/M2/M3): `pgtail-macos-arm64.tar.gz`
+- Intel Mac: `pgtail-macos-x86_64.tar.gz`
 
 Check your architecture: `uname -m` (arm64 or x86_64)
 
 ### Windows: SmartScreen warning
 
-Windows SmartScreen may block the binary. Click **"More info"** → **"Run anyway"**.
+Windows SmartScreen may block the executable. Click **"More info"** → **"Run anyway"**.
+
+For the MSI installer, you may also see this warning during installation.
+
+### Windows: Antivirus blocking dependencies
+
+Some antivirus software may flag the bundled Python libraries. If pgtail fails to start:
+
+1. Add the pgtail folder to your antivirus exclusions
+2. Or use the MSI installer (signed with Microsoft's requirements)
 
 ### Linux: Wrong architecture binary
 
-If you see `cannot execute binary file: Exec format error`, download the correct binary:
-- x86_64 (Intel/AMD): `pgtail-linux-x86_64`
-- ARM64 (Raspberry Pi 4, AWS Graviton): `pgtail-linux-arm64`
+If you see `cannot execute binary file: Exec format error`, download the correct archive:
+- x86_64 (Intel/AMD): `pgtail-linux-x86_64.tar.gz`
+- ARM64 (Raspberry Pi 4, AWS Graviton): `pgtail-linux-arm64.tar.gz`
 
 Check your architecture: `uname -m` (x86_64 or aarch64)
+
+### Missing dependency folder
+
+pgtail requires its dependency folder to run. If you see errors about missing libraries:
+
+- Ensure the entire folder was extracted (not just the `pgtail` executable)
+- The executable must remain in its folder with all `.so`/`.dylib`/`.dll` files
+- Do not move only the executable; move the entire folder
 
 ### Update check fails
 
@@ -766,14 +817,28 @@ If `pgtail --check-update` shows "Unable to check for updates":
 
 ### Binary updates
 
-Pre-built binaries do not auto-update. To update:
+Pre-built archives do not auto-update. To update:
 1. Download the new version from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest)
-2. Replace the old binary
+2. Extract and replace the old folder
 3. On macOS, you may need to remove the quarantine flag again
+4. Update any symlinks if you created them
+
+### Unsupported platform/architecture
+
+If your platform/architecture is not listed, you can compile from source:
+
+```bash
+git clone https://github.com/willibrandon/pgtail.git
+cd pgtail
+pip install -e .
+# Or build a standalone binary with Nuitka:
+pip install nuitka
+make build
+```
 
 ### Download interrupted
 
-If a download is interrupted, delete the partial file and re-download. Browsers typically do not resume partial downloads for these small binaries.
+If a download is interrupted, delete the partial file and re-download. Browsers typically do not resume partial downloads for these archives.
 
 ### Repository access error
 

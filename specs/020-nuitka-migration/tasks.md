@@ -243,22 +243,22 @@
 
 ### README Updates
 
-- [ ] T076 [P] Update README.md installation section with new archive-based instructions (FR-025)
-- [ ] T077 [P] Update README.md installation table to reflect tar.gz/ZIP/MSI formats (FR-026)
+- [x] T076 [P] Update README.md installation section with new archive-based instructions (FR-025)
+- [x] T077 [P] Update README.md installation table to reflect tar.gz/ZIP/MSI formats (FR-026)
 
 ### mkdocs Documentation Updates
 
-- [ ] T078 [P] Update docs/getting-started/installation.md "Binary Download" section: change single binaries to tar.gz/ZIP archives
-- [ ] T079 [P] Update docs/getting-started/installation.md binary table: `pgtail-macos-arm64` -> `pgtail-macos-arm64.tar.gz` (and all platforms)
-- [ ] T080 [P] Update docs/getting-started/installation.md: replace `chmod +x` instructions with archive extraction steps (tar -xzf for Unix, Extract for Windows)
-- [ ] T081 [P] Update docs/getting-started/installation.md "Installation Summary" table: add note about archive extraction
-- [ ] T082 [P] Add docs/getting-started/installation.md troubleshooting: "Missing dependency folder" error with explanation (FR-027)
-- [ ] T083 [P] Add docs/getting-started/installation.md troubleshooting: Windows MSI vs ZIP installation paths (FR-028)
-- [ ] T084 [P] Update docs/getting-started/installation.md Windows section: distinguish MSI (admin/winget) vs ZIP (portable/no-admin)
-- [ ] T096 [P] Add docs/getting-started/installation.md troubleshooting: unsupported platform/architecture with guidance to compile from source (Edge Case 3)
-- [ ] T097 [P] Add docs/getting-started/installation.md troubleshooting: Windows antivirus/SmartScreen blocking dependencies with resolution steps (Edge Case 7)
-- [ ] T085 [P] Update docs/getting-started/quickstart.md if it references binary download (verify archive extraction steps)
-- [ ] T086 Build and verify mkdocs site: `mkdocs build` and review generated HTML for installation pages
+- [x] T078 [P] Update docs/getting-started/installation.md "Binary Download" section: change single binaries to tar.gz/ZIP archives
+- [x] T079 [P] Update docs/getting-started/installation.md binary table: `pgtail-macos-arm64` -> `pgtail-macos-arm64.tar.gz` (and all platforms)
+- [x] T080 [P] Update docs/getting-started/installation.md: replace `chmod +x` instructions with archive extraction steps (tar -xzf for Unix, Extract for Windows)
+- [x] T081 [P] Update docs/getting-started/installation.md "Installation Summary" table: add note about archive extraction
+- [x] T082 [P] Add docs/getting-started/installation.md troubleshooting: "Missing dependency folder" error with explanation (FR-027)
+- [x] T083 [P] Add docs/getting-started/installation.md troubleshooting: Windows MSI vs ZIP installation paths (FR-028)
+- [x] T084 [P] Update docs/getting-started/installation.md Windows section: distinguish MSI (admin/winget) vs ZIP (portable/no-admin)
+- [x] T096 [P] Add docs/getting-started/installation.md troubleshooting: unsupported platform/architecture with guidance to compile from source (Edge Case 3)
+- [x] T097 [P] Add docs/getting-started/installation.md troubleshooting: Windows antivirus/SmartScreen blocking dependencies with resolution steps (Edge Case 7)
+- [x] T085 [P] Update docs/getting-started/quickstart.md if it references binary download (verify archive extraction steps)
+- [x] T086 Build and verify mkdocs site: `mkdocs build` and review generated HTML for installation pages
 
 ### Edge Case Handling
 
