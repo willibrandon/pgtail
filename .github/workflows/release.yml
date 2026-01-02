@@ -159,11 +159,91 @@ jobs:
         run: |
           Compress-Archive -Path "dist\pgtail-windows-x86_64" -DestinationPath "dist\pgtail-windows-x86_64.zip"
 
-      - name: Upload artifact
+      - name: Verify ZIP extraction and executable
+        shell: pwsh
+        run: |
+          # Extract to temp directory
+          $extractDir = "dist\zip-test"
+          Expand-Archive -Path "dist\pgtail-windows-x86_64.zip" -DestinationPath $extractDir
+
+          # Verify structure
+          if (-not (Test-Path "$extractDir\pgtail-windows-x86_64\pgtail.exe")) {
+            Write-Error "pgtail.exe not found in extracted ZIP"
+            Get-ChildItem -Recurse $extractDir
+            exit 1
+          }
+
+          # Run extracted executable
+          & "$extractDir\pgtail-windows-x86_64\pgtail.exe" --version
+
+          # Cleanup
+          Remove-Item -Recurse -Force $extractDir
+
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Install WiX Toolset
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Harvest files with WiX heat
+        shell: pwsh
+        run: |
+          wix heat dir dist\pgtail-windows-x86_64 `
+            -cg PgtailFiles `
+            -dr INSTALLFOLDER `
+            -gg -sfrag -srd -sreg `
+            -var var.SourceDir `
+            -out wix\files.wxs
+
+      - name: Build MSI with WiX
+        shell: pwsh
+        run: |
+          wix build wix\pgtail.wxs wix\files.wxs `
+            -d SourceDir=dist\pgtail-windows-x86_64 `
+            -d Version=${{ steps.version.outputs.version }} `
+            -arch x64 `
+            -out dist\pgtail-windows-x86_64.msi
+
+      - name: Extract ProductCode from MSI
+        id: msi_info
+        shell: pwsh
+        run: |
+          # Extract ProductCode using Windows Installer COM
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $database = $installer.GetType().InvokeMember("OpenDatabase", "InvokeMethod", $null, $installer, @("dist\pgtail-windows-x86_64.msi", 0))
+          $view = $database.GetType().InvokeMember("OpenView", "InvokeMethod", $null, $database, @("SELECT Value FROM Property WHERE Property = 'ProductCode'"))
+          $view.GetType().InvokeMember("Execute", "InvokeMethod", $null, $view, $null)
+          $record = $view.GetType().InvokeMember("Fetch", "InvokeMethod", $null, $view, $null)
+          $productCode = $record.GetType().InvokeMember("StringData", "InvokeMethod", $null, $record, @(1))
+          echo "product_code=$productCode" >> $env:GITHUB_OUTPUT
+          Write-Host "ProductCode: $productCode"
+
+      - name: Verify MSI installs correctly
+        shell: pwsh
+        run: |
+          # Silent install to test location
+          Start-Process msiexec.exe -ArgumentList "/i", "dist\pgtail-windows-x86_64.msi", "/qn", "INSTALLFOLDER=C:\pgtail-test" -Wait
+          # Verify executable exists and runs
+          & "C:\pgtail-test\pgtail.exe" --version
+          # Silent uninstall
+          Start-Process msiexec.exe -ArgumentList "/x", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait
+
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
           name: pgtail-windows-x86_64
           path: dist/pgtail-windows-x86_64.zip
+          retention-days: 1
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtail-windows-x86_64-msi
+          path: dist/pgtail-windows-x86_64.msi
           retention-days: 1
 
   # Create release with all binaries
@@ -177,6 +257,7 @@ jobs:
       sha256_linux_x86_64: ${{ steps.checksums.outputs.sha256_linux_x86_64 }}
       sha256_linux_arm64: ${{ steps.checksums.outputs.sha256_linux_arm64 }}
       sha256_windows_x86_64: ${{ steps.checksums.outputs.sha256_windows_x86_64 }}
+      sha256_windows_msi: ${{ steps.checksums.outputs.sha256_windows_msi }}
 
     steps:
       - name: Record workflow start time
@@ -197,6 +278,7 @@ jobs:
           mv artifacts/pgtail-linux-x86_64/pgtail-linux-x86_64.tar.gz release/
           mv artifacts/pgtail-linux-arm64/pgtail-linux-arm64.tar.gz release/
           mv artifacts/pgtail-windows-x86_64/pgtail-windows-x86_64.zip release/
+          mv artifacts/pgtail-windows-x86_64-msi/pgtail-windows-x86_64.msi release/
 
       - name: Check archive sizes
         run: |
@@ -221,6 +303,7 @@ jobs:
           sha256sum pgtail-linux-x86_64.tar.gz > pgtail-linux-x86_64.tar.gz.sha256
           sha256sum pgtail-linux-arm64.tar.gz > pgtail-linux-arm64.tar.gz.sha256
           sha256sum pgtail-windows-x86_64.zip > pgtail-windows-x86_64.zip.sha256
+          sha256sum pgtail-windows-x86_64.msi > pgtail-windows-x86_64.msi.sha256
 
           # Export checksums as outputs for downstream jobs
           echo "sha256_macos_arm64=$(cut -d' ' -f1 pgtail-macos-arm64.tar.gz.sha256)" >> $GITHUB_OUTPUT
@@ -228,6 +311,7 @@ jobs:
           echo "sha256_linux_x86_64=$(cut -d' ' -f1 pgtail-linux-x86_64.tar.gz.sha256)" >> $GITHUB_OUTPUT
           echo "sha256_linux_arm64=$(cut -d' ' -f1 pgtail-linux-arm64.tar.gz.sha256)" >> $GITHUB_OUTPUT
           echo "sha256_windows_x86_64=$(cut -d' ' -f1 pgtail-windows-x86_64.zip.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_windows_msi=$(cut -d' ' -f1 pgtail-windows-x86_64.msi.sha256)" >> $GITHUB_OUTPUT
 
           # Display checksums
           echo "SHA256 Checksums:"
@@ -247,6 +331,8 @@ jobs:
             release/pgtail-linux-arm64.tar.gz.sha256
             release/pgtail-windows-x86_64.zip
             release/pgtail-windows-x86_64.zip.sha256
+            release/pgtail-windows-x86_64.msi
+            release/pgtail-windows-x86_64.msi.sha256
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -368,7 +454,7 @@ jobs:
           WINGET_PKGS_TOKEN: ${{ secrets.WINGET_PKGS_TOKEN }}
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.zip"
+          $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.msi"
 
           .\wingetcreate.exe update willibrandon.pgtail `
             --version $version `

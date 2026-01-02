@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  pgtail Windows Installer (WiX v5)
+
+  IMPORTANT:
+    - UpgradeCode MUST remain constant across all versions (F8E7D6C5-B4A3-9281-7654-321098FEDCBA)
+    - ProductCode uses Id="*" to auto-generate per build (MUST change each version)
+    - Version is passed via -d Version=X.Y.Z during build
+    - Source files are harvested by wix heat into files.wxs
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="pgtail"
+           Version="$(var.Version).0"
+           Manufacturer="willibrandon"
+           UpgradeCode="F8E7D6C5-B4A3-9281-7654-321098FEDCBA"
+           Scope="perMachine">
+
+    <SummaryInformation Description="Interactive PostgreSQL log tailer with auto-detection and color output" />
+
+    <!-- Upgrade handling: removes old versions before installing new -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of pgtail is already installed."
+                  AllowSameVersionUpgrades="yes" />
+
+    <!-- Embed CAB files for single MSI distribution -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Main feature containing all components -->
+    <Feature Id="MainFeature" Title="pgtail" Level="1">
+      <ComponentGroupRef Id="PgtailFiles" />
+      <ComponentRef Id="PathEnvComponent" />
+    </Feature>
+
+    <!-- Install to Program Files\pgtail -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="pgtail">
+        <!-- Add pgtail to system PATH -->
+        <Component Id="PathEnvComponent" Guid="C3D4E5F6-A7B8-9012-CDEF-345678901234">
+          <Environment Id="PATH"
+                       Name="PATH"
+                       Value="[INSTALLFOLDER]"
+                       Permanent="no"
+                       Part="last"
+                       Action="set"
+                       System="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+  </Package>
+</Wix>

@@ -162,9 +162,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T049 [US5] Verify Windows ZIP contains folder pgtail-windows-x86_64/ with pgtail.exe inside (FR-011)
-- [ ] T050 [US5] Add Windows ZIP extraction and verification step in CI: extract, run `pgtail.exe --version` (FR-029)
-- [ ] T051 [US5] Test manual extraction: download ZIP, extract to arbitrary folder, run executable
+- [x] T049 [US5] Verify Windows ZIP contains folder pgtail-windows-x86_64/ with pgtail.exe inside (FR-011)
+- [x] T050 [US5] Add Windows ZIP extraction and verification step in CI: extract, run `pgtail.exe --version` (FR-029)
+- [x] T051 [US5] Test manual extraction: download ZIP, extract to arbitrary folder, run executable
 
 **Checkpoint**: Windows portable ZIP verified
 
@@ -178,26 +178,26 @@
 
 ### MSI Installer
 
-- [ ] T052 [US4] Create wix/pgtail.wxs WiX source file per research.md section 3.3
-- [ ] T053 [US4] Set UpgradeCode GUID to F8E7D6C5-B4A3-9281-7654-321098FEDCBA in pgtail.wxs (constant across versions)
-- [ ] T099 [US4] Use `Id="*"` for ProductCode in pgtail.wxs (auto-generated per build, MUST change each version)
-- [ ] T054 [US4] Configure MSI to install to Program Files\pgtail\ in pgtail.wxs
-- [ ] T055 [US4] Configure MSI to add install folder to system PATH in pgtail.wxs
-- [ ] T056 [US4] Add WiX build steps to release.yml for Windows job: install WiX via dotnet tool, heat, build
-- [ ] T100 [US4] Add ProductCode extraction step in release.yml: extract from built MSI for winget manifest
+- [x] T052 [US4] Create wix/pgtail.wxs WiX source file per research.md section 3.3
+- [x] T053 [US4] Set UpgradeCode GUID to F8E7D6C5-B4A3-9281-7654-321098FEDCBA in pgtail.wxs (constant across versions)
+- [x] T099 [US4] Use `Id="*"` for ProductCode in pgtail.wxs (auto-generated per build, MUST change each version)
+- [x] T054 [US4] Configure MSI to install to Program Files\pgtail\ in pgtail.wxs
+- [x] T055 [US4] Configure MSI to add install folder to system PATH in pgtail.wxs
+- [x] T056 [US4] Add WiX build steps to release.yml for Windows job: install WiX via dotnet tool, heat, build
+- [x] T100 [US4] Add ProductCode extraction step in release.yml: extract from built MSI for winget manifest
 
 ### winget Manifest
 
-- [ ] T057 [P] [US4] Create winget/willibrandon.pgtail.yaml version manifest per research.md section 4.2
-- [ ] T058 [P] [US4] Create winget/willibrandon.pgtail.installer.yaml installer manifest per research.md section 4.3
-- [ ] T059 [P] [US4] Create winget/willibrandon.pgtail.locale.en-US.yaml locale manifest per research.md section 4.4
+- [x] T057 [P] [US4] Create winget/willibrandon.pgtail.yaml version manifest per research.md section 4.2
+- [x] T058 [P] [US4] Create winget/willibrandon.pgtail.installer.yaml installer manifest per research.md section 4.3
+- [x] T059 [P] [US4] Create winget/willibrandon.pgtail.locale.en-US.yaml locale manifest per research.md section 4.4
 
 ### CI Integration
 
-- [ ] T060 [US4] Add MSI build steps to release.yml Windows job
-- [ ] T061 [US4] Add MSI upload step to release.yml (both ZIP and MSI as artifacts)
-- [ ] T062 [US4] Add SHA256 checksum for MSI in release.yml
-- [ ] T063 [US4] Add update-winget job to release.yml using wingetcreate (pushes to fork, opens PR to upstream)
+- [x] T060 [US4] Add MSI build steps to release.yml Windows job
+- [x] T061 [US4] Add MSI upload step to release.yml (both ZIP and MSI as artifacts)
+- [x] T062 [US4] Add SHA256 checksum for MSI in release.yml
+- [x] T063 [US4] Add update-winget job to release.yml using wingetcreate (pushes to fork, opens PR to upstream)
 
 ### winget Submission
 
