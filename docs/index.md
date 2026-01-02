@@ -43,16 +43,16 @@ tail> level error
 ## Installation
 
 ```bash
-pip install pgtail
+brew install willibrandon/tap/pgtail
 ```
 
-Or run from source:
+Or with pip:
 
 ```bash
-git clone https://github.com/willibrandon/pgtail
-cd pgtail
-make run
+pip install git+https://github.com/willibrandon/pgtail.git
 ```
+
+See the [Installation Guide](getting-started/installation.md) for all options including binary downloads.
 
 ## Getting Help
 
