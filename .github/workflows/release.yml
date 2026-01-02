@@ -237,12 +237,20 @@ jobs:
       - name: Verify MSI installs correctly
         shell: pwsh
         run: |
-          # Silent install to test location
-          Start-Process msiexec.exe -ArgumentList "/i", "dist\pgtail-windows-x86_64.msi", "/qn", "INSTALLFOLDER=C:\pgtail-test" -Wait
-          # Verify executable exists and runs
-          & "C:\pgtail-test\pgtail.exe" --version
+          # Silent install to default location (Program Files\pgtail)
+          Start-Process msiexec.exe -ArgumentList "/i", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait -NoNewWindow
+
+          # Verify executable exists and runs from default install path
+          $exePath = "${env:ProgramFiles}\pgtail\pgtail.exe"
+          if (-not (Test-Path $exePath)) {
+            Write-Error "pgtail.exe not found at $exePath"
+            Get-ChildItem "${env:ProgramFiles}" | Where-Object { $_.Name -like "*pgtail*" }
+            exit 1
+          }
+          & $exePath --version
+
           # Silent uninstall
-          Start-Process msiexec.exe -ArgumentList "/x", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait
+          Start-Process msiexec.exe -ArgumentList "/x", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait -NoNewWindow
 
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
