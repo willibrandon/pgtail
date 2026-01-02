@@ -80,40 +80,21 @@ def main(
         if sys.platform == "win32":
             try:
                 import ctypes
-                import os
 
                 kernel32 = ctypes.windll.kernel32
-
-                # Debug logging - write to file since stdout may not be visible
-                debug_file = os.environ.get("PGTAIL_DEBUG_FILE")
-                debug_lines = []
-
-                def debug_log(msg: str) -> None:
-                    if os.environ.get("PGTAIL_DEBUG"):
-                        debug_lines.append(msg)
-                        typer.echo(f"DEBUG: {msg}")
 
                 # Check console process list - if only 1 process (us), no shell is attached
                 process_list = (ctypes.c_ulong * 16)()
                 num_processes = kernel32.GetConsoleProcessList(process_list, 16)
-                debug_log(f"GetConsoleProcessList returned {num_processes}")
-                debug_log(f"PIDs: {[process_list[i] for i in range(num_processes)]}")
-
-                # Write debug to file if requested (before exit check)
-                if debug_file and debug_lines:
-                    with open(debug_file, "w") as f:
-                        f.write("\n".join(debug_lines) + "\n")
 
                 if num_processes == 1:
                     # Only our process is attached - no parent shell to provide input
-                    # Exit immediately - don't try to echo (may hang on Windows new console)
+                    # Exit silently (writing to stdout may hang on Windows new console)
                     raise SystemExit(0)
 
             except SystemExit:
-                raise  # Re-raise SystemExit (from typer.Exit)
-            except Exception as e:
-                if os.environ.get("PGTAIL_DEBUG"):
-                    typer.echo(f"DEBUG: Exception during Windows detection: {e}")
+                raise  # Re-raise SystemExit
+            except Exception:
                 pass  # If detection fails, continue with REPL
 
         from pgtail_py.cli import main as repl_main
