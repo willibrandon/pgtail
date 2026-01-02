@@ -75,6 +75,25 @@ def main(
             typer.echo("Run 'pgtail --help' for usage information")
             raise typer.Exit(0)
 
+        # On Windows, also check if we're the only process attached to the console
+        # This catches the case where a console is allocated but nobody is providing input
+        # (e.g., double-click launch, Start-Process, winget validation)
+        if sys.platform == "win32":
+            try:
+                import ctypes
+
+                kernel32 = ctypes.windll.kernel32
+                process_list = (ctypes.c_ulong * 16)()
+                num_processes = kernel32.GetConsoleProcessList(process_list, 16)
+
+                if num_processes == 1:
+                    # Only our process is attached - no parent shell to provide input
+                    typer.echo("pgtail: interactive mode requires a terminal")
+                    typer.echo("Run 'pgtail --help' for usage information")
+                    raise typer.Exit(0)
+            except Exception:
+                pass  # If detection fails, continue with REPL
+
         from pgtail_py.cli import main as repl_main
 
         repl_main()
