@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/pgtail-logo-gh-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="art/pgtail-logo-gh-light.png">
+    <img alt="pgtail logo" src="art/pgtail-logo-gh-light.png" width="200">
+  </picture>
+</p>
+
 # pgtail
 
 Interactive PostgreSQL log tailer with auto-detection.
