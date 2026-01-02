@@ -267,10 +267,30 @@ jobs:
 
           # Test running with no arguments (simulates winget validation)
           Write-Host "`n=== Testing no-args execution (winget validation simulation) ==="
+
+          # Test 1: Start-Process with -NoNewWindow (what we were testing)
+          Write-Host "Test 1: Start-Process -NoNewWindow"
           $proc = Start-Process -FilePath $exePath -NoNewWindow -Wait -PassThru
-          Write-Host "Exit code when run with no arguments: $($proc.ExitCode)"
-          if ($proc.ExitCode -ne 0) {
-            Write-Error "pgtail.exe returned non-zero exit code: $($proc.ExitCode)"
+          Write-Host "Exit code: $($proc.ExitCode)"
+
+          # Test 2: Direct invocation with & operator
+          Write-Host "`nTest 2: Direct invocation with &"
+          & $exePath
+          Write-Host "Exit code (LASTEXITCODE): $LASTEXITCODE"
+
+          # Test 3: Start-Process WITHOUT -NoNewWindow (new window/console)
+          Write-Host "`nTest 3: Start-Process without -NoNewWindow"
+          $proc2 = Start-Process -FilePath $exePath -Wait -PassThru
+          Write-Host "Exit code: $($proc2.ExitCode)"
+
+          # Test 4: cmd.exe /c invocation
+          Write-Host "`nTest 4: cmd.exe /c invocation"
+          cmd.exe /c $exePath
+          Write-Host "Exit code (LASTEXITCODE): $LASTEXITCODE"
+
+          # Fail if any returned non-zero
+          if ($proc.ExitCode -ne 0 -or $LASTEXITCODE -ne 0 -or $proc2.ExitCode -ne 0) {
+            Write-Error "One or more execution methods returned non-zero exit code"
             Write-Host "This will cause winget validation to fail"
             exit 1
           }
