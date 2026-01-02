@@ -238,13 +238,28 @@ jobs:
         shell: pwsh
         run: |
           # Silent install to default location (Program Files\pgtail)
-          Start-Process msiexec.exe -ArgumentList "/i", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait -NoNewWindow
+          # Use /l*v for verbose logging to diagnose issues
+          $logFile = "dist\msi-install.log"
+          $proc = Start-Process msiexec.exe -ArgumentList "/i", "dist\pgtail-windows-x86_64.msi", "/qn", "/l*v", $logFile -Wait -NoNewWindow -PassThru
+
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "MSI installation failed with exit code: $($proc.ExitCode)"
+            if (Test-Path $logFile) {
+              Get-Content $logFile | Select-Object -Last 50
+            }
+            exit 1
+          }
 
           # Verify executable exists and runs from default install path
           $exePath = "${env:ProgramFiles}\pgtail\pgtail.exe"
           if (-not (Test-Path $exePath)) {
             Write-Error "pgtail.exe not found at $exePath"
+            Write-Host "Contents of Program Files:"
             Get-ChildItem "${env:ProgramFiles}" | Where-Object { $_.Name -like "*pgtail*" }
+            Write-Host "MSI install log (last 50 lines):"
+            if (Test-Path $logFile) {
+              Get-Content $logFile | Select-Object -Last 50
+            }
             exit 1
           }
           & $exePath --version
