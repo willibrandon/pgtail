@@ -422,7 +422,7 @@ jobs:
           with open('Formula/pgtail.rb', 'r') as f:
               content = f.read()
 
-          # Define SHA256 values
+          # Define SHA256 values from release artifacts
           shas = {
               'macos-arm64': '${{ needs.release.outputs.sha256_macos_arm64 }}',
               'macos-x86_64': '${{ needs.release.outputs.sha256_macos_x86_64 }}',
@@ -430,9 +430,11 @@ jobs:
               'linux-x86_64': '${{ needs.release.outputs.sha256_linux_x86_64 }}',
           }
 
-          # Replace each platform's SHA256
+          # Replace SHA256 placeholders for each platform
+          # Pattern matches: sha256 "PLACEHOLDER" or sha256 "abc123..."
           for platform, sha in shas.items():
-              pattern = rf'(pgtail-{platform}\.tar\.gz"\s+sha256 ")[^"]*(")'
+              # Match the url line followed by sha256 line for each platform
+              pattern = rf'(url "https://github\.com/willibrandon/pgtail/releases/download/v#\{{version\}}/pgtail-{platform}\.tar\.gz"\s+sha256 ")[^"]*(")'
               content = re.sub(pattern, rf'\g<1>{sha}\2', content)
 
           with open('Formula/pgtail.rb', 'w') as f:

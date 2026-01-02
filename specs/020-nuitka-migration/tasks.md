@@ -217,21 +217,21 @@
 
 ### Homebrew Formula Update
 
-- [ ] T067 [US3] Update homebrew-tap/Formula/pgtail.rb to handle tar.gz archives per research.md section 5.2
-- [ ] T068 [US3] Add platform-specific URL blocks (on_macos/on_arm, on_macos/on_intel, on_linux/on_arm, on_linux/on_intel)
-- [ ] T069 [US3] Update install method to extract archive folder to libexec and symlink executable to bin
-- [ ] T070 [US3] Update test block to verify `pgtail --version` shows current version
+- [x] T067 [US3] Update homebrew-tap/Formula/pgtail.rb to handle tar.gz archives per research.md section 5.2
+- [x] T068 [US3] Add platform-specific URL blocks (on_macos/on_arm, on_macos/on_intel, on_linux/on_arm, on_linux/on_intel)
+- [x] T069 [US3] Update install method to extract archive folder to libexec and symlink executable to bin
+- [x] T070 [US3] Update test block to verify `pgtail --version` shows current version
 
 ### CI Integration
 
-- [ ] T071 [US3] Add update-homebrew job to release.yml that clones homebrew-tap, updates formula checksums
-- [ ] T072 [US3] Configure job to update SHA256 placeholders with actual checksums from release artifacts
-- [ ] T073 [US3] Configure job to commit and push formula update to homebrew-tap repository
+- [x] T071 [US3] Add update-homebrew job to release.yml that clones homebrew-tap, updates formula checksums
+- [x] T072 [US3] Configure job to update SHA256 placeholders with actual checksums from release artifacts
+- [x] T073 [US3] Configure job to commit and push formula update to homebrew-tap repository
 
 ### Verification
 
-- [ ] T074 [US3] Test formula locally: `brew install --build-from-source ./Formula/pgtail.rb`
-- [ ] T075 [US3] Verify `brew test pgtail` passes
+- [x] T074 [US3] Test formula locally: `brew install --build-from-source ./Formula/pgtail.rb`
+- [x] T075 [US3] Verify `brew test pgtail` passes
 
 **Checkpoint**: Homebrew formula updated, CI auto-updates on release
 
