@@ -183,8 +183,14 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}" -replace '^v', ''
-          echo "version=$version" >> $env:GITHUB_OUTPUT
+          # Full version for display (e.g., 0.2.0-rc1)
+          $fullVersion = "${{ github.ref_name }}" -replace '^v', ''
+          echo "full_version=$fullVersion" >> $env:GITHUB_OUTPUT
+
+          # MSI version must be numeric only (X.Y.Z), strip prerelease suffix
+          $msiVersion = $fullVersion -replace '-.*$', ''
+          echo "msi_version=$msiVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Full version: $fullVersion, MSI version: $msiVersion"
 
       - name: Install WiX Toolset
         run: dotnet tool install --global wix --version 5.0.2
@@ -193,9 +199,10 @@ jobs:
         shell: pwsh
         run: |
           # WiX v5 uses Files element for harvesting (no heat required)
+          # Use MSI-compatible version (numeric only, no prerelease suffix)
           wix build wix\pgtail.wxs `
             -d SourceDir=dist\pgtail-windows-x86_64 `
-            -d Version=${{ steps.version.outputs.version }} `
+            -d Version=${{ steps.version.outputs.msi_version }} `
             -arch x64 `
             -out dist\pgtail-windows-x86_64.msi
 
@@ -203,13 +210,27 @@ jobs:
         id: msi_info
         shell: pwsh
         run: |
-          # Extract ProductCode using Windows Installer COM
-          $installer = New-Object -ComObject WindowsInstaller.Installer
-          $database = $installer.GetType().InvokeMember("OpenDatabase", "InvokeMethod", $null, $installer, @("dist\pgtail-windows-x86_64.msi", 0))
-          $view = $database.GetType().InvokeMember("OpenView", "InvokeMethod", $null, $database, @("SELECT Value FROM Property WHERE Property = 'ProductCode'"))
-          $view.GetType().InvokeMember("Execute", "InvokeMethod", $null, $view, $null)
-          $record = $view.GetType().InvokeMember("Fetch", "InvokeMethod", $null, $view, $null)
-          $productCode = $record.GetType().InvokeMember("StringData", "InvokeMethod", $null, $record, @(1))
+          # Extract ProductCode by reading MSI binary directly
+          # Based on: https://xkln.net/blog/how-to-get-the-uninstall-code-product-code-from-an-msi-file-with-powershell/
+          $msiPath = "dist\pgtail-windows-x86_64.msi"
+          $pattern = 'ProductCode(\{[0-9a-fA-F-]{36}\})'
+          $stream = [System.IO.File]::OpenRead($msiPath)
+          $reader = [System.IO.StreamReader]::New($stream, [System.Text.Encoding]::Unicode)
+          $productCode = $null
+          while ($null -ne ($line = $reader.ReadLine())) {
+            if ($line -match $pattern) {
+              $productCode = $Matches[1]
+              break
+            }
+          }
+          $reader.Close()
+          $stream.Close()
+
+          if (-not $productCode) {
+            Write-Error "Failed to extract ProductCode from MSI"
+            exit 1
+          }
+
           echo "product_code=$productCode" >> $env:GITHUB_OUTPUT
           Write-Host "ProductCode: $productCode"
 
