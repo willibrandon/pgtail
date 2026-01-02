@@ -80,7 +80,6 @@ def main(
         if sys.platform == "win32":
             try:
                 import ctypes
-                import ctypes.wintypes
                 import os
 
                 kernel32 = ctypes.windll.kernel32
@@ -94,76 +93,25 @@ def main(
                         debug_lines.append(msg)
                         typer.echo(f"DEBUG: {msg}")
 
-                # Check console process list
+                # Check console process list - if only 1 process (us), no shell is attached
                 process_list = (ctypes.c_ulong * 16)()
                 num_processes = kernel32.GetConsoleProcessList(process_list, 16)
                 debug_log(f"GetConsoleProcessList returned {num_processes}")
                 debug_log(f"PIDs: {[process_list[i] for i in range(num_processes)]}")
 
-                # Get parent process ID using NtQueryInformationProcess
-                class PROCESS_BASIC_INFORMATION(ctypes.Structure):
-                    _fields_ = [
-                        ("Reserved1", ctypes.c_void_p),
-                        ("PebBaseAddress", ctypes.c_void_p),
-                        ("Reserved2", ctypes.c_void_p * 2),
-                        ("UniqueProcessId", ctypes.wintypes.HANDLE),
-                        ("InheritedFromUniqueProcessId", ctypes.wintypes.HANDLE),
-                    ]
-
-                ntdll = ctypes.windll.ntdll
-                current_process = kernel32.GetCurrentProcess()
-                pbi = PROCESS_BASIC_INFORMATION()
-                ntdll.NtQueryInformationProcess(
-                    current_process, 0, ctypes.byref(pbi), ctypes.sizeof(pbi), None
-                )
-                parent_pid = pbi.InheritedFromUniqueProcessId
-                debug_log(f"Parent PID: {parent_pid}")
-
-                # Get parent process name
-                PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-                parent_handle = kernel32.OpenProcess(
-                    PROCESS_QUERY_LIMITED_INFORMATION, False, parent_pid
-                )
-                parent_name = ""
-                if parent_handle:
-                    try:
-                        buffer = ctypes.create_unicode_buffer(260)
-                        size = ctypes.wintypes.DWORD(260)
-                        kernel32.QueryFullProcessImageNameW(
-                            parent_handle, 0, buffer, ctypes.byref(size)
-                        )
-                        parent_name = buffer.value.lower()
-                    finally:
-                        kernel32.CloseHandle(parent_handle)
-
-                debug_log(f"Parent name: {parent_name}")
-
-                # Write debug to file if requested
+                # Write debug to file if requested (before exit check)
                 if debug_file and debug_lines:
                     with open(debug_file, "w") as f:
                         f.write("\n".join(debug_lines) + "\n")
 
-                # Interactive shells we trust
-                interactive_parents = (
-                    "cmd.exe",
-                    "powershell.exe",
-                    "pwsh.exe",
-                    "windowsterminal.exe",
-                    "wt.exe",
-                    "conhost.exe",
-                    "mintty.exe",
-                    "git-bash.exe",
-                    "bash.exe",
-                )
-
-                # Check if parent is an interactive shell
-                parent_basename = os.path.basename(parent_name)
-                if parent_basename not in interactive_parents:
-                    # Parent is not a known shell - likely standalone launch
+                if num_processes == 1:
+                    # Only our process is attached - no parent shell to provide input
                     typer.echo("pgtail: interactive mode requires a terminal")
                     typer.echo("Run 'pgtail --help' for usage information")
                     raise typer.Exit(0)
 
+            except SystemExit:
+                raise  # Re-raise SystemExit (from typer.Exit)
             except Exception as e:
                 if os.environ.get("PGTAIL_DEBUG"):
                     typer.echo(f"DEBUG: Exception during Windows detection: {e}")
