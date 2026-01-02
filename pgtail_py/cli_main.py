@@ -106,9 +106,8 @@ def main(
 
                 if num_processes == 1:
                     # Only our process is attached - no parent shell to provide input
-                    typer.echo("pgtail: interactive mode requires a terminal")
-                    typer.echo("Run 'pgtail --help' for usage information")
-                    raise typer.Exit(0)
+                    # Exit immediately - don't try to echo (may hang on Windows new console)
+                    raise SystemExit(0)
 
             except SystemExit:
                 raise  # Re-raise SystemExit (from typer.Exit)
