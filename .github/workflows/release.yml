@@ -265,6 +265,16 @@ jobs:
           }
           & $exePath --version
 
+          # Test running with no arguments (simulates winget validation)
+          Write-Host "`n=== Testing no-args execution (winget validation simulation) ==="
+          $proc = Start-Process -FilePath $exePath -NoNewWindow -Wait -PassThru
+          Write-Host "Exit code when run with no arguments: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "pgtail.exe returned non-zero exit code: $($proc.ExitCode)"
+            Write-Host "This will cause winget validation to fail"
+            exit 1
+          }
+
           # Silent uninstall
           Start-Process msiexec.exe -ArgumentList "/x", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait -NoNewWindow
 
