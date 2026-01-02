@@ -14,6 +14,7 @@ jobs:
   # Build binaries for Unix-like systems (macOS and Linux)
   build-unix:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -45,24 +46,60 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Build binary with PyInstaller
+      - name: Build binary with Nuitka
         run: |
-          uv run pyinstaller --onefile --collect-data certifi --name pgtail-${{ matrix.platform }}-${{ matrix.arch }} pgtail_py/__main__.py
+          uv run nuitka \
+            --mode=standalone \
+            --output-dir=dist \
+            --output-filename=pgtail \
+            --include-package=pgtail_py \
+            --include-package=psutil \
+            --include-package-data=certifi \
+            --include-module=pgtail_py.detector_unix \
+            --include-module=pgtail_py.detector_windows \
+            --include-module=pgtail_py.notifier_unix \
+            --include-module=pgtail_py.notifier_windows \
+            --nofollow-import-to=psutil.tests \
+            --python-flag=no_asserts \
+            --python-flag=-m \
+            --assume-yes-for-downloads \
+            pgtail_py
+
+      - name: Rename output directory
+        run: |
+          # Nuitka outputs to pgtail.dist/, pgtail_py.dist/, or __main__.dist/
+          if [ -d "dist/pgtail.dist" ]; then
+            mv dist/pgtail.dist dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          elif [ -d "dist/pgtail_py.dist" ]; then
+            mv dist/pgtail_py.dist dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          elif [ -d "dist/__main__.dist" ]; then
+            mv dist/__main__.dist dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          else
+            echo "ERROR: Nuitka output directory not found"
+            ls -la dist/
+            exit 1
+          fi
 
       - name: Verify binary runs
         run: |
-          ./dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }} --version
+          ./dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}/pgtail --version
+
+      - name: Create tar.gz archive
+        run: |
+          cd dist
+          tar -czvf pgtail-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz pgtail-${{ matrix.platform }}-${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pgtail-${{ matrix.platform }}-${{ matrix.arch }}
-          path: dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   # Build binary for Windows (separate job due to different shell syntax)
   build-windows:
     runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -78,31 +115,185 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Build binary with PyInstaller
+      - name: Build binary with Nuitka
         run: |
-          uv run pyinstaller --onefile --collect-data certifi --name pgtail-windows-x86_64 pgtail_py/__main__.py
+          uv run nuitka `
+            --mode=standalone `
+            --output-dir=dist `
+            --output-filename=pgtail `
+            --include-package=pgtail_py `
+            --include-package=psutil `
+            --include-package-data=certifi `
+            --include-module=pgtail_py.detector_unix `
+            --include-module=pgtail_py.detector_windows `
+            --include-module=pgtail_py.notifier_unix `
+            --include-module=pgtail_py.notifier_windows `
+            --nofollow-import-to=psutil.tests `
+            --python-flag=no_asserts `
+            --python-flag=-m `
+            --assume-yes-for-downloads `
+            pgtail_py
+
+      - name: Rename output directory
+        shell: pwsh
+        run: |
+          # Nuitka outputs to pgtail.dist/, pgtail_py.dist/, or __main__.dist/
+          if (Test-Path "dist\pgtail.dist") {
+            Move-Item "dist\pgtail.dist" "dist\pgtail-windows-x86_64"
+          } elseif (Test-Path "dist\pgtail_py.dist") {
+            Move-Item "dist\pgtail_py.dist" "dist\pgtail-windows-x86_64"
+          } elseif (Test-Path "dist\__main__.dist") {
+            Move-Item "dist\__main__.dist" "dist\pgtail-windows-x86_64"
+          } else {
+            Write-Error "Nuitka output directory not found"
+            Get-ChildItem dist\
+            exit 1
+          }
 
       - name: Verify binary runs
         run: |
-          .\dist\pgtail-windows-x86_64.exe --version
+          .\dist\pgtail-windows-x86_64\pgtail.exe --version
 
-      - name: Upload artifact
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\pgtail-windows-x86_64" -DestinationPath "dist\pgtail-windows-x86_64.zip"
+
+      - name: Verify ZIP extraction and executable
+        shell: pwsh
+        run: |
+          # Extract to temp directory
+          $extractDir = "dist\zip-test"
+          Expand-Archive -Path "dist\pgtail-windows-x86_64.zip" -DestinationPath $extractDir
+
+          # Verify structure
+          if (-not (Test-Path "$extractDir\pgtail-windows-x86_64\pgtail.exe")) {
+            Write-Error "pgtail.exe not found in extracted ZIP"
+            Get-ChildItem -Recurse $extractDir
+            exit 1
+          }
+
+          # Run extracted executable
+          & "$extractDir\pgtail-windows-x86_64\pgtail.exe" --version
+
+          # Cleanup
+          Remove-Item -Recurse -Force $extractDir
+
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          # Full version for display (e.g., 0.2.0-rc1)
+          $fullVersion = "${{ github.ref_name }}" -replace '^v', ''
+          echo "full_version=$fullVersion" >> $env:GITHUB_OUTPUT
+
+          # MSI version must be numeric only (X.Y.Z), strip prerelease suffix
+          $msiVersion = $fullVersion -replace '-.*$', ''
+          echo "msi_version=$msiVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Full version: $fullVersion, MSI version: $msiVersion"
+
+      - name: Install WiX Toolset
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Build MSI with WiX
+        shell: pwsh
+        run: |
+          # WiX v5 uses Files element for harvesting (no heat required)
+          # Use MSI-compatible version (numeric only, no prerelease suffix)
+          # SourceDir must be relative to the .wxs file location (wix\), so use ..\dist\...
+          wix build wix\pgtail.wxs `
+            -d SourceDir=..\dist\pgtail-windows-x86_64 `
+            -d Version=${{ steps.version.outputs.msi_version }} `
+            -arch x64 `
+            -out dist\pgtail-windows-x86_64.msi
+
+      - name: Extract ProductCode from MSI
+        id: msi_info
+        shell: pwsh
+        run: |
+          # Extract ProductCode by reading MSI binary directly
+          # Based on: https://xkln.net/blog/how-to-get-the-uninstall-code-product-code-from-an-msi-file-with-powershell/
+          $msiPath = "dist\pgtail-windows-x86_64.msi"
+          $pattern = 'ProductCode(\{[0-9a-fA-F-]{36}\})'
+          $stream = [System.IO.File]::OpenRead($msiPath)
+          $reader = [System.IO.StreamReader]::New($stream, [System.Text.Encoding]::ASCII)
+          $productCode = $null
+          while ($null -ne ($line = $reader.ReadLine())) {
+            if ($line -match $pattern) {
+              $productCode = $Matches[1]
+              break
+            }
+          }
+          $reader.Close()
+          $stream.Close()
+
+          if (-not $productCode) {
+            Write-Error "Failed to extract ProductCode from MSI"
+            exit 1
+          }
+
+          echo "product_code=$productCode" >> $env:GITHUB_OUTPUT
+          Write-Host "ProductCode: $productCode"
+
+      - name: Verify MSI installs correctly
+        shell: pwsh
+        run: |
+          # Silent install to default location (Program Files\pgtail)
+          # Use /l*v for verbose logging to diagnose issues
+          $logFile = "dist\msi-install.log"
+          $proc = Start-Process msiexec.exe -ArgumentList "/i", "dist\pgtail-windows-x86_64.msi", "/qn", "/l*v", $logFile -Wait -NoNewWindow -PassThru
+
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "MSI installation failed with exit code: $($proc.ExitCode)"
+            if (Test-Path $logFile) {
+              Get-Content $logFile | Select-Object -Last 50
+            }
+            exit 1
+          }
+
+          # Verify executable exists and runs from default install path
+          $exePath = "${env:ProgramFiles}\pgtail\pgtail.exe"
+          if (-not (Test-Path $exePath)) {
+            Write-Error "pgtail.exe not found at $exePath"
+            Write-Host "Contents of Program Files:"
+            Get-ChildItem "${env:ProgramFiles}" | Where-Object { $_.Name -like "*pgtail*" }
+            Write-Host "MSI install log (last 50 lines):"
+            if (Test-Path $logFile) {
+              Get-Content $logFile | Select-Object -Last 50
+            }
+            exit 1
+          }
+          & $exePath --version
+
+          # Silent uninstall
+          Start-Process msiexec.exe -ArgumentList "/x", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait -NoNewWindow
+
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
           name: pgtail-windows-x86_64
-          path: dist/pgtail-windows-x86_64.exe
+          path: dist/pgtail-windows-x86_64.zip
+          retention-days: 1
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtail-windows-x86_64-msi
+          path: dist/pgtail-windows-x86_64.msi
           retention-days: 1
 
   # Create release with all binaries
   release:
     needs: [build-unix, build-windows]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       sha256_macos_arm64: ${{ steps.checksums.outputs.sha256_macos_arm64 }}
       sha256_macos_x86_64: ${{ steps.checksums.outputs.sha256_macos_x86_64 }}
       sha256_linux_x86_64: ${{ steps.checksums.outputs.sha256_linux_x86_64 }}
       sha256_linux_arm64: ${{ steps.checksums.outputs.sha256_linux_arm64 }}
       sha256_windows_x86_64: ${{ steps.checksums.outputs.sha256_windows_x86_64 }}
+      sha256_windows_msi: ${{ steps.checksums.outputs.sha256_windows_msi }}
 
     steps:
       - name: Record workflow start time
@@ -117,50 +308,46 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          # Move binaries to release directory with correct names
-          mv artifacts/pgtail-macos-arm64/pgtail-macos-arm64 release/
-          mv artifacts/pgtail-macos-x86_64/pgtail-macos-x86_64 release/
-          mv artifacts/pgtail-linux-x86_64/pgtail-linux-x86_64 release/
-          mv artifacts/pgtail-linux-arm64/pgtail-linux-arm64 release/
-          mv artifacts/pgtail-windows-x86_64/pgtail-windows-x86_64.exe release/
+          # Move archives to release directory
+          mv artifacts/pgtail-macos-arm64/pgtail-macos-arm64.tar.gz release/
+          mv artifacts/pgtail-macos-x86_64/pgtail-macos-x86_64.tar.gz release/
+          mv artifacts/pgtail-linux-x86_64/pgtail-linux-x86_64.tar.gz release/
+          mv artifacts/pgtail-linux-arm64/pgtail-linux-arm64.tar.gz release/
+          mv artifacts/pgtail-windows-x86_64/pgtail-windows-x86_64.zip release/
+          mv artifacts/pgtail-windows-x86_64-msi/pgtail-windows-x86_64.msi release/
 
-      - name: Set executable permissions
+      - name: Check archive sizes
         run: |
-          chmod +x release/pgtail-macos-arm64
-          chmod +x release/pgtail-macos-x86_64
-          chmod +x release/pgtail-linux-x86_64
-          chmod +x release/pgtail-linux-arm64
-
-      - name: Check binary sizes
-        run: |
-          echo "Checking binary sizes (max 50MB = 52428800 bytes)..."
-          for binary in release/pgtail-*; do
-            size=$(stat -c%s "$binary" 2>/dev/null || stat -f%z "$binary")
-            echo "$binary: $size bytes"
+          echo "Checking archive sizes (max 50MB = 52428800 bytes)..."
+          for archive in release/pgtail-*; do
+            size=$(stat -c%s "$archive" 2>/dev/null || stat -f%z "$archive")
+            echo "$archive: $size bytes"
             if [ "$size" -gt 52428800 ]; then
-              echo "::error::Binary $binary exceeds 50MB limit: $size bytes"
+              echo "::error::Archive $archive exceeds 50MB limit: $size bytes"
               exit 1
             fi
           done
-          echo "All binaries within size limit."
+          echo "All archives within size limit."
 
       - name: Calculate SHA256 checksums
         id: checksums
         run: |
           cd release
           # Calculate and save checksums
-          sha256sum pgtail-macos-arm64 > pgtail-macos-arm64.sha256
-          sha256sum pgtail-macos-x86_64 > pgtail-macos-x86_64.sha256
-          sha256sum pgtail-linux-x86_64 > pgtail-linux-x86_64.sha256
-          sha256sum pgtail-linux-arm64 > pgtail-linux-arm64.sha256
-          sha256sum pgtail-windows-x86_64.exe > pgtail-windows-x86_64.exe.sha256
+          sha256sum pgtail-macos-arm64.tar.gz > pgtail-macos-arm64.tar.gz.sha256
+          sha256sum pgtail-macos-x86_64.tar.gz > pgtail-macos-x86_64.tar.gz.sha256
+          sha256sum pgtail-linux-x86_64.tar.gz > pgtail-linux-x86_64.tar.gz.sha256
+          sha256sum pgtail-linux-arm64.tar.gz > pgtail-linux-arm64.tar.gz.sha256
+          sha256sum pgtail-windows-x86_64.zip > pgtail-windows-x86_64.zip.sha256
+          sha256sum pgtail-windows-x86_64.msi > pgtail-windows-x86_64.msi.sha256
 
           # Export checksums as outputs for downstream jobs
-          echo "sha256_macos_arm64=$(cut -d' ' -f1 pgtail-macos-arm64.sha256)" >> $GITHUB_OUTPUT
-          echo "sha256_macos_x86_64=$(cut -d' ' -f1 pgtail-macos-x86_64.sha256)" >> $GITHUB_OUTPUT
-          echo "sha256_linux_x86_64=$(cut -d' ' -f1 pgtail-linux-x86_64.sha256)" >> $GITHUB_OUTPUT
-          echo "sha256_linux_arm64=$(cut -d' ' -f1 pgtail-linux-arm64.sha256)" >> $GITHUB_OUTPUT
-          echo "sha256_windows_x86_64=$(cut -d' ' -f1 pgtail-windows-x86_64.exe.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_macos_arm64=$(cut -d' ' -f1 pgtail-macos-arm64.tar.gz.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_macos_x86_64=$(cut -d' ' -f1 pgtail-macos-x86_64.tar.gz.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_linux_x86_64=$(cut -d' ' -f1 pgtail-linux-x86_64.tar.gz.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_linux_arm64=$(cut -d' ' -f1 pgtail-linux-arm64.tar.gz.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_windows_x86_64=$(cut -d' ' -f1 pgtail-windows-x86_64.zip.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_windows_msi=$(cut -d' ' -f1 pgtail-windows-x86_64.msi.sha256)" >> $GITHUB_OUTPUT
 
           # Display checksums
           echo "SHA256 Checksums:"
@@ -170,16 +357,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/pgtail-macos-arm64
-            release/pgtail-macos-arm64.sha256
-            release/pgtail-macos-x86_64
-            release/pgtail-macos-x86_64.sha256
-            release/pgtail-linux-x86_64
-            release/pgtail-linux-x86_64.sha256
-            release/pgtail-linux-arm64
-            release/pgtail-linux-arm64.sha256
-            release/pgtail-windows-x86_64.exe
-            release/pgtail-windows-x86_64.exe.sha256
+            release/pgtail-macos-arm64.tar.gz
+            release/pgtail-macos-arm64.tar.gz.sha256
+            release/pgtail-macos-x86_64.tar.gz
+            release/pgtail-macos-x86_64.tar.gz.sha256
+            release/pgtail-linux-x86_64.tar.gz
+            release/pgtail-linux-x86_64.tar.gz.sha256
+            release/pgtail-linux-arm64.tar.gz
+            release/pgtail-linux-arm64.tar.gz.sha256
+            release/pgtail-windows-x86_64.zip
+            release/pgtail-windows-x86_64.zip.sha256
+            release/pgtail-windows-x86_64.msi
+            release/pgtail-windows-x86_64.msi.sha256
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -202,6 +391,7 @@ jobs:
   update-homebrew:
     needs: release
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Extract version from tag
         id: version
@@ -232,7 +422,7 @@ jobs:
           with open('Formula/pgtail.rb', 'r') as f:
               content = f.read()
 
-          # Define SHA256 values
+          # Define SHA256 values from release artifacts
           shas = {
               'macos-arm64': '${{ needs.release.outputs.sha256_macos_arm64 }}',
               'macos-x86_64': '${{ needs.release.outputs.sha256_macos_x86_64 }}',
@@ -240,9 +430,11 @@ jobs:
               'linux-x86_64': '${{ needs.release.outputs.sha256_linux_x86_64 }}',
           }
 
-          # Replace each platform's SHA256
+          # Replace SHA256 placeholders for each platform
+          # Pattern matches: sha256 "PLACEHOLDER" or sha256 "abc123..."
           for platform, sha in shas.items():
-              pattern = rf'(pgtail-{platform}"\s+sha256 ")[^"]*(")'
+              # Match the url line followed by sha256 line for each platform
+              pattern = rf'(url "https://github\.com/willibrandon/pgtail/releases/download/v#\{{version\}}/pgtail-{platform}\.tar\.gz"\s+sha256 ")[^"]*(")'
               content = re.sub(pattern, rf'\g<1>{sha}\2', content)
 
           with open('Formula/pgtail.rb', 'w') as f:
@@ -265,6 +457,7 @@ jobs:
   update-winget:
     needs: release
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Extract version from tag
         id: version
@@ -299,7 +492,7 @@ jobs:
           WINGET_PKGS_TOKEN: ${{ secrets.WINGET_PKGS_TOKEN }}
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.exe"
+          $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.msi"
 
           .\wingetcreate.exe update willibrandon.pgtail `
             --version $version `
