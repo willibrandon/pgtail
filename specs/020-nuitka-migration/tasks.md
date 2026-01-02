@@ -201,9 +201,9 @@
 
 ### winget Submission
 
-- [ ] T064 [US4] Fork microsoft/winget-pkgs to willibrandon/winget-pkgs (required for CI workflow) [USER ACTION REQUIRED]
-- [ ] T065 [US4] Test manifest locally: `winget validate --manifest winget/` [REQUIRES WINDOWS]
-- [ ] T066 [US4] Submit initial PR from fork (willibrandon/winget-pkgs) to microsoft/winget-pkgs [USER ACTION REQUIRED]
+- [x] T064 [US4] Fork microsoft/winget-pkgs to willibrandon/winget-pkgs (required for CI workflow) [FORK EXISTS]
+- [x] T065 [US4] Test manifest locally: `winget validate --manifest winget/` [VALIDATED VIA PR PIPELINE]
+- [x] T066 [US4] Submit initial PR from fork (willibrandon/winget-pkgs) to microsoft/winget-pkgs [PR #327397]
 
 **Checkpoint**: MSI builds in CI, winget manifest ready for submission
 
