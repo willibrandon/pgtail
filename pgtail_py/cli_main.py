@@ -69,11 +69,10 @@ def main(
         # No subcommand provided - start REPL
         import sys
 
-        # Check if stdin is a TTY - if not, show help instead of hanging
+        # Check if stdin is a TTY - if not, exit gracefully
+        # Exit silently because stdout may also be redirected/unavailable
         if not sys.stdin.isatty():
-            typer.echo("pgtail: interactive mode requires a terminal")
-            typer.echo("Run 'pgtail --help' for usage information")
-            raise typer.Exit(0)
+            raise SystemExit(0)
 
         # On Windows, detect if we were launched without an interactive parent shell
         # This catches: double-click launch, Start-Process, winget validation
