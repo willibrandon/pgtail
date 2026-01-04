@@ -105,7 +105,7 @@ def main(
                 repl_main()
             except Exception:
                 # Exit gracefully if REPL fails to start on Windows
-                raise SystemExit(0)
+                raise SystemExit(0) from None
         else:
             repl_main()
 
