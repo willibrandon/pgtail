@@ -98,7 +98,16 @@ def main(
 
         from pgtail_py.cli import main as repl_main
 
-        repl_main()
+        # On Windows, wrap REPL startup to catch any initialization failures
+        # (e.g., prompt_toolkit failing in non-interactive environments)
+        if sys.platform == "win32":
+            try:
+                repl_main()
+            except Exception:
+                # Exit gracefully if REPL fails to start on Windows
+                raise SystemExit(0)
+        else:
+            repl_main()
 
 
 @app.command()
