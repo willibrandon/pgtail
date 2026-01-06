@@ -495,9 +495,9 @@ The `tail` command enters a Textual-based split-screen interface:
 Filter changes trigger `_rebuild_log()` which re-applies filters to stored entries and recalculates counts.
 
 ## Recent Changes
+- 021-tail-file-option: Added Python 3.10+ + prompt_toolkit, textual, typer, psutil
 - 020-nuitka-migration: Added Python 3.10+ (targeting Python 3.12 for builds)
 - 019-distribution: Added Python 3.10+ + PyInstaller (binary building), GitHub Actions, Homebrew (Ruby formula), winget (YAML manifest)
-- 018-textual-sql-highlighting: Added Python 3.10+
 
 ## MCP Tools: Textual Documentation
 
@@ -552,3 +552,5 @@ get_textual_doc(path="widgets/log.md")
 - N/A (no persistence for distribution; update check uses config file already in place) (019-distribution)
 - Python 3.10+ (targeting Python 3.12 for builds) (020-nuitka-migration)
 - N/A (no persistence for this feature; config file already in place) (020-nuitka-migration)
+- Python 3.10+ + prompt_toolkit, textual, typer, psutil (021-tail-file-option)
+- N/A (file system read-only) (021-tail-file-option)
