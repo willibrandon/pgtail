@@ -62,6 +62,45 @@ Logs in custom locations:
 pgtail tail --file /opt/custom/postgres/logs/postgresql.log
 ```
 
+### 4. Multiple Log Files (Glob Pattern)
+
+Tail all logs matching a pattern:
+
+```bash
+# Tail all .log files in current directory
+pgtail tail --file "*.log"
+
+# Tail all PostgreSQL logs in a directory
+pgtail tail --file "/var/log/postgresql/*.log"
+```
+
+### 5. Multiple Explicit Files
+
+Compare logs from multiple sources:
+
+```bash
+# Tail two specific files
+pgtail tail --file primary.log --file replica.log
+
+# Tail logs from multiple PostgreSQL instances
+pgtail tail --file /var/lib/pgsql/15/data/log/postgresql.log --file /var/lib/pgsql/16/data/log/postgresql.log
+```
+
+### 6. Stdin Pipe Support
+
+Process compressed or remote logs:
+
+```bash
+# Decompress and tail
+gunzip -c postgresql.log.gz | pgtail tail --stdin
+
+# Tail from remote server
+ssh production "cat /var/log/postgresql/current.log" | pgtail tail --stdin
+
+# Process archived logs
+zcat archive/2024-01.log.gz | pgtail tail --stdin
+```
+
 ## What Works
 
 All pgtail features work identically with `--file`:
@@ -71,6 +110,8 @@ All pgtail features work identically with `--file`:
 - **Stats**: `errors`, `connections`, `stats`
 - **Themes**: `theme monokai`, `theme list`
 - **Navigation**: vim keys (j/k/g/G), visual mode (v/V), yank (y)
+- **Multi-file**: Glob patterns (`*.log`), multiple `--file` arguments
+- **Stdin**: Piped input from external commands
 
 ## Status Bar
 
@@ -90,6 +131,14 @@ FOLLOW | E:0 W:0 | 42 lines | levels:ALL | PG17:5432
                                            Detected from log content
 ```
 
+When tailing multiple files:
+
+```
+FOLLOW | E:0 W:0 | 42 lines | levels:ALL | 3 files (*.log)
+                                           ^^^^^^^^^^^^^^^
+                                           File count and pattern
+```
+
 ## Error Messages
 
 | Situation | Error Message |
@@ -98,6 +147,9 @@ FOLLOW | E:0 W:0 | 42 lines | levels:ALL | PG17:5432
 | Permission denied | `Permission denied: /path/to/file.log` |
 | Path is a directory | `Not a file: /path (is a directory)` |
 | Used with instance ID | `Cannot specify both --file and instance ID` |
+| Glob matches no files | `No files match pattern: *.xyz` |
+| Stdin is a terminal | `--stdin requires piped input` |
+| Stdin is empty | `No input received` |
 
 ## Tips
 
@@ -106,6 +158,11 @@ FOLLOW | E:0 W:0 | 42 lines | levels:ALL | PG17:5432
 3. **Spaces in paths**: Quote the path: `--file "/path with spaces/log.txt"`
 4. **File rotation handled**: Truncation/recreation detected automatically
 5. **File deletion**: pgtail waits for file recreation (press `q` to exit)
+6. **Glob quoting**: Quote glob patterns to prevent shell expansion: `--file "*.log"`
+7. **Multi-file ordering**: Entries interleaved by timestamp across files
+8. **Source indicators**: Multi-file mode shows which file each entry came from
+9. **Dynamic globs**: New files matching the pattern are automatically included
+10. **Stdin EOF**: Tail mode exits gracefully when stdin ends
 
 ## Implementation Details
 
@@ -118,21 +175,33 @@ For developers working on this feature:
 
 ### Key Files to Modify
 
-1. `cli_main.py` - Add `--file` option to `tail` command
-2. `cli_core.py` - Add `--file` parsing to REPL handler
-3. `tail_status.py` - Add filename display support
-4. `tail_textual.py` - Support file-only mode
-5. `commands.py` - Add completion for `--file`
+1. `cli_main.py` - Add `--file` option, glob expansion, `--stdin` to `tail` command
+2. `cli_core.py` - Add `--file`, glob, `--stdin` parsing to REPL handler
+3. `tail_status.py` - Add filename/multi-file display support
+4. `tail_textual.py` - Support file-only mode and multi-file mode
+5. `commands.py` - Add completion for `--file` and `--stdin`
+6. `tailer.py` - Add multi-file interleaving and stdin reader
+7. `tail_rich.py` - Add source file indicator for multi-file mode
 
 ### Testing
 
 ```bash
-# Create test log file
+# Create test log files
 echo "2024-01-15 10:00:00 UTC LOG: test message" > /tmp/test.log
+echo "2024-01-15 10:00:01 UTC LOG: another message" > /tmp/test2.log
 
-# Test file tailing
+# Test single file tailing
 pgtail tail -f /tmp/test.log
 
 # Test with time filter
 pgtail tail -f /tmp/test.log --since 5m
+
+# Test glob pattern
+pgtail tail --file "/tmp/test*.log"
+
+# Test multiple files
+pgtail tail --file /tmp/test.log --file /tmp/test2.log
+
+# Test stdin
+echo "2024-01-15 10:00:00 UTC LOG: stdin message" | pgtail tail --stdin
 ```

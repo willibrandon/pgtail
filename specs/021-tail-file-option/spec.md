@@ -7,11 +7,11 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Tail pg_regress Test Logs (Priority: P1)
+### User Story 1 - Tail pg_regress Test Logs (Priority: P0 - MANDATORY)
 
 A PostgreSQL extension developer runs `make installcheck` and needs to debug a failing regression test. The test creates logs in `tmp_check/log/postmaster.log` which are not detected by pgtail's automatic instance detection.
 
-**Why this priority**: This is the primary use case driving the feature request. Extension developers frequently need to inspect test logs, and the current workflow requires manual file inspection with less capable tools.
+**Why this is mandatory**: This is the primary use case driving the feature request. Extension developers frequently need to inspect test logs, and the current workflow requires manual file inspection with less capable tools.
 
 **Independent Test**: Can be fully tested by creating a log file at an arbitrary path and running `tail --file <path>`. Delivers immediate value for debugging pg_regress failures.
 
@@ -25,11 +25,11 @@ A PostgreSQL extension developer runs `make installcheck` and needs to debug a f
 
 ---
 
-### User Story 2 - Tail Archived or Downloaded Logs (Priority: P2)
+### User Story 2 - Tail Archived or Downloaded Logs (Priority: P0 - MANDATORY)
 
 A DBA has downloaded PostgreSQL log files from a production server for post-incident analysis. The logs are stored in a local directory and need to be analyzed with pgtail's filtering capabilities.
 
-**Why this priority**: Analyzing historical logs is a common debugging workflow. While slightly less time-critical than live debugging, it extends pgtail's utility beyond running instances.
+**Why this is mandatory**: Analyzing historical logs is a common debugging workflow. It extends pgtail's utility beyond running instances and is essential for incident post-mortems.
 
 **Independent Test**: Can be fully tested by placing a PostgreSQL log file in any directory and tailing it with `--file`. Delivers value for incident post-mortems.
 
@@ -43,11 +43,11 @@ A DBA has downloaded PostgreSQL log files from a production server for post-inci
 
 ---
 
-### User Story 3 - CLI-Level File Tailing (Priority: P1)
+### User Story 3 - CLI-Level File Tailing (Priority: P0 - MANDATORY)
 
 A user wants to tail a log file directly from the shell without entering the REPL, combining with other flags.
 
-**Why this priority**: CLI ergonomics are critical for quick debugging and scripting. Users expect to chain flags like `--since` with `--file`.
+**Why this is mandatory**: CLI ergonomics are critical for quick debugging and scripting. Users expect to chain flags like `--since` with `--file`.
 
 **Independent Test**: Can be tested by running `pgtail tail --file <path> --since 5m` from the command line. Delivers value for one-liner debugging.
 
@@ -61,11 +61,11 @@ A user wants to tail a log file directly from the shell without entering the REP
 
 ---
 
-### User Story 4 - REPL-Level File Tailing (Priority: P1)
+### User Story 4 - REPL-Level File Tailing (Priority: P0 - MANDATORY)
 
 A user is in the pgtail REPL and wants to switch from tailing an auto-detected instance to tailing an arbitrary file, or start tailing a file directly.
 
-**Why this priority**: Consistency between CLI and REPL behavior is essential. Users should be able to use `--file` in both contexts.
+**Why this is mandatory**: Consistency between CLI and REPL behavior is essential. Users must be able to use `--file` in both contexts.
 
 **Independent Test**: Can be tested by entering the REPL and running `tail --file <path>`. Delivers value for interactive debugging sessions.
 
@@ -79,11 +79,11 @@ A user is in the pgtail REPL and wants to switch from tailing an auto-detected i
 
 ---
 
-### User Story 5 - Glob Pattern Tailing (Priority: P3)
+### User Story 5 - Glob Pattern Tailing (Priority: P0 - MANDATORY)
 
 A user wants to tail multiple log files matching a pattern, such as all `.log` files in a directory.
 
-**Why this priority**: This is a stretch goal that provides power-user functionality. Core single-file support is more critical.
+**Why this is mandatory**: Power users need to tail multiple related logs simultaneously. This is essential for analyzing distributed systems, replicas, and multi-process PostgreSQL setups.
 
 **Independent Test**: Can be tested by running `tail --file "*.log"` in a directory with multiple log files. Delivers value for multi-file analysis.
 
@@ -97,11 +97,11 @@ A user wants to tail multiple log files matching a pattern, such as all `.log` f
 
 ---
 
-### User Story 6 - Multiple Explicit Files (Priority: P3)
+### User Story 6 - Multiple Explicit Files (Priority: P0 - MANDATORY)
 
 A user wants to tail multiple specific files simultaneously.
 
-**Why this priority**: This is a stretch goal that provides power-user functionality for comparing logs from multiple sources.
+**Why this is mandatory**: Comparing logs from multiple sources is essential for debugging complex issues. Users must be able to correlate events across multiple log files.
 
 **Independent Test**: Can be tested by running `tail --file a.log --file b.log`. Delivers value for multi-source debugging.
 
@@ -115,11 +115,11 @@ A user wants to tail multiple specific files simultaneously.
 
 ---
 
-### User Story 7 - Stdin Pipe Support (Priority: P3)
+### User Story 7 - Stdin Pipe Support (Priority: P0 - MANDATORY)
 
 A user wants to pipe log data into pgtail from stdin, such as from a decompressed archive.
 
-**Why this priority**: This is a stretch goal that enables integration with external tools and compressed archives.
+**Why this is mandatory**: Integration with external tools and compressed archives is essential for production workflows. Users must be able to decompress and pipe logs without intermediate files.
 
 **Independent Test**: Can be tested by running `cat log.gz | gunzip | pgtail tail --stdin`. Delivers value for compressed log analysis.
 
@@ -168,6 +168,28 @@ A user wants to pipe log data into pgtail from stdin, such as from a decompresse
 - What happens with symlinks?
   - Follow symlinks and tail the target file
 
+- What happens when a glob pattern matches too many files (e.g., hundreds)?
+  - Display warning: "Pattern matches N files (may impact performance)", proceed with tailing
+  - Consider a configurable limit with `--max-files N` flag
+
+- What happens when a glob pattern matches files in different formats (CSV, JSON, text)?
+  - Auto-detect format independently for each file, parse each correctly
+
+- What happens when one of multiple files becomes unreadable during tailing?
+  - Continue tailing other files, show notification for unreadable file
+
+- What happens when stdin is a terminal (not a pipe)?
+  - Display error: "--stdin requires piped input" and exit with error code
+
+- What happens when stdin is empty (immediate EOF)?
+  - Display message: "No input received", exit tail mode gracefully
+
+- What happens when entries from multiple files have identical timestamps?
+  - Maintain consistent ordering (e.g., alphabetical by filename as secondary sort)
+
+- What happens with binary data in stdin?
+  - Attempt UTF-8 decode with replacement, parse lines as-is
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -186,14 +208,14 @@ A user wants to pipe log data into pgtail from stdin, such as from a decompresse
 - **FR-012**: System MUST handle paths with spaces and special characters correctly
 - **FR-013**: System MUST follow symlinks when a symlinked path is provided
 
-### Stretch Goal Requirements
+### Multi-File and Pipe Requirements
 
-- **FR-014**: System SHOULD support glob patterns (e.g., `--file "*.log"`) to tail multiple files matching a pattern
-- **FR-015**: System SHOULD support multiple `--file` arguments (e.g., `--file a.log --file b.log`) to tail multiple specific files
-- **FR-016**: System SHOULD support `--stdin` flag to read log data from stdin pipe
-- **FR-017**: When tailing multiple files, system SHOULD interleave entries by timestamp
-- **FR-018**: When tailing multiple files, system SHOULD indicate the source file for each entry
-- **FR-019**: For glob patterns, system SHOULD detect newly created matching files and include them
+- **FR-014**: System MUST support glob patterns (e.g., `--file "*.log"`) to tail multiple files matching a pattern
+- **FR-015**: System MUST support multiple `--file` arguments (e.g., `--file a.log --file b.log`) to tail multiple specific files
+- **FR-016**: System MUST support `--stdin` flag to read log data from stdin pipe
+- **FR-017**: When tailing multiple files, system MUST interleave entries by timestamp
+- **FR-018**: When tailing multiple files, system MUST indicate the source file for each entry
+- **FR-019**: For glob patterns, system MUST detect newly created matching files and include them
 
 ## Success Criteria *(mandatory)*
 
@@ -207,6 +229,12 @@ A user wants to pipe log data into pgtail from stdin, such as from a decompresse
 - **SC-006**: File rotation is detected and handled without user intervention
 - **SC-007**: Status bar displays filename when tailing arbitrary files, or detected instance info (version:port) when available from log content
 - **SC-008**: Command works identically in CLI and REPL modes
+- **SC-009**: Glob patterns expand correctly and tail all matching files simultaneously
+- **SC-010**: Multiple `--file` arguments correctly interleave entries by timestamp
+- **SC-011**: Source file indicators are visible for each entry when tailing multiple files
+- **SC-012**: Newly created files matching a glob pattern are detected and included within 5 seconds
+- **SC-013**: Stdin input is processed with the same filtering capabilities as file-based tailing
+- **SC-014**: EOF on stdin exits tail mode gracefully without error
 
 ## Clarifications
 
@@ -220,7 +248,11 @@ A user wants to pipe log data into pgtail from stdin, such as from a decompresse
 1. **Path resolution**: Relative paths are resolved relative to the current working directory at command execution time
 2. **File locking**: pgtail does not acquire exclusive locks on tailed files; other processes can continue writing
 3. **Encoding**: Log files are assumed to be UTF-8 encoded (with fallback to replace errors, matching existing behavior)
-4. **Buffer size**: The same 10,000 entry buffer limit applies to file-based tailing
+4. **Buffer size**: The same 10,000 entry buffer limit applies to file-based tailing; for multi-file tailing, this is a combined limit across all files
 5. **No instance detection bypass**: When using `--file`, no PostgreSQL instance detection is performed for that file
 6. **Connection/Error stats**: When tailing arbitrary files, connection and error statistics are still tracked; instance-specific info (version, port) is detected from log content when available (e.g., from startup messages), otherwise shows filename
 7. **Notifications**: Desktop notifications work with file-based tailing, using the same rules as instance tailing
+8. **Glob expansion**: Glob patterns are expanded at command start; shell quoting required to prevent shell expansion (e.g., `--file "*.log"`)
+9. **Multi-file memory**: Each file maintains its own read position and format detector; memory scales linearly with file count
+10. **Stdin buffering**: Stdin is read line-by-line in non-blocking mode; large lines may be split across reads
+11. **Stdin format detection**: Format auto-detection occurs on the first few lines of stdin input, same as file-based detection

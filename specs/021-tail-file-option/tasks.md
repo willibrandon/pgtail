@@ -57,7 +57,7 @@
 
 ---
 
-## Phase 3: User Story 3 - CLI-Level File Tailing (Priority: P1) 🎯 MVP
+## Phase 3: User Story 3 - CLI-Level File Tailing (Priority: P0 - MANDATORY)
 
 **Goal**: Users can run `pgtail tail --file <path>` from the shell with full flag support
 
@@ -78,7 +78,7 @@
 
 ---
 
-## Phase 4: User Story 4 - REPL-Level File Tailing (Priority: P1)
+## Phase 4: User Story 4 - REPL-Level File Tailing (Priority: P0 - MANDATORY)
 
 **Goal**: Users can run `tail --file <path>` from the pgtail REPL
 
@@ -101,7 +101,7 @@
 
 ---
 
-## Phase 5: User Story 1 - Tail pg_regress Test Logs (Priority: P1)
+## Phase 5: User Story 1 - Tail pg_regress Test Logs (Priority: P0 - MANDATORY)
 
 **Goal**: All filters work identically for file-based tailing (level, regex, time, slow, field)
 
@@ -127,7 +127,7 @@
 
 ---
 
-## Phase 6: User Story 2 - Tail Archived/Downloaded Logs (Priority: P2)
+## Phase 6: User Story 2 - Tail Archived/Downloaded Logs (Priority: P0 - MANDATORY)
 
 **Goal**: CSV and JSON format logs are auto-detected and parsed correctly when tailing files
 
@@ -182,6 +182,15 @@
 - [ ] T068 [P] Create integration test: file-based CSV format detection in tests/integration/test_tail_file_e2e.py
 - [ ] T069 [P] Create integration test: file-based JSON format detection in tests/integration/test_tail_file_e2e.py
 - [ ] T086 [P] Create integration test: tail --file without path argument (usage error) in tests/integration/test_tail_file_e2e.py
+- [ ] T090 [P] Create integration test: glob pattern expansion in tests/integration/test_tail_file_e2e.py
+- [ ] T091 [P] Create integration test: glob pattern with no matches (error) in tests/integration/test_tail_file_e2e.py
+- [ ] T092 [P] Create integration test: multiple --file arguments in tests/integration/test_tail_file_e2e.py
+- [ ] T093 [P] Create integration test: multi-file timestamp interleaving in tests/integration/test_tail_file_e2e.py
+- [ ] T094 [P] Create integration test: stdin pipe input in tests/integration/test_tail_file_e2e.py
+- [ ] T095 [P] Create integration test: stdin EOF handling in tests/integration/test_tail_file_e2e.py
+- [ ] T096 [P] Create unit tests for glob pattern matching in tests/unit/test_tail_file.py
+- [ ] T097 [P] Create unit tests for multi-file tailer in tests/unit/test_tail_file.py
+- [ ] T098 [P] Create unit tests for stdin reader in tests/unit/test_tail_file.py
 
 ### Documentation
 
@@ -191,11 +200,13 @@
 
 ---
 
-## Stretch Goals (P3) - Separate Future Tasks
+## Phase 8: User Story 5 - Glob Pattern Tailing (Priority: P0 - MANDATORY)
 
-**Note**: These are documented in spec.md but deferred per plan.md decision.
+**Goal**: Users can tail multiple log files matching a glob pattern
 
-### User Story 5 - Glob Pattern Tailing (P3)
+**Independent Test**: Create multiple log files matching `*.log`, run `tail --file "*.log"`
+
+### Implementation for User Story 5
 
 - [ ] T073 [US5] Implement glob pattern expansion for --file in pgtail_py/cli_main.py
 - [ ] T074 [US5] Handle "No files match pattern" error in pgtail_py/cli_main.py
@@ -203,13 +214,29 @@
 - [ ] T076 [US5] Add source file indicator to log entries in pgtail_py/tail_rich.py
 - [ ] T089 [US5] Add dynamic file watching to include newly created files matching glob pattern in pgtail_py/tailer.py
 
-### User Story 6 - Multiple Explicit Files (P3)
+---
+
+## Phase 9: User Story 6 - Multiple Explicit Files (Priority: P0 - MANDATORY)
+
+**Goal**: Users can tail multiple specific files simultaneously
+
+**Independent Test**: Run `tail --file a.log --file b.log` with two log files
+
+### Implementation for User Story 6
 
 - [ ] T077 [US6] Support multiple --file arguments in pgtail_py/cli_main.py
 - [ ] T078 [US6] Independent format detection per file in pgtail_py/tailer.py
 - [ ] T079 [US6] Source file indicator in display in pgtail_py/tail_rich.py
 
-### User Story 7 - Stdin Pipe Support (P3)
+---
+
+## Phase 10: User Story 7 - Stdin Pipe Support (Priority: P0 - MANDATORY)
+
+**Goal**: Users can pipe log data into pgtail from stdin
+
+**Independent Test**: Run `cat log.gz | gunzip | pgtail tail --stdin`
+
+### Implementation for User Story 7
 
 - [ ] T080 [US7] Add --stdin flag to tail command in pgtail_py/cli_main.py
 - [ ] T081 [US7] Implement stdin reader in pgtail_py/tailer.py
@@ -228,14 +255,17 @@
   - US1 (Filters) depends on US3 or US4 being complete
   - US2 (Archived) depends on US1 being complete
 - **Polish (Phase 7)**: Depends on US1-US4 being complete
-- **Stretch Goals (P3)**: Deferred to future implementation
+- **Phase 8-10 (US5-US7)**: MANDATORY - depend on Phase 7 completion
 
 ### User Story Dependencies
 
-- **User Story 3 (P1 - CLI)**: Can start after Foundational (Phase 2)
-- **User Story 4 (P1 - REPL)**: Can start after Foundational (Phase 2) - parallel with US3
-- **User Story 1 (P1 - Filters)**: Depends on US3 or US4 (basic file tailing must work first)
-- **User Story 2 (P2 - Archived)**: Depends on US1 (filters must work for CSV/JSON)
+- **User Story 3 (CLI)**: Can start after Foundational (Phase 2)
+- **User Story 4 (REPL)**: Can start after Foundational (Phase 2) - parallel with US3
+- **User Story 1 (Filters)**: Depends on US3 or US4 (basic file tailing must work first)
+- **User Story 2 (Archived)**: Depends on US1 (filters must work for CSV/JSON)
+- **User Story 5 (Glob Patterns)**: Depends on US2 completion (multi-file needs single-file working)
+- **User Story 6 (Multiple Files)**: Can proceed in parallel with US5 after US2
+- **User Story 7 (Stdin)**: Can proceed in parallel with US5/US6 after US2
 
 ### Within Each User Story
 
@@ -295,17 +325,28 @@ Task T069: "Integration test: JSON format"
 
 ## Implementation Strategy
 
-### MVP First (User Stories 3 + 4 Only)
+### Full Implementation (All User Stories 1-7 - MANDATORY)
 
-1. Complete Phase 1: Setup (T001-T003)
-2. Complete Phase 2: Foundational (T004-T016)
+1. Complete Phase 1: Setup (T001-T003, T085)
+2. Complete Phase 2: Foundational (T004-T016, T083, T087)
 3. Complete Phase 3: User Story 3 - CLI (T017-T024)
-4. **STOP and VALIDATE**: Test `pgtail tail --file <path>` from command line
+4. **CHECKPOINT**: Test `pgtail tail --file <path>` from command line
 5. Complete Phase 4: User Story 4 - REPL (T025-T034)
-6. **STOP and VALIDATE**: Test `tail --file <path>` from REPL
-7. Deploy/demo if ready (MVP complete!)
+6. **CHECKPOINT**: Test `tail --file <path>` from REPL
+7. Complete Phase 5: User Story 1 - Filters (T035-T043, T084, T088)
+8. **CHECKPOINT**: All filters work identically for file-based tailing
+9. Complete Phase 6: User Story 2 - Archived (T044-T049)
+10. **CHECKPOINT**: CSV/JSON format logs work correctly
+11. Complete Phase 7: Polish (T050-T072, T086)
+12. **CHECKPOINT**: All tests pass, docs validated
+13. Complete Phase 8: User Story 5 - Glob Patterns (T073-T076, T089)
+14. **CHECKPOINT**: Glob patterns tail multiple files correctly
+15. Complete Phase 9: User Story 6 - Multiple Files (T077-T079)
+16. **CHECKPOINT**: Multiple explicit files work correctly
+17. Complete Phase 10: User Story 7 - Stdin (T080-T082)
+18. **FINAL VALIDATION**: All features complete, all tests pass
 
-### Incremental Delivery
+### Incremental Delivery (ALL PHASES MANDATORY)
 
 1. Complete Setup + Foundational → Foundation ready
 2. Add User Story 3 (CLI) → Test independently → `pgtail tail --file` works
@@ -313,7 +354,9 @@ Task T069: "Integration test: JSON format"
 4. Add User Story 1 (Filters) → Test independently → All filters work
 5. Add User Story 2 (Archived) → Test independently → CSV/JSON works
 6. Add Polish → Tests pass, docs validated
-7. (Future) Add Stretch Goals → Glob, multi-file, stdin
+7. Add User Story 5 (Glob) → Test independently → Glob patterns work
+8. Add User Story 6 (Multi-file) → Test independently → Multiple files work
+9. Add User Story 7 (Stdin) → Test independently → Stdin pipe works
 
 ### Parallel Team Strategy
 
@@ -327,7 +370,11 @@ With multiple developers:
    - Developer A: User Story 1 (Filters)
    - Developer B: Tests (T059-T069)
 4. Developer A: User Story 2 (Archived)
-5. Both: Polish and validation
+5. After US2:
+   - Developer A: User Story 5 (Glob Patterns)
+   - Developer B: User Story 6 (Multiple Files)
+6. Developer A: User Story 7 (Stdin)
+7. Both: Final polish and validation
 
 ---
 
@@ -338,7 +385,7 @@ With multiple developers:
 - Each user story should be independently completable and testable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- P3 stretch goals (US5-US7) are deferred per plan.md
+- **ALL USER STORIES (US1-US7) ARE MANDATORY P0** - no deferral permitted
 
 ## Task Summary
 
@@ -350,7 +397,8 @@ With multiple developers:
 | Phase 4: US4 (REPL) | 10 | 0 |
 | Phase 5: US1 (Filters) | 11 | 0 |
 | Phase 6: US2 (Archived) | 6 | 0 |
-| Phase 7: Polish | 24 | 17 |
-| **Core Total** | **78** | **26** |
-| Stretch (P3) | 11 | 0 |
-| **Grand Total** | **89** | **26** |
+| Phase 7: Polish (Tests + Docs) | 33 | 26 |
+| Phase 8: US5 (Glob Patterns) | 5 | 0 |
+| Phase 9: US6 (Multiple Files) | 3 | 0 |
+| Phase 10: US7 (Stdin) | 3 | 0 |
+| **TOTAL (ALL MANDATORY)** | **98** | **35** |

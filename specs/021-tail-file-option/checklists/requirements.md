@@ -31,11 +31,12 @@
 
 ## Notes
 
-- Specification covers 7 user stories with clear priorities (P1-P3)
-- P1 stories (4 total) cover core single-file tailing functionality
-- P3 stories (3 total) are clearly marked as stretch goals
-- 11 edge cases identified with expected behaviors
-- 13 core functional requirements + 6 stretch goal requirements defined
-- 8 measurable success criteria defined
-- 7 assumptions documented
-- Ready for `/speckit.clarify` or `/speckit.plan`
+- Specification covers 7 user stories - ALL P0 MANDATORY (no stretch goals)
+- User Stories 1-4: Single-file tailing functionality
+- User Stories 5-7: Multi-file, glob pattern, and stdin functionality
+- ALL 7 user stories are mandatory and must be implemented
+- 19 edge cases identified with expected behaviors (expanded for multi-file/stdin)
+- 19 functional requirements defined - ALL MUST (no SHOULD)
+- 14 measurable success criteria defined (expanded for multi-file/stdin)
+- 11 assumptions documented (expanded for multi-file/stdin)
+- Ready for `/speckit.plan` and `/speckit.tasks`

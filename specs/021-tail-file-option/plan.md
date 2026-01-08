@@ -17,7 +17,7 @@ Add a `--file <path>` option to the `tail` command enabling users to tail arbitr
 **Project Type**: single (CLI tool)
 **Performance Goals**: File open within 1 second (per SC-001), same 10,000 entry buffer limit
 **Constraints**: <200ms p95 for filter operations, graceful degradation on file errors
-**Scale/Scope**: Single files (P1), multi-file/glob patterns (P3 stretch goals)
+**Scale/Scope**: Single files, multi-file, glob patterns, and stdin - ALL MANDATORY
 
 ## Constitution Check
 
@@ -43,7 +43,7 @@ Add a `--file <path>` option to the `tail` command enabling users to tail arbitr
 | II. Cross-Platform Parity | ✅ PASS | pathlib.Path.resolve() tested on all platforms |
 | III. Graceful Degradation | ✅ PASS | All error paths return to prompt cleanly; file deletion waits gracefully |
 | IV. User-Friendly Feedback | ✅ PASS | Status bar shows filename or detected PG version; error messages include paths |
-| V. Focused Scope | ✅ PASS | P3 stretch goals (glob, multi-file, stdin) deferred to separate tasks |
+| V. Focused Scope | ✅ PASS | Feature set is complete: single files, multi-file, glob patterns, stdin |
 | VI. Minimal Dependencies | ✅ PASS | Zero new dependencies; all functionality from stdlib + existing deps |
 | VII. Developer Workflow Priority | ✅ PASS | pg_regress use case explicitly validated in spec and quickstart |
 
@@ -111,15 +111,21 @@ tests/
 | `pgtail_py/tail_status.py` | Add `set_file_source()` method, filename display in status bar | +25 |
 | `pgtail_py/commands.py` | Add `--file` to tail command completions | +10 |
 | `pgtail_py/cli.py` | Add `file_path` to prompt state tracking (optional) | +5 |
+| `pgtail_py/cli_main.py` | Add glob pattern expansion, multiple `--file`, `--stdin` | +80 |
+| `pgtail_py/cli_core.py` | Add glob/multi-file/stdin parsing in REPL | +60 |
+| `pgtail_py/tailer.py` | Add multi-file interleaving, stdin reader integration | +100 |
+| `pgtail_py/tail_rich.py` | Add source file indicator to log entry display | +30 |
 
 ### New Files
 
 | File | Purpose | LOC Est. |
 |------|---------|----------|
-| `tests/unit/test_tail_file.py` | Unit tests for path validation, resolution, error handling | ~150 |
-| `tests/integration/test_tail_file_e2e.py` | End-to-end tests with temp log files | ~100 |
+| `tests/unit/test_tail_file.py` | Unit tests for path validation, resolution, error handling | ~200 |
+| `tests/integration/test_tail_file_e2e.py` | End-to-end tests with temp log files | ~150 |
+| `pgtail_py/multi_tailer.py` | Multi-file tailer coordinator for glob/multiple files | ~150 |
+| `pgtail_py/stdin_reader.py` | Stdin input reader for pipe support | ~100 |
 
-**Total Estimated LOC**: ~450 (well under 900 LOC limit per file)
+**Total Estimated LOC**: ~850 (well under 900 LOC limit per file)
 
 ## Key Design Decisions
 
@@ -190,9 +196,32 @@ tests/
 5. **Phase 5**: Completions (`commands.py`)
    - Add `--file` to tail command completions
 
-6. **Phase 6**: Tests
+6. **Phase 6**: Tests (single-file)
    - Unit tests for path handling
    - Integration tests with temp log files
+
+7. **Phase 7**: Polish (single-file)
+   - Tab completions
+   - Edge case handling
+
+8. **Phase 8**: Glob patterns (`cli_main.py`, `cli_core.py`, `tailer.py`)
+   - Glob pattern expansion
+   - Multi-file interleaving by timestamp
+   - Dynamic file watching for new matches
+
+9. **Phase 9**: Multiple files (`cli_main.py`, `tailer.py`, `tail_rich.py`)
+   - Support multiple `--file` arguments
+   - Independent format detection per file
+   - Source file indicator in display
+
+10. **Phase 10**: Stdin support (`cli_main.py`, `tailer.py`)
+    - Add `--stdin` flag
+    - Implement stdin reader
+    - Handle EOF gracefully
+
+11. **Phase 11**: Tests (multi-file and stdin)
+    - Unit tests for glob, multi-file, stdin
+    - Integration tests for all new features
 
 ## Edge Case Handling
 
@@ -209,12 +238,21 @@ tests/
 | Empty file | Enter tail mode normally, wait for content |
 | No valid log entries | Text format fallback, display as UNKNOWN level |
 | Symlinks | `Path.resolve()` follows symlinks |
+| Glob matches no files | Error: "No files match pattern: <pattern>" |
+| Glob matches too many files | Warning: "Pattern matches N files", proceed with tailing |
+| Multiple files, mixed formats | Auto-detect format independently per file |
+| Multi-file, one becomes unreadable | Continue tailing others, notify for unreadable file |
+| Stdin is terminal (not pipe) | Error: "--stdin requires piped input" |
+| Stdin empty (immediate EOF) | Message: "No input received", exit gracefully |
+| Identical timestamps across files | Secondary sort by filename for consistent ordering |
+| Binary data in stdin | UTF-8 decode with replacement, parse as-is |
+| New file matches glob during tail | Detect and include within 5 seconds |
 
-## Stretch Goals (P3) - NOT in initial implementation
+## Multi-File and Stdin Features (P0 - MANDATORY)
 
-- FR-014: Glob patterns (`--file "*.log"`)
-- FR-015: Multiple `--file` arguments
-- FR-016: `--stdin` for pipe input
-- FR-017/18/19: Multi-file interleaving with source indicators
+These features are MANDATORY and integrated into the main implementation:
 
-These are documented in spec but will be separate tasks in Phase 2.
+- FR-014: Glob patterns (`--file "*.log"`) - Phase 8
+- FR-015: Multiple `--file` arguments - Phase 9
+- FR-016: `--stdin` for pipe input - Phase 10
+- FR-017/18/19: Multi-file interleaving with source indicators - Phases 8-9

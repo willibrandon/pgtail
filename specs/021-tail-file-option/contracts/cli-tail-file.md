@@ -25,14 +25,17 @@ pgtail tail [INSTANCE_ID] [OPTIONS]
 
 | Flag | Short | Type | Default | Description |
 |------|-------|------|---------|-------------|
-| `--file` | `-f` | `PATH` | `None` | Path to log file to tail |
+| `--file` | `-f` | `PATH` | `None` | Path to log file to tail (repeatable for multiple files, supports glob patterns) |
+| `--stdin` | | `bool` | `False` | Read log data from stdin pipe |
 | `--since` | `-s` | `str` | `None` | Show entries from time (e.g., 5m, 1h, 14:30) |
 | `--stream` | | `bool` | `False` | Use legacy streaming mode instead of Textual UI |
 | `--help` | | | | Show help and exit |
 
 **Mutual Exclusivity**:
 - `INSTANCE_ID` and `--file` are mutually exclusive
-- If both provided → error
+- `INSTANCE_ID` and `--stdin` are mutually exclusive
+- `--file` and `--stdin` are mutually exclusive
+- If conflicting options provided → error
 
 ### REPL Mode
 
@@ -67,11 +70,49 @@ pgtail tail --file ./log.txt --since 5m
 pgtail tail -f ./log.txt -s 1h --stream
 ```
 
+### Glob Patterns
+
+```bash
+# Tail all .log files in current directory
+pgtail tail --file "*.log"
+
+# Tail all PostgreSQL logs in a directory
+pgtail tail --file "/var/log/postgresql/*.log"
+
+# Recursive pattern
+pgtail tail --file "logs/**/*.log"
+```
+
+### Multiple Explicit Files
+
+```bash
+# Tail two specific files
+pgtail tail --file primary.log --file replica.log
+
+# Multiple files from different directories
+pgtail tail --file /var/log/pg1/current.log --file /var/log/pg2/current.log
+```
+
+### Stdin Pipe
+
+```bash
+# Decompress and tail
+gunzip -c postgresql.log.gz | pgtail tail --stdin
+
+# Tail from remote server
+ssh production "cat /var/log/postgresql/current.log" | pgtail tail --stdin
+
+# Process archived logs
+zcat archive/2024-01.log.gz | pgtail tail --stdin
+```
+
 ### From REPL
 
 ```
 pgtail> tail --file ./tmp_check/log/postmaster.log
 pgtail> tail --file ./log.txt --since 5m
+pgtail> tail --file "*.log"
+pgtail> tail --file a.log --file b.log
 ```
 
 ## Response Formats
@@ -92,6 +133,11 @@ When tailing starts successfully, the Textual UI launches with:
 | Is directory | 1 | `Not a file: <path> (is a directory)` |
 | Both --file and ID | 1 | `Cannot specify both --file and instance ID` |
 | --file without value | 1 | `--file requires a path argument` |
+| Glob matches no files | 1 | `No files match pattern: <pattern>` |
+| --stdin not piped | 1 | `--stdin requires piped input` |
+| --stdin with --file | 1 | `Cannot specify both --stdin and --file` |
+| --stdin with ID | 1 | `Cannot specify both --stdin and instance ID` |
+| Empty stdin | 0 | `No input received` (exits gracefully) |
 
 ## Behavior Specifications
 
@@ -147,6 +193,9 @@ All filter commands work identically:
 | Port detected, no version | `:5432` |
 | Neither detected | `postmaster.log` (filename) |
 | File unavailable | `postmaster.log (unavailable)` |
+| Multiple files (glob) | `3 files (*.log)` |
+| Multiple files (explicit) | `3 files` |
+| Stdin mode | `stdin` |
 
 ### File Rotation (FR-009)
 
@@ -160,6 +209,28 @@ Per clarification (2026-01-05):
 - File deleted → Display notification, wait indefinitely
 - User can exit manually with `q`
 - If file recreated → resume tailing
+
+### Glob Pattern Behavior (FR-014, FR-019)
+
+- Patterns are expanded at command start
+- Shell quoting required to prevent shell expansion (e.g., `--file "*.log"`)
+- New files matching pattern are detected within 5 seconds
+- Dynamic file watching during tail session
+
+### Multi-File Behavior (FR-015, FR-017, FR-018)
+
+- Multiple `--file` arguments supported
+- Entries interleaved by timestamp across all files
+- Source file indicator shown for each entry (e.g., `[primary.log]`)
+- Independent format detection per file
+- If one file becomes unreadable, continue tailing others with notification
+
+### Stdin Behavior (FR-016)
+
+- `--stdin` flag reads from stdin pipe
+- EOF on stdin exits tail mode gracefully
+- Format auto-detection from first few lines
+- Stdin must be piped (not a terminal)
 
 ## Validation Rules
 
@@ -247,6 +318,7 @@ pgtail> tail --file ./tmp_check/log/postmaster.log
 
 ## Implementation Checklist
 
+### Single File Support
 - [ ] Add `--file` option to Typer CLI (`cli_main.py`)
 - [ ] Add `--file` parsing to REPL (`cli_core.py`)
 - [ ] Implement path validation function
@@ -256,5 +328,30 @@ pgtail> tail --file ./tmp_check/log/postmaster.log
 - [ ] Update status bar for filename display
 - [ ] Add instance detection from log content
 - [ ] Handle file deletion scenario
-- [ ] Add unit tests
-- [ ] Add integration tests
+
+### Glob Pattern Support (FR-014, FR-019)
+- [ ] Implement glob pattern expansion
+- [ ] Add "No files match pattern" error handling
+- [ ] Implement dynamic file watching for new matches
+- [ ] Add glob-specific status bar display
+
+### Multiple Files Support (FR-015, FR-017, FR-018)
+- [ ] Support multiple `--file` arguments
+- [ ] Implement timestamp-based interleaving
+- [ ] Add source file indicator to log entries
+- [ ] Implement independent format detection per file
+- [ ] Handle partial file unavailability
+
+### Stdin Support (FR-016)
+- [ ] Add `--stdin` flag
+- [ ] Implement stdin reader
+- [ ] Add terminal detection (require piped input)
+- [ ] Handle EOF gracefully
+- [ ] Add stdin-specific status bar display
+
+### Tests
+- [ ] Add unit tests for single file
+- [ ] Add unit tests for glob patterns
+- [ ] Add unit tests for multi-file
+- [ ] Add unit tests for stdin
+- [ ] Add integration tests for all scenarios
