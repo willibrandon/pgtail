@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pgtail_py.cli_utils import find_instance, shorten_path
+from pgtail_py.cli_utils import find_instance, shorten_path, validate_file_path, validate_tail_args
 from pgtail_py.detector import detect_all
 from pgtail_py.display import get_valid_display_fields
 from pgtail_py.format_detector import LogFormat
@@ -63,6 +63,8 @@ def help_command() -> None:
 Available commands:
   list              Show detected PostgreSQL instances
   tail <id|path>    Tail logs for an instance (by ID or data directory path)
+                    --file <path>  Tail an arbitrary log file
+                    -f <path>      Short form of --file
   levels [LEVEL...] Set log level filter (e.g., 'levels ERROR WARNING')
                     With no args, shows current filter settings
                     Use 'levels ALL' to show all levels
@@ -167,18 +169,19 @@ def refresh_command(state: AppState) -> None:
 
 
 def tail_command(state: AppState, args: list[str]) -> None:
-    """Handle the 'tail' command - tail logs for an instance.
+    """Handle the 'tail' command - tail logs for an instance or file.
 
     By default, launches the status bar tail mode with split-screen interface.
     Use --stream for legacy streaming mode.
 
     Args:
         state: Current application state.
-        args: Command arguments (instance ID or path, optional --since/--stream flags).
+        args: Command arguments (instance ID/path, --file <path>, --since/--stream flags).
     """
     # Parse flags from arguments
     since_time = None
     stream_mode = False
+    file_path: str | None = None
     instance_arg = None
     i = 0
     while i < len(args):
@@ -192,6 +195,15 @@ def tail_command(state: AppState, args: list[str]) -> None:
         elif args[i] == "--stream":
             stream_mode = True
             i += 1
+        elif args[i] in ("--file", "-f"):
+            # T025: --file argument parsing
+            if i + 1 >= len(args):
+                # T033: Handle --file without path argument
+                print("Error: --file requires a path argument")
+                print("Usage: tail --file <path>")
+                return
+            file_path = args[i + 1]
+            i += 2
         elif args[i].startswith("--"):
             print(f"Unknown option: {args[i]}")
             return
@@ -200,6 +212,38 @@ def tail_command(state: AppState, args: list[str]) -> None:
                 instance_arg = args[i]
             i += 1
 
+    # T026: Mutual exclusivity check (--file vs instance ID)
+    error = validate_tail_args(file_path=file_path, instance_id=int(instance_arg) if instance_arg and instance_arg.isdigit() else None)
+    if error:
+        print(f"Error: {error}")
+        return
+
+    # T027, T028: File-only tailing mode
+    if file_path is not None:
+        # T027: Path resolution (relative → absolute)
+        # T028: Path validation with error messages
+        resolved_path, path_error = validate_file_path(file_path)
+        if path_error:
+            print(f"Error: {path_error}")
+            return
+
+        # Apply --since as time filter if provided
+        if since_time is not None:
+            state.time_filter = TimeFilter(since=since_time)
+
+        # Stop any existing tailer before starting a new one
+        if state.tailer is not None:
+            state.tailer.stop()
+            state.tailer = None
+
+        # T029, T030, T031, T032: File-only tail mode
+        if not stream_mode:
+            tail_file_mode(state, resolved_path)
+        else:
+            tail_file_stream_mode(state, resolved_path)
+        return
+
+    # Standard instance-based tailing
     if instance_arg is None:
         # If no arg given, use first instance or show error
         if not state.instances:
@@ -208,8 +252,9 @@ def tail_command(state: AppState, args: list[str]) -> None:
         if len(state.instances) == 1:
             instance = state.instances[0]
         else:
-            print("Multiple instances found. Specify an ID:")
+            print("Multiple instances found. Specify an ID or use --file:")
             print("  tail <id>")
+            print("  tail --file <path>")
             print()
             list_command(state)
             return
@@ -343,6 +388,100 @@ def tail_stream_mode(state: AppState, instance: Instance) -> None:
     state.tailer.start()
 
 
+def tail_file_mode(state: AppState, log_path: Path) -> None:
+    """Launch the status bar tail mode for an arbitrary file.
+
+    T029, T030: Implements file-only tailing using TailApp with instance=None.
+
+    Args:
+        state: Current application state.
+        log_path: Resolved path to the log file.
+    """
+    from pgtail_py.tail_textual import TailApp
+
+    # T031: Set state.current_file_path when tailing a file
+    state.current_file_path = log_path
+    state.tailing = True
+
+    # Create and start Textual TailApp with instance=None
+    try:
+        # T030: Call TailApp.run_tail_mode with instance=None
+        TailApp.run_tail_mode(
+            state=state,
+            instance=None,
+            log_path=log_path,
+            filename=log_path.name,
+        )
+    finally:
+        # T032: Clear state.current_file_path when stopping
+        state.tailing = False
+        state.current_file_path = None
+        reset_terminal()
+
+
+def tail_file_stream_mode(state: AppState, log_path: Path) -> None:
+    """Legacy streaming tail mode for an arbitrary file.
+
+    Args:
+        state: Current application state.
+        log_path: Resolved path to the log file.
+    """
+    from pgtail_py.instance import Instance
+
+    # T031: Set state.current_file_path when tailing a file
+    state.current_file_path = log_path
+    state.tailing = True
+    state.output_paused = False
+    state.stop_event.clear()
+
+    print(f"Tailing {log_path}")
+    # Show active filters and settings
+    if state.time_filter.is_active():
+        print(f"Time filter: {state.time_filter.format_description()}")
+    if state.field_filter.is_active():
+        print(state.field_filter.format_status())
+    if (
+        state.display_state.mode.value != "compact"
+        or state.display_state.output_format.value != "text"
+    ):
+        print(state.display_state.format_status())
+    print("Press Ctrl+C to stop")
+    print()
+
+    # Create combined callback for error tracking, connection tracking, and notifications
+    def on_entry_callback(entry: LogEntry) -> None:
+        state.error_stats.add(entry)
+        state.connection_stats.add(entry)
+        if state.notification_manager:
+            state.notification_manager.check(entry)
+
+    # Create a file-only instance for the tailer
+    file_instance = Instance.file_only(log_path)
+
+    state.tailer = LogTailer(
+        log_path,
+        state.active_levels,
+        state.regex_state,
+        state.time_filter if state.time_filter.is_active() else None,
+        state.field_filter if state.field_filter.is_active() else None,
+        on_entry=on_entry_callback,
+        data_dir=file_instance.data_dir,
+        log_directory=file_instance.log_directory,
+    )
+
+    # Set callback to display format when detected
+    def on_format_detected(fmt: LogFormat) -> None:
+        format_names = {
+            LogFormat.TEXT: "text",
+            LogFormat.CSV: "csvlog",
+            LogFormat.JSON: "jsonlog",
+        }
+        print(f"Detected format: {format_names.get(fmt, fmt.value)}")
+
+    state.tailer.set_format_callback(on_format_detected)
+    state.tailer.start()
+
+
 def stop_command(state: AppState) -> None:
     """Handle the 'stop' command - stop tailing."""
     if not state.tailing:
@@ -357,6 +496,8 @@ def stop_command(state: AppState) -> None:
     state.output_paused = False
     state.stop_event.set()
     state.current_instance = None
+    # T032: Clear state.current_file_path when stopping
+    state.current_file_path = None
 
     # Reset terminal state to prevent mangled output
     reset_terminal()

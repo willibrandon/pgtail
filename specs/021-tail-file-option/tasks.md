@@ -86,16 +86,16 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Add --file argument parsing in tail_command() in pgtail_py/cli_core.py
-- [ ] T026 [US4] Add mutual exclusivity check (--file vs instance ID) in pgtail_py/cli_core.py
-- [ ] T027 [US4] Add path resolution (relative → absolute) using Path.resolve() in pgtail_py/cli_core.py
-- [ ] T028 [US4] Add path validation with error messages in pgtail_py/cli_core.py
-- [ ] T029 [US4] Implement tail_file_mode() function for file-only tailing in pgtail_py/cli_core.py
-- [ ] T030 [US4] Call TailApp.run_tail_mode with instance=None in tail_file_mode() in pgtail_py/cli_core.py
-- [ ] T031 [US4] Set state.current_file_path when tailing a file in pgtail_py/cli_core.py
-- [ ] T032 [US4] Clear state.current_file_path when stopping in pgtail_py/cli_core.py
-- [ ] T033 [US4] Handle `tail --file` without path argument (usage error) in pgtail_py/cli_core.py
-- [ ] T034 [US4] Update help_command() to document --file option in pgtail_py/cli_core.py
+- [X] T025 [US4] Add --file argument parsing in tail_command() in pgtail_py/cli_core.py
+- [X] T026 [US4] Add mutual exclusivity check (--file vs instance ID) in pgtail_py/cli_core.py
+- [X] T027 [US4] Add path resolution (relative → absolute) using Path.resolve() in pgtail_py/cli_core.py
+- [X] T028 [US4] Add path validation with error messages in pgtail_py/cli_core.py
+- [X] T029 [US4] Implement tail_file_mode() function for file-only tailing in pgtail_py/cli_core.py
+- [X] T030 [US4] Call TailApp.run_tail_mode with instance=None in tail_file_mode() in pgtail_py/cli_core.py
+- [X] T031 [US4] Set state.current_file_path when tailing a file in pgtail_py/cli_core.py
+- [X] T032 [US4] Clear state.current_file_path when stopping in pgtail_py/cli_core.py
+- [X] T033 [US4] Handle `tail --file` without path argument (usage error) in pgtail_py/cli_core.py
+- [X] T034 [US4] Update help_command() to document --file option in pgtail_py/cli_core.py
 
 **Checkpoint**: At this point, `tail --file <path>` works from REPL
 
