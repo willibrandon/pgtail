@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,10 +35,32 @@ from pgtail_py.time_filter import TimeFilter
 
 logger = logging.getLogger(__name__)
 
+# Regex patterns for detecting PostgreSQL version and port from log content (T015, T087)
+# Matches: "starting PostgreSQL 17.0 on x86_64..."
+VERSION_PATTERN = re.compile(r"starting PostgreSQL (\d+)(?:\.(\d+))?", re.IGNORECASE)
+
+# Matches: "listening on IPv4 address "0.0.0.0", port 5432"
+PORT_PATTERN = re.compile(r"listening on .*port (\d+)")
+
+# Matches: "listening on Unix socket "/tmp/.s.PGSQL.5432""
+PORT_SOCKET_PATTERN = re.compile(r"\.s\.PGSQL\.(\d+)")
+
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
     from pgtail_py.instance import Instance
     from pgtail_py.parser import LogEntry
+
+
+@dataclass
+class DetectedInstanceInfo:
+    """PostgreSQL instance info detected from log content.
+
+    Used when tailing arbitrary files to extract version/port
+    from PostgreSQL startup messages.
+    """
+
+    version: str | None = None  # e.g., "17" or "17.0"
+    port: int | None = None  # e.g., 5432
 
 
 @dataclass
@@ -126,21 +149,24 @@ class TailApp(App[None]):
     def __init__(
         self,
         state: AppState,
-        instance: Instance,
+        instance: Instance | None,
         log_path: Path,
         max_lines: int = 10000,
+        *,
+        filename: str | None = None,
     ) -> None:
         """Initialize TailApp.
 
         Args:
             state: pgtail AppState with filter settings.
-            instance: PostgreSQL instance being tailed.
+            instance: PostgreSQL instance being tailed, or None for file-only mode.
             log_path: Path to the log file.
             max_lines: Maximum lines to buffer (default 10,000).
+            filename: Display name for status bar when instance is None.
         """
         super().__init__()
         self._state: AppState = state
-        self._instance: Instance = instance
+        self._instance: Instance | None = instance
         self._log_path: Path = log_path
         self._max_lines: int = max_lines
         self._tailer: LogTailer | None = None
@@ -152,6 +178,10 @@ class TailApp(App[None]):
         self._anchor: FilterAnchor | None = None
         # Explicit pause flag - prevents auto-follow when user issues pause command
         self._paused: bool = False
+        # File-only mode support (T011, T012)
+        self._filename: str | None = filename or (log_path.name if instance is None else None)
+        self._instance_detected: bool = False  # True when version/port detected from content
+        self._detection_entries_scanned: int = 0  # Track entries scanned for detection
 
     @property
     def status(self) -> TailStatus | None:
@@ -162,8 +192,10 @@ class TailApp(App[None]):
     def run_tail_mode(
         cls,
         state: AppState,
-        instance: Instance,
+        instance: Instance | None,
         log_path: Path,
+        *,
+        filename: str | None = None,
     ) -> None:
         """Run tail mode (blocking).
 
@@ -171,10 +203,11 @@ class TailApp(App[None]):
 
         Args:
             state: pgtail AppState with filter settings.
-            instance: PostgreSQL instance being tailed.
+            instance: PostgreSQL instance being tailed, or None for file-only mode.
             log_path: Path to the log file.
+            filename: Display name for status bar when instance is None.
         """
-        app = cls(state=state, instance=instance, log_path=log_path)
+        app = cls(state=state, instance=instance, log_path=log_path, filename=filename)
         app.run()
 
     def compose(self) -> ComposeResult:
@@ -221,10 +254,17 @@ class TailApp(App[None]):
 
         # Initialize status
         self._status = TailStatus()
-        self._status.set_instance_info(
-            version=self._instance.version or "",
-            port=self._instance.port or 5432,
-        )
+
+        # T013: Handle instance=None case for file-only tailing
+        if self._instance is not None:
+            # Standard instance tailing
+            self._status.set_instance_info(
+                version=self._instance.version or "",
+                port=self._instance.port or 5432,
+            )
+        elif self._filename:
+            # File-only mode - show filename in status bar
+            self._status.set_file_source(self._filename)
 
         # Set initial filter state from AppState
         if self._state.active_levels is not None:
@@ -241,7 +281,8 @@ class TailApp(App[None]):
         if self._state.slow_query_config and self._state.slow_query_config.enabled:
             self._status.set_slow_threshold(int(self._state.slow_query_config.warning_ms))
 
-        # Create tailer
+        # Create tailer - handle both instance and file-only modes
+        data_dir = self._instance.data_dir if self._instance else None
         self._tailer = LogTailer(
             log_path=self._log_path,
             active_levels=self._state.active_levels,
@@ -249,7 +290,7 @@ class TailApp(App[None]):
             time_filter=self._state.time_filter,
             field_filter=self._state.field_filter,
             on_entry=self._on_raw_entry,
-            data_dir=self._instance.data_dir,
+            data_dir=data_dir,
             log_directory=self._log_path.parent if self._log_path else None,
         )
 
@@ -417,6 +458,47 @@ class TailApp(App[None]):
         if self._state.notification_manager:
             self._state.notification_manager.check(entry)
 
+    def _detect_instance_info(self, entry: LogEntry) -> DetectedInstanceInfo | None:
+        """Detect PostgreSQL version and port from log entry content.
+
+        Scans log messages for PostgreSQL startup patterns that reveal
+        version and port information. Only scans the first 50 entries
+        for performance.
+
+        Args:
+            entry: Log entry to scan.
+
+        Returns:
+            DetectedInstanceInfo if version or port found, None otherwise.
+        """
+        message = entry.message
+
+        result = DetectedInstanceInfo()
+        found = False
+
+        # Check for version pattern: "starting PostgreSQL 17.0 on..."
+        version_match = VERSION_PATTERN.search(message)
+        if version_match:
+            major = version_match.group(1)
+            minor = version_match.group(2)
+            result.version = f"{major}.{minor}" if minor else major
+            found = True
+
+        # Check for port pattern: "listening on ... port 5432"
+        port_match = PORT_PATTERN.search(message)
+        if port_match:
+            result.port = int(port_match.group(1))
+            found = True
+
+        # Check for Unix socket port pattern: ".s.PGSQL.5432"
+        if result.port is None:
+            socket_match = PORT_SOCKET_PATTERN.search(message)
+            if socket_match:
+                result.port = int(socket_match.group(1))
+                found = True
+
+        return result if found else None
+
     def _add_entry(self, entry: LogEntry) -> None:
         """Add a log entry to the display.
 
@@ -429,6 +511,22 @@ class TailApp(App[None]):
         self._entries.append(entry)
         if len(self._entries) > self._max_lines:
             self._entries.pop(0)
+
+        # T016: Detect instance info from log content (file-only mode)
+        # Only scan first 50 entries and only if no instance provided
+        if (
+            self._instance is None
+            and not self._instance_detected
+            and self._detection_entries_scanned < 50
+        ):
+            self._detection_entries_scanned += 1
+            detected = self._detect_instance_info(entry)
+            if detected and (detected.version or detected.port) and self._status:
+                self._status.set_detected_instance_info(detected.version, detected.port)
+                # If we found version, we can mark detection as complete
+                if detected.version:
+                    self._instance_detected = True
+                self._update_status()
 
         # Note: Global stats (error_stats, connection_stats) and notifications
         # are handled in _on_raw_entry() which is called for ALL entries before

@@ -111,6 +111,7 @@ class AppState:
     shell_mode: bool = False
     config: ConfigSchema = field(default_factory=ConfigSchema)
     display_state: DisplayState = field(default_factory=DisplayState)
+    current_file_path: Path | None = None  # When tailing arbitrary file (no instance)
 
     def __post_init__(self) -> None:
         """Load config and apply settings after initialization."""

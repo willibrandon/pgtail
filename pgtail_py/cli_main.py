@@ -148,7 +148,18 @@ def list_instances(
 
 @app.command()
 def tail(
-    instance_id: Annotated[int, typer.Argument(help="Instance ID to tail.")],
+    instance_id: Annotated[
+        int | None,
+        typer.Argument(help="Instance ID to tail (optional if --file is used)."),
+    ] = None,
+    file: Annotated[
+        str | None,
+        typer.Option(
+            "--file",
+            "-f",
+            help="Path to log file to tail (alternative to instance ID).",
+        ),
+    ] = None,
     since: Annotated[
         str | None,
         typer.Option("--since", "-s", help="Show entries from time (e.g., 5m, 1h, 14:30)."),
@@ -158,18 +169,101 @@ def tail(
         typer.Option("--stream", help="Use legacy streaming mode instead of Textual UI."),
     ] = False,
 ) -> None:
-    """Tail logs for a PostgreSQL instance.
+    """Tail logs for a PostgreSQL instance or arbitrary log file.
 
     Enters the interactive tail mode with vim-style navigation and filtering.
     Press 'q' to quit, '?' for help.
+
+    Examples:
+
+        # Tail by instance ID
+        pgtail tail 0
+
+        # Tail arbitrary log file
+        pgtail tail --file ./tmp_check/log/postmaster.log
+
+        # Tail with time filter
+        pgtail tail --file ./test.log --since 5m
     """
+    from pgtail_py.cli_utils import validate_file_path, validate_tail_args
+
     enable_vt100_mode()
 
+    # T019: Validate mutual exclusivity
+    error = validate_tail_args(file_path=file, instance_id=instance_id)
+    if error:
+        typer.echo(error, err=True)
+        raise typer.Exit(1)
+
+    # Import here to avoid circular imports and speed up CLI startup
+    from pgtail_py.cli import AppState
+    from pgtail_py.cli_core import tail_status_bar_mode, tail_stream_mode
+    from pgtail_py.tail_textual import TailApp
+    from pgtail_py.terminal import reset_terminal
+    from pgtail_py.time_filter import TimeFilter, parse_time
+
+    state = AppState()
+
+    # T020, T021: Handle --file option for file-only tailing
+    if file is not None:
+        # File-only mode - skip instance detection
+        resolved_path, path_error = validate_file_path(file)
+        if path_error:
+            typer.echo(path_error, err=True)
+            raise typer.Exit(1)
+
+        # Apply time filter if provided
+        if since:
+            try:
+                since_time = parse_time(since)
+                state.time_filter = TimeFilter(since=since_time)
+            except ValueError as e:
+                typer.echo(f"Invalid time format: {e}", err=True)
+                raise typer.Exit(1) from None
+
+        # T022, T023: Set state and launch tail mode with instance=None
+        state.current_file_path = resolved_path
+        state.tailing = True
+
+        try:
+            if stream:
+                # Legacy stream mode needs an instance - create file-only instance
+                from pgtail_py.instance import Instance
+
+                file_instance = Instance.file_only(resolved_path)
+                tail_stream_mode(state, file_instance)
+            else:
+                # T022: Call TailApp with instance=None for file-only mode
+                TailApp.run_tail_mode(
+                    state=state,
+                    instance=None,
+                    log_path=resolved_path,
+                    filename=resolved_path.name,
+                )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            state.tailing = False
+            state.current_file_path = None
+            reset_terminal()
+        return
+
+    # Standard instance-based tailing
     instances = detect_all()
+    state.instances = instances
 
     if not instances:
         typer.echo("No PostgreSQL instances found.", err=True)
         raise typer.Exit(1)
+
+    # If no instance ID and no --file, require explicit ID
+    if instance_id is None:
+        if len(instances) == 1:
+            instance_id = 0
+        else:
+            typer.echo("Multiple instances found. Specify an ID or use --file.", err=True)
+            typer.echo("Use 'pgtail list' to see available instances.", err=True)
+            raise typer.Exit(1)
 
     if instance_id < 0 or instance_id >= len(instances):
         typer.echo(
@@ -187,15 +281,6 @@ def tail(
     if not instance.log_path or not instance.log_path.exists():
         typer.echo(f"Log file not found: {instance.log_path}", err=True)
         raise typer.Exit(1)
-
-    # Import here to avoid circular imports and speed up CLI startup
-    from pgtail_py.cli import AppState
-    from pgtail_py.cli_core import tail_status_bar_mode, tail_stream_mode
-    from pgtail_py.terminal import reset_terminal
-    from pgtail_py.time_filter import TimeFilter, parse_time
-
-    state = AppState()
-    state.instances = instances
 
     if since:
         try:

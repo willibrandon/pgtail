@@ -24,10 +24,10 @@
 
 **Purpose**: Create path validation utilities that all user stories depend on
 
-- [ ] T001 Create validate_file_path() function in pgtail_py/cli_utils.py
-- [ ] T002 [P] Add validate_tail_args() mutual exclusivity check in pgtail_py/cli_utils.py
-- [ ] T003 [P] Add current_file_path field to AppState dataclass in pgtail_py/cli.py
-- [ ] T085 [P] Implement tilde (~) expansion in validate_file_path() in pgtail_py/cli_utils.py
+- [X] T001 Create validate_file_path() function in pgtail_py/cli_utils.py
+- [X] T002 [P] Add validate_tail_args() mutual exclusivity check in pgtail_py/cli_utils.py
+- [X] T003 [P] Add current_file_path field to AppState dataclass in pgtail_py/cli.py
+- [X] T085 [P] Implement tilde (~) expansion in validate_file_path() in pgtail_py/cli_utils.py
 
 ---
 
@@ -37,21 +37,21 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add filename field to TailStatus dataclass in pgtail_py/tail_status.py
-- [ ] T005 [P] Add file_unavailable field to TailStatus in pgtail_py/tail_status.py
-- [ ] T006 [P] Add detected_from_content field to TailStatus in pgtail_py/tail_status.py
-- [ ] T007 Implement set_file_source() method in pgtail_py/tail_status.py
-- [ ] T008 Implement set_file_unavailable() method in pgtail_py/tail_status.py
-- [ ] T009 Update format_rich() to show filename when no instance in pgtail_py/tail_status.py
-- [ ] T010 [P] Update format_plain() to show filename when no instance in pgtail_py/tail_status.py
-- [ ] T011 Make instance parameter optional (Instance | None) in TailApp.__init__ in pgtail_py/tail_textual.py
-- [ ] T012 Add _instance_detected flag to TailApp in pgtail_py/tail_textual.py
-- [ ] T013 Update TailApp.on_mount() to handle instance=None case in pgtail_py/tail_textual.py
-- [ ] T014 Add DetectedInstanceInfo dataclass in pgtail_py/tail_textual.py
-- [ ] T015 Implement VERSION_PATTERN and PORT_PATTERN regex constants in pgtail_py/tail_textual.py
-- [ ] T016 Implement _detect_instance_info() method to scan log content in pgtail_py/tail_textual.py
-- [ ] T083 [P] Implement file_only factory method or adjust Instance for file-only use in pgtail_py/instance.py
-- [ ] T087 [P] Implement PORT_SOCKET_PATTERN for Unix socket port detection in pgtail_py/tail_textual.py
+- [X] T004 Add filename field to TailStatus dataclass in pgtail_py/tail_status.py
+- [X] T005 [P] Add file_unavailable field to TailStatus in pgtail_py/tail_status.py
+- [X] T006 [P] Add detected_from_content field to TailStatus in pgtail_py/tail_status.py
+- [X] T007 Implement set_file_source() method in pgtail_py/tail_status.py
+- [X] T008 Implement set_file_unavailable() method in pgtail_py/tail_status.py
+- [X] T009 Update format_rich() to show filename when no instance in pgtail_py/tail_status.py
+- [X] T010 [P] Update format_plain() to show filename when no instance in pgtail_py/tail_status.py
+- [X] T011 Make instance parameter optional (Instance | None) in TailApp.__init__ in pgtail_py/tail_textual.py
+- [X] T012 Add _instance_detected flag to TailApp in pgtail_py/tail_textual.py
+- [X] T013 Update TailApp.on_mount() to handle instance=None case in pgtail_py/tail_textual.py
+- [X] T014 Add DetectedInstanceInfo dataclass in pgtail_py/tail_textual.py
+- [X] T015 Implement VERSION_PATTERN and PORT_PATTERN regex constants in pgtail_py/tail_textual.py
+- [X] T016 Implement _detect_instance_info() method to scan log content in pgtail_py/tail_textual.py
+- [X] T083 [P] Implement file_only factory method or adjust Instance for file-only use in pgtail_py/instance.py
+- [X] T087 [P] Implement PORT_SOCKET_PATTERN for Unix socket port detection in pgtail_py/tail_textual.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -65,14 +65,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Add --file/-f option to tail command in pgtail_py/cli_main.py
-- [ ] T018 [US3] Make instance_id argument optional (default=None) in pgtail_py/cli_main.py
-- [ ] T019 [US3] Add mutual exclusivity check (--file vs instance_id) in pgtail_py/cli_main.py
-- [ ] T020 [US3] Add path validation (exists, is_file, readable) in pgtail_py/cli_main.py
-- [ ] T021 [US3] Implement file-only tail mode entry (skip instance lookup) in pgtail_py/cli_main.py
-- [ ] T022 [US3] Call TailApp.run_tail_mode with instance=None when using --file in pgtail_py/cli_main.py
-- [ ] T023 [US3] Set status bar filename from log_path.name in pgtail_py/cli_main.py
-- [ ] T024 [US3] Update help text to document --file option in pgtail_py/cli_main.py
+- [X] T017 [US3] Add --file/-f option to tail command in pgtail_py/cli_main.py
+- [X] T018 [US3] Make instance_id argument optional (default=None) in pgtail_py/cli_main.py
+- [X] T019 [US3] Add mutual exclusivity check (--file vs instance_id) in pgtail_py/cli_main.py
+- [X] T020 [US3] Add path validation (exists, is_file, readable) in pgtail_py/cli_main.py
+- [X] T021 [US3] Implement file-only tail mode entry (skip instance lookup) in pgtail_py/cli_main.py
+- [X] T022 [US3] Call TailApp.run_tail_mode with instance=None when using --file in pgtail_py/cli_main.py
+- [X] T023 [US3] Set status bar filename from log_path.name in pgtail_py/cli_main.py
+- [X] T024 [US3] Update help text to document --file option in pgtail_py/cli_main.py
 
 **Checkpoint**: At this point, `pgtail tail --file <path>` works from command line
 

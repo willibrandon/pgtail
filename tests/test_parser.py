@@ -124,3 +124,39 @@ class TestParseLogLine:
 
         assert entry.level == LogLevel.PANIC
         assert entry.message == "system panic"
+
+    def test_bracketed_format_empty_context(self) -> None:
+        """Test parsing bracketed format with empty context field."""
+        line = "[2026-01-08 07:06:19.547 UTC] [19790] [] LOG:  starting PostgreSQL 18.1"
+        entry = parse_log_line(line)
+
+        assert entry.timestamp is not None
+        assert entry.timestamp.year == 2026
+        assert entry.timestamp.month == 1
+        assert entry.timestamp.day == 8
+        assert entry.timestamp.hour == 7
+        assert entry.timestamp.minute == 6
+        assert entry.level == LogLevel.LOG
+        assert entry.pid == 19790
+        assert entry.message == "starting PostgreSQL 18.1"
+        assert entry.raw == line
+
+    def test_bracketed_format_with_context(self) -> None:
+        """Test parsing bracketed format with database context."""
+        line = "[2026-01-08 07:06:20.186 UTC] [19841] [postgres] ERROR:  tuple concurrently updated"
+        entry = parse_log_line(line)
+
+        assert entry.timestamp is not None
+        assert entry.timestamp.year == 2026
+        assert entry.level == LogLevel.ERROR
+        assert entry.pid == 19841
+        assert entry.message == "tuple concurrently updated"
+
+    def test_bracketed_format_fatal(self) -> None:
+        """Test parsing bracketed format FATAL level."""
+        line = "[2024-01-15 10:30:45.123 UTC] [12345] [mydb] FATAL:  role does not exist"
+        entry = parse_log_line(line)
+
+        assert entry.level == LogLevel.FATAL
+        assert entry.pid == 12345
+        assert entry.message == "role does not exist"
