@@ -182,6 +182,8 @@ class TailApp(App[None]):
         self._filename: str | None = filename or (log_path.name if instance is None else None)
         self._instance_detected: bool = False  # True when version/port detected from content
         self._detection_entries_scanned: int = 0  # Track entries scanned for detection
+        # Track file unavailability for status bar updates (T052)
+        self._last_file_unavailable: bool = False
 
     @property
     def status(self) -> TailStatus | None:
@@ -437,9 +439,27 @@ class TailApp(App[None]):
             # Only sleep when queue was empty (no entries processed this cycle)
             if entries_processed == 0:
                 await asyncio.sleep(0.01)
+                # Check for file unavailability status changes (T052)
+                self._check_file_unavailable()
             else:
                 # Brief yield after processing batch to let UI update
                 await asyncio.sleep(0)
+
+    def _check_file_unavailable(self) -> None:
+        """Check if file unavailability status has changed and update status bar.
+
+        Called periodically from the consumer loop to detect when the log file
+        is deleted or becomes inaccessible. Updates the status bar to show
+        "(unavailable)" indicator when file is missing. (T052)
+        """
+        if self._tailer is None or self._status is None:
+            return
+
+        current_unavailable = self._tailer.file_unavailable
+        if current_unavailable != self._last_file_unavailable:
+            self._last_file_unavailable = current_unavailable
+            self._status.set_file_unavailable(current_unavailable)
+            self._update_status()
 
     def _on_raw_entry(self, entry: LogEntry) -> None:
         """Callback for raw entries from tailer (before filtering).

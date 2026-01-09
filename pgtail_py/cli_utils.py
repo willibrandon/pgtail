@@ -94,7 +94,10 @@ def validate_file_path(path_str: str) -> tuple[Path, str | None]:
     """Validate a file path for tailing.
 
     Validates that the path exists, is a regular file (not a directory),
-    and is readable. Handles tilde (~) expansion for home directory.
+    and is readable. Handles:
+    - Tilde (~) expansion for home directory (T085)
+    - Symlink resolution via Path.resolve() (T053)
+    - Paths with spaces and special characters via pathlib (T054)
 
     Args:
         path_str: User-provided path string.
@@ -104,7 +107,9 @@ def validate_file_path(path_str: str) -> tuple[Path, str | None]:
         If error_message is None, path is valid.
     """
     # Expand tilde (~) to home directory (T085)
+    # Path.expanduser() handles ~ and ~user on all platforms
     expanded = Path(path_str).expanduser()
+    # Path.resolve() follows symlinks and normalizes the path (T053, T054)
     resolved = expanded.resolve()
 
     if not resolved.exists():

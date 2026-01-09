@@ -301,6 +301,10 @@ class LogTailer:
 
         If a time filter is active, reads from the beginning to show
         historical entries first. Otherwise, seeks to the end.
+
+        Empty files are handled gracefully (T055): tail mode enters normally
+        and waits for content to appear. The polling loop continues checking
+        for new content until stop() is called.
         """
         if self._running:
             return
@@ -439,6 +443,15 @@ class LogTailer:
     def buffer_max_size(self) -> int | None:
         """Get the maximum buffer size. None means unlimited."""
         return self._buffer.maxlen
+
+    @property
+    def file_unavailable(self) -> bool:
+        """Check if the log file is currently unavailable.
+
+        Returns True when the file has been deleted or is inaccessible.
+        The tailer continues polling and will resume when the file returns.
+        """
+        return self._file_unavailable_since is not None
 
 
 def tail_file(
