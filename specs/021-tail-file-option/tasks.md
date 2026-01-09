@@ -111,17 +111,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T035 [US1] Verify LogTailer works with arbitrary paths (no changes needed) in pgtail_py/tailer.py
-- [ ] T036 [US1] Verify format auto-detection works for file-based tailing in pgtail_py/format_detector.py
-- [ ] T037 [US1] Verify level filter applies to file-based entries in pgtail_py/tail_textual.py
-- [ ] T038 [US1] Verify regex filter applies to file-based entries in pgtail_py/tail_textual.py
-- [ ] T039 [US1] Verify time filter applies to file-based entries in pgtail_py/tail_textual.py
-- [ ] T040 [US1] Verify field filter applies to file-based entries in pgtail_py/tail_textual.py
-- [ ] T041 [US1] Verify slow query highlighting applies to file-based entries in pgtail_py/tail_textual.py
-- [ ] T042 [US1] Ensure error/warning counts work for file-based tailing in pgtail_py/tail_textual.py
-- [ ] T043 [US1] Ensure notifications work for file-based tailing in pgtail_py/tail_textual.py
-- [ ] T084 [US1] Verify/test UTF-8 encoding fallback for malformed input in pgtail_py/parser.py
-- [ ] T088 [US1] Verify ErrorStats and ConnectionStats work with file-based tailing in pgtail_py/tail_textual.py
+- [X] T035 [US1] Verify LogTailer works with arbitrary paths (no changes needed) in pgtail_py/tailer.py
+- [X] T036 [US1] Verify format auto-detection works for file-based tailing in pgtail_py/format_detector.py
+- [X] T037 [US1] Verify level filter applies to file-based entries in pgtail_py/tail_textual.py
+- [X] T038 [US1] Verify regex filter applies to file-based entries in pgtail_py/tail_textual.py
+- [X] T039 [US1] Verify time filter applies to file-based entries in pgtail_py/tail_textual.py
+- [X] T040 [US1] Verify field filter applies to file-based entries in pgtail_py/tail_textual.py
+- [X] T041 [US1] Verify slow query highlighting applies to file-based entries in pgtail_py/tail_textual.py
+- [X] T042 [US1] Ensure error/warning counts work for file-based tailing in pgtail_py/tail_textual.py
+- [X] T043 [US1] Ensure notifications work for file-based tailing in pgtail_py/tail_textual.py
+- [X] T084 [US1] Verify/test UTF-8 encoding fallback for malformed input in pgtail_py/parser.py
+- [X] T088 [US1] Verify ErrorStats and ConnectionStats work with file-based tailing in pgtail_py/tail_textual.py
 
 **Checkpoint**: All filters work identically for file-based tailing
 
@@ -135,12 +135,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T044 [US2] Verify CSV format auto-detection from file content in pgtail_py/format_detector.py
-- [ ] T045 [US2] Verify JSON format auto-detection from file content in pgtail_py/format_detector.py
-- [ ] T046 [US2] Verify field filtering (app=, db=, user=) works for CSV files in pgtail_py/field_filter.py
-- [ ] T047 [US2] Verify field filtering works for JSON files in pgtail_py/field_filter.py
-- [ ] T048 [US2] Handle static files that are not actively written to (existing behavior) in pgtail_py/tailer.py
-- [ ] T049 [US2] Verify display mode (compact, full, custom) works for file-based CSV/JSON in pgtail_py/display.py
+- [X] T044 [US2] Verify CSV format auto-detection from file content in pgtail_py/format_detector.py
+- [X] T045 [US2] Verify JSON format auto-detection from file content in pgtail_py/format_detector.py
+- [X] T046 [US2] Verify field filtering (app=, db=, user=) works for CSV files in pgtail_py/field_filter.py
+- [X] T047 [US2] Verify field filtering works for JSON files in pgtail_py/field_filter.py
+- [X] T048 [US2] Handle static files that are not actively written to (existing behavior) in pgtail_py/tailer.py
+- [X] T049 [US2] Verify display mode (compact, full, custom) works for file-based CSV/JSON in pgtail_py/display.py
 
 **Checkpoint**: Archived CSV/JSON logs can be analyzed with full filtering
 
