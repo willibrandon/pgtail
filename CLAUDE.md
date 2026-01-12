@@ -494,6 +494,86 @@ The `tail` command enters a Textual-based split-screen interface:
 
 Filter changes trigger `_rebuild_log()` which re-applies filters to stored entries and recalculates counts.
 
+## Tail File Option
+
+The `tail` command supports tailing arbitrary log files, not just auto-detected PostgreSQL instances.
+
+**CLI Options:**
+```bash
+pgtail tail --file <path>              # Single file
+pgtail tail -f <path>                  # Short form
+pgtail tail --file "*.log"             # Glob pattern
+pgtail tail --file a.log --file b.log  # Multiple files
+pgtail tail --stdin                    # Read from pipe
+pgtail tail --file <path> --since 5m   # With time filter
+```
+
+**REPL Commands:**
+```
+tail --file <path>              # Single file
+tail --file "*.log"             # Glob pattern
+tail --file a.log --file b.log  # Multiple files
+```
+
+**Mutual Exclusivity:**
+- `--file` cannot be used with instance ID
+- `--stdin` cannot be used with instance ID
+- `--stdin` cannot be used with `--file`
+
+**Glob Pattern Support:**
+- Pattern characters: `*`, `?`, `[...]`
+- Multi-level: `**/*.log` for recursive matching
+- Files sorted by modification time (newest first)
+- Dynamic watching: new files detected within 5 seconds
+
+**Multi-File Tailing:**
+- Timestamp-ordered interleaving across files
+- Per-file format auto-detection
+- Source file indicator: `[filename]` prefix in magenta
+- Combined 10,000 entry buffer limit
+
+**Stdin Pipe Support:**
+```bash
+cat log.gz | gunzip | pgtail tail --stdin
+zcat archived.log.gz | pgtail tail --stdin
+```
+- All data buffered before Textual starts (stdin reopened from /dev/tty for keyboard)
+- Format auto-detected from first line
+- All filters supported
+- Press `q` to quit after viewing
+
+**Status Bar Display:**
+- File-only mode: `FOLLOW | E:0 W:0 | 42 lines | postmaster.log`
+- With detected instance: `FOLLOW | E:0 W:0 | 42 lines | PG17:5432`
+- Instance info detected from log content (scans first 50 entries for PostgreSQL startup messages)
+
+**Path Handling:**
+- Tilde (`~`) expansion for home directory
+- Relative paths resolved to absolute
+- Symlinks followed and resolved
+- Spaces and special characters supported
+
+**Error Messages:**
+- "File not found: <path>"
+- "Not a file: <path> (is a directory)"
+- "Permission denied: <path>"
+- "Cannot specify both --file and instance ID"
+- "No files match pattern: <pattern>"
+
+**New Modules (021-tail-file-option):**
+- `pgtail_py/multi_tailer.py` - GlobPattern, MultiFileTailer, expand_glob_pattern(), is_glob_pattern()
+- `pgtail_py/stdin_reader.py` - StdinReader for piped input
+- `pgtail_py/cli_utils.py` - validate_file_path(), validate_tail_args()
+
+**Modified Modules:**
+- `pgtail_py/cli_main.py` - --file and --stdin options in tail command
+- `pgtail_py/cli_core.py` - --file option in REPL tail command
+- `pgtail_py/tail_textual.py` - File-only mode, multi-file paths, stdin mode
+- `pgtail_py/tail_rich.py` - Source file indicator display
+- `pgtail_py/tail_status.py` - Filename display, file unavailability flag
+- `pgtail_py/parser.py` - source_file field on LogEntry
+- `pgtail_py/commands.py` - PathCompleter for tab completion
+
 ## Recent Changes
 - 021-tail-file-option: Added Python 3.10+ + prompt_toolkit, textual, typer, psutil
 - 020-nuitka-migration: Added Python 3.10+ (targeting Python 3.12 for builds)

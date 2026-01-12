@@ -18,8 +18,41 @@ Complete reference for all pgtail commands.
 |---------|-------------|
 | `tail <id>` | Enter tail mode for instance |
 | `tail <id> --since <time>` | Tail with time filter |
+| `tail --file <path>` | Tail arbitrary log file |
+| `tail --file "*.log"` | Tail files matching glob pattern |
+| `tail --file a.log --file b.log` | Tail multiple explicit files |
+| `tail --stdin` | Read log data from stdin pipe |
 | `tail <id> --stream` | Legacy streaming mode |
 | `stop` | Stop tailing |
+
+**File Tailing Examples:**
+
+```bash
+# Single file (CLI)
+pgtail tail --file /path/to/postgresql.log
+pgtail tail -f ./test.log  # Short form
+
+# Glob patterns
+pgtail tail --file "*.log"
+pgtail tail --file "/var/log/postgresql/*.log"
+
+# Multiple files
+pgtail tail --file a.log --file b.log
+
+# From stdin (compressed logs)
+cat log.gz | gunzip | pgtail tail --stdin
+zcat archived.log.gz | pgtail tail --stdin
+
+# With time filter
+pgtail tail --file ./test.log --since 5m
+```
+
+**Notes:**
+- `--file` and instance ID are mutually exclusive
+- `--stdin` cannot be used with `--file` or instance ID
+- Glob patterns expand to files sorted by modification time (newest first)
+- Multi-file tailing shows `[filename]` source indicator
+- Stdin data is buffered before display for keyboard navigation
 
 ### Filtering
 

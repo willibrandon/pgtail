@@ -13,6 +13,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 ## Features
 
 - Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
+- **Tail arbitrary log files** (`--file`) with glob patterns and multi-file support
+- **Stdin pipe support** (`--stdin`) for archived/compressed logs
 - Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
 - Real-time log tailing with polling (handles log rotation and PostgreSQL restarts)
 - **Textual-based tail mode** with split-screen interface (header, log, input, status bar)
@@ -184,7 +186,9 @@ python -m pgtail_py
 
 ```
 list               Show detected PostgreSQL instances
-tail <id|path>     Tail logs for an instance (supports --since flag)
+tail <id>          Tail logs for an instance (supports --since flag)
+tail --file <path> Tail arbitrary log file(s) (glob patterns, multiple files)
+tail --stdin       Read log data from stdin pipe
 levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
 since <time>       Filter logs since time (e.g., 5m, 14:30, 2024-01-15T14:30)
 until <time>       Filter logs until time
@@ -238,6 +242,55 @@ Supported time formats:
 - **Relative**: `5m`, `30s`, `2h`, `1d` (minutes, seconds, hours, days from now)
 - **Time only**: `14:30`, `14:30:45` (today at specified time)
 - **ISO 8601**: `2024-01-15T14:30`, `2024-01-15T14:30:00Z`
+
+### File Tailing
+
+Tail arbitrary log files instead of auto-detected PostgreSQL instances:
+
+```bash
+# Single file
+pgtail tail --file /path/to/postgresql.log
+pgtail tail -f ./test.log                    # Short form
+
+# Glob patterns (multiple files)
+pgtail tail --file "*.log"                   # All .log files in current dir
+pgtail tail --file "/var/log/postgresql/*.log"  # Absolute path with glob
+
+# Multiple explicit files
+pgtail tail --file a.log --file b.log
+
+# From stdin (compressed/archived logs)
+cat log.gz | gunzip | pgtail tail --stdin
+zcat archived.log.gz | pgtail tail --stdin
+
+# Combine with time filter
+pgtail tail --file ./test.log --since 5m
+```
+
+**Glob Pattern Features:**
+- Pattern characters: `*`, `?`, `[...]`
+- Multi-level globs: `**/*.log` for recursive matching
+- Files sorted by modification time (newest first)
+- Dynamic file watching: newly created files detected within 5 seconds
+
+**Multi-File Display:**
+- Entries interleaved by timestamp across files
+- Source file indicator shown as `[filename]` prefix:
+  ```
+  [a.log] 10:30:45 [12345] ERROR: duplicate key
+  [b.log] 10:30:46 [12346] LOG: statement executed
+  ```
+- Per-file format auto-detection
+
+**Stdin Pipe Support:**
+- All data buffered before displaying (allows keyboard navigation)
+- Format auto-detected from first line
+- All filters work (level, regex, time, field)
+- Press `q` to quit after viewing
+
+**Status Bar:**
+- Shows filename when no PostgreSQL instance detected: `FOLLOW | E:0 W:0 | 42 lines | postmaster.log`
+- Shows `PGversion:port` if detected from log content: `FOLLOW | E:0 W:0 | 42 lines | PG17:5432`
 
 ### Log Format Support
 
