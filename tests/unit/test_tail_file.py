@@ -573,14 +573,158 @@ class TestMultiFileTailer:
 
 
 class TestStdinReader:
-    """Tests for stdin reader (T098 - placeholder for Phase 10)."""
+    """Tests for stdin reader (T098 - Phase 10 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 10: Stdin reader not yet implemented")
     def test_stdin_basic_reading(self) -> None:
         """Test reading log entries from stdin."""
-        pass
+        import io
+        import time
 
-    @pytest.mark.skip(reason="Phase 10: Stdin reader not yet implemented")
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create mock stdin with log content
+        mock_stdin = io.StringIO(
+            "2024-01-15 10:30:45.123 UTC [12345] LOG:  test entry from stdin\n"
+            "2024-01-15 10:30:46.123 UTC [12345] WARNING:  another entry\n"
+        )
+
+        reader = StdinReader(stdin=mock_stdin)
+        reader.start()
+
+        try:
+            time.sleep(0.2)
+
+            # Get buffer (all entries collected)
+            buffer = reader.get_buffer()
+            assert len(buffer) == 2
+
+            # Check source file is marked as stdin
+            assert all(e.source_file == "stdin" for e in buffer)
+
+            # Check entries parsed correctly
+            assert buffer[0].level == LogLevel.LOG
+            assert buffer[1].level == LogLevel.WARNING
+        finally:
+            reader.stop()
+
     def test_stdin_eof_handling(self) -> None:
         """Test graceful handling of stdin EOF."""
-        pass
+        import io
+        import time
+
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create mock stdin that closes after one line
+        mock_stdin = io.StringIO("2024-01-15 10:30:45.123 UTC [12345] LOG:  single entry\n")
+
+        eof_called = False
+
+        def on_eof():
+            nonlocal eof_called
+            eof_called = True
+
+        reader = StdinReader(stdin=mock_stdin, on_eof=on_eof)
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # EOF should have been reached
+            assert reader.eof_reached is True
+            assert eof_called is True
+            assert reader.lines_read == 1
+        finally:
+            reader.stop()
+
+    def test_stdin_format_detection(self) -> None:
+        """Test format auto-detection from stdin content."""
+        import io
+        import time
+
+        from pgtail_py.format_detector import LogFormat
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create mock stdin with TEXT format content
+        mock_stdin = io.StringIO("2024-01-15 10:30:45.123 UTC [12345] LOG:  text format entry\n")
+
+        detected_format = None
+
+        def on_format_detected(fmt):
+            nonlocal detected_format
+            detected_format = fmt
+
+        reader = StdinReader(stdin=mock_stdin)
+        reader.set_format_callback(on_format_detected)
+        reader.start()
+
+        try:
+            time.sleep(0.2)
+
+            # Should detect TEXT format
+            assert reader.format == LogFormat.TEXT
+            assert detected_format == LogFormat.TEXT
+        finally:
+            reader.stop()
+
+    def test_stdin_filter_level(self) -> None:
+        """Test level filter on stdin entries."""
+        import io
+        import time
+
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create mock stdin with mixed log levels
+        mock_stdin = io.StringIO(
+            "2024-01-15 10:30:45.123 UTC [12345] LOG:  log entry\n"
+            "2024-01-15 10:30:46.123 UTC [12345] ERROR:  error entry\n"
+            "2024-01-15 10:30:47.123 UTC [12345] WARNING:  warning entry\n"
+        )
+
+        # Only show ERROR level
+        reader = StdinReader(
+            stdin=mock_stdin,
+            active_levels={LogLevel.ERROR},
+        )
+        reader.start()
+
+        try:
+            time.sleep(0.2)
+
+            # Buffer should only have ERROR entry (filtered entries)
+            buffer = reader.get_buffer()
+            assert len(buffer) == 1
+            assert buffer[0].level == LogLevel.ERROR
+        finally:
+            reader.stop()
+
+    def test_stdin_empty_input(self) -> None:
+        """Test handling of empty stdin (immediate EOF)."""
+        import io
+        import time
+
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create empty stdin
+        mock_stdin = io.StringIO("")
+
+        reader = StdinReader(stdin=mock_stdin)
+        reader.start()
+
+        try:
+            time.sleep(0.2)
+
+            # Should reach EOF with no entries
+            assert reader.eof_reached is True
+            assert reader.lines_read == 0
+            assert len(reader.get_buffer()) == 0
+        finally:
+            reader.stop()
+
+    def test_is_stdin_pipe_detection(self) -> None:
+        """Test is_stdin_pipe() detection."""
+        from pgtail_py.stdin_reader import is_stdin_pipe
+
+        # When running tests, stdin is typically a TTY
+        # This just verifies the function doesn't crash
+        result = is_stdin_pipe()
+        assert isinstance(result, bool)

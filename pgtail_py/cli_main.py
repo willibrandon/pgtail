@@ -151,7 +151,7 @@ def list_instances(
 def tail(
     instance_id: Annotated[
         int | None,
-        typer.Argument(help="Instance ID to tail (optional if --file is used)."),
+        typer.Argument(help="Instance ID to tail (optional if --file or --stdin is used)."),
     ] = None,
     file: Annotated[
         list[str] | None,
@@ -161,6 +161,13 @@ def tail(
             help="Path or glob pattern to tail. Can specify multiple times.",
         ),
     ] = None,
+    stdin: Annotated[
+        bool,
+        typer.Option(
+            "--stdin",
+            help="Read log data from stdin pipe (e.g., cat log.gz | gunzip | pgtail tail --stdin).",
+        ),
+    ] = False,
     since: Annotated[
         str | None,
         typer.Option("--since", "-s", help="Show entries from time (e.g., 5m, 1h, 14:30)."),
@@ -189,12 +196,32 @@ def tail(
         # Tail multiple explicit files
         pgtail tail --file a.log --file b.log
 
+        # Tail from stdin pipe
+        cat log.gz | gunzip | pgtail tail --stdin
+
         # Tail with time filter
         pgtail tail --file ./test.log --since 5m
     """
     from pgtail_py.cli_utils import validate_file_path, validate_tail_args
 
     enable_vt100_mode()
+
+    # T080: Validate --stdin usage
+    if stdin:
+        # Check mutual exclusivity: --stdin cannot be used with --file or instance_id
+        if file:
+            typer.echo("Cannot specify both --stdin and --file.", err=True)
+            raise typer.Exit(1)
+        if instance_id is not None:
+            typer.echo("Cannot specify both --stdin and instance ID.", err=True)
+            raise typer.Exit(1)
+
+        # Check that stdin is actually a pipe, not a terminal
+        import sys as _sys
+
+        if _sys.stdin.isatty():
+            typer.echo("--stdin requires piped input (e.g., cat log.gz | gunzip | pgtail tail --stdin).", err=True)
+            raise typer.Exit(1)
 
     # Convert single file to list format check
     file_path_str = file[0] if file and len(file) == 1 else None
@@ -214,6 +241,68 @@ def tail(
     from pgtail_py.time_filter import TimeFilter, parse_time
 
     state = AppState()
+
+    # T080: Handle --stdin option for pipe input
+    if stdin:
+        # Apply time filter if provided
+        if since:
+            try:
+                since_time = parse_time(since)
+                state.time_filter = TimeFilter(since=since_time)
+            except ValueError as e:
+                typer.echo(f"Invalid time format: {e}", err=True)
+                raise typer.Exit(1) from None
+
+        # Read all stdin data BEFORE starting Textual (which needs stdin for keyboard)
+        import sys as _sys
+
+        stdin_data = _sys.stdin.read()
+
+        if not stdin_data.strip():
+            typer.echo("No input received from stdin.", err=True)
+            raise typer.Exit(1)
+
+        # Reopen stdin from /dev/tty so Textual can get keyboard input
+        # We must replace the actual file descriptor (fd 0) using dup2, not just
+        # reassign sys.stdin, because Textual reads from the low-level fd.
+        import os
+
+        try:
+            tty_fd = os.open("/dev/tty", os.O_RDWR)
+            os.dup2(tty_fd, 0)  # Replace stdin fd with tty
+            os.close(tty_fd)  # Close the extra fd
+            _sys.stdin = open(0, encoding="utf-8", closefd=False)  # noqa: SIM115
+        except OSError:
+            # If /dev/tty is not available (e.g., in a container), fall back to simple output
+            typer.echo("Cannot open /dev/tty for keyboard input. Outputting log entries:", err=True)
+            typer.echo("")
+            for line in stdin_data.splitlines():
+                typer.echo(line)
+            raise typer.Exit(0) from None
+
+        state.tailing = True
+
+        try:
+            if stream:
+                # Legacy stream mode for stdin
+                typer.echo("--stream mode is not supported with --stdin. Use without --stream.", err=True)
+                raise typer.Exit(1)
+            else:
+                # T080, T081, T082: Call TailApp with stdin mode and buffered data
+                TailApp.run_tail_mode(
+                    state=state,
+                    instance=None,
+                    log_path=None,  # type: ignore[arg-type]
+                    filename="stdin",
+                    stdin_mode=True,
+                    stdin_data=stdin_data,
+                )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            state.tailing = False
+            reset_terminal()
+        return
 
     # T073, T074: Handle --file option(s) with glob pattern support
     if file is not None:

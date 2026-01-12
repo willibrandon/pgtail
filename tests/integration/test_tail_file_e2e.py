@@ -469,18 +469,181 @@ class TestMultiFileTimestampInterleaving:
 
 
 class TestStdinPipeInput:
-    """Integration tests for stdin pipe input (T094 - placeholder for Phase 10)."""
+    """Integration tests for stdin pipe input (T094 - Phase 10 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 10: Stdin support not yet implemented")
     def test_stdin_reads_piped_data(self) -> None:
         """Test reading log data from stdin pipe."""
-        pass
+        import io
+        import time
+
+        from pgtail_py.filter import LogLevel
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create mock stdin with realistic PostgreSQL log content
+        mock_stdin = io.StringIO(SAMPLE_TEXT_LOG)
+
+        reader = StdinReader(stdin=mock_stdin)
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # All entries should be read
+            buffer = reader.get_buffer()
+            assert len(buffer) == 4
+
+            # Verify entries parsed correctly
+            levels = [e.level for e in buffer]
+            assert LogLevel.LOG in levels
+            assert LogLevel.ERROR in levels
+            assert LogLevel.WARNING in levels
+
+            # All entries should have source_file set to "stdin"
+            assert all(e.source_file == "stdin" for e in buffer)
+        finally:
+            reader.stop()
+
+    def test_stdin_with_csv_format(self) -> None:
+        """Test stdin correctly detects and parses CSV format."""
+        import io
+        import time
+
+        from pgtail_py.format_detector import LogFormat
+        from pgtail_py.stdin_reader import StdinReader
+
+        mock_stdin = io.StringIO(SAMPLE_CSV_LOG)
+
+        reader = StdinReader(stdin=mock_stdin)
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # Format should be detected as CSV
+            assert reader.format == LogFormat.CSV
+
+            # Entries should have CSV-specific fields
+            buffer = reader.get_buffer()
+            assert len(buffer) >= 2
+            assert buffer[0].user_name == "myuser"
+            assert buffer[0].database_name == "mydb"
+        finally:
+            reader.stop()
+
+    def test_stdin_with_json_format(self) -> None:
+        """Test stdin correctly detects and parses JSON format."""
+        import io
+        import time
+
+        from pgtail_py.format_detector import LogFormat
+        from pgtail_py.stdin_reader import StdinReader
+
+        mock_stdin = io.StringIO(SAMPLE_JSON_LOG)
+
+        reader = StdinReader(stdin=mock_stdin)
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # Format should be detected as JSON
+            assert reader.format == LogFormat.JSON
+
+            # Entries should have JSON-specific fields
+            buffer = reader.get_buffer()
+            assert len(buffer) >= 2
+            assert buffer[0].pid == 12345
+        finally:
+            reader.stop()
 
 
 class TestStdinEofHandling:
-    """Integration tests for stdin EOF handling (T095 - placeholder for Phase 10)."""
+    """Integration tests for stdin EOF handling (T095 - Phase 10 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 10: Stdin support not yet implemented")
     def test_stdin_eof_exits_gracefully(self) -> None:
         """Test graceful exit when stdin reaches EOF."""
-        pass
+        import io
+        import time
+
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create stdin that will EOF quickly
+        mock_stdin = io.StringIO("2024-01-15 10:30:45.123 UTC [12345] LOG:  single line\n")
+
+        eof_reached = False
+
+        def on_eof():
+            nonlocal eof_reached
+            eof_reached = True
+
+        reader = StdinReader(stdin=mock_stdin, on_eof=on_eof)
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # EOF should have been reached
+            assert reader.eof_reached is True
+            assert eof_reached is True
+
+            # Entry should still be available
+            assert reader.lines_read == 1
+        finally:
+            reader.stop()
+
+    def test_stdin_empty_input_eof(self) -> None:
+        """Test EOF handling with empty stdin (no data)."""
+        import io
+        import time
+
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Empty stdin
+        mock_stdin = io.StringIO("")
+
+        eof_reached = False
+
+        def on_eof():
+            nonlocal eof_reached
+            eof_reached = True
+
+        reader = StdinReader(stdin=mock_stdin, on_eof=on_eof)
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # Should reach EOF with no entries
+            assert reader.eof_reached is True
+            assert eof_reached is True
+            assert reader.lines_read == 0
+        finally:
+            reader.stop()
+
+    def test_stdin_with_filters(self) -> None:
+        """Test stdin respects level filters."""
+        import io
+        import time
+
+        from pgtail_py.filter import LogLevel
+        from pgtail_py.stdin_reader import StdinReader
+
+        # Create stdin with mixed levels
+        mock_stdin = io.StringIO(SAMPLE_TEXT_LOG)
+
+        # Filter to only show ERROR
+        reader = StdinReader(
+            stdin=mock_stdin,
+            active_levels={LogLevel.ERROR},
+        )
+        reader.start()
+
+        try:
+            time.sleep(0.3)
+
+            # Only ERROR entries should be in buffer
+            buffer = reader.get_buffer()
+            assert len(buffer) == 1
+            assert buffer[0].level == LogLevel.ERROR
+        finally:
+            reader.stop()

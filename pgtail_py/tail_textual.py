@@ -27,6 +27,7 @@ from textual.widgets import Input, Static
 from pgtail_py.filter import LogLevel
 from pgtail_py.multi_tailer import GlobPattern, MultiFileTailer
 from pgtail_py.regex_filter import FilterState
+from pgtail_py.stdin_reader import StdinReader
 from pgtail_py.tail_input import TailInput
 from pgtail_py.tail_log import TailLog
 from pgtail_py.tail_rich import format_entry_compact
@@ -151,31 +152,36 @@ class TailApp(App[None]):
         self,
         state: AppState,
         instance: Instance | None,
-        log_path: Path,
+        log_path: Path | None,
         max_lines: int = 10000,
         *,
         filename: str | None = None,
         multi_file_paths: list[Path] | None = None,
         glob_pattern: str | None = None,
+        stdin_mode: bool = False,
+        stdin_data: str | None = None,
     ) -> None:
         """Initialize TailApp.
 
         Args:
             state: pgtail AppState with filter settings.
             instance: PostgreSQL instance being tailed, or None for file-only mode.
-            log_path: Path to the log file (primary file for single-file mode).
+            log_path: Path to the log file (primary file for single-file mode), or None for stdin.
             max_lines: Maximum lines to buffer (default 10,000).
             filename: Display name for status bar when instance is None.
             multi_file_paths: List of paths for multi-file tailing (T075).
             glob_pattern: Glob pattern for dynamic file watching (T089).
+            stdin_mode: True to read from stdin pipe instead of file (T080).
+            stdin_data: Pre-buffered stdin data (read before Textual starts) (T080).
         """
         super().__init__()
         self._state: AppState = state
         self._instance: Instance | None = instance
-        self._log_path: Path = log_path
+        self._log_path: Path | None = log_path
         self._max_lines: int = max_lines
         self._tailer: LogTailer | None = None
         self._multi_tailer: MultiFileTailer | None = None  # T075: Multi-file support
+        self._stdin_reader: StdinReader | None = None  # T080: Stdin pipe support
         self._status: TailStatus | None = None
         self._running: bool = False
         # Store all entries for filter-based rebuilding
@@ -185,7 +191,7 @@ class TailApp(App[None]):
         # Explicit pause flag - prevents auto-follow when user issues pause command
         self._paused: bool = False
         # File-only mode support (T011, T012)
-        self._filename: str | None = filename or (log_path.name if instance is None else None)
+        self._filename: str | None = filename or (log_path.name if instance is None and log_path else None)
         self._instance_detected: bool = False  # True when version/port detected from content
         self._detection_entries_scanned: int = 0  # Track entries scanned for detection
         # Track file unavailability for status bar updates (T052)
@@ -194,6 +200,9 @@ class TailApp(App[None]):
         self._multi_file_paths: list[Path] | None = multi_file_paths
         self._glob_pattern: str | None = glob_pattern
         self._is_multi_file: bool = multi_file_paths is not None and len(multi_file_paths) > 1
+        # T080: Stdin mode flag and pre-buffered data
+        self._stdin_mode: bool = stdin_mode
+        self._stdin_data: str | None = stdin_data
 
     @property
     def status(self) -> TailStatus | None:
@@ -205,11 +214,13 @@ class TailApp(App[None]):
         cls,
         state: AppState,
         instance: Instance | None,
-        log_path: Path,
+        log_path: Path | None,
         *,
         filename: str | None = None,
         multi_file_paths: list[Path] | None = None,
         glob_pattern: str | None = None,
+        stdin_mode: bool = False,
+        stdin_data: str | None = None,
     ) -> None:
         """Run tail mode (blocking).
 
@@ -218,10 +229,12 @@ class TailApp(App[None]):
         Args:
             state: pgtail AppState with filter settings.
             instance: PostgreSQL instance being tailed, or None for file-only mode.
-            log_path: Path to the log file (primary file).
+            log_path: Path to the log file (primary file), or None for stdin mode.
             filename: Display name for status bar when instance is None.
             multi_file_paths: List of paths for multi-file tailing (T075).
             glob_pattern: Glob pattern for dynamic file watching (T089).
+            stdin_mode: True to read from stdin pipe instead of file (T080).
+            stdin_data: Pre-buffered stdin data (read before Textual starts) (T080).
         """
         app = cls(
             state=state,
@@ -230,6 +243,8 @@ class TailApp(App[None]):
             filename=filename,
             multi_file_paths=multi_file_paths,
             glob_pattern=glob_pattern,
+            stdin_mode=stdin_mode,
+            stdin_data=stdin_data,
         )
         app.run()
 
@@ -304,10 +319,27 @@ class TailApp(App[None]):
         if self._state.slow_query_config and self._state.slow_query_config.enabled:
             self._status.set_slow_threshold(int(self._state.slow_query_config.warning_ms))
 
-        # Create tailer - handle single-file, multi-file, and instance modes
+        # Create tailer - handle single-file, multi-file, stdin, and instance modes
         data_dir = self._instance.data_dir if self._instance else None
 
-        if self._is_multi_file and self._multi_file_paths:
+        if self._stdin_mode:
+            # T080, T081, T082: Stdin pipe input mode
+            # Use pre-buffered data via StringIO (stdin was read before Textual started)
+            import io
+
+            stdin_stream = io.StringIO(self._stdin_data or "")
+            self._stdin_reader = StdinReader(
+                active_levels=self._state.active_levels,
+                regex_state=self._state.regex_state,
+                time_filter=self._state.time_filter,
+                field_filter=self._state.field_filter,
+                on_entry=self._on_raw_entry,
+                on_eof=self._on_stdin_eof,
+                stdin=stdin_stream,
+            )
+            # Expose for export/pipe commands
+            self._state.tailer = None  # Stdin doesn't use LogTailer
+        elif self._is_multi_file and self._multi_file_paths:
             # T075, T089: Multi-file tailing with timestamp interleaving
             glob_obj = GlobPattern.from_path(self._glob_pattern) if self._glob_pattern else None
             self._multi_tailer = MultiFileTailer(
@@ -338,7 +370,9 @@ class TailApp(App[None]):
 
         # Start tailer and consumer
         self._running = True
-        if self._multi_tailer:
+        if self._stdin_reader:
+            self._stdin_reader.start()
+        elif self._multi_tailer:
             self._multi_tailer.start()
         else:
             self._tailer.start()
@@ -360,6 +394,8 @@ class TailApp(App[None]):
             self._tailer.stop()
         if self._multi_tailer:
             self._multi_tailer.stop()
+        if self._stdin_reader:
+            self._stdin_reader.stop()
 
     # Actions
 
@@ -436,6 +472,29 @@ class TailApp(App[None]):
 
     # Background worker
 
+    def _on_stdin_eof(self) -> None:
+        """Callback when EOF is reached on stdin.
+
+        T082: Handle EOF gracefully. For pre-buffered stdin data, we don't
+        auto-exit - the user can browse the data and quit with 'q'.
+        Uses call_from_thread to safely schedule the UI update on the main thread.
+        """
+        # Schedule UI update on the main thread
+        self.call_from_thread(self._handle_stdin_eof)
+
+    def _handle_stdin_eof(self) -> None:
+        """Handle stdin EOF on the main thread.
+
+        Shows a message indicating all stdin data has been loaded.
+        Does NOT auto-exit - user can browse data and quit with 'q'.
+        """
+        # Show completion message in log
+        log_widget = self.query_one("#log", TailLog)
+        lines_read = self._stdin_reader.lines_read if self._stdin_reader else 0
+        log_widget.write_line(
+            f"[dim]--- stdin complete ({lines_read} lines loaded) - press 'q' to quit ---[/]"
+        )
+
     @work(exclusive=True)
     async def _start_consumer(self) -> None:
         """Background worker consuming log entries.
@@ -447,18 +506,22 @@ class TailApp(App[None]):
         empty before yielding, avoiding unnecessary sleeps when entries
         are available.
 
-        Supports both single-file LogTailer and multi-file MultiFileTailer.
+        Supports single-file LogTailer, multi-file MultiFileTailer, and stdin StdinReader.
         """
         loop = asyncio.get_running_loop()
 
         # Determine which tailer to use
-        active_tailer = self._multi_tailer or self._tailer
+        active_tailer = self._stdin_reader or self._multi_tailer or self._tailer
         if active_tailer is None:
             return
 
         while self._running and active_tailer:
             tailer = active_tailer  # Capture for lambda
             entries_processed = 0
+
+            # T082: For stdin mode, EOF just means all data is loaded
+            # The consumer continues running so user can interact with the UI
+            # (EOF callback shows a message, but doesn't exit)
 
             try:
                 # Process all available entries in a batch before yielding

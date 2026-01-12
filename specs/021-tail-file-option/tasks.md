@@ -238,9 +238,9 @@
 
 ### Implementation for User Story 7
 
-- [ ] T080 [US7] Add --stdin flag to tail command in pgtail_py/cli_main.py
-- [ ] T081 [US7] Implement stdin reader in pgtail_py/tailer.py
-- [ ] T082 [US7] Handle EOF gracefully (exit tail mode) in pgtail_py/tailer.py
+- [X] T080 [US7] Add --stdin flag to tail command in pgtail_py/cli_main.py
+- [X] T081 [US7] Implement stdin reader in pgtail_py/stdin_reader.py
+- [X] T082 [US7] Handle EOF gracefully (exit tail mode) in pgtail_py/tail_textual.py
 
 ---
 
