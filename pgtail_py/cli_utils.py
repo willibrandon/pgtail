@@ -146,11 +146,13 @@ def validate_tail_args(
         Error message if invalid, None if valid.
     """
     # Count how many sources are specified
-    sources = sum([
-        file_path is not None,
-        instance_id is not None,
-        stdin_mode,
-    ])
+    sources = sum(
+        [
+            file_path is not None,
+            instance_id is not None,
+            stdin_mode,
+        ]
+    )
 
     if sources > 1:
         if file_path is not None and instance_id is not None:

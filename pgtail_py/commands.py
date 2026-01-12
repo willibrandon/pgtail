@@ -224,7 +224,12 @@ class PgtailCompleter(Completer):
                     start_position=-len(prefix),
                     display_meta="Tail arbitrary log file (e.g., ./test.log)",
                 )
-            if not has_file and prefix.startswith("-") and "-f".startswith(prefix) and prefix != "--":
+            if (
+                not has_file
+                and prefix.startswith("-")
+                and "-f".startswith(prefix)
+                and prefix != "--"
+            ):
                 yield Completion(
                     "-f",
                     start_position=-len(prefix),

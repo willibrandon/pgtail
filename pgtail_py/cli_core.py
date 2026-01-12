@@ -220,7 +220,10 @@ def tail_command(state: AppState, args: list[str]) -> None:
     # T026: Mutual exclusivity check (--file vs instance ID)
     # Use first file path for validation if multiple provided
     file_path_for_check = file_paths[0] if file_paths else None
-    error = validate_tail_args(file_path=file_path_for_check, instance_id=int(instance_arg) if instance_arg and instance_arg.isdigit() else None)
+    error = validate_tail_args(
+        file_path=file_path_for_check,
+        instance_id=int(instance_arg) if instance_arg and instance_arg.isdigit() else None,
+    )
     if error:
         print(f"Error: {error}")
         return
@@ -284,7 +287,9 @@ def tail_command(state: AppState, args: list[str]) -> None:
             tail_file_mode(
                 state,
                 resolved_paths[0][0],
-                multi_file_paths=[p[0] for p in resolved_paths] if len(resolved_paths) > 1 else None,
+                multi_file_paths=[p[0] for p in resolved_paths]
+                if len(resolved_paths) > 1
+                else None,
                 glob_pattern=glob_pattern_str,
                 display_name=display_name if len(resolved_paths) > 1 else None,
             )

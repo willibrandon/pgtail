@@ -191,7 +191,9 @@ class TailApp(App[None]):
         # Explicit pause flag - prevents auto-follow when user issues pause command
         self._paused: bool = False
         # File-only mode support (T011, T012)
-        self._filename: str | None = filename or (log_path.name if instance is None and log_path else None)
+        self._filename: str | None = filename or (
+            log_path.name if instance is None and log_path else None
+        )
         self._instance_detected: bool = False  # True when version/port detected from content
         self._detection_entries_scanned: int = 0  # Track entries scanned for detection
         # Track file unavailability for status bar updates (T052)

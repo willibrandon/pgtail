@@ -220,7 +220,10 @@ def tail(
         import sys as _sys
 
         if _sys.stdin.isatty():
-            typer.echo("--stdin requires piped input (e.g., cat log.gz | gunzip | pgtail tail --stdin).", err=True)
+            typer.echo(
+                "--stdin requires piped input (e.g., cat log.gz | gunzip | pgtail tail --stdin).",
+                err=True,
+            )
             raise typer.Exit(1)
 
     # Convert single file to list format check
@@ -285,7 +288,9 @@ def tail(
         try:
             if stream:
                 # Legacy stream mode for stdin
-                typer.echo("--stream mode is not supported with --stdin. Use without --stream.", err=True)
+                typer.echo(
+                    "--stream mode is not supported with --stdin. Use without --stream.", err=True
+                )
                 raise typer.Exit(1)
             else:
                 # T080, T081, T082: Call TailApp with stdin mode and buffered data
@@ -361,7 +366,10 @@ def tail(
             if stream:
                 # Legacy stream mode - only supports single file
                 if len(resolved_paths) > 1:
-                    typer.echo("--stream mode only supports single file. Use without --stream for multiple files.", err=True)
+                    typer.echo(
+                        "--stream mode only supports single file. Use without --stream for multiple files.",
+                        err=True,
+                    )
                     raise typer.Exit(1)
                 from pgtail_py.instance import Instance
 
@@ -377,7 +385,9 @@ def tail(
                     instance=None,
                     log_path=resolved_paths[0][0],
                     filename=display_name,
-                    multi_file_paths=[p[0] for p in resolved_paths] if len(resolved_paths) > 1 else None,
+                    multi_file_paths=[p[0] for p in resolved_paths]
+                    if len(resolved_paths) > 1
+                    else None,
                     glob_pattern=glob_pattern_str,
                 )
         except KeyboardInterrupt:
