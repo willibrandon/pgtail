@@ -43,6 +43,14 @@ Tail instance 0:
 pgtail> tail 0
 ```
 
+Or tail an arbitrary log file:
+
+```bash
+pgtail tail --file /path/to/postgresql.log
+pgtail tail --file "*.log"  # Multiple files with glob
+cat log.gz | gunzip | pgtail tail --stdin  # From pipe
+```
+
 This enters the **tail mode** - a split-screen interface with:
 
 - Log display area (scrollable, vim navigation)

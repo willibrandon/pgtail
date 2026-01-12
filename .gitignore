@@ -19,6 +19,7 @@
 # Temporary files
 *.tmp
 *.log
+*.log.gz
 
 # Claude settings
 .claude/settings.local.json

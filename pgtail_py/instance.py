@@ -56,3 +56,29 @@ class Instance:
     def port_str(self) -> str:
         """Return port as string or '-' if not set."""
         return str(self.port) if self.port else "-"
+
+    @classmethod
+    def file_only(cls, log_path: Path) -> "Instance":
+        """Create a file-only instance for tailing arbitrary log files.
+
+        Creates a minimal Instance object when tailing an arbitrary log file
+        that isn't associated with a detected PostgreSQL installation.
+
+        Args:
+            log_path: Path to the log file being tailed.
+
+        Returns:
+            Instance with minimal fields set, suitable for file-only tailing.
+        """
+        return cls(
+            id=-1,  # Negative ID indicates file-only mode
+            version="",
+            data_dir=log_path.parent,
+            log_path=log_path,
+            log_directory=log_path.parent,
+            source=DetectionSource.KNOWN_PATH,  # Closest match for arbitrary file
+            running=True,  # Assume the source is active (being written to)
+            pid=None,
+            port=None,
+            logging_enabled=True,
+        )

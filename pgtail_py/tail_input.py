@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from textual.binding import Binding, BindingType
 from textual.widgets import Input
 
 
@@ -22,6 +23,9 @@ class TailInput(Input):
     tail mode command input area. Provides the "tail> " placeholder and
     standard id for CSS styling.
 
+    When the input is empty, single-key commands like 'q' are passed through
+    to the app so users can quit without switching focus.
+
     Attributes:
         DEFAULT_ID: The default widget ID for CSS targeting.
         DEFAULT_PLACEHOLDER: The default placeholder text shown when empty.
@@ -29,6 +33,12 @@ class TailInput(Input):
 
     DEFAULT_ID: ClassVar[str] = "input"
     DEFAULT_PLACEHOLDER: ClassVar[str] = "tail> "
+
+    # Allow 'q' to quit when input is empty
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("q", "quit_if_empty", "Quit", show=False),
+        Binding("escape", "clear_and_blur", "Clear", show=False),
+    ]
 
     def __init__(
         self,
@@ -52,3 +62,22 @@ class TailInput(Input):
             id=id or self.DEFAULT_ID,
             classes=classes,
         )
+
+    def action_quit_if_empty(self) -> None:
+        """Quit app if input is empty, otherwise insert 'q'."""
+        if not self.value:
+            # Input is empty, trigger app quit
+            self.app.action_quit()
+        else:
+            # Input has content, insert 'q' character
+            self.insert_text_at_cursor("q")
+
+    def action_clear_and_blur(self) -> None:
+        """Clear input and move focus to log widget."""
+        self.value = ""
+        # Move focus to log widget
+        try:
+            log_widget = self.app.query_one("#log")
+            log_widget.focus()
+        except Exception:
+            pass

@@ -9,6 +9,50 @@ pgtail> tail 0           # Tail instance 0
 pgtail> tail 0 --since 1h  # Start with time filter
 ```
 
+## Tailing Files
+
+You can tail arbitrary log files instead of auto-detected PostgreSQL instances:
+
+```bash
+# Single file
+pgtail tail --file /path/to/postgresql.log
+pgtail tail -f ./test.log  # Short form
+
+# Glob patterns (multiple files)
+pgtail tail --file "*.log"
+pgtail tail --file "/var/log/postgresql/*.log"
+
+# Multiple explicit files
+pgtail tail --file a.log --file b.log
+
+# From stdin (compressed logs)
+cat log.gz | gunzip | pgtail tail --stdin
+
+# With time filter
+pgtail tail --file ./test.log --since 5m
+```
+
+### Multi-File Display
+
+When tailing multiple files, entries are interleaved by timestamp with a source indicator:
+
+```
+[a.log] 10:30:45 [12345] ERROR: duplicate key
+[b.log] 10:30:46 [12346] LOG: statement executed
+[a.log] 10:30:47 [12347] WARNING: connection reset
+```
+
+### Status Bar for Files
+
+- **File-only mode**: Shows the filename
+  ```
+  FOLLOW | E:0 W:0 | 42 lines | postmaster.log
+  ```
+- **Detected instance**: If PostgreSQL version/port is found in logs
+  ```
+  FOLLOW | E:0 W:0 | 42 lines | PG17:5432
+  ```
+
 ## Interface Layout
 
 ```text

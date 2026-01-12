@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING
 
-from prompt_toolkit.completion import CompleteEvent, Completer, Completion
+from prompt_toolkit.completion import CompleteEvent, Completer, Completion, PathCompleter
 from prompt_toolkit.document import Document
 
 from pgtail_py.config import SETTING_KEYS
@@ -86,6 +86,7 @@ class PgtailCompleter(Completer):
     - Command names at the start of input
     - Instance IDs/paths for 'tail' and 'enable-logging' commands
     - Log level names for 'levels' command
+    - File paths for 'tail --file' command
     """
 
     def __init__(self, get_instances: Callable[[], list[Instance]] | None = None) -> None:
@@ -95,6 +96,8 @@ class PgtailCompleter(Completer):
             get_instances: Callback to get current list of instances.
         """
         self._get_instances = get_instances
+        # PathCompleter for --file argument completion
+        self._path_completer = PathCompleter(expanduser=True)
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
@@ -122,7 +125,7 @@ class PgtailCompleter(Completer):
         arg_text = parts[-1] if len(parts) > 1 and not text.endswith(" ") else ""
 
         if cmd == "tail":
-            yield from self._complete_tail(arg_text, parts)
+            yield from self._complete_tail(arg_text, parts, document, complete_event)
         elif cmd == "enable-logging":
             yield from self._complete_instances(arg_text)
         elif cmd == "levels":
@@ -181,34 +184,69 @@ class PgtailCompleter(Completer):
                     display_meta=description,
                 )
 
-    def _complete_tail(self, prefix: str, parts: list[str]) -> Iterable[Completion]:
+    def _complete_tail(
+        self, prefix: str, parts: list[str], document: Document, complete_event: CompleteEvent
+    ) -> Iterable[Completion]:
         """Complete tail command arguments.
 
         Args:
             prefix: The prefix to match.
             parts: All command parts so far.
+            document: The current document for path completion.
+            complete_event: The completion event.
 
         Yields:
-            Completions for tail arguments (instances and --since flag).
+            Completions for tail arguments (instances, --file, --since flags).
         """
-        # Check if --since already used
+        # Check which options are already used
         has_since = "--since" in parts
+        has_file = "--file" in parts or "-f" in parts
 
         # If previous arg was --since, complete with time values
         if len(parts) >= 2 and parts[-2] == "--since":
             yield from self._complete_since(prefix)
             return
 
-        # Complete --since option if not already used
-        if not has_since and prefix.startswith("-") and "--since".startswith(prefix):
-            yield Completion(
-                "--since",
-                start_position=-len(prefix),
-                display_meta="Filter from time (e.g., 5m, 14:30)",
-            )
+        # If previous arg was --file/-f, complete with file paths
+        if len(parts) >= 2 and parts[-2] in ("--file", "-f"):
+            # Use PathCompleter for file path completion
+            # Build a sub-document that starts from the path prefix
+            path_doc = Document(prefix)
+            yield from self._path_completer.get_completions(path_doc, complete_event)
+            return
 
-        # Complete instances
-        yield from self._complete_instances(prefix)
+        # Complete option flags
+        if prefix.startswith("-") or prefix == "":
+            # --file option (T050)
+            if not has_file and "--file".startswith(prefix):
+                yield Completion(
+                    "--file",
+                    start_position=-len(prefix),
+                    display_meta="Tail arbitrary log file (e.g., ./test.log)",
+                )
+            if (
+                not has_file
+                and prefix.startswith("-")
+                and "-f".startswith(prefix)
+                and prefix != "--"
+            ):
+                yield Completion(
+                    "-f",
+                    start_position=-len(prefix),
+                    display_meta="Short for --file",
+                )
+
+            # --since option
+            if not has_since and "--since".startswith(prefix):
+                yield Completion(
+                    "--since",
+                    start_position=-len(prefix),
+                    display_meta="Filter from time (e.g., 5m, 14:30)",
+                )
+
+        # Complete instances (when not typing an option flag)
+        if not prefix.startswith("-"):
+            yield from self._complete_instances(prefix)
 
     def _complete_instances(self, prefix: str) -> Iterable[Completion]:
         """Complete instance IDs and paths.

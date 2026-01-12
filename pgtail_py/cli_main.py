@@ -6,6 +6,7 @@ maintaining backward compatibility with the existing REPL interface.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -148,7 +149,25 @@ def list_instances(
 
 @app.command()
 def tail(
-    instance_id: Annotated[int, typer.Argument(help="Instance ID to tail.")],
+    instance_id: Annotated[
+        int | None,
+        typer.Argument(help="Instance ID to tail (optional if --file or --stdin is used)."),
+    ] = None,
+    file: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--file",
+            "-f",
+            help="Path or glob pattern to tail. Can specify multiple times.",
+        ),
+    ] = None,
+    stdin: Annotated[
+        bool,
+        typer.Option(
+            "--stdin",
+            help="Read log data from stdin pipe (e.g., cat log.gz | gunzip | pgtail tail --stdin).",
+        ),
+    ] = False,
     since: Annotated[
         str | None,
         typer.Option("--since", "-s", help="Show entries from time (e.g., 5m, 1h, 14:30)."),
@@ -158,18 +177,243 @@ def tail(
         typer.Option("--stream", help="Use legacy streaming mode instead of Textual UI."),
     ] = False,
 ) -> None:
-    """Tail logs for a PostgreSQL instance.
+    """Tail logs for a PostgreSQL instance or arbitrary log file(s).
 
     Enters the interactive tail mode with vim-style navigation and filtering.
     Press 'q' to quit, '?' for help.
+
+    Examples:
+
+        # Tail by instance ID
+        pgtail tail 0
+
+        # Tail arbitrary log file
+        pgtail tail --file ./tmp_check/log/postmaster.log
+
+        # Tail with glob pattern (multiple files)
+        pgtail tail --file "*.log"
+
+        # Tail multiple explicit files
+        pgtail tail --file a.log --file b.log
+
+        # Tail from stdin pipe
+        cat log.gz | gunzip | pgtail tail --stdin
+
+        # Tail with time filter
+        pgtail tail --file ./test.log --since 5m
     """
+    from pgtail_py.cli_utils import validate_file_path, validate_tail_args
+
     enable_vt100_mode()
 
+    # T080: Validate --stdin usage
+    if stdin:
+        # Check mutual exclusivity: --stdin cannot be used with --file or instance_id
+        if file:
+            typer.echo("Cannot specify both --stdin and --file.", err=True)
+            raise typer.Exit(1)
+        if instance_id is not None:
+            typer.echo("Cannot specify both --stdin and instance ID.", err=True)
+            raise typer.Exit(1)
+
+        # Check that stdin is actually a pipe, not a terminal
+        import sys as _sys
+
+        if _sys.stdin.isatty():
+            typer.echo(
+                "--stdin requires piped input (e.g., cat log.gz | gunzip | pgtail tail --stdin).",
+                err=True,
+            )
+            raise typer.Exit(1)
+
+    # Convert single file to list format check
+    file_path_str = file[0] if file and len(file) == 1 else None
+
+    # T019: Validate mutual exclusivity (single file case)
+    error = validate_tail_args(file_path=file_path_str, instance_id=instance_id)
+    if error:
+        typer.echo(error, err=True)
+        raise typer.Exit(1)
+
+    # Import here to avoid circular imports and speed up CLI startup
+    from pgtail_py.cli import AppState
+    from pgtail_py.cli_core import tail_status_bar_mode, tail_stream_mode
+    from pgtail_py.multi_tailer import GlobPattern, is_glob_pattern
+    from pgtail_py.tail_textual import TailApp
+    from pgtail_py.terminal import reset_terminal
+    from pgtail_py.time_filter import TimeFilter, parse_time
+
+    state = AppState()
+
+    # T080: Handle --stdin option for pipe input
+    if stdin:
+        # Apply time filter if provided
+        if since:
+            try:
+                since_time = parse_time(since)
+                state.time_filter = TimeFilter(since=since_time)
+            except ValueError as e:
+                typer.echo(f"Invalid time format: {e}", err=True)
+                raise typer.Exit(1) from None
+
+        # Read all stdin data BEFORE starting Textual (which needs stdin for keyboard)
+        import sys as _sys
+
+        stdin_data = _sys.stdin.read()
+
+        if not stdin_data.strip():
+            typer.echo("No input received from stdin.", err=True)
+            raise typer.Exit(1)
+
+        # Reopen stdin from /dev/tty so Textual can get keyboard input
+        # We must replace the actual file descriptor (fd 0) using dup2, not just
+        # reassign sys.stdin, because Textual reads from the low-level fd.
+        import os
+
+        try:
+            tty_fd = os.open("/dev/tty", os.O_RDWR)
+            os.dup2(tty_fd, 0)  # Replace stdin fd with tty
+            os.close(tty_fd)  # Close the extra fd
+            _sys.stdin = open(0, encoding="utf-8", closefd=False)  # noqa: SIM115
+        except OSError:
+            # If /dev/tty is not available (e.g., in a container), fall back to simple output
+            typer.echo("Cannot open /dev/tty for keyboard input. Outputting log entries:", err=True)
+            typer.echo("")
+            for line in stdin_data.splitlines():
+                typer.echo(line)
+            raise typer.Exit(0) from None
+
+        state.tailing = True
+
+        try:
+            if stream:
+                # Legacy stream mode for stdin
+                typer.echo(
+                    "--stream mode is not supported with --stdin. Use without --stream.", err=True
+                )
+                raise typer.Exit(1)
+            else:
+                # T080, T081, T082: Call TailApp with stdin mode and buffered data
+                TailApp.run_tail_mode(
+                    state=state,
+                    instance=None,
+                    log_path=None,  # type: ignore[arg-type]
+                    filename="stdin",
+                    stdin_mode=True,
+                    stdin_data=stdin_data,
+                )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            state.tailing = False
+            reset_terminal()
+        return
+
+    # T073, T074: Handle --file option(s) with glob pattern support
+    if file is not None:
+        # File-only mode - skip instance detection
+        resolved_paths: list[tuple[Path, str | None]] = []  # (path, glob_pattern_or_None)
+        has_glob = False
+
+        for file_arg in file:
+            if is_glob_pattern(file_arg):
+                # T073: Expand glob pattern
+                has_glob = True
+                glob = GlobPattern.from_path(file_arg)
+                matches = glob.expand()
+
+                if not matches:
+                    # T074: Handle "No files match pattern" error
+                    typer.echo(f"No files match pattern: {file_arg}", err=True)
+                    raise typer.Exit(1)
+
+                # Warn if many files matched
+                if len(matches) > 10:
+                    typer.echo(f"Warning: Pattern matches {len(matches)} files", err=True)
+
+                for path in matches:
+                    resolved_paths.append((path, file_arg))
+            else:
+                # Single file path
+                resolved_path, path_error = validate_file_path(file_arg)
+                if path_error:
+                    typer.echo(path_error, err=True)
+                    raise typer.Exit(1)
+                resolved_paths.append((resolved_path, None))
+
+        # Apply time filter if provided
+        if since:
+            try:
+                since_time = parse_time(since)
+                state.time_filter = TimeFilter(since=since_time)
+            except ValueError as e:
+                typer.echo(f"Invalid time format: {e}", err=True)
+                raise typer.Exit(1) from None
+
+        # Determine display name
+        if len(resolved_paths) == 1:
+            display_name = resolved_paths[0][0].name
+        elif has_glob:
+            display_name = f"{len(resolved_paths)} files"
+        else:
+            display_name = f"{len(resolved_paths)} files"
+
+        # T022, T023: Set state and launch tail mode
+        state.current_file_path = resolved_paths[0][0]  # Primary file
+        state.tailing = True
+
+        try:
+            if stream:
+                # Legacy stream mode - only supports single file
+                if len(resolved_paths) > 1:
+                    typer.echo(
+                        "--stream mode only supports single file. Use without --stream for multiple files.",
+                        err=True,
+                    )
+                    raise typer.Exit(1)
+                from pgtail_py.instance import Instance
+
+                file_instance = Instance.file_only(resolved_paths[0][0])
+                tail_stream_mode(state, file_instance)
+            else:
+                # Determine glob pattern for dynamic file watching
+                glob_pattern_str = next((p[1] for p in resolved_paths if p[1]), None)
+
+                # T022: Call TailApp with file paths
+                TailApp.run_tail_mode(
+                    state=state,
+                    instance=None,
+                    log_path=resolved_paths[0][0],
+                    filename=display_name,
+                    multi_file_paths=[p[0] for p in resolved_paths]
+                    if len(resolved_paths) > 1
+                    else None,
+                    glob_pattern=glob_pattern_str,
+                )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            state.tailing = False
+            state.current_file_path = None
+            reset_terminal()
+        return
+
+    # Standard instance-based tailing
     instances = detect_all()
+    state.instances = instances
 
     if not instances:
         typer.echo("No PostgreSQL instances found.", err=True)
         raise typer.Exit(1)
+
+    # If no instance ID and no --file, require explicit ID
+    if instance_id is None:
+        if len(instances) == 1:
+            instance_id = 0
+        else:
+            typer.echo("Multiple instances found. Specify an ID or use --file.", err=True)
+            typer.echo("Use 'pgtail list' to see available instances.", err=True)
+            raise typer.Exit(1)
 
     if instance_id < 0 or instance_id >= len(instances):
         typer.echo(
@@ -187,15 +431,6 @@ def tail(
     if not instance.log_path or not instance.log_path.exists():
         typer.echo(f"Log file not found: {instance.log_path}", err=True)
         raise typer.Exit(1)
-
-    # Import here to avoid circular imports and speed up CLI startup
-    from pgtail_py.cli import AppState
-    from pgtail_py.cli_core import tail_status_bar_mode, tail_stream_mode
-    from pgtail_py.terminal import reset_terminal
-    from pgtail_py.time_filter import TimeFilter, parse_time
-
-    state = AppState()
-    state.instances = instances
 
     if since:
         try:

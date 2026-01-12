@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from pgtail_py.filter import LogLevel
@@ -77,6 +77,9 @@ class LogEntry:
     pid: int | None = None
     format: LogFormat = field(default=LogFormat.TEXT)
 
+    # Multi-file tailing support
+    source_file: str | None = None  # Filename (not full path) for multi-file display
+
     # Extended fields (structured formats only)
     user_name: str | None = None
     database_name: str | None = None
@@ -138,6 +141,7 @@ class LogEntry:
             "raw",
             "pid",
             "format",
+            "source_file",
             "user_name",
             "database_name",
             "application_name",
@@ -219,6 +223,18 @@ _LOG_PATTERN_NO_PID = re.compile(
     r"(.*)$"  # message
 )
 
+# PostgreSQL bracketed log format (custom log_line_prefix with brackets):
+# [2024-01-15 10:30:45.123 UTC] [12345] [dbname] LOG:  message
+# Format: [timestamp TZ] [PID] [optional context] LEVEL: message
+_LOG_PATTERN_BRACKETED = re.compile(
+    r"^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+"  # [timestamp
+    r"(\w+)\]\s+"  # timezone]
+    r"\[(\d+)\]\s+"  # [PID]
+    r"(?:\[[^\]]*\]\s+)?"  # optional [context/dbname] - skip it
+    r"(\w+):\s*"  # level
+    r"(.*)$"  # message
+)
+
 # Level name to LogLevel mapping
 _LEVEL_MAP = {
     "PANIC": LogLevel.PANIC,
@@ -248,6 +264,7 @@ def _parse_text_line(line: str) -> LogEntry:
     Handles PostgreSQL log formats:
     - With PID: YYYY-MM-DD HH:MM:SS.mmm TZ [PID] LEVEL: message
     - Without PID: YYYY-MM-DD HH:MM:SS.mmm TZ LEVEL: message (common on Windows)
+    - Bracketed: [YYYY-MM-DD HH:MM:SS.mmm TZ] [PID] [context] LEVEL: message
 
     For unparseable lines, returns a LogEntry with level=LOG and
     the raw line preserved in both message and raw fields.
@@ -261,24 +278,30 @@ def _parse_text_line(line: str) -> LogEntry:
     # Try format with PID first
     match = _LOG_PATTERN_WITH_PID.match(line)
     if match:
-        timestamp_str, _tz, pid_str, level_str, message = match.groups()
+        timestamp_str, tz_str, pid_str, level_str, message = match.groups()
         pid = int(pid_str) if pid_str else None
     else:
-        # Try format without PID
-        match = _LOG_PATTERN_NO_PID.match(line)
+        # Try bracketed format (timestamp and context in brackets)
+        match = _LOG_PATTERN_BRACKETED.match(line)
         if match:
-            timestamp_str, _tz, level_str, message = match.groups()
-            pid = None
+            timestamp_str, tz_str, pid_str, level_str, message = match.groups()
+            pid = int(pid_str) if pid_str else None
         else:
-            # Unparseable line - return as LOG level with raw preserved
-            return LogEntry(
-                timestamp=None,
-                level=LogLevel.LOG,
-                message=line,
-                raw=line,
-                pid=None,
-                format=LogFormat.TEXT,
-            )
+            # Try format without PID
+            match = _LOG_PATTERN_NO_PID.match(line)
+            if match:
+                timestamp_str, tz_str, level_str, message = match.groups()
+                pid = None
+            else:
+                # Unparseable line - return as LOG level with raw preserved
+                return LogEntry(
+                    timestamp=None,
+                    level=LogLevel.LOG,
+                    message=line,
+                    raw=line,
+                    pid=None,
+                    format=LogFormat.TEXT,
+                )
 
     # Parse timestamp
     timestamp = None
@@ -288,6 +311,11 @@ def _parse_text_line(line: str) -> LogEntry:
             timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
         else:
             timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+
+        # Apply UTC timezone if specified in the log line
+        # This is critical for correct time filter comparisons
+        if timestamp is not None and tz_str and tz_str.upper() == "UTC":
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
     except ValueError:
         pass
 

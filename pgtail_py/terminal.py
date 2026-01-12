@@ -37,11 +37,21 @@ def enable_vt100_mode() -> bool:
 def reset_terminal() -> None:
     """Reset terminal state after interruption.
 
-    Ensures cursor is visible and at the start of a new line.
+    Ensures cursor is visible, mouse tracking is disabled, and we're at
+    the start of a new line. This cleans up after Textual or other TUI apps.
     """
     # Flush stdout to ensure any pending output is written
     sys.stdout.flush()
 
-    # Print a newline to ensure we're at the start of a line
-    # This helps prevent prompt mangling after Ctrl+C
-    print("\033[0m", end="", flush=True)  # Reset any pending ANSI state
+    # Build reset sequence
+    reset_sequence = (
+        "\033[0m"  # Reset ANSI text attributes
+        "\033[?1000l"  # Disable mouse button tracking
+        "\033[?1002l"  # Disable mouse button tracking (drag)
+        "\033[?1003l"  # Disable all mouse tracking
+        "\033[?1006l"  # Disable SGR mouse mode
+        "\033[?1015l"  # Disable urxvt mouse mode
+        "\033[?25h"  # Show cursor
+        "\033[?7h"  # Enable line wrapping
+    )
+    print(reset_sequence, end="", flush=True)

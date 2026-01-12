@@ -90,6 +90,81 @@ def run_shell(cmd_line: str) -> None:
         print(f"Shell error: {e}")
 
 
+def validate_file_path(path_str: str) -> tuple[Path, str | None]:
+    """Validate a file path for tailing.
+
+    Validates that the path exists, is a regular file (not a directory),
+    and is readable. Handles:
+    - Tilde (~) expansion for home directory (T085)
+    - Symlink resolution via Path.resolve() (T053)
+    - Paths with spaces and special characters via pathlib (T054)
+
+    Args:
+        path_str: User-provided path string.
+
+    Returns:
+        Tuple of (resolved_path, error_message).
+        If error_message is None, path is valid.
+    """
+    # Expand tilde (~) to home directory (T085)
+    # Path.expanduser() handles ~ and ~user on all platforms
+    expanded = Path(path_str).expanduser()
+    # Path.resolve() follows symlinks and normalizes the path (T053, T054)
+    resolved = expanded.resolve()
+
+    if not resolved.exists():
+        return resolved, f"File not found: {resolved}"
+
+    if resolved.is_dir():
+        return resolved, f"Not a file: {resolved} (is a directory)"
+
+    try:
+        # Check read permission by attempting to open
+        with open(resolved, "rb"):
+            pass
+    except PermissionError:
+        return resolved, f"Permission denied: {resolved}"
+    except OSError as e:
+        return resolved, f"Cannot access file: {resolved} ({e})"
+
+    return resolved, None  # Valid
+
+
+def validate_tail_args(
+    file_path: str | None,
+    instance_id: int | None,
+    stdin_mode: bool = False,
+) -> str | None:
+    """Validate tail command arguments for mutual exclusivity.
+
+    Args:
+        file_path: Path to file to tail, or None.
+        instance_id: Instance ID to tail, or None.
+        stdin_mode: Whether --stdin flag was provided.
+
+    Returns:
+        Error message if invalid, None if valid.
+    """
+    # Count how many sources are specified
+    sources = sum(
+        [
+            file_path is not None,
+            instance_id is not None,
+            stdin_mode,
+        ]
+    )
+
+    if sources > 1:
+        if file_path is not None and instance_id is not None:
+            return "Cannot specify both --file and instance ID"
+        if stdin_mode and instance_id is not None:
+            return "Cannot specify both --stdin and instance ID"
+        if stdin_mode and file_path is not None:
+            return "Cannot specify both --stdin and --file"
+
+    return None
+
+
 def find_instance(state: AppState, arg: str) -> Instance | None:
     """Find an instance by ID or path.
 

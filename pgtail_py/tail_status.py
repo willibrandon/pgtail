@@ -48,6 +48,10 @@ class TailStatus:
     slow_threshold: int | None = None
     pg_version: str = ""
     pg_port: int = 5432
+    # Fields for file-based tailing (T004, T005, T006)
+    filename: str | None = None  # Filename when tailing arbitrary file
+    file_unavailable: bool = False  # True when file is deleted/inaccessible
+    detected_from_content: bool = False  # True if pg_version/pg_port detected from log content
 
     def update_from_entry(self, entry: LogEntry) -> None:
         """Update counts based on a new log entry.
@@ -126,6 +130,39 @@ class TailStatus:
         self.pg_version = version
         self.pg_port = port
 
+    def set_file_source(self, filename: str) -> None:
+        """Set the filename for file-based tailing.
+
+        Args:
+            filename: The log filename (e.g., 'postmaster.log')
+        """
+        self.filename = filename
+
+    def set_file_unavailable(self, unavailable: bool) -> None:
+        """Set file unavailability status.
+
+        Args:
+            unavailable: True if file is currently inaccessible
+        """
+        self.file_unavailable = unavailable
+
+    def set_detected_instance_info(self, version: str | None, port: int | None) -> None:
+        """Set PostgreSQL instance info detected from log content.
+
+        Updates pg_version and pg_port if values are provided, and sets
+        the detected_from_content flag to True.
+
+        Args:
+            version: PostgreSQL version string (e.g., '17' or '17.0')
+            port: PostgreSQL port number
+        """
+        if version is not None:
+            self.pg_version = version
+        if port is not None:
+            self.pg_port = port
+        if version is not None or port is not None:
+            self.detected_from_content = True
+
     def reset_counts(self) -> None:
         """Reset error and warning counts to zero."""
         self.error_count = 0
@@ -198,10 +235,18 @@ class TailStatus:
         # Separator
         parts.append(("class:status.sep", " | "))
 
-        # PostgreSQL instance info
+        # PostgreSQL instance info (T009 - filename fallback)
         if self.pg_version:
+            # Show standard format if version is known (from instance or detected from content)
             parts.append(("class:status.instance", f"PG{self.pg_version}:{self.pg_port}"))
+        elif self.filename:
+            # File-based tailing without detected instance info
+            if self.file_unavailable:
+                parts.append(("class:status.instance", f"{self.filename} (unavailable)"))
+            else:
+                parts.append(("class:status.instance", self.filename))
         else:
+            # Fallback to just port
             parts.append(("class:status.instance", f":{self.pg_port}"))
 
         return FormattedText(parts)
@@ -270,10 +315,18 @@ class TailStatus:
         # Separator
         parts.append("|")
 
-        # PostgreSQL instance info
+        # PostgreSQL instance info (T010 - filename fallback)
         if self.pg_version:
+            # Show standard format if version is known (from instance or detected from content)
             parts.append(f"PG{self.pg_version}:{self.pg_port}")
+        elif self.filename:
+            # File-based tailing without detected instance info
+            if self.file_unavailable:
+                parts.append(f"{self.filename} (unavailable)")
+            else:
+                parts.append(self.filename)
         else:
+            # Fallback to just port
             parts.append(f":{self.pg_port}")
 
         return " ".join(parts)
@@ -351,10 +404,19 @@ class TailStatus:
         # Separator
         text.append(" | ", style="dim")
 
-        # PostgreSQL instance info - bright white for emphasis
+        # PostgreSQL instance info - bright white for emphasis (T009 - filename fallback)
         if self.pg_version:
+            # Show standard format if version is known (from instance or detected from content)
             text.append(f"PG{self.pg_version}:{self.pg_port}", style="bright_white")
+        elif self.filename:
+            # File-based tailing without detected instance info
+            if self.file_unavailable:
+                text.append(f"{self.filename} ", style="bright_white")
+                text.append("(unavailable)", style="bright_yellow")
+            else:
+                text.append(self.filename, style="bright_white")
         else:
+            # Fallback to just port
             text.append(f":{self.pg_port}", style="bright_white")
 
         return text
