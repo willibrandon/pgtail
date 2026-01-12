@@ -375,36 +375,201 @@ class TestDetectedInstanceInfo:
 
 
 class TestGlobPatternMatching:
-    """Tests for glob pattern matching (T096 - placeholder for Phase 8)."""
+    """Tests for glob pattern matching (T096 - Phase 8 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 8: Glob patterns not yet implemented")
-    def test_glob_expansion_single_match(self) -> None:
+    def test_glob_expansion_single_match(self, tmp_path: Path) -> None:
         """Test glob expansion with single matching file."""
-        pass
+        from pgtail_py.multi_tailer import GlobPattern
 
-    @pytest.mark.skip(reason="Phase 8: Glob patterns not yet implemented")
-    def test_glob_expansion_multiple_matches(self) -> None:
+        # Create single log file
+        log_file = tmp_path / "test.log"
+        log_file.write_text("test content")
+
+        # Change to tmp_path directory
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            glob = GlobPattern.from_path("*.log")
+            matches = glob.expand()
+
+            assert len(matches) == 1
+            assert matches[0].name == "test.log"
+        finally:
+            os.chdir(original_cwd)
+
+    def test_glob_expansion_multiple_matches(self, tmp_path: Path) -> None:
         """Test glob expansion with multiple matching files."""
-        pass
+        from pgtail_py.multi_tailer import GlobPattern
 
-    @pytest.mark.skip(reason="Phase 8: Glob patterns not yet implemented")
-    def test_glob_no_matches_error(self) -> None:
+        # Create multiple log files with different mtimes
+        import time
+
+        for name in ["a.log", "b.log", "c.log"]:
+            log_file = tmp_path / name
+            log_file.write_text(f"content of {name}")
+            time.sleep(0.01)  # Ensure different mtimes
+
+        # Change to tmp_path directory
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            glob = GlobPattern.from_path("*.log")
+            matches = glob.expand()
+
+            assert len(matches) == 3
+            # Should be sorted by mtime (newest first)
+            names = [m.name for m in matches]
+            assert "a.log" in names
+            assert "b.log" in names
+            assert "c.log" in names
+        finally:
+            os.chdir(original_cwd)
+
+    def test_glob_no_matches_error(self, tmp_path: Path) -> None:
         """Test error when glob matches no files."""
-        pass
+        from pgtail_py.multi_tailer import GlobPattern
+
+        # Don't create any files
+        glob = GlobPattern.from_path(str(tmp_path / "*.nonexistent"))
+        matches = glob.expand()
+
+        assert len(matches) == 0
+
+    def test_is_glob_pattern(self) -> None:
+        """Test glob pattern detection."""
+        from pgtail_py.multi_tailer import is_glob_pattern
+
+        assert is_glob_pattern("*.log") is True
+        assert is_glob_pattern("test?.log") is True
+        assert is_glob_pattern("test[abc].log") is True
+        assert is_glob_pattern("/path/to/*.log") is True
+        assert is_glob_pattern("test.log") is False
+        assert is_glob_pattern("/path/to/test.log") is False
+
+    def test_glob_pattern_from_path_absolute(self, tmp_path: Path) -> None:
+        """Test GlobPattern.from_path with absolute path."""
+        from pgtail_py.multi_tailer import GlobPattern
+
+        pattern = str(tmp_path / "*.log")
+        glob = GlobPattern.from_path(pattern)
+
+        assert glob.directory == tmp_path
+        assert glob.pattern == "*.log"
+
+    def test_glob_pattern_from_path_relative(self) -> None:
+        """Test GlobPattern.from_path with relative path."""
+        from pgtail_py.multi_tailer import GlobPattern
+
+        glob = GlobPattern.from_path("logs/*.log")
+
+        assert glob.pattern == "*.log"
+        assert "logs" in str(glob.directory)
 
 
 class TestMultiFileTailer:
-    """Tests for multi-file tailer (T097 - placeholder for Phase 9)."""
+    """Tests for multi-file tailer (T097 - Phase 8/9 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 9: Multi-file tailer not yet implemented")
-    def test_multiple_files_interleaved(self) -> None:
+    def test_multiple_files_interleaved(self, tmp_path: Path) -> None:
         """Test entries from multiple files are interleaved by timestamp."""
-        pass
+        import time
 
-    @pytest.mark.skip(reason="Phase 9: Multi-file tailer not yet implemented")
-    def test_format_detection_per_file(self) -> None:
+        from pgtail_py.multi_tailer import MultiFileTailer
+        from pgtail_py.time_filter import TimeFilter
+
+        # Create two log files with entries
+        log1 = tmp_path / "a.log"
+        log2 = tmp_path / "b.log"
+
+        # File 1: entries at 10:30:45 and 10:30:47
+        log1.write_text(
+            "2024-01-15 10:30:45.123 UTC [111] LOG:  entry from file a (first)\n"
+            "2024-01-15 10:30:47.123 UTC [111] LOG:  entry from file a (third)\n"
+        )
+
+        # File 2: entry at 10:30:46
+        log2.write_text("2024-01-15 10:30:46.123 UTC [222] LOG:  entry from file b (second)\n")
+
+        # Create time filter to read from beginning
+        from datetime import datetime, timezone
+
+        time_filter = TimeFilter(since=datetime(2024, 1, 1, tzinfo=timezone.utc))
+
+        tailer = MultiFileTailer(
+            paths=[log1, log2],
+            time_filter=time_filter,
+        )
+        tailer.start()
+
+        try:
+            time.sleep(0.3)
+
+            buffer = tailer.get_buffer()
+            assert len(buffer) >= 3
+
+            # Verify source files are set
+            source_files = [e.source_file for e in buffer]
+            assert "a.log" in source_files
+            assert "b.log" in source_files
+        finally:
+            tailer.stop()
+
+    def test_format_detection_per_file(self, tmp_path: Path) -> None:
         """Test each file has independent format detection."""
-        pass
+        import time
+
+        from pgtail_py.format_detector import LogFormat
+        from pgtail_py.multi_tailer import MultiFileTailer
+        from pgtail_py.time_filter import TimeFilter
+
+        # Create TEXT format log
+        text_log = tmp_path / "text.log"
+        text_log.write_text("2024-01-15 10:30:45.123 UTC [12345] LOG:  text format entry\n")
+
+        # Create time filter to read from beginning
+        from datetime import datetime, timezone
+
+        time_filter = TimeFilter(since=datetime(2024, 1, 1, tzinfo=timezone.utc))
+
+        # Track detected formats
+        detected_formats: dict[str, LogFormat] = {}
+
+        def on_format(path, fmt):
+            detected_formats[path.name] = fmt
+
+        tailer = MultiFileTailer(
+            paths=[text_log],
+            time_filter=time_filter,
+        )
+        tailer.set_format_callback(on_format)
+        tailer.start()
+
+        try:
+            time.sleep(0.3)
+
+            # Should detect TEXT format
+            assert "text.log" in detected_formats
+            assert detected_formats["text.log"] == LogFormat.TEXT
+        finally:
+            tailer.stop()
+
+    def test_file_count(self, tmp_path: Path) -> None:
+        """Test file_count property."""
+        from pgtail_py.multi_tailer import MultiFileTailer
+
+        # Create multiple log files
+        log1 = tmp_path / "a.log"
+        log2 = tmp_path / "b.log"
+        log1.write_text("content")
+        log2.write_text("content")
+
+        tailer = MultiFileTailer(paths=[log1, log2])
+        tailer.start()
+
+        try:
+            assert tailer.file_count == 2
+            assert len(tailer.file_paths) == 2
+        finally:
+            tailer.stop()
 
 
 class TestStdinReader:

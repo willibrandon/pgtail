@@ -77,6 +77,9 @@ class LogEntry:
     pid: int | None = None
     format: LogFormat = field(default=LogFormat.TEXT)
 
+    # Multi-file tailing support
+    source_file: str | None = None  # Filename (not full path) for multi-file display
+
     # Extended fields (structured formats only)
     user_name: str | None = None
     database_name: str | None = None
@@ -138,6 +141,7 @@ class LogEntry:
             "raw",
             "pid",
             "format",
+            "source_file",
             "user_name",
             "database_name",
             "application_name",

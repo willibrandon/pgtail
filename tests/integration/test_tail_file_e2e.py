@@ -334,44 +334,138 @@ class TestTailFileNoPathArgument:
 
 
 class TestGlobPatternExpansion:
-    """Integration tests for glob pattern expansion (T090 - placeholder for Phase 8)."""
+    """Integration tests for glob pattern expansion (T090 - Phase 8 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 8: Glob patterns not yet implemented")
-    def test_glob_expansion_finds_files(self) -> None:
+    def test_glob_expansion_finds_files(self, tmp_path: Path) -> None:
         """Test glob pattern finds matching files."""
-        pass
+        from pgtail_py.multi_tailer import GlobPattern
 
-    @pytest.mark.skip(reason="Phase 8: Glob patterns not yet implemented")
-    def test_glob_expansion_sorts_by_mtime(self) -> None:
+        # Create matching files
+        (tmp_path / "test1.log").write_text("content1")
+        (tmp_path / "test2.log").write_text("content2")
+        (tmp_path / "other.txt").write_text("not matched")
+
+        pattern = str(tmp_path / "*.log")
+        glob = GlobPattern.from_path(pattern)
+        matches = glob.expand()
+
+        assert len(matches) == 2
+        names = [m.name for m in matches]
+        assert "test1.log" in names
+        assert "test2.log" in names
+        assert "other.txt" not in names
+
+    def test_glob_expansion_sorts_by_mtime(self, tmp_path: Path) -> None:
         """Test glob results are sorted by modification time."""
-        pass
+        import time
+
+        from pgtail_py.multi_tailer import GlobPattern
+
+        # Create files with different mtimes
+        first = tmp_path / "first.log"
+        first.write_text("oldest")
+        time.sleep(0.02)
+
+        second = tmp_path / "second.log"
+        second.write_text("middle")
+        time.sleep(0.02)
+
+        third = tmp_path / "third.log"
+        third.write_text("newest")
+
+        pattern = str(tmp_path / "*.log")
+        glob = GlobPattern.from_path(pattern)
+        matches = glob.expand()
+
+        # Should be sorted newest first
+        assert len(matches) == 3
+        assert matches[0].name == "third.log"
+        assert matches[1].name == "second.log"
+        assert matches[2].name == "first.log"
 
 
 class TestGlobNoMatches:
-    """Integration tests for glob pattern with no matches (T091 - placeholder for Phase 8)."""
+    """Integration tests for glob pattern with no matches (T091 - Phase 8 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 8: Glob patterns not yet implemented")
-    def test_glob_no_matches_error_message(self) -> None:
+    def test_glob_no_matches_error_message(self, tmp_path: Path) -> None:
         """Test error message when glob matches nothing."""
-        pass
+        from pgtail_py.multi_tailer import expand_glob_pattern
+
+        pattern = str(tmp_path / "*.nonexistent")
+        paths, error = expand_glob_pattern(pattern)
+
+        assert paths == []
+        assert error is not None
+        assert "No files match pattern" in error
 
 
 class TestMultipleFileArguments:
-    """Integration tests for multiple --file arguments (T092 - placeholder for Phase 9)."""
+    """Integration tests for multiple --file arguments (T092 - Phase 8/9 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 9: Multiple files not yet implemented")
-    def test_multiple_files_accepted(self) -> None:
+    def test_multiple_files_accepted(self, tmp_path: Path) -> None:
         """Test multiple --file arguments are accepted."""
-        pass
+        from pgtail_py.multi_tailer import MultiFileTailer
+
+        # Create multiple log files
+        log1 = tmp_path / "a.log"
+        log2 = tmp_path / "b.log"
+        log3 = tmp_path / "c.log"
+        log1.write_text("content a")
+        log2.write_text("content b")
+        log3.write_text("content c")
+
+        # Create tailer with multiple files
+        tailer = MultiFileTailer(paths=[log1, log2, log3])
+        tailer.start()
+
+        try:
+            assert tailer.file_count == 3
+        finally:
+            tailer.stop()
 
 
 class TestMultiFileTimestampInterleaving:
-    """Integration tests for multi-file timestamp interleaving (T093 - placeholder for Phase 9)."""
+    """Integration tests for multi-file timestamp interleaving (T093 - Phase 8/9 implementation)."""
 
-    @pytest.mark.skip(reason="Phase 9: Multi-file interleaving not yet implemented")
-    def test_entries_interleaved_by_timestamp(self) -> None:
+    def test_entries_interleaved_by_timestamp(self, tmp_path: Path) -> None:
         """Test entries from multiple files are interleaved by timestamp."""
-        pass
+        import time
+
+        from datetime import datetime, timezone
+
+        from pgtail_py.multi_tailer import MultiFileTailer
+        from pgtail_py.time_filter import TimeFilter
+
+        # Create files with interleaved timestamps
+        log1 = tmp_path / "a.log"
+        log2 = tmp_path / "b.log"
+
+        # File 1 has timestamps at :45 and :47
+        log1.write_text(
+            "2024-01-15 10:30:45.000 UTC [111] LOG:  a first\n"
+            "2024-01-15 10:30:47.000 UTC [111] LOG:  a second\n"
+        )
+
+        # File 2 has timestamp at :46 (between file 1's entries)
+        log2.write_text("2024-01-15 10:30:46.000 UTC [222] LOG:  b middle\n")
+
+        time_filter = TimeFilter(since=datetime(2024, 1, 1, tzinfo=timezone.utc))
+        tailer = MultiFileTailer(paths=[log1, log2], time_filter=time_filter)
+        tailer.start()
+
+        try:
+            time.sleep(0.3)
+
+            buffer = tailer.get_buffer()
+            assert len(buffer) >= 3
+
+            # Check source files are set correctly
+            source_files = [e.source_file for e in buffer]
+            assert "a.log" in source_files
+            assert "b.log" in source_files
+
+        finally:
+            tailer.stop()
 
 
 class TestStdinPipeInput:

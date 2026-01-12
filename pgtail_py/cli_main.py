@@ -6,6 +6,7 @@ maintaining backward compatibility with the existing REPL interface.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -153,11 +154,11 @@ def tail(
         typer.Argument(help="Instance ID to tail (optional if --file is used)."),
     ] = None,
     file: Annotated[
-        str | None,
+        list[str] | None,
         typer.Option(
             "--file",
             "-f",
-            help="Path to log file to tail (alternative to instance ID).",
+            help="Path or glob pattern to tail. Can specify multiple times.",
         ),
     ] = None,
     since: Annotated[
@@ -169,7 +170,7 @@ def tail(
         typer.Option("--stream", help="Use legacy streaming mode instead of Textual UI."),
     ] = False,
 ) -> None:
-    """Tail logs for a PostgreSQL instance or arbitrary log file.
+    """Tail logs for a PostgreSQL instance or arbitrary log file(s).
 
     Enters the interactive tail mode with vim-style navigation and filtering.
     Press 'q' to quit, '?' for help.
@@ -182,6 +183,12 @@ def tail(
         # Tail arbitrary log file
         pgtail tail --file ./tmp_check/log/postmaster.log
 
+        # Tail with glob pattern (multiple files)
+        pgtail tail --file "*.log"
+
+        # Tail multiple explicit files
+        pgtail tail --file a.log --file b.log
+
         # Tail with time filter
         pgtail tail --file ./test.log --since 5m
     """
@@ -189,8 +196,11 @@ def tail(
 
     enable_vt100_mode()
 
-    # T019: Validate mutual exclusivity
-    error = validate_tail_args(file_path=file, instance_id=instance_id)
+    # Convert single file to list format check
+    file_path_str = file[0] if file and len(file) == 1 else None
+
+    # T019: Validate mutual exclusivity (single file case)
+    error = validate_tail_args(file_path=file_path_str, instance_id=instance_id)
     if error:
         typer.echo(error, err=True)
         raise typer.Exit(1)
@@ -198,19 +208,44 @@ def tail(
     # Import here to avoid circular imports and speed up CLI startup
     from pgtail_py.cli import AppState
     from pgtail_py.cli_core import tail_status_bar_mode, tail_stream_mode
+    from pgtail_py.multi_tailer import GlobPattern, is_glob_pattern
     from pgtail_py.tail_textual import TailApp
     from pgtail_py.terminal import reset_terminal
     from pgtail_py.time_filter import TimeFilter, parse_time
 
     state = AppState()
 
-    # T020, T021: Handle --file option for file-only tailing
+    # T073, T074: Handle --file option(s) with glob pattern support
     if file is not None:
         # File-only mode - skip instance detection
-        resolved_path, path_error = validate_file_path(file)
-        if path_error:
-            typer.echo(path_error, err=True)
-            raise typer.Exit(1)
+        resolved_paths: list[tuple[Path, str | None]] = []  # (path, glob_pattern_or_None)
+        has_glob = False
+
+        for file_arg in file:
+            if is_glob_pattern(file_arg):
+                # T073: Expand glob pattern
+                has_glob = True
+                glob = GlobPattern.from_path(file_arg)
+                matches = glob.expand()
+
+                if not matches:
+                    # T074: Handle "No files match pattern" error
+                    typer.echo(f"No files match pattern: {file_arg}", err=True)
+                    raise typer.Exit(1)
+
+                # Warn if many files matched
+                if len(matches) > 10:
+                    typer.echo(f"Warning: Pattern matches {len(matches)} files", err=True)
+
+                for path in matches:
+                    resolved_paths.append((path, file_arg))
+            else:
+                # Single file path
+                resolved_path, path_error = validate_file_path(file_arg)
+                if path_error:
+                    typer.echo(path_error, err=True)
+                    raise typer.Exit(1)
+                resolved_paths.append((resolved_path, None))
 
         # Apply time filter if provided
         if since:
@@ -221,24 +256,40 @@ def tail(
                 typer.echo(f"Invalid time format: {e}", err=True)
                 raise typer.Exit(1) from None
 
-        # T022, T023: Set state and launch tail mode with instance=None
-        state.current_file_path = resolved_path
+        # Determine display name
+        if len(resolved_paths) == 1:
+            display_name = resolved_paths[0][0].name
+        elif has_glob:
+            display_name = f"{len(resolved_paths)} files"
+        else:
+            display_name = f"{len(resolved_paths)} files"
+
+        # T022, T023: Set state and launch tail mode
+        state.current_file_path = resolved_paths[0][0]  # Primary file
         state.tailing = True
 
         try:
             if stream:
-                # Legacy stream mode needs an instance - create file-only instance
+                # Legacy stream mode - only supports single file
+                if len(resolved_paths) > 1:
+                    typer.echo("--stream mode only supports single file. Use without --stream for multiple files.", err=True)
+                    raise typer.Exit(1)
                 from pgtail_py.instance import Instance
 
-                file_instance = Instance.file_only(resolved_path)
+                file_instance = Instance.file_only(resolved_paths[0][0])
                 tail_stream_mode(state, file_instance)
             else:
-                # T022: Call TailApp with instance=None for file-only mode
+                # Determine glob pattern for dynamic file watching
+                glob_pattern_str = next((p[1] for p in resolved_paths if p[1]), None)
+
+                # T022: Call TailApp with file paths
                 TailApp.run_tail_mode(
                     state=state,
                     instance=None,
-                    log_path=resolved_path,
-                    filename=resolved_path.name,
+                    log_path=resolved_paths[0][0],
+                    filename=display_name,
+                    multi_file_paths=[p[0] for p in resolved_paths] if len(resolved_paths) > 1 else None,
+                    glob_pattern=glob_pattern_str,
                 )
         except KeyboardInterrupt:
             pass

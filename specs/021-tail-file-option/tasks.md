@@ -208,11 +208,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T073 [US5] Implement glob pattern expansion for --file in pgtail_py/cli_main.py
-- [ ] T074 [US5] Handle "No files match pattern" error in pgtail_py/cli_main.py
-- [ ] T075 [US5] Implement multi-file interleaving by timestamp in pgtail_py/tailer.py
-- [ ] T076 [US5] Add source file indicator to log entries in pgtail_py/tail_rich.py
-- [ ] T089 [US5] Add dynamic file watching to include newly created files matching glob pattern in pgtail_py/tailer.py
+- [X] T073 [US5] Implement glob pattern expansion for --file in pgtail_py/cli_main.py
+- [X] T074 [US5] Handle "No files match pattern" error in pgtail_py/cli_main.py
+- [X] T075 [US5] Implement multi-file interleaving by timestamp in pgtail_py/tailer.py
+- [X] T076 [US5] Add source file indicator to log entries in pgtail_py/tail_rich.py
+- [X] T089 [US5] Add dynamic file watching to include newly created files matching glob pattern in pgtail_py/tailer.py
 
 ---
 
@@ -224,9 +224,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T077 [US6] Support multiple --file arguments in pgtail_py/cli_main.py
-- [ ] T078 [US6] Independent format detection per file in pgtail_py/tailer.py
-- [ ] T079 [US6] Source file indicator in display in pgtail_py/tail_rich.py
+- [X] T077 [US6] Support multiple --file arguments in pgtail_py/cli_main.py
+- [X] T078 [US6] Independent format detection per file in pgtail_py/tailer.py
+- [X] T079 [US6] Source file indicator in display in pgtail_py/tail_rich.py
 
 ---
 

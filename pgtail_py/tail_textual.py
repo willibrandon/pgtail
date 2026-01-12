@@ -25,6 +25,7 @@ from textual.binding import Binding, BindingType
 from textual.widgets import Input, Static
 
 from pgtail_py.filter import LogLevel
+from pgtail_py.multi_tailer import GlobPattern, MultiFileTailer
 from pgtail_py.regex_filter import FilterState
 from pgtail_py.tail_input import TailInput
 from pgtail_py.tail_log import TailLog
@@ -154,15 +155,19 @@ class TailApp(App[None]):
         max_lines: int = 10000,
         *,
         filename: str | None = None,
+        multi_file_paths: list[Path] | None = None,
+        glob_pattern: str | None = None,
     ) -> None:
         """Initialize TailApp.
 
         Args:
             state: pgtail AppState with filter settings.
             instance: PostgreSQL instance being tailed, or None for file-only mode.
-            log_path: Path to the log file.
+            log_path: Path to the log file (primary file for single-file mode).
             max_lines: Maximum lines to buffer (default 10,000).
             filename: Display name for status bar when instance is None.
+            multi_file_paths: List of paths for multi-file tailing (T075).
+            glob_pattern: Glob pattern for dynamic file watching (T089).
         """
         super().__init__()
         self._state: AppState = state
@@ -170,6 +175,7 @@ class TailApp(App[None]):
         self._log_path: Path = log_path
         self._max_lines: int = max_lines
         self._tailer: LogTailer | None = None
+        self._multi_tailer: MultiFileTailer | None = None  # T075: Multi-file support
         self._status: TailStatus | None = None
         self._running: bool = False
         # Store all entries for filter-based rebuilding
@@ -184,6 +190,10 @@ class TailApp(App[None]):
         self._detection_entries_scanned: int = 0  # Track entries scanned for detection
         # Track file unavailability for status bar updates (T052)
         self._last_file_unavailable: bool = False
+        # Multi-file tailing support (T075, T089)
+        self._multi_file_paths: list[Path] | None = multi_file_paths
+        self._glob_pattern: str | None = glob_pattern
+        self._is_multi_file: bool = multi_file_paths is not None and len(multi_file_paths) > 1
 
     @property
     def status(self) -> TailStatus | None:
@@ -198,6 +208,8 @@ class TailApp(App[None]):
         log_path: Path,
         *,
         filename: str | None = None,
+        multi_file_paths: list[Path] | None = None,
+        glob_pattern: str | None = None,
     ) -> None:
         """Run tail mode (blocking).
 
@@ -206,10 +218,19 @@ class TailApp(App[None]):
         Args:
             state: pgtail AppState with filter settings.
             instance: PostgreSQL instance being tailed, or None for file-only mode.
-            log_path: Path to the log file.
+            log_path: Path to the log file (primary file).
             filename: Display name for status bar when instance is None.
+            multi_file_paths: List of paths for multi-file tailing (T075).
+            glob_pattern: Glob pattern for dynamic file watching (T089).
         """
-        app = cls(state=state, instance=instance, log_path=log_path, filename=filename)
+        app = cls(
+            state=state,
+            instance=instance,
+            log_path=log_path,
+            filename=filename,
+            multi_file_paths=multi_file_paths,
+            glob_pattern=glob_pattern,
+        )
         app.run()
 
     def compose(self) -> ComposeResult:
@@ -283,25 +304,44 @@ class TailApp(App[None]):
         if self._state.slow_query_config and self._state.slow_query_config.enabled:
             self._status.set_slow_threshold(int(self._state.slow_query_config.warning_ms))
 
-        # Create tailer - handle both instance and file-only modes
+        # Create tailer - handle single-file, multi-file, and instance modes
         data_dir = self._instance.data_dir if self._instance else None
-        self._tailer = LogTailer(
-            log_path=self._log_path,
-            active_levels=self._state.active_levels,
-            regex_state=self._state.regex_state,
-            time_filter=self._state.time_filter,
-            field_filter=self._state.field_filter,
-            on_entry=self._on_raw_entry,
-            data_dir=data_dir,
-            log_directory=self._log_path.parent if self._log_path else None,
-        )
 
-        # Expose tailer on state for export/pipe commands to access buffer
-        self._state.tailer = self._tailer
+        if self._is_multi_file and self._multi_file_paths:
+            # T075, T089: Multi-file tailing with timestamp interleaving
+            glob_obj = GlobPattern.from_path(self._glob_pattern) if self._glob_pattern else None
+            self._multi_tailer = MultiFileTailer(
+                paths=self._multi_file_paths,
+                glob_pattern=glob_obj,
+                active_levels=self._state.active_levels,
+                regex_state=self._state.regex_state,
+                time_filter=self._state.time_filter,
+                field_filter=self._state.field_filter,
+                on_entry=self._on_raw_entry,
+            )
+            # Expose for export/pipe commands
+            self._state.tailer = None  # Multi-file doesn't use LogTailer
+        else:
+            # Single-file mode
+            self._tailer = LogTailer(
+                log_path=self._log_path,
+                active_levels=self._state.active_levels,
+                regex_state=self._state.regex_state,
+                time_filter=self._state.time_filter,
+                field_filter=self._state.field_filter,
+                on_entry=self._on_raw_entry,
+                data_dir=data_dir,
+                log_directory=self._log_path.parent if self._log_path else None,
+            )
+            # Expose tailer on state for export/pipe commands to access buffer
+            self._state.tailer = self._tailer
 
         # Start tailer and consumer
         self._running = True
-        self._tailer.start()
+        if self._multi_tailer:
+            self._multi_tailer.start()
+        else:
+            self._tailer.start()
         self._start_consumer()
 
         # Update initial status
@@ -318,6 +358,8 @@ class TailApp(App[None]):
         self._running = False
         if self._tailer:
             self._tailer.stop()
+        if self._multi_tailer:
+            self._multi_tailer.stop()
 
     # Actions
 
@@ -404,11 +446,18 @@ class TailApp(App[None]):
         Optimized to process entries in batches - loops until queue is
         empty before yielding, avoiding unnecessary sleeps when entries
         are available.
+
+        Supports both single-file LogTailer and multi-file MultiFileTailer.
         """
         loop = asyncio.get_running_loop()
 
-        while self._running and self._tailer:
-            tailer = self._tailer  # Capture for lambda
+        # Determine which tailer to use
+        active_tailer = self._multi_tailer or self._tailer
+        if active_tailer is None:
+            return
+
+        while self._running and active_tailer:
+            tailer = active_tailer  # Capture for lambda
             entries_processed = 0
 
             try:
@@ -451,11 +500,21 @@ class TailApp(App[None]):
         Called periodically from the consumer loop to detect when the log file
         is deleted or becomes inaccessible. Updates the status bar to show
         "(unavailable)" indicator when file is missing. (T052)
+
+        For multi-file mode, shows unavailable if any file is unavailable.
         """
-        if self._tailer is None or self._status is None:
+        if self._status is None:
             return
 
-        current_unavailable = self._tailer.file_unavailable
+        if self._multi_tailer:
+            # Multi-file mode: check if any files are unavailable
+            current_unavailable = len(self._multi_tailer.files_unavailable) > 0
+        elif self._tailer:
+            # Single-file mode
+            current_unavailable = self._tailer.file_unavailable
+        else:
+            return
+
         if current_unavailable != self._last_file_unavailable:
             self._last_file_unavailable = current_unavailable
             self._status.set_file_unavailable(current_unavailable)

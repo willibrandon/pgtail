@@ -123,7 +123,10 @@ def format_entry_compact(entry: LogEntry, theme: Theme | None = None) -> str:
 
     Formats a log entry as a single-line Rich markup string suitable for
     the Textual Log widget's write_line() method. Uses a compact
-    format: timestamp [pid] LEVEL sql_state: message
+    format: [source_file] timestamp [pid] LEVEL sql_state: message
+
+    When source_file is set (multi-file mode), shows the filename in
+    brackets before the timestamp for easy identification. (T076)
 
     Args:
         entry: Parsed log entry to format.
@@ -133,6 +136,11 @@ def format_entry_compact(entry: LogEntry, theme: Theme | None = None) -> str:
         Rich markup string representation of the entry.
     """
     parts: list[str] = []
+
+    # T076: Source file indicator for multi-file mode (before timestamp)
+    if entry.source_file:
+        # Use magenta for source file to stand out
+        parts.append(f"[magenta]\\[{entry.source_file}][/magenta]")
 
     # Timestamp (dim)
     if entry.timestamp:
