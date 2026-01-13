@@ -20,7 +20,7 @@
     <SummaryInformation Description="Interactive PostgreSQL log tailer with auto-detection and color output" />
 
     <!-- Application icon for Add/Remove Programs -->
-    <Icon Id="pgtail.ico" SourceFile="pgtail.ico" />
+    <Icon Id="pgtail.ico" SourceFile="..\art\pgtail.ico" />
     <Property Id="ARPPRODUCTICON" Value="pgtail.ico" />
 
     <!-- Upgrade handling: removes old versions before installing new -->
