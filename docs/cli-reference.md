@@ -196,6 +196,49 @@ In tail mode (after `tail <id>`), use the `tail>` prompt:
 
 See [Tail Mode](guide/tail-mode.md) for complete key reference.
 
+## REPL Bottom Toolbar
+
+The REPL displays a persistent bottom toolbar showing current state:
+
+```
+ 3 instances • levels:ERROR,WARNING filter:/timeout/i • Theme: monokai
+```
+
+**Sections:**
+
+| Section | Description |
+|---------|-------------|
+| Instance count | "N instances" or "No instances (run 'refresh')" |
+| Active filters | Level, regex, time, and slow query filters |
+| Theme | Current color theme name |
+
+The toolbar updates automatically when state changes.
+
+## Shell Mode
+
+Run shell commands without leaving pgtail:
+
+| Key/Command | Description |
+|-------------|-------------|
+| `!<command>` | Run shell command immediately |
+| `!` (empty) | Enter shell mode |
+| `Escape` | Exit shell mode |
+
+When in shell mode, the toolbar shows:
+
+```
+ SHELL • Press Escape to exit
+```
+
+**Examples:**
+
+```
+pgtail> !ls -la           # Run ls immediately
+pgtail> !                  # Enter shell mode
+! echo "hello"             # Run in shell mode
+! <Escape>                 # Exit shell mode
+```
+
 ## Shell Completion
 
 pgtail provides intelligent shell completion for commands, options, and PostgreSQL instance IDs.

@@ -15,6 +15,8 @@ pgtail automatically discovers running PostgreSQL instances and provides real-ti
 - **Slow query detection** - Highlight slow queries based on configurable thresholds
 - **Desktop notifications** - Get notified of errors, patterns, or slow queries
 - **Themeable** - Built-in themes (dark, light, monokai, solarized) plus custom themes
+- **Status toolbar** - REPL bottom toolbar shows instance count, active filters, and theme
+- **Shell mode** - Run shell commands without leaving pgtail (`!` prefix)
 - **Export** - Export filtered logs to files or pipe to external commands
 
 ## Quick Example

@@ -53,5 +53,13 @@ DARK_THEME = Theme(
         "input_prompt": ColorStyle(fg="ansigreen", bold=True),
         # Separator lines
         "separator": ColorStyle(fg="ansibrightblack"),
+        # REPL bottom toolbar
+        "bottom-toolbar": ColorStyle(fg="#cccccc", bg="#1a1a1a"),
+        "bottom-toolbar.text": ColorStyle(fg="#cccccc", bg="#1a1a1a"),
+        "toolbar": ColorStyle(fg="#cccccc", bg="#1a1a1a"),
+        "toolbar.dim": ColorStyle(fg="#666666", bg="#1a1a1a"),
+        "toolbar.filter": ColorStyle(fg="#55ffff", bg="#1a1a1a"),
+        "toolbar.warning": ColorStyle(fg="#ffff55", bg="#1a1a1a"),
+        "toolbar.shell": ColorStyle(fg="#ffffff", bg="#1a1a1a", bold=True),
     },
 )

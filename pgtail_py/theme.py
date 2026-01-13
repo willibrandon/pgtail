@@ -686,6 +686,9 @@ class ThemeManager:
         for ui_name, style in theme.ui.items():
             style_string = style.to_style_string()
             if style_string:
+                # Add noreverse for bottom-toolbar to override prompt_toolkit's default
+                if ui_name.startswith("bottom-toolbar"):
+                    style_string = f"{style_string} noreverse"
                 rules.append((ui_name, style_string))
 
         return Style(rules)

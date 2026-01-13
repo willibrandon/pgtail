@@ -53,5 +53,13 @@ MONOKAI_THEME = Theme(
         "input_prompt": ColorStyle(fg="#a6e22e", bold=True),  # Green
         # Separator lines
         "separator": ColorStyle(fg="#75715e"),  # Gray
+        # REPL bottom toolbar (Monokai palette)
+        "bottom-toolbar": ColorStyle(fg="#f8f8f2", bg="#3e3d32"),
+        "bottom-toolbar.text": ColorStyle(fg="#f8f8f2", bg="#3e3d32"),
+        "toolbar": ColorStyle(fg="#f8f8f2", bg="#3e3d32"),
+        "toolbar.dim": ColorStyle(fg="#75715e", bg="#3e3d32"),
+        "toolbar.filter": ColorStyle(fg="#66d9ef", bg="#3e3d32"),
+        "toolbar.warning": ColorStyle(fg="#fd971f", bg="#3e3d32"),
+        "toolbar.shell": ColorStyle(fg="#f8f8f2", bg="#3e3d32", bold=True),
     },
 )

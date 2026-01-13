@@ -38,7 +38,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Color themes: 6 built-in themes plus custom TOML themes
 - **SQL syntax highlighting** in log messages (keywords, identifiers, strings, numbers, operators, comments)
 - Color-coded output by severity with SQL state codes
-- REPL with autocomplete and command history
+- REPL with autocomplete, command history, and **bottom toolbar** (instance count, filters, theme)
+- **Shell mode** (`!` prefix) with clear toolbar indicator
 - Cross-platform (macOS, Linux, Windows)
 
 ## Installation
@@ -835,8 +836,32 @@ level all        # Clear level filter (show all)
 |-----|--------|
 | Tab | Autocomplete |
 | Up/Down | Command history |
+| `!` | Enter shell mode (with empty prompt) |
+| Escape | Exit shell mode |
 | Ctrl+C | Stop current tail |
 | Ctrl+D | Exit pgtail |
+
+## REPL Bottom Toolbar
+
+The REPL displays a persistent bottom toolbar showing current state:
+
+```
+ 7 instances • levels:ERROR,WARNING filter:/deadlock/i • Theme: monokai
+```
+
+**Toolbar sections:**
+- **Instance count**: Number of detected PostgreSQL instances, or "No instances (run 'refresh')" warning
+- **Active filters**: Level filters, regex patterns, time filters, slow query thresholds
+- **Theme**: Currently active color theme
+
+**Shell mode indicator:**
+
+When you press `!` with an empty prompt to enter shell mode, the toolbar changes to:
+```
+ SHELL • Press Escape to exit
+```
+
+The toolbar updates automatically when you change filters, switch themes, or refresh instances.
 
 ## Troubleshooting
 

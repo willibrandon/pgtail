@@ -53,5 +53,13 @@ LIGHT_THEME = Theme(
         "input_prompt": ColorStyle(fg="darkgreen", bold=True),
         # Separator lines
         "separator": ColorStyle(fg="gray"),
+        # REPL bottom toolbar
+        "bottom-toolbar": ColorStyle(fg="#333333", bg="#e0e0e0"),
+        "bottom-toolbar.text": ColorStyle(fg="#333333", bg="#e0e0e0"),
+        "toolbar": ColorStyle(fg="#333333", bg="#e0e0e0"),
+        "toolbar.dim": ColorStyle(fg="#888888", bg="#e0e0e0"),
+        "toolbar.filter": ColorStyle(fg="#007acc", bg="#e0e0e0"),
+        "toolbar.warning": ColorStyle(fg="#d9831f", bg="#e0e0e0"),
+        "toolbar.shell": ColorStyle(fg="#000000", bg="#e0e0e0", bold=True),
     },
 )

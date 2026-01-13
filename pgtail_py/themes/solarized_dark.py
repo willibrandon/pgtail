@@ -57,5 +57,13 @@ SOLARIZED_DARK_THEME = Theme(
         "input_prompt": ColorStyle(fg="#859900", bold=True),  # Green
         # Separator lines
         "separator": ColorStyle(fg="#586e75"),  # Base01
+        # REPL bottom toolbar (Solarized dark palette)
+        "bottom-toolbar": ColorStyle(fg="#839496", bg="#073642"),  # Base0 on Base02
+        "bottom-toolbar.text": ColorStyle(fg="#839496", bg="#073642"),
+        "toolbar": ColorStyle(fg="#839496", bg="#073642"),  # Base0 on Base02
+        "toolbar.dim": ColorStyle(fg="#586e75", bg="#073642"),  # Base01
+        "toolbar.filter": ColorStyle(fg="#2aa198", bg="#073642"),  # Cyan
+        "toolbar.warning": ColorStyle(fg="#b58900", bg="#073642"),  # Yellow
+        "toolbar.shell": ColorStyle(fg="#fdf6e3", bg="#073642", bold=True),  # Base3
     },
 )
