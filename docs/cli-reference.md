@@ -195,3 +195,94 @@ In tail mode (after `tail <id>`), use the `tail>` prompt:
 ## Tail Mode Keys
 
 See [Tail Mode](guide/tail-mode.md) for complete key reference.
+
+## Shell Completion
+
+pgtail provides intelligent shell completion for commands, options, and PostgreSQL instance IDs.
+
+### Installing Completion
+
+The `--install-completion` flag auto-detects your current shell:
+
+```bash
+pgtail --install-completion
+```
+
+After installation, restart your shell or source your shell's config file:
+
+```bash
+# Bash
+source ~/.bashrc
+
+# Zsh
+source ~/.zshrc
+
+# Fish (automatic)
+```
+
+To view the completion script without installing (for manual setup or customization):
+
+```bash
+pgtail --show-completion
+```
+
+### What Gets Completed
+
+| Context | Completion |
+|---------|------------|
+| `pgtail <TAB>` | Commands (tail, list, config, etc.) |
+| `pgtail tail <TAB>` | Instance IDs with version/port/status |
+| `pgtail tail --<TAB>` | Options (--file, --since, --stdin) |
+| `pgtail tail --file <TAB>` | File paths |
+| `pgtail theme <TAB>` | Theme names |
+| `pgtail set <TAB>` | Config keys |
+
+### Instance ID Completion
+
+When completing instance IDs, pgtail shows helpful context:
+
+```bash
+$ pgtail tail <TAB>
+0  -- PG17:5432 (running)
+1  -- PG16:5433 (stopped)
+2  -- PG15:5434 (running)
+```
+
+The format is: `ID -- PGversion:port (status)`
+
+### Troubleshooting
+
+**Completion not working after installation:**
+
+1. Ensure you restarted your shell or sourced the config
+2. Check that the completion script was installed:
+   - Bash: `~/.bash_completions/pgtail.sh`
+   - Zsh: `~/.zfunc/_pgtail`
+   - Fish: `~/.config/fish/completions/pgtail.fish`
+
+**Zsh: command not found: compdef**
+
+Enable the completion system in `~/.zshrc`:
+
+```bash
+autoload -Uz compinit && compinit
+```
+
+**Bash: complete command not found**
+
+Ensure bash-completion is installed:
+
+```bash
+# macOS
+brew install bash-completion@2
+
+# Ubuntu/Debian
+sudo apt install bash-completion
+```
+
+**Removing completion:**
+
+```bash
+pgtail --show-completion  # View the script to find the installed location
+# Then manually delete the completion script from that location
+```

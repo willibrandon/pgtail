@@ -182,6 +182,24 @@ python -m pgtail_py
 ./dist/pgtail
 ```
 
+### Shell Completion
+
+pgtail supports shell completion for commands and PostgreSQL instance IDs. Tab completion shows available instances with version, port, and status:
+
+```bash
+$ pgtail tail <TAB>
+0  -- PG17:5432 (running)
+1  -- PG16:5433 (stopped)
+```
+
+Enable shell completion (auto-detects your current shell):
+
+```bash
+pgtail --install-completion
+```
+
+After installation, restart your shell or source your shell's config file.
+
 ### Commands
 
 ```

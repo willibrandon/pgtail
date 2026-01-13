@@ -23,6 +23,25 @@ app = typer.Typer(
 )
 
 
+def complete_instance_id(incomplete: str) -> list[tuple[str, str]]:
+    """Provide shell completion for PostgreSQL instance IDs."""
+    try:
+        instances = detect_all()
+        completions: list[tuple[str, str]] = []
+        for inst in instances:
+            id_str = str(inst.id)
+            if id_str.startswith(incomplete):
+                # Format: ("0", "PG17:5432 (running)")
+                status = "running" if inst.running else "stopped"
+                port = inst.port or "-"
+                version = inst.version or "unknown"
+                help_text = f"PG{version}:{port} ({status})"
+                completions.append((id_str, help_text))
+        return completions
+    except Exception:
+        return []
+
+
 def version_callback(value: bool) -> None:
     """Show version and exit."""
     if value:
@@ -151,7 +170,10 @@ def list_instances(
 def tail(
     instance_id: Annotated[
         int | None,
-        typer.Argument(help="Instance ID to tail (optional if --file or --stdin is used)."),
+        typer.Argument(
+            help="Instance ID to tail (optional if --file or --stdin is used).",
+            autocompletion=complete_instance_id,
+        ),
     ] = None,
     file: Annotated[
         list[str] | None,

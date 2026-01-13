@@ -140,6 +140,24 @@ pgtail
 pgtail> help
 ```
 
+## Shell Completion (Optional)
+
+Enable tab completion for commands and instance IDs (auto-detects your shell):
+
+```bash
+pgtail --install-completion
+```
+
+After installation, restart your shell. Then you can tab-complete instance IDs:
+
+```bash
+$ pgtail tail <TAB>
+0  -- PG17:5432 (running)
+1  -- PG16:5433 (stopped)
+```
+
+See [CLI Reference - Shell Completion](../cli-reference.md#shell-completion) for troubleshooting.
+
 ## Upgrading
 
 Check for available updates:
