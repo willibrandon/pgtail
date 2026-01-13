@@ -57,6 +57,7 @@ from pgtail_py.instance import Instance
 from pgtail_py.notifier import create_notifier
 from pgtail_py.notify import NotificationConfig, NotificationManager, NotificationRule, QuietHours
 from pgtail_py.regex_filter import FilterState
+from pgtail_py.repl_toolbar import create_toolbar_func
 from pgtail_py.slow_query import DurationStats, SlowQueryConfig, extract_duration
 from pgtail_py.tailer import LogTailer
 from pgtail_py.terminal import enable_vt100_mode
@@ -388,9 +389,13 @@ def _create_key_bindings(state: AppState) -> KeyBindings:
         else:
             buf.insert_text("!")
 
-    @bindings.add("escape")
+    @bindings.add("escape", eager=True)
     def _handle_escape(event: KeyPressEvent) -> None:
-        """Handle Escape key - exit shell mode."""
+        """Handle Escape key - exit shell mode.
+
+        eager=True makes this respond immediately without waiting for
+        potential escape sequences (avoids 0.5-2s delay).
+        """
         state.shell_mode = False
         event.app.invalidate()
 
@@ -438,14 +443,17 @@ def main() -> None:
     print("Type 'help' for available commands, 'quit' to exit.")
     print()
 
-    # Set up prompt session with history, key bindings, and completer
+    # Set up prompt session with history, key bindings, completer, and toolbar
     history_path = ensure_history_dir()
     bindings = _create_key_bindings(state)
     completer = PgtailCompleter(get_instances=lambda: state.instances)
+    toolbar_func = create_toolbar_func(state)
     session: PromptSession[str] = PromptSession(
         history=FileHistory(str(history_path)),
         key_bindings=bindings,
         completer=completer,
+        bottom_toolbar=toolbar_func,
+        style=get_style(state.theme_manager),
     )
 
     # REPL loop

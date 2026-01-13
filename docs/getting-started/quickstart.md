@@ -8,11 +8,18 @@ Launch the interactive REPL:
 pgtail
 ```
 
-You'll see the prompt:
+You'll see the prompt with a bottom toolbar:
 
 ```
 pgtail>
+ 7 instances • Theme: dark
 ```
+
+The toolbar shows:
+
+- **Instance count** - Number of detected PostgreSQL instances
+- **Active filters** - When configured (levels, regex, time filters)
+- **Theme** - Current color theme
 
 ## List PostgreSQL Instances
 

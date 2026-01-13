@@ -105,6 +105,7 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 
 - `pgtail_py/__main__.py` - Entry point for `python -m pgtail_py`
 - `pgtail_py/cli.py` - REPL loop, command handlers, AppState
+- `pgtail_py/repl_toolbar.py` - Bottom toolbar for REPL mode (instance count, filters, theme, shell mode)
 - `pgtail_py/detector.py` - Platform dispatcher for instance detection
 - `pgtail_py/detector_unix.py` - Unix/macOS detection (processes, pgrx, PGDATA, known paths)
 - `pgtail_py/detector_windows.py` - Windows-specific detection
@@ -337,6 +338,33 @@ The `theme` command manages color schemes for log output:
 - `pgtail_py/theme.py` - Theme, ColorStyle dataclasses; ThemeManager; color validation
 - `pgtail_py/themes/` - Built-in theme definitions (dark.py, light.py, etc.)
 - `pgtail_py/cli_theme.py` - theme command handlers
+
+## REPL Bottom Toolbar
+
+The REPL displays a persistent bottom toolbar showing current state at a glance:
+
+**Toolbar Content:**
+- **Instance count**: "N instances" or "No instances (run 'refresh')" warning
+- **Active filters**: Level filters, regex patterns, time filters, slow query threshold
+- **Theme name**: Currently active color theme
+- **Shell mode**: "SHELL • Press Escape to exit" when in shell mode
+
+**Styling:**
+- Theme-aware colors defined in each theme's `ui` dictionary
+- Style classes: `toolbar`, `toolbar.dim`, `toolbar.filter`, `toolbar.warning`, `toolbar.shell`
+- Container styles: `bottom-toolbar`, `bottom-toolbar.text` (with `noreverse` to override prompt_toolkit defaults)
+
+**Implementation:**
+- `repl_toolbar.py` - `create_toolbar_func(state)` returns callable for `PromptSession.bottom_toolbar`
+- `_format_filters(state)` - Formats active filters for display
+- Toolbar updates dynamically on each render cycle (reads from AppState)
+- Respects NO_COLOR environment variable (plain text without styling)
+
+**Filter Display Rules:**
+- Level filter: Only shown when not all levels are selected
+- Regex filter: First pattern with flags, "+N more" indicator for multiple
+- Time filter: Uses `TimeFilter.format_description()` output
+- Slow query: Only shown when threshold differs from default (100ms)
 
 ## SQL Syntax Highlighting
 

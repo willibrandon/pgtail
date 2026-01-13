@@ -54,5 +54,13 @@ HIGH_CONTRAST_THEME = Theme(
         "input_prompt": ColorStyle(fg="green", bold=True),
         # Separator lines
         "separator": ColorStyle(fg="white"),
+        # REPL bottom toolbar (WCAG AA compliant)
+        "bottom-toolbar": ColorStyle(fg="white", bg="ansiblack"),
+        "bottom-toolbar.text": ColorStyle(fg="white", bg="ansiblack"),
+        "toolbar": ColorStyle(fg="white", bg="ansiblack", bold=True),
+        "toolbar.dim": ColorStyle(fg="white", bg="ansiblack"),
+        "toolbar.filter": ColorStyle(fg="cyan", bg="ansiblack", bold=True),
+        "toolbar.warning": ColorStyle(fg="yellow", bg="ansiblack", bold=True),
+        "toolbar.shell": ColorStyle(fg="white", bg="ansiblack", bold=True, underline=True),
     },
 )

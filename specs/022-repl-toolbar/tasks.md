@@ -25,12 +25,12 @@
 
 **Purpose**: Add toolbar style definitions to all built-in themes
 
-- [ ] T001 [P] Add toolbar styles to dark theme in pgtail_py/themes/dark.py
-- [ ] T002 [P] Add toolbar styles to light theme in pgtail_py/themes/light.py
-- [ ] T003 [P] Add toolbar styles to high-contrast theme in pgtail_py/themes/high_contrast.py
-- [ ] T004 [P] Add toolbar styles to monokai theme in pgtail_py/themes/monokai.py
-- [ ] T005 [P] Add toolbar styles to solarized-dark theme in pgtail_py/themes/solarized_dark.py
-- [ ] T006 [P] Add toolbar styles to solarized-light theme in pgtail_py/themes/solarized_light.py
+- [x] T001 [P] Add toolbar styles to dark theme in pgtail_py/themes/dark.py
+- [x] T002 [P] Add toolbar styles to light theme in pgtail_py/themes/light.py
+- [x] T003 [P] Add toolbar styles to high-contrast theme in pgtail_py/themes/high_contrast.py
+- [x] T004 [P] Add toolbar styles to monokai theme in pgtail_py/themes/monokai.py
+- [x] T005 [P] Add toolbar styles to solarized-dark theme in pgtail_py/themes/solarized_dark.py
+- [x] T006 [P] Add toolbar styles to solarized-light theme in pgtail_py/themes/solarized_light.py
 
 **Style keys to add to each theme's `ui` dictionary:**
 - `toolbar` - Default toolbar text (normal foreground on dark background)
@@ -49,9 +49,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Create repl_toolbar.py module with create_toolbar_func() in pgtail_py/repl_toolbar.py
-- [ ] T008 Implement _format_filters() helper function in pgtail_py/repl_toolbar.py
-- [ ] T009 Integrate toolbar with PromptSession in pgtail_py/cli.py
+- [x] T007 Create repl_toolbar.py module with create_toolbar_func() in pgtail_py/repl_toolbar.py
+- [x] T008 Implement _format_filters() helper function in pgtail_py/repl_toolbar.py
+- [x] T009 Integrate toolbar with PromptSession in pgtail_py/cli.py
 
 **Implementation details for T007-T008:**
 - `create_toolbar_func(state: AppState)` returns a callable that returns `list[tuple[str, str]]`
@@ -85,15 +85,15 @@ session: PromptSession[str] = PromptSession(
 
 ### Tests for User Story 1
 
-- [ ] T010 [P] [US1] Unit test for instance count display (0, 1, N) in tests/unit/test_repl_toolbar.py
-- [ ] T011 [P] [US1] Unit test for singular/plural grammar ("1 instance" vs "2 instances") in tests/unit/test_repl_toolbar.py
-- [ ] T012 [P] [US1] Unit test for "No instances" warning with refresh hint in tests/unit/test_repl_toolbar.py
+- [x] T010 [P] [US1] Unit test for instance count display (0, 1, N) in tests/unit/test_repl_toolbar.py
+- [x] T011 [P] [US1] Unit test for singular/plural grammar ("1 instance" vs "2 instances") in tests/unit/test_repl_toolbar.py
+- [x] T012 [P] [US1] Unit test for "No instances" warning with refresh hint in tests/unit/test_repl_toolbar.py
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement instance count display (0, 1, N cases) in get_toolbar() in pgtail_py/repl_toolbar.py
-- [ ] T014 [US1] Implement "No instances" warning state with "(run 'refresh')" hint in pgtail_py/repl_toolbar.py
-- [ ] T015 [US1] Verify toolbar updates after `refresh` command completes
+- [x] T013 [US1] Implement instance count display (0, 1, N cases) in get_toolbar() in pgtail_py/repl_toolbar.py
+- [x] T014 [US1] Implement "No instances" warning state with "(run 'refresh')" hint in pgtail_py/repl_toolbar.py
+- [x] T015 [US1] Verify toolbar updates after `refresh` command completes
 
 **Acceptance Scenarios (from spec.md):**
 1. Given 3 PostgreSQL instances detected → toolbar displays "3 instances"
@@ -113,22 +113,22 @@ session: PromptSession[str] = PromptSession(
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Unit test for level filter display in tests/unit/test_repl_toolbar.py
-- [ ] T017 [P] [US2] Unit test for regex filter display with flags in tests/unit/test_repl_toolbar.py
-- [ ] T018 [P] [US2] Unit test for time filter display in tests/unit/test_repl_toolbar.py
-- [ ] T019 [P] [US2] Unit test for slow query threshold display in tests/unit/test_repl_toolbar.py
-- [ ] T020 [P] [US2] Unit test for multiple filters combined in tests/unit/test_repl_toolbar.py
-- [ ] T021 [P] [US2] Unit test for filter section hidden when no filters configured in tests/unit/test_repl_toolbar.py
+- [x] T016 [P] [US2] Unit test for level filter display in tests/unit/test_repl_toolbar.py
+- [x] T017 [P] [US2] Unit test for regex filter display with flags in tests/unit/test_repl_toolbar.py
+- [x] T018 [P] [US2] Unit test for time filter display in tests/unit/test_repl_toolbar.py
+- [x] T019 [P] [US2] Unit test for slow query threshold display in tests/unit/test_repl_toolbar.py
+- [x] T020 [P] [US2] Unit test for multiple filters combined in tests/unit/test_repl_toolbar.py
+- [x] T021 [P] [US2] Unit test for filter section hidden when no filters configured in tests/unit/test_repl_toolbar.py
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Implement level filter formatting (only when not ALL levels) in _format_filters() in pgtail_py/repl_toolbar.py
-- [ ] T023 [US2] Implement regex filter formatting (first pattern with flags, +N more indicator) in pgtail_py/repl_toolbar.py
-- [ ] T024 [US2] Implement time filter formatting using format_description() in pgtail_py/repl_toolbar.py
-- [ ] T025 [US2] Implement slow query threshold formatting (only when != 100ms default) in pgtail_py/repl_toolbar.py
-- [ ] T026 [US2] Implement filter section visibility logic (hide when no filters) in pgtail_py/repl_toolbar.py
-- [ ] T027 [US2] Verify toolbar updates after filter commands (levels, filter, since, slow)
-- [ ] T028 [US2] Verify toolbar updates after `clear` command removes filters
+- [x] T022 [US2] Implement level filter formatting (only when not ALL levels) in _format_filters() in pgtail_py/repl_toolbar.py
+- [x] T023 [US2] Implement regex filter formatting (first pattern with flags, +N more indicator) in pgtail_py/repl_toolbar.py
+- [x] T024 [US2] Implement time filter formatting using format_description() in pgtail_py/repl_toolbar.py
+- [x] T025 [US2] Implement slow query threshold formatting (only when != 100ms default) in pgtail_py/repl_toolbar.py
+- [x] T026 [US2] Implement filter section visibility logic (hide when no filters) in pgtail_py/repl_toolbar.py
+- [x] T027 [US2] Verify toolbar updates after filter commands (levels, filter, since, slow)
+- [x] T028 [US2] Verify toolbar updates after `clear` command removes filters
 
 **Acceptance Scenarios (from spec.md):**
 1. No filters configured → no filter section appears
@@ -151,13 +151,13 @@ session: PromptSession[str] = PromptSession(
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] Unit test for theme name display in tests/unit/test_repl_toolbar.py
-- [ ] T030 [P] [US3] Unit test for theme display unchanged on `theme list` in tests/unit/test_repl_toolbar.py
+- [x] T029 [P] [US3] Unit test for theme name display in tests/unit/test_repl_toolbar.py
+- [x] T030 [P] [US3] Unit test for theme display unchanged on `theme list` in tests/unit/test_repl_toolbar.py
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Implement theme name display at right side of toolbar in pgtail_py/repl_toolbar.py
-- [ ] T032 [US3] Verify toolbar updates after `theme <name>` command
+- [x] T031 [US3] Implement theme name display at right side of toolbar in pgtail_py/repl_toolbar.py
+- [x] T032 [US3] Verify toolbar updates after `theme <name>` command
 
 **Acceptance Scenarios (from spec.md):**
 1. Default dark theme active → shows "Theme: dark" at right side
@@ -176,14 +176,14 @@ session: PromptSession[str] = PromptSession(
 
 ### Tests for User Story 4
 
-- [ ] T033 [P] [US4] Unit test for shell mode indicator display in tests/unit/test_repl_toolbar.py
-- [ ] T034 [P] [US4] Unit test for return to normal display after shell mode exit in tests/unit/test_repl_toolbar.py
+- [x] T033 [P] [US4] Unit test for shell mode indicator display in tests/unit/test_repl_toolbar.py
+- [x] T034 [P] [US4] Unit test for return to normal display after shell mode exit in tests/unit/test_repl_toolbar.py
 
 ### Implementation for User Story 4
 
-- [ ] T035 [US4] Implement shell mode display branch in get_toolbar() in pgtail_py/repl_toolbar.py
-- [ ] T036 [US4] Implement shell mode exit hint "Press Escape to exit" in pgtail_py/repl_toolbar.py
-- [ ] T037 [US4] Verify toolbar returns to idle display after Escape or shell command execution
+- [x] T035 [US4] Implement shell mode display branch in get_toolbar() in pgtail_py/repl_toolbar.py
+- [x] T036 [US4] Implement shell mode exit hint "Press Escape to exit" in pgtail_py/repl_toolbar.py
+- [x] T037 [US4] Verify toolbar returns to idle display after Escape or shell command execution
 
 **Acceptance Scenarios (from spec.md):**
 1. User in idle mode, presses `!` with empty buffer → toolbar shows "SHELL" bold white with "Press Escape to exit" dim
@@ -198,13 +198,13 @@ session: PromptSession[str] = PromptSession(
 
 **Purpose**: Handle edge cases specified in spec.md
 
-- [ ] T038 [P] Unit test for NO_COLOR environment variable support in tests/unit/test_repl_toolbar.py
-- [ ] T039 [P] Unit test for long theme name truncation (>15 chars) in tests/unit/test_repl_toolbar.py
-- [ ] T040 [P] Unit test for regex pattern with special characters displayed as-is in tests/unit/test_repl_toolbar.py
-- [ ] T041 Implement NO_COLOR support (plain text, no styling) in pgtail_py/repl_toolbar.py
-- [ ] T042 Implement theme name truncation (15 chars max with ellipsis) in pgtail_py/repl_toolbar.py
-- [ ] T043 Implement bullet separator (•) between toolbar sections in pgtail_py/repl_toolbar.py
-- [ ] T044 Verify toolbar does not flicker while typing in prompt
+- [x] T038 [P] Unit test for NO_COLOR environment variable support in tests/unit/test_repl_toolbar.py
+- [x] T039 [P] Unit test for long theme name truncation (>15 chars) in tests/unit/test_repl_toolbar.py
+- [x] T040 [P] Unit test for regex pattern with special characters displayed as-is in tests/unit/test_repl_toolbar.py
+- [x] T041 Implement NO_COLOR support (plain text, no styling) in pgtail_py/repl_toolbar.py
+- [x] T042 Implement theme name truncation (15 chars max with ellipsis) in pgtail_py/repl_toolbar.py
+- [x] T043 Implement bullet separator (•) between toolbar sections in pgtail_py/repl_toolbar.py
+- [x] T044 Verify toolbar does not flicker while typing in prompt
 
 **Edge Cases (from spec.md):**
 - Terminal width < 40 columns → graceful truncation (prioritize instance > filters > theme)
@@ -221,14 +221,14 @@ session: PromptSession[str] = PromptSession(
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T045 Run full test suite (make test) to verify no regressions
-- [ ] T046 Run linting (make lint) and fix any issues
-- [ ] T047 Manual verification: Launch pgtail and verify instance count displays
-- [ ] T048 Manual verification: Configure filters and verify they appear in toolbar
-- [ ] T049 Manual verification: Switch themes and verify toolbar updates
-- [ ] T050 Manual verification: Enter shell mode and verify indicator appears
-- [ ] T051 Manual verification: Set NO_COLOR=1 and verify plain text output
-- [ ] T052 Run quickstart.md verification checklist
+- [x] T045 Run full test suite (make test) to verify no regressions
+- [x] T046 Run linting (make lint) and fix any issues
+- [x] T047 Manual verification: Launch pgtail and verify instance count displays
+- [x] T048 Manual verification: Configure filters and verify they appear in toolbar
+- [x] T049 Manual verification: Switch themes and verify toolbar updates
+- [x] T050 Manual verification: Enter shell mode and verify indicator appears
+- [x] T051 Manual verification: Set NO_COLOR=1 and verify plain text output
+- [x] T052 Run quickstart.md verification checklist
 
 ---
 
