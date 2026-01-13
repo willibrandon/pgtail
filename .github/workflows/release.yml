@@ -121,6 +121,7 @@ jobs:
             --mode=standalone `
             --output-dir=dist `
             --output-filename=pgtail `
+            --windows-icon-from-ico=art/pgtail.ico `
             --include-package=pgtail_py `
             --include-package=psutil `
             --include-package-data=certifi `

@@ -19,6 +19,10 @@
 
     <SummaryInformation Description="Interactive PostgreSQL log tailer with auto-detection and color output" />
 
+    <!-- Application icon for Add/Remove Programs -->
+    <Icon Id="pgtail.ico" SourceFile="pgtail.ico" />
+    <Property Id="ARPPRODUCTICON" Value="pgtail.ico" />
+
     <!-- Upgrade handling: removes old versions before installing new -->
     <MajorUpgrade DowngradeErrorMessage="A newer version of pgtail is already installed."
                   AllowSameVersionUpgrades="yes" />
