@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 # Command definitions: name -> description
 COMMANDS: dict[str, str] = {
     "list": "Show detected PostgreSQL instances",
-    "ls": "Alias for 'list'",
+    "ls": "Show detected PostgreSQL instances",
     "tail": "Tail logs for an instance (by ID or path)",
     "levels": "Set log level filter (e.g., 'levels ERROR WARNING')",
     "filter": "Set regex filter (e.g., 'filter /pattern/')",
