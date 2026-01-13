@@ -575,9 +575,9 @@ zcat archived.log.gz | pgtail tail --stdin
 - `pgtail_py/commands.py` - PathCompleter for tab completion
 
 ## Recent Changes
+- 022-repl-toolbar: Added Python 3.10+ + prompt_toolkit >=3.0.0 (already in use for REPL)
 - 021-tail-file-option: Added Python 3.10+ + prompt_toolkit, textual, typer, psutil
 - 020-nuitka-migration: Added Python 3.10+ (targeting Python 3.12 for builds)
-- 019-distribution: Added Python 3.10+ + PyInstaller (binary building), GitHub Actions, Homebrew (Ruby formula), winget (YAML manifest)
 
 ## MCP Tools: Textual Documentation
 
@@ -634,3 +634,5 @@ get_textual_doc(path="widgets/log.md")
 - N/A (no persistence for this feature; config file already in place) (020-nuitka-migration)
 - Python 3.10+ + prompt_toolkit, textual, typer, psutil (021-tail-file-option)
 - N/A (file system read-only) (021-tail-file-option)
+- Python 3.10+ + prompt_toolkit >=3.0.0 (already in use for REPL) (022-repl-toolbar)
+- N/A (extends existing config schema with `display.show_toolbar`) (022-repl-toolbar)
