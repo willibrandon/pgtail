@@ -239,7 +239,7 @@ def handle_command(state: AppState, line: str) -> bool:
         if state.tailing:
             stop_command(state)
         return False
-    elif cmd == "list":
+    elif cmd in ("list", "ls"):
         list_command(state)
     elif cmd == "help":
         help_command()
