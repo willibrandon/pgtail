@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
 from collections import deque
 from collections.abc import Callable
 from pathlib import Path
 from queue import Empty, Queue
+
+# Windows st_ino is unreliable - can return different values for same file
+IS_WINDOWS = sys.platform == "win32"
 
 from pgtail_py.colors import print_log_entry
 from pgtail_py.detector import find_latest_log, read_current_logfiles
@@ -119,14 +123,20 @@ class LogTailer:
             return False
 
         # File was rotated if:
-        # 1. Inode changed (obvious replacement)
+        # 1. Inode changed (obvious replacement) - SKIP on Windows where st_ino is unreliable
         # 2. File truncated (size < our position)
-        # 3. Size unchanged but mtime changed while we're at EOF (inode reuse case)
-        inode_changed = current_inode != self._inode
+        # 3. Size unchanged but mtime changed while we're at EOF (inode reuse case) - SKIP on Windows
+        #
+        # On Windows:
+        # - st_ino can return different values for the same file
+        # - Reading a file can update mtime, causing false mtime_rotation triggers
+        # So on Windows, we only use file_truncated for rotation detection.
+        inode_changed = False if IS_WINDOWS else (current_inode != self._inode)
         file_truncated = size < self._position
         # Same inode, same size, but mtime changed and we're at EOF
         # This catches Linux inode reuse after delete+recreate with same-size content
-        mtime_rotation = (
+        # SKIP on Windows: reading files can update mtime, causing infinite re-read loops
+        mtime_rotation = False if IS_WINDOWS else (
             self._mtime is not None
             and current_mtime != self._mtime
             and size == self._last_size  # Size must be same (not just growing)
@@ -172,11 +182,15 @@ class LogTailer:
                 return True
 
         # Fall back to finding latest log file by mtime
+        # Only switch to files with the same extension to avoid flip-flopping
+        # between .log and .csv when both exist (PostgreSQL logging to both)
         if self._log_directory:
             new_path = find_latest_log(self._log_directory)
             if new_path and new_path.resolve() != self._log_path.resolve():
-                self._switch_to_file(new_path)
-                return True
+                # Only switch if same extension (e.g., .log -> .log, not .log -> .csv)
+                if new_path.suffix == self._log_path.suffix:
+                    self._switch_to_file(new_path)
+                    return True
 
         return False
 
