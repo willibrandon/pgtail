@@ -136,12 +136,16 @@ class LogTailer:
         # Same inode, same size, but mtime changed and we're at EOF
         # This catches Linux inode reuse after delete+recreate with same-size content
         # SKIP on Windows: reading files can update mtime, causing infinite re-read loops
-        mtime_rotation = False if IS_WINDOWS else (
-            self._mtime is not None
-            and current_mtime != self._mtime
-            and size == self._last_size  # Size must be same (not just growing)
-            and self._position >= size  # We must be at EOF
-            and size > 0  # File must have content
+        mtime_rotation = (
+            False
+            if IS_WINDOWS
+            else (
+                self._mtime is not None
+                and current_mtime != self._mtime
+                and size == self._last_size  # Size must be same (not just growing)
+                and self._position >= size  # We must be at EOF
+                and size > 0  # File must have content
+            )
         )
         rotated = inode_changed or file_truncated or mtime_rotation
 
