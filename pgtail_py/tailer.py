@@ -11,9 +11,6 @@ from collections.abc import Callable
 from pathlib import Path
 from queue import Empty, Queue
 
-# Windows st_ino is unreliable - can return different values for same file
-IS_WINDOWS = sys.platform == "win32"
-
 from pgtail_py.colors import print_log_entry
 from pgtail_py.detector import find_latest_log, read_current_logfiles
 from pgtail_py.field_filter import FieldFilterState
@@ -22,6 +19,9 @@ from pgtail_py.format_detector import LogFormat, detect_format
 from pgtail_py.parser import LogEntry, parse_log_line
 from pgtail_py.regex_filter import FilterState
 from pgtail_py.time_filter import TimeFilter
+
+# Windows st_ino is unreliable - can return different values for same file
+IS_WINDOWS = sys.platform == "win32"
 
 # Default maximum buffer size for storing entries
 DEFAULT_BUFFER_MAX_SIZE = 10000
@@ -186,11 +186,13 @@ class LogTailer:
         # between .log and .csv when both exist (PostgreSQL logging to both)
         if self._log_directory:
             new_path = find_latest_log(self._log_directory)
-            if new_path and new_path.resolve() != self._log_path.resolve():
-                # Only switch if same extension (e.g., .log -> .log, not .log -> .csv)
-                if new_path.suffix == self._log_path.suffix:
-                    self._switch_to_file(new_path)
-                    return True
+            if (
+                new_path
+                and new_path.resolve() != self._log_path.resolve()
+                and new_path.suffix == self._log_path.suffix
+            ):
+                self._switch_to_file(new_path)
+                return True
 
         return False
 
