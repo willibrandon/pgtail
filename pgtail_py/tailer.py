@@ -76,6 +76,7 @@ class LogTailer:
         self._position = 0
         self._inode: int | None = None
         self._mtime: float | None = None  # Track modification time for rotation detection
+        self._ctime: float | None = None  # Track creation time for Windows rotation detection
         self._last_size: int = 0  # Track file size for rotation detection
         self._running = False
         self._queue: Queue[LogEntry] = Queue()
@@ -104,12 +105,16 @@ class LogTailer:
         """Check if the log file has been rotated.
 
         Detects rotation via:
-        - Inode change (file replaced)
-        - File truncation (size < position)
-        - Modification time change with SAME size at EOF (file recreated with same inode)
+        - Inode change (file replaced) - Unix only
+        - File truncation (size < position) - all platforms
+        - Modification time change with SAME size at EOF (inode reuse) - Unix only
+        - Creation time change (file recreated) - Windows only
 
         The mtime check handles Linux inode reuse, where a deleted file's inode
         may be immediately reused for a new file at the same path.
+
+        On Windows, st_ctime is the actual file creation time, so we use it to
+        detect when a file is deleted and recreated.
 
         Returns:
             True if file was rotated, False otherwise.
@@ -118,20 +123,22 @@ class LogTailer:
             stat_info = os.stat(self._log_path)
             current_inode = stat_info.st_ino
             current_mtime = stat_info.st_mtime
+            current_ctime = stat_info.st_ctime
             size = stat_info.st_size
         except OSError:
             return False
 
         # File was rotated if:
-        # 1. Inode changed (obvious replacement) - SKIP on Windows where st_ino is unreliable
+        # 1. Inode changed (file replaced) - works on both Unix and Windows
         # 2. File truncated (size < our position)
-        # 3. Size unchanged but mtime changed while we're at EOF (inode reuse case) - SKIP on Windows
+        # 3. Size unchanged but mtime changed while we're at EOF (inode reuse case) - Unix only
+        # 4. Creation time changed (file recreated) - Windows only (redundant with inode but kept as backup)
         #
         # On Windows:
-        # - st_ino can return different values for the same file
+        # - st_ino is reliable for detecting file replacement (changes when file is deleted/recreated)
         # - Reading a file can update mtime, causing false mtime_rotation triggers
-        # So on Windows, we only use file_truncated for rotation detection.
-        inode_changed = False if IS_WINDOWS else (current_inode != self._inode)
+        # - st_ctime is the actual file creation time (unlike Unix where it's inode change time)
+        inode_changed = self._inode is not None and current_inode != self._inode
         file_truncated = size < self._position
         # Same inode, same size, but mtime changed and we're at EOF
         # This catches Linux inode reuse after delete+recreate with same-size content
@@ -147,11 +154,16 @@ class LogTailer:
                 and size > 0  # File must have content
             )
         )
-        rotated = inode_changed or file_truncated or mtime_rotation
+        # On Windows, use creation time to detect file recreation
+        # st_ctime on Windows is the actual file creation time, so it changes
+        # when a file is deleted and recreated (unlike Unix where it's inode change time)
+        ctime_changed = IS_WINDOWS and self._ctime is not None and current_ctime != self._ctime
+        rotated = inode_changed or file_truncated or mtime_rotation or ctime_changed
 
         if rotated:
             self._inode = current_inode
             self._mtime = current_mtime
+            self._ctime = current_ctime
             self._last_size = size
             self._position = 0
             # Reset format detection on rotation - new file may have different format
@@ -160,6 +172,7 @@ class LogTailer:
 
         # Update tracking for next check
         self._mtime = current_mtime
+        self._ctime = current_ctime
         self._last_size = size
         return False
 
@@ -212,10 +225,12 @@ class LogTailer:
             stat_info = os.stat(new_path)
             self._inode = stat_info.st_ino
             self._mtime = stat_info.st_mtime
+            self._ctime = stat_info.st_ctime
             self._last_size = stat_info.st_size
         except OSError:
             self._inode = None
             self._mtime = None
+            self._ctime = None
             self._last_size = 0
         self._detected_format = None
         self._file_unavailable_since = None
@@ -342,11 +357,13 @@ class LogTailer:
                 self._position = stat_info.st_size
             self._inode = stat_info.st_ino
             self._mtime = stat_info.st_mtime
+            self._ctime = stat_info.st_ctime
             self._last_size = stat_info.st_size
         except OSError:
             self._position = 0
             self._inode = None
             self._mtime = None
+            self._ctime = None
             self._last_size = 0
 
         # Start polling thread

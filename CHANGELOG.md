@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Windows log file flip-flopping between .log and .csv when PostgreSQL logs to both formats simultaneously
-- Disabled unreliable inode-based rotation detection on Windows (st_ino returns inconsistent values)
-- Disabled mtime-based rotation detection on Windows (file reads can update mtime)
+- Disabled mtime-based rotation detection on Windows (file reads can update mtime, causing false triggers)
 
 ## [0.4.0] - 2025-01-13
 
