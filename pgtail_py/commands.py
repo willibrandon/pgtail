@@ -361,8 +361,12 @@ class PgtailCompleter(Completer):
         if parts is None or len(parts) <= 2:
             subcommands = {
                 "list": "Show all highlighters with status",
-                "enable": "Enable a highlighter",
-                "disable": "Disable a highlighter",
+                "on": "Enable all highlighting globally",
+                "off": "Disable all highlighting globally",
+                "enable": "Enable a specific highlighter",
+                "disable": "Disable a specific highlighter",
+                "add": "Add custom highlighter (name pattern [--style])",
+                "remove": "Remove custom highlighter",
                 "clear": "Clear all regex highlight patterns (legacy)",
             }
             for name, description in subcommands.items():

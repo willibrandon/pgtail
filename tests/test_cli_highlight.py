@@ -19,6 +19,8 @@ from pgtail_py.cli_highlight import (
     format_highlight_list_rich,
     handle_highlight_enable,
     handle_highlight_disable,
+    handle_highlight_on,
+    handle_highlight_off,
     handle_highlight_command,
     validate_highlighter_name,
     get_all_highlighter_names,
@@ -720,3 +722,142 @@ class TestInvalidRegexHandling:
         # The invalid highlighter should be skipped
         names = [h.name for h in chain.highlighters]
         assert "invalid" not in names
+
+
+# =============================================================================
+# Test Highlight On/Off Commands (T127)
+# =============================================================================
+
+
+class TestHighlightOnOff:
+    """Tests for highlight on/off (global toggle) commands."""
+
+    def test_on_enables_highlighting(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """'highlight on' enables highlighting when disabled."""
+        highlighting_config.enabled = False
+        assert not highlighting_config.enabled
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_on(highlighting_config)
+
+        assert success is True
+        assert "enabled" in message.lower()
+        assert highlighting_config.enabled is True
+
+    def test_on_when_already_enabled(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """'highlight on' shows message when already enabled."""
+        assert highlighting_config.enabled is True
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_on(highlighting_config)
+
+        assert success is True
+        assert "already enabled" in message.lower()
+
+    def test_off_disables_highlighting(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """'highlight off' disables highlighting when enabled."""
+        assert highlighting_config.enabled is True
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_off(highlighting_config)
+
+        assert success is True
+        assert "disabled" in message.lower()
+        assert highlighting_config.enabled is False
+
+    def test_off_when_already_disabled(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """'highlight off' shows message when already disabled."""
+        highlighting_config.enabled = False
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_off(highlighting_config)
+
+        assert success is True
+        assert "already disabled" in message.lower()
+
+    def test_on_via_dispatcher(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Test 'on' command through dispatcher."""
+        highlighting_config.enabled = False
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_command(["on"], highlighting_config)
+
+        assert success is True
+        assert highlighting_config.enabled is True
+
+    def test_off_via_dispatcher(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Test 'off' command through dispatcher."""
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_command(["off"], highlighting_config)
+
+        assert success is True
+        assert highlighting_config.enabled is False
+
+    def test_on_persists_to_config(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """'highlight on' persists state to config."""
+        highlighting_config.enabled = False
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config") as mock_save:
+            handle_highlight_on(highlighting_config)
+            mock_save.assert_called_once_with(highlighting_config, None)
+
+    def test_off_persists_to_config(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """'highlight off' persists state to config."""
+        with patch("pgtail_py.cli_highlight.save_highlighting_config") as mock_save:
+            handle_highlight_off(highlighting_config)
+            mock_save.assert_called_once_with(highlighting_config, None)
+
+    def test_warn_func_passed_to_save(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """warn_func is passed to save_highlighting_config for on/off."""
+        warn_func = MagicMock()
+        highlighting_config.enabled = False
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config") as mock_save:
+            handle_highlight_on(highlighting_config, warn_func)
+            mock_save.assert_called_once_with(highlighting_config, warn_func)
+
+    def test_global_disabled_affects_all_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """When global is disabled, all highlighters report as disabled."""
+        # All should be enabled by default
+        assert highlighting_config.is_highlighter_enabled("timestamp") is True
+        assert highlighting_config.is_highlighter_enabled("pid") is True
+
+        # Disable globally
+        highlighting_config.enabled = False
+
+        # Now all should report as disabled
+        assert highlighting_config.is_highlighter_enabled("timestamp") is False
+        assert highlighting_config.is_highlighter_enabled("pid") is False
+
+    def test_global_enabled_after_off_on_cycle(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Highlighters work after off/on cycle."""
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            # Turn off
+            handle_highlight_off(highlighting_config)
+            assert not highlighting_config.is_highlighter_enabled("timestamp")
+
+            # Turn back on
+            handle_highlight_on(highlighting_config)
+            assert highlighting_config.is_highlighter_enabled("timestamp")

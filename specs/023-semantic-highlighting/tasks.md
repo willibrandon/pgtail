@@ -286,12 +286,12 @@
 
 ### Commands (FR-130, FR-131, FR-132)
 
-- [ ] T122 [US6] Implement `highlight` command (status display) in pgtail_py/cli_highlight.py
-- [ ] T123 [US6] Implement `highlight on` command in pgtail_py/cli_highlight.py (FR-131)
-- [ ] T124 [US6] Implement `highlight off` command in pgtail_py/cli_highlight.py (FR-132)
-- [ ] T125 [US6] Update HighlighterChain to check global enabled state in pgtail_py/highlighter.py
-- [ ] T126 [US6] Persist global enabled state to config.toml in pgtail_py/highlighting_config.py (FR-120)
-- [ ] T127 [US6] Write tests for highlight on/off in tests/test_cli_highlight.py
+- [X] T122 [US6] Implement `highlight` command (status display) in pgtail_py/cli_highlight.py
+- [X] T123 [US6] Implement `highlight on` command in pgtail_py/cli_highlight.py (FR-131)
+- [X] T124 [US6] Implement `highlight off` command in pgtail_py/cli_highlight.py (FR-132)
+- [X] T125 [US6] Update HighlighterChain to check global enabled state in pgtail_py/highlighter.py
+- [X] T126 [US6] Persist global enabled state to config.toml in pgtail_py/highlighting_config.py (FR-120)
+- [X] T127 [US6] Write tests for highlight on/off in tests/test_cli_highlight.py
 
 **Checkpoint**: User Story 6 complete - global toggle works
 

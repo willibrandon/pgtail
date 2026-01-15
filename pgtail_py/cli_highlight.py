@@ -10,6 +10,7 @@ Provides commands for managing semantic highlighting:
 
 from __future__ import annotations
 
+import contextlib
 from difflib import get_close_matches
 from typing import TYPE_CHECKING
 
@@ -405,10 +406,8 @@ def parse_add_args(args: list[str]) -> tuple[str | None, str | None, str, int | 
             style = args[i + 1]
             i += 2
         elif args[i] == "--priority" and i + 1 < len(args):
-            try:
+            with contextlib.suppress(ValueError):
                 priority = int(args[i + 1])
-            except ValueError:
-                pass  # Invalid priority, ignore
             i += 2
         else:
             i += 1
@@ -542,6 +541,48 @@ def handle_highlight_remove(
 # =============================================================================
 
 
+def handle_highlight_on(
+    config: HighlightingConfig,
+    warn_func: Callable[[str], None] | None = None,
+) -> tuple[bool, str]:
+    """Enable all highlighting globally.
+
+    Args:
+        config: Highlighting configuration to modify.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        Tuple of (success, message).
+    """
+    if config.enabled:
+        return True, "Highlighting is already enabled."
+
+    config.enabled = True
+    save_highlighting_config(config, warn_func)
+    return True, "Highlighting enabled."
+
+
+def handle_highlight_off(
+    config: HighlightingConfig,
+    warn_func: Callable[[str], None] | None = None,
+) -> tuple[bool, str]:
+    """Disable all highlighting globally.
+
+    Args:
+        config: Highlighting configuration to modify.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        Tuple of (success, message).
+    """
+    if not config.enabled:
+        return True, "Highlighting is already disabled."
+
+    config.enabled = False
+    save_highlighting_config(config, warn_func)
+    return True, "Highlighting disabled."
+
+
 def handle_highlight_command(
     args: list[str],
     config: HighlightingConfig,
@@ -556,13 +597,19 @@ def handle_highlight_command(
         Tuple of (success, message or formatted output).
     """
     if not args:
-        # No subcommand - show list
+        # No subcommand - show list (status display)
         return True, format_highlight_list(config)
 
     subcommand = args[0].lower()
 
     if subcommand == "list":
         return True, format_highlight_list(config)
+
+    elif subcommand == "on":
+        return handle_highlight_on(config)
+
+    elif subcommand == "off":
+        return handle_highlight_off(config)
 
     elif subcommand == "enable":
         if len(args) < 2:
@@ -590,5 +637,5 @@ def handle_highlight_command(
         # Unknown subcommand
         return False, (
             f"Unknown subcommand '{subcommand}'. Available: "
-            "list, enable, disable, add, remove."
+            "list, on, off, enable, disable, add, remove."
         )

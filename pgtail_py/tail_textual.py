@@ -922,7 +922,7 @@ class TailApp(App[None]):
         needs_rebuild = cmd in filter_commands and not is_help_request
 
         # Highlight commands that modify state need rebuild + cache reset
-        highlight_modifies = {"enable", "disable", "add", "remove"}
+        highlight_modifies = {"enable", "disable", "add", "remove", "on", "off"}
         needs_highlight_rebuild = (
             cmd == "highlight"
             and args
@@ -965,5 +965,9 @@ class TailApp(App[None]):
                 log_widget.write_line(f"[green]Enabled highlighter '{args[1]}'[/green]")
             elif subcommand == "disable" and len(args) >= 2:
                 log_widget.write_line(f"[green]Disabled highlighter '{args[1]}'[/green]")
+            elif subcommand == "on":
+                log_widget.write_line("[green]Highlighting enabled[/green]")
+            elif subcommand == "off":
+                log_widget.write_line("[yellow]Highlighting disabled[/yellow]")
 
         self._update_status()

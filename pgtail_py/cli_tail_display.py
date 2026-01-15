@@ -178,6 +178,8 @@ def handle_highlight_command(
         handle_highlight_add,
         handle_highlight_disable,
         handle_highlight_enable,
+        handle_highlight_off,
+        handle_highlight_on,
         handle_highlight_remove,
     )
     from pgtail_py.cli_utils import warn
@@ -198,6 +200,30 @@ def handle_highlight_command(
         return True
 
     subcommand = args[0].lower()
+
+    # Handle 'on' subcommand - enable all highlighting globally
+    if subcommand == "on":
+        success, message = handle_highlight_on(config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
+    # Handle 'off' subcommand - disable all highlighting globally
+    if subcommand == "off":
+        success, message = handle_highlight_off(config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "yellow" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
 
     # Handle 'enable' subcommand
     if subcommand == "enable":
@@ -275,7 +301,7 @@ def handle_highlight_command(
         return True
 
     # Unknown subcommand
-    msg = f"Unknown subcommand: {subcommand}. Use: list, enable, disable, add, remove"
+    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove"
     if buffer is not None:
         buffer.insert_command_output(FormattedText([("class:error", msg)]))
     elif log_widget is not None:

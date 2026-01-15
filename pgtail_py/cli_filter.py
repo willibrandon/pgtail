@@ -12,9 +12,10 @@ from pgtail_py.cli_highlight import (
     handle_highlight_add,
     handle_highlight_disable,
     handle_highlight_enable,
+    handle_highlight_off,
+    handle_highlight_on,
     handle_highlight_remove,
 )
-from pgtail_py.tail_rich import reset_highlighter_chain
 from pgtail_py.cli_utils import warn
 from pgtail_py.field_filter import (
     FIELD_ALIASES,
@@ -29,6 +30,7 @@ from pgtail_py.regex_filter import (
     RegexFilter,
     parse_filter_arg,
 )
+from pgtail_py.tail_rich import reset_highlighter_chain
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
@@ -274,6 +276,22 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         print_formatted_text(formatted)
         return
 
+    # Handle 'on' subcommand - enable all highlighting
+    if arg == "on":
+        success, message = handle_highlight_on(state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
+        print(message)
+        return
+
+    # Handle 'off' subcommand - disable all highlighting
+    if arg == "off":
+        success, message = handle_highlight_off(state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
+        print(message)
+        return
+
     # Handle 'enable' subcommand
     if arg == "enable":
         if len(args) < 2:
@@ -330,6 +348,8 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         print(f"Unknown subcommand: {arg}")
         print()
         print("Usage: highlight list             Show semantic highlighters")
+        print("       highlight on               Enable all highlighting")
+        print("       highlight off              Disable all highlighting")
         print("       highlight enable <name>    Enable a highlighter")
         print("       highlight disable <name>   Disable a highlighter")
         print("       highlight add <name> <pattern> [--style <style>] [--priority <num>]")
