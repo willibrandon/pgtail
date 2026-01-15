@@ -29,6 +29,58 @@ if TYPE_CHECKING:
     from pgtail_py.cli import AppState
 
 
+def _get_config_value(state: AppState, key: str) -> object:
+    """Get a config value by dotted key path.
+
+    Handles both 2-level (slow.warn) and 3-level (highlighting.duration.slow) keys.
+
+    Args:
+        state: Current application state.
+        key: Dotted key path.
+
+    Returns:
+        Current value from config.
+    """
+    parts = key.split(".")
+
+    # Handle 3-level keys (e.g., highlighting.duration.slow)
+    if len(parts) == 3 and parts[0] == "highlighting":
+        if parts[1] == "duration":
+            return getattr(state.config.highlighting_duration, parts[2])
+        elif parts[1] == "enabled_highlighters":
+            return getattr(state.config.highlighting_enabled, parts[2])
+
+    # Standard 2-level keys
+    section = getattr(state.config, parts[0])
+    return getattr(section, parts[1])
+
+
+def _set_config_value(state: AppState, key: str, value: object) -> None:
+    """Set a config value by dotted key path.
+
+    Handles both 2-level (slow.warn) and 3-level (highlighting.duration.slow) keys.
+
+    Args:
+        state: Current application state.
+        key: Dotted key path.
+        value: Value to set.
+    """
+    parts = key.split(".")
+
+    # Handle 3-level keys (e.g., highlighting.duration.slow)
+    if len(parts) == 3 and parts[0] == "highlighting":
+        if parts[1] == "duration":
+            setattr(state.config.highlighting_duration, parts[2], value)
+            return
+        elif parts[1] == "enabled_highlighters":
+            setattr(state.config.highlighting_enabled, parts[2], value)
+            return
+
+    # Standard 2-level keys
+    section = getattr(state.config, parts[0])
+    setattr(section, parts[1], value)
+
+
 def set_command(state: AppState, args: list[str]) -> None:
     """Handle the 'set' command - set or display a config value.
 
@@ -60,9 +112,7 @@ def set_command(state: AppState, args: list[str]) -> None:
     # No value - display current value
     if len(args) == 1:
         # Get current value from config
-        parts = key.split(".")
-        section = getattr(state.config, parts[0])
-        current = getattr(section, parts[1])
+        current = _get_config_value(state, key)
         default = get_default_value(key)
         print(f"{key} = {current!r}")
         if current != default:
@@ -91,9 +141,7 @@ def set_command(state: AppState, args: list[str]) -> None:
         return
 
     # Update in-memory config
-    parts = key.split(".")
-    section = getattr(state.config, parts[0])
-    setattr(section, parts[1], validated)
+    _set_config_value(state, key, validated)
 
     # Apply changes immediately
     apply_setting(state, key)
@@ -149,9 +197,7 @@ def unset_command(state: AppState, args: list[str]) -> None:
         return
 
     # Revert in-memory value to default and apply
-    parts = key.split(".")
-    section = getattr(state.config, parts[0])
-    setattr(section, parts[1], default)
+    _set_config_value(state, key, default)
     apply_setting(state, key)
 
     # Show confirmation with default value
@@ -185,6 +231,22 @@ def apply_setting(state: AppState, key: str) -> None:
             slow_ms=state.config.slow.error,
             critical_ms=state.config.slow.critical,
         )
+    elif key.startswith("highlighting.duration."):
+        # Update highlighting config duration thresholds
+        from pgtail_py.tail_rich import reset_highlighter_chain
+
+        if key == "highlighting.duration.slow":
+            state.highlighting_config.duration_slow = state.config.highlighting_duration.slow
+        elif key == "highlighting.duration.very_slow":
+            state.highlighting_config.duration_very_slow = (
+                state.config.highlighting_duration.very_slow
+            )
+        elif key == "highlighting.duration.critical":
+            state.highlighting_config.duration_critical = (
+                state.config.highlighting_duration.critical
+            )
+        # Reset highlighter chain so new thresholds take effect
+        reset_highlighter_chain()
 
 
 def config_command(state: AppState, args: list[str]) -> None:

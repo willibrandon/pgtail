@@ -307,3 +307,121 @@ def handle_highlight_command(
     elif log_widget is not None:
         log_widget.write_line(f"[red]{msg}[/red]")
     return True
+
+
+def handle_set_command(
+    args: list[str],
+    buffer: TailBuffer | None,
+    state: AppState,
+    log_widget: TailLog | None = None,
+) -> bool:
+    """Handle 'set' command to configure settings in tail mode.
+
+    Args:
+        args: Command arguments (e.g., ['highlighting.duration.slow', '50'])
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
+        state: AppState instance
+        log_widget: TailLog widget (Textual) or None
+
+    Returns:
+        True if command was handled
+    """
+    from pgtail_py.cli_config import _get_config_value, _set_config_value, apply_setting
+    from pgtail_py.cli_utils import warn
+    from pgtail_py.config import (
+        SETTINGS_SCHEMA,
+        get_default_value,
+        parse_value,
+        save_config,
+        validate_key,
+    )
+
+    # No args - show usage and available settings
+    if not args:
+        if buffer is not None:
+            lines: list[tuple[str, str]] = []
+            lines.append(("", "Usage: set <key> [value]\n"))
+            lines.append(("", "\n"))
+            lines.append(("", "Available settings:\n"))
+            for key in SETTINGS_SCHEMA:
+                lines.append(("", f"  {key}\n"))
+            buffer.insert_command_output(FormattedText(lines))
+        elif log_widget is not None:
+            log_widget.write_line("[dim]Usage: set <key> [value][/dim]")
+            log_widget.write_line("")
+            log_widget.write_line("[bold]Available settings:[/bold]")
+            for key in SETTINGS_SCHEMA:
+                log_widget.write_line(f"  [cyan]{key}[/cyan]")
+        return True
+
+    key = args[0]
+
+    # Validate key
+    if not validate_key(key):
+        msg = f"Unknown setting: {key}"
+        if buffer is not None:
+            buffer.insert_command_output(FormattedText([("class:error", msg)]))
+        elif log_widget is not None:
+            log_widget.write_line(f"[red]{msg}[/red]")
+        return True
+
+    # No value - display current value
+    if len(args) == 1:
+        current = _get_config_value(state, key)
+        default = get_default_value(key)
+        msg = f"{key} = {current!r}"
+        if current != default:
+            msg += f" (default: {default!r})"
+        if buffer is not None:
+            buffer.insert_command_output(FormattedText([("", msg)]))
+        elif log_widget is not None:
+            log_widget.write_line(f"[cyan]{key}[/cyan] = [magenta]{current!r}[/magenta]")
+        return True
+
+    # Parse and validate value
+    raw_value = args[1:]
+    try:
+        value = parse_value(key, raw_value if len(raw_value) > 1 else raw_value[0])
+    except ValueError as e:
+        msg = f"Invalid value for {key}: {e}"
+        if buffer is not None:
+            buffer.insert_command_output(FormattedText([("class:error", msg)]))
+        elif log_widget is not None:
+            log_widget.write_line(f"[red]{msg}[/red]")
+        return True
+
+    # Validate the value using schema validator
+    _, validator, _ = SETTINGS_SCHEMA[key]
+    try:
+        validated = validator(value)
+    except ValueError as e:
+        msg = f"Invalid value for {key}: {e}"
+        if buffer is not None:
+            buffer.insert_command_output(FormattedText([("class:error", msg)]))
+        elif log_widget is not None:
+            log_widget.write_line(f"[red]{msg}[/red]")
+        return True
+
+    # Save to config file
+    if not save_config(key, validated, warn_func=warn):
+        msg = "Failed to save configuration"
+        if buffer is not None:
+            buffer.insert_command_output(FormattedText([("class:error", msg)]))
+        elif log_widget is not None:
+            log_widget.write_line(f"[red]{msg}[/red]")
+        return True
+
+    # Update in-memory config
+    _set_config_value(state, key, validated)
+
+    # Apply changes immediately
+    apply_setting(state, key)
+
+    # Provide feedback
+    msg = f"{key} = {validated!r}"
+    if buffer is not None:
+        buffer.insert_command_output(FormattedText([("", msg)]))
+    elif log_widget is not None:
+        log_widget.write_line(f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{validated!r}[/magenta]")
+
+    return True

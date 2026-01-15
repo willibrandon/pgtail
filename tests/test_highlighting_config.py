@@ -21,7 +21,6 @@ from pgtail_py.highlighting_config import (
     HighlightingConfig,
 )
 
-
 # =============================================================================
 # Test HighlightingConfig Initialization
 # =============================================================================
@@ -440,3 +439,120 @@ class TestCustomHighlighter:
         """from_dict without pattern should raise."""
         with pytest.raises(ValueError, match="missing 'pattern'"):
             CustomHighlighter.from_dict({"name": "test"})
+
+
+# =============================================================================
+# Test Duration Threshold Integration (T132)
+# =============================================================================
+
+
+class TestDurationThresholdIntegration:
+    """Tests for duration threshold configuration integration.
+
+    Verifies that HighlightingConfig thresholds are properly passed to
+    DurationHighlighter when creating a highlighter chain.
+    """
+
+    def test_config_thresholds_passed_to_highlighter_chain(self) -> None:
+        """Config duration thresholds should be used when creating chain."""
+        from pgtail_py.highlighter_registry import HighlighterRegistry, reset_registry
+        from pgtail_py.highlighters.performance import DurationHighlighter
+        from pgtail_py.tail_rich import (
+            register_all_highlighters,
+            reset_highlighter_chain,
+        )
+
+        # Reset and re-register to ensure clean state
+        # reset_highlighter_chain resets _highlighters_registered flag
+        reset_highlighter_chain()
+        reset_registry()
+        register_all_highlighters()
+
+        # Create config with custom thresholds
+        config = HighlightingConfig(
+            duration_slow=50,
+            duration_very_slow=200,
+            duration_critical=1000,
+        )
+
+        # Create chain from config
+        registry = HighlighterRegistry()
+        chain = registry.create_chain(config)
+
+        # Find duration highlighter in chain
+        duration_hl = None
+        for h in chain.highlighters:
+            if h.name == "duration":
+                duration_hl = h
+                break
+
+        assert duration_hl is not None, "DurationHighlighter should be in chain"
+        assert isinstance(duration_hl, DurationHighlighter)
+        assert duration_hl.slow == 50
+        assert duration_hl.very_slow == 200
+        assert duration_hl.critical == 1000
+
+    def test_duration_highlighter_uses_config_for_styling(self) -> None:
+        """DurationHighlighter should style based on config thresholds."""
+        from pgtail_py.highlighters.performance import DurationHighlighter
+        from pgtail_py.themes import BUILTIN_THEMES
+
+        theme = BUILTIN_THEMES["dark"]
+
+        # Test with custom thresholds: slow=50, so 75ms should be "slow"
+        hl = DurationHighlighter(slow=50, very_slow=200, critical=1000)
+
+        # Test that 75ms is highlighted as slow (since threshold is 50ms)
+        matches = hl.find_matches("query took 75 ms", theme)
+
+        assert len(matches) == 1
+        assert matches[0].style == "hl_duration_slow"
+
+    def test_duration_thresholds_affect_severity(self) -> None:
+        """Different duration values should get correct severity styles."""
+        from pgtail_py.highlighters.performance import DurationHighlighter
+        from pgtail_py.themes import BUILTIN_THEMES
+
+        theme = BUILTIN_THEMES["dark"]
+
+        # Test with custom thresholds: slow=50, very_slow=200, critical=1000
+        hl = DurationHighlighter(slow=50, very_slow=200, critical=1000)
+
+        # 25ms = fast (below 50)
+        matches = hl.find_matches("25 ms", theme)
+        assert len(matches) == 1
+        assert matches[0].style == "hl_duration_fast"
+
+        # 75ms = slow (50 <= x < 200)
+        matches = hl.find_matches("75 ms", theme)
+        assert len(matches) == 1
+        assert matches[0].style == "hl_duration_slow"
+
+        # 300ms = very_slow (200 <= x < 1000)
+        matches = hl.find_matches("300 ms", theme)
+        assert len(matches) == 1
+        assert matches[0].style == "hl_duration_very_slow"
+
+        # 1500ms = critical (>= 1000)
+        matches = hl.find_matches("1500 ms", theme)
+        assert len(matches) == 1
+        assert matches[0].style == "hl_duration_critical"
+
+    def test_get_duration_severity_matches_highlighter(self) -> None:
+        """HighlightingConfig.get_duration_severity should match highlighter behavior."""
+        config = HighlightingConfig(
+            duration_slow=50,
+            duration_very_slow=200,
+            duration_critical=1000,
+        )
+
+        # Test all severity levels
+        assert config.get_duration_severity(25) == "fast"
+        assert config.get_duration_severity(75) == "slow"
+        assert config.get_duration_severity(300) == "very_slow"
+        assert config.get_duration_severity(1500) == "critical"
+
+        # Edge cases - exactly at thresholds
+        assert config.get_duration_severity(50) == "slow"
+        assert config.get_duration_severity(200) == "very_slow"
+        assert config.get_duration_severity(1000) == "critical"

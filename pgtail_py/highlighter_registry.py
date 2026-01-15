@@ -171,6 +171,9 @@ class HighlighterRegistry:
         Filters highlighters based on enabled/disabled state in config.
         Custom highlighters from config are also included at priority 1050+.
 
+        For DurationHighlighter, creates a new instance with config thresholds
+        so that user-configured duration.slow/very_slow/critical are respected.
+
         Args:
             config: Highlighting configuration.
 
@@ -178,12 +181,20 @@ class HighlighterRegistry:
             HighlighterChain with enabled highlighters.
         """
         from pgtail_py.highlighter import CustomRegexHighlighter
+        from pgtail_py.highlighters.performance import DurationHighlighter
 
         # Collect enabled built-in highlighters
         enabled_highlighters: list[Highlighter] = []
 
         for name, highlighter in self._highlighters.items():
             if config.is_highlighter_enabled(name):
+                # For duration highlighter, create a new instance with config thresholds
+                if name == "duration":
+                    highlighter = DurationHighlighter(
+                        slow=config.duration_slow,
+                        very_slow=config.duration_very_slow,
+                        critical=config.duration_critical,
+                    )
                 enabled_highlighters.append(highlighter)
 
         # Add custom highlighters from config (priority 1050+)

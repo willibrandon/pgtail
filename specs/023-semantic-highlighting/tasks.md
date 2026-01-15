@@ -303,11 +303,11 @@
 
 **Independent Test**: Set `highlighting.duration.slow = 50`, verify 75ms is highlighted as slow
 
-- [ ] T128 [US7] Implement threshold getters in HighlightingConfig in pgtail_py/highlighting_config.py
-- [ ] T129 [US7] Implement get_duration_severity(ms) method in HighlightingConfig
-- [ ] T130 [US7] Update DurationHighlighter to use config thresholds in pgtail_py/highlighters/performance.py
-- [ ] T131 [US7] Add `set highlighting.duration.slow/very_slow/critical` support in pgtail_py/cli_core.py
-- [ ] T132 [US7] Write tests for threshold configuration in tests/test_highlighting_config.py
+- [X] T128 [US7] Implement threshold getters in HighlightingConfig in pgtail_py/highlighting_config.py
+- [X] T129 [US7] Implement get_duration_severity(ms) method in HighlightingConfig
+- [X] T130 [US7] Update DurationHighlighter to use config thresholds in pgtail_py/highlighters/performance.py
+- [X] T131 [US7] Add `set highlighting.duration.slow/very_slow/critical` support in pgtail_py/cli_core.py
+- [X] T132 [US7] Write tests for threshold configuration in tests/test_highlighting_config.py
 
 **Checkpoint**: User Story 7 complete - duration thresholds configurable
 

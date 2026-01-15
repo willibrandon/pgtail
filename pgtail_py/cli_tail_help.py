@@ -117,17 +117,31 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
         ],
     },
     "highlight": {
-        "usage": "highlight [list|enable|disable|add|remove]",
+        "usage": "highlight [list|on|off|enable|disable|add|remove]",
         "short": "Manage semantic highlighters",
         "description": "Enable, disable, or add custom semantic highlighters for log output.",
         "examples": [
             "highlight              Show all highlighters with status",
             "highlight list         Same as above",
+            "highlight on           Enable all highlighting globally",
+            "highlight off          Disable all highlighting globally",
             "highlight enable timestamp   Enable timestamp highlighting",
             "highlight disable duration   Disable duration highlighting",
             "highlight add req_id 'REQ-\\d+' --style yellow --priority 500  Add custom",
             "highlight remove req_id    Remove custom highlighter",
         ],
+    },
+    "set": {
+        "usage": "set <key> [value]",
+        "short": "Configure settings",
+        "description": "View or change configuration settings. Changes are persisted immediately.",
+        "examples": [
+            "set highlighting.duration.slow        Show current value",
+            "set highlighting.duration.slow 50     Set slow threshold to 50ms",
+            "set highlighting.duration.very_slow 200  Set very_slow to 200ms",
+            "set highlighting.duration.critical 1000  Set critical to 1000ms",
+        ],
+        "see_also": "highlight",
     },
     "pause": {
         "usage": "pause",
@@ -304,6 +318,8 @@ def handle_help_command(
         ("clear", "Clear all filters"),
         ("errors", "Show error statistics"),
         ("connections", "Show connection statistics"),
+        ("highlight", "Manage semantic highlighters"),
+        ("set <key>", "Configure settings"),
         ("stop/exit/q", "Exit tail mode"),
     ]
     for cmd, desc in commands:

@@ -732,7 +732,7 @@ def save_config(key: str, value: Any, warn_func: Callable[[str], None] | None = 
     """Save a configuration value, preserving comments.
 
     Args:
-        key: Dotted key path (e.g., "slow.warn")
+        key: Dotted key path (e.g., "slow.warn" or "highlighting.duration.slow")
         value: Value to save
         warn_func: Optional function to call with warning messages
 
@@ -761,14 +761,25 @@ def save_config(key: str, value: Any, warn_func: Callable[[str], None] | None = 
 
     # Set the value using tomlkit to preserve formatting
     parts = key.split(".")
-    section_name = parts[0]
 
-    if section_name not in doc:
-        doc[section_name] = tomlkit.table()
-
-    section = cast(dict[str, Any], doc[section_name])
-    attr_name = parts[1]
-    section[attr_name] = value
+    if len(parts) == 2:
+        # Standard 2-level keys (e.g., slow.warn)
+        section_name = parts[0]
+        if section_name not in doc:
+            doc[section_name] = tomlkit.table()
+        section = cast(dict[str, Any], doc[section_name])
+        section[parts[1]] = value
+    elif len(parts) == 3:
+        # 3-level keys (e.g., highlighting.duration.slow)
+        section_name = parts[0]
+        if section_name not in doc:
+            doc[section_name] = tomlkit.table()
+        section = cast(dict[str, Any], doc[section_name])
+        subsection_name = parts[1]
+        if subsection_name not in section:
+            section[subsection_name] = tomlkit.table()
+        subsection = cast(dict[str, Any], section[subsection_name])
+        subsection[parts[2]] = value
 
     # Write back
     try:
@@ -784,7 +795,7 @@ def delete_config_key(key: str, warn_func: Callable[[str], None] | None = None) 
     """Delete a configuration key from the file.
 
     Args:
-        key: Dotted key path to delete
+        key: Dotted key path to delete (e.g., "slow.warn" or "highlighting.duration.slow")
         warn_func: Optional function to call with warning messages
 
     Returns:
@@ -802,16 +813,30 @@ def delete_config_key(key: str, warn_func: Callable[[str], None] | None = None) 
         return False
 
     parts = key.split(".")
-    section_name, attr_name = parts[0], parts[1]
 
-    if section_name not in doc:
+    if len(parts) == 2:
+        # Standard 2-level keys (e.g., slow.warn)
+        section_name, attr_name = parts[0], parts[1]
+        if section_name not in doc:
+            return False
+        section = cast(dict[str, Any], doc[section_name])
+        if attr_name not in section:
+            return False
+        del section[attr_name]
+    elif len(parts) == 3:
+        # 3-level keys (e.g., highlighting.duration.slow)
+        section_name, subsection_name, attr_name = parts[0], parts[1], parts[2]
+        if section_name not in doc:
+            return False
+        section = cast(dict[str, Any], doc[section_name])
+        if subsection_name not in section:
+            return False
+        subsection = cast(dict[str, Any], section[subsection_name])
+        if attr_name not in subsection:
+            return False
+        del subsection[attr_name]
+    else:
         return False
-
-    section = cast(dict[str, Any], doc[section_name])
-    if attr_name not in section:
-        return False
-
-    del section[attr_name]
 
     # Write back
     try:

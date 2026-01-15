@@ -930,9 +930,19 @@ class TailApp(App[None]):
             and not is_help_request
         )
 
-        # For highlight commands that need rebuild, don't pass log_widget
+        # Set commands that modify highlighting duration thresholds need rebuild
+        needs_set_highlight_rebuild = (
+            cmd == "set"
+            and len(args) >= 2
+            and args[0].startswith("highlighting.duration.")
+            and not is_help_request
+        )
+
+        # For commands that need rebuild, don't pass log_widget
         # (message would be erased by rebuild). We'll show feedback after.
-        effective_log_widget = None if needs_highlight_rebuild else log_widget
+        effective_log_widget = (
+            None if (needs_highlight_rebuild or needs_set_highlight_rebuild) else log_widget
+        )
 
         handle_tail_command(
             cmd=cmd,
@@ -969,5 +979,18 @@ class TailApp(App[None]):
                 log_widget.write_line("[green]Highlighting enabled[/green]")
             elif subcommand == "off":
                 log_widget.write_line("[yellow]Highlighting disabled[/yellow]")
+
+        # Set highlighting.duration.* changes need cache reset and rebuild
+        if needs_set_highlight_rebuild:
+            from pgtail_py.tail_rich import reset_highlighter_chain
+
+            reset_highlighter_chain()
+            self._rebuild_log()
+            # Show feedback after rebuild so it's not erased
+            key = args[0]
+            value = args[1] if len(args) > 1 else ""
+            log_widget.write_line(
+                f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{value}[/magenta]"
+            )
 
         self._update_status()
