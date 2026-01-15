@@ -159,6 +159,8 @@ def handle_highlight_command(
         list              Show all highlighters with status
         enable <name>     Enable a highlighter
         disable <name>    Disable a highlighter
+        add <name> <pattern> [--style <style>]  Add custom highlighter
+        remove <name>     Remove custom highlighter
 
     Args:
         args: Command arguments (e.g., ['list'], ['enable', 'timestamp'])
@@ -173,8 +175,10 @@ def handle_highlight_command(
     from pgtail_py.cli_highlight import (
         format_highlight_list,
         format_highlight_list_rich,
+        handle_highlight_add,
         handle_highlight_disable,
         handle_highlight_enable,
+        handle_highlight_remove,
     )
     from pgtail_py.cli_utils import warn
 
@@ -237,8 +241,41 @@ def handle_highlight_command(
             log_widget.write_line(f"[{color}]{message}[/{color}]")
         return True
 
+    # Handle 'add' subcommand
+    if subcommand == "add":
+        success, message = handle_highlight_add(args[1:], config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
+    # Handle 'remove' subcommand
+    if subcommand == "remove":
+        if len(args) < 2:
+            msg = "Usage: highlight remove <name>"
+            if buffer is not None:
+                buffer.insert_command_output(FormattedText([("class:error", msg)]))
+            elif log_widget is not None:
+                log_widget.write_line(f"[red]{msg}[/red]")
+            return True
+
+        name = args[1]
+        success, message = handle_highlight_remove(name, config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
     # Unknown subcommand
-    msg = f"Unknown subcommand: {subcommand}. Use: list, enable <name>, disable <name>"
+    msg = f"Unknown subcommand: {subcommand}. Use: list, enable, disable, add, remove"
     if buffer is not None:
         buffer.insert_command_output(FormattedText([("class:error", msg)]))
     elif log_widget is not None:

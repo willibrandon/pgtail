@@ -117,14 +117,16 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
         ],
     },
     "highlight": {
-        "usage": "highlight [list|enable <name>|disable <name>]",
+        "usage": "highlight [list|enable|disable|add|remove]",
         "short": "Manage semantic highlighters",
-        "description": "Enable or disable individual semantic highlighters for log output.",
+        "description": "Enable, disable, or add custom semantic highlighters for log output.",
         "examples": [
             "highlight              Show all highlighters with status",
             "highlight list         Same as above",
             "highlight enable timestamp   Enable timestamp highlighting",
             "highlight disable duration   Disable duration highlighting",
+            "highlight add req_id 'REQ-\\d+' --style yellow --priority 500  Add custom",
+            "highlight remove req_id    Remove custom highlighter",
         ],
     },
     "pause": {

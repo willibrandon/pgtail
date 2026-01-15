@@ -234,6 +234,7 @@ def format_entry_compact(
     entry: LogEntry,
     theme: Theme | None = None,
     use_semantic_highlighting: bool = True,
+    highlighting_config: HighlightingConfig | None = None,
 ) -> str:
     """Convert LogEntry to Rich markup string for Textual Log widget.
 
@@ -252,6 +253,8 @@ def format_entry_compact(
         entry: Parsed log entry to format.
         theme: Theme for SQL highlighting. If None, uses default colors.
         use_semantic_highlighting: Whether to apply semantic highlighting.
+        highlighting_config: Highlighting configuration with custom highlighters.
+            If None, uses default config (no custom highlighters).
 
     Returns:
         Rich markup string representation of the entry.
@@ -289,7 +292,7 @@ def format_entry_compact(
     # Message - apply highlighting
     if use_semantic_highlighting and theme is not None:
         # Apply semantic highlighting via highlighter chain
-        highlighted_message = _highlight_message(entry.message, theme)
+        highlighted_message = _highlight_message(entry.message, theme, highlighting_config)
         parts.append(highlighted_message)
     else:
         # Fallback: detect and highlight SQL content only
@@ -308,7 +311,9 @@ def format_entry_compact(
     return " ".join(parts)
 
 
-def _highlight_message(message: str, theme: Theme) -> str:
+def _highlight_message(
+    message: str, theme: Theme, config: HighlightingConfig | None = None
+) -> str:
     """Apply semantic highlighting to a log message.
 
     Uses the highlighter chain for pattern-based highlighting. SQL content
@@ -318,12 +323,13 @@ def _highlight_message(message: str, theme: Theme) -> str:
     Args:
         message: Log message to highlight.
         theme: Current theme for style lookups.
+        config: Highlighting configuration with custom highlighters.
 
     Returns:
         Rich markup string with highlighting.
     """
-    # Get highlighter chain
-    chain = get_highlighter_chain()
+    # Get highlighter chain (with custom highlighters from config)
+    chain = get_highlighter_chain(config)
 
     # Apply semantic highlighting
     return chain.apply_rich(message, theme)

@@ -9,9 +9,12 @@ from prompt_toolkit import print_formatted_text
 
 from pgtail_py.cli_highlight import (
     format_highlight_list,
+    handle_highlight_add,
     handle_highlight_disable,
     handle_highlight_enable,
+    handle_highlight_remove,
 )
+from pgtail_py.tail_rich import reset_highlighter_chain
 from pgtail_py.cli_utils import warn
 from pgtail_py.field_filter import (
     FIELD_ALIASES,
@@ -247,6 +250,9 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         list              Show all semantic highlighters with status
         enable <name>     Enable a semantic highlighter
         disable <name>    Disable a semantic highlighter
+        add <name> <pattern> [--style <style>] [--priority <num>]
+                          Add a custom regex highlighter
+        remove <name>     Remove a custom highlighter
         /pattern/         Add regex highlight pattern (legacy)
         clear             Clear regex highlight patterns (legacy)
 
@@ -275,6 +281,8 @@ def highlight_command(state: AppState, args: list[str]) -> None:
             return
         name = args[1]
         success, message = handle_highlight_enable(name, state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
         print(message)
         return
 
@@ -285,6 +293,28 @@ def highlight_command(state: AppState, args: list[str]) -> None:
             return
         name = args[1]
         success, message = handle_highlight_disable(name, state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
+        print(message)
+        return
+
+    # Handle 'add' subcommand - add custom highlighter
+    if arg == "add":
+        success, message = handle_highlight_add(args[1:], state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
+        print(message)
+        return
+
+    # Handle 'remove' subcommand - remove custom highlighter
+    if arg == "remove":
+        if len(args) < 2:
+            print("Usage: highlight remove <name>")
+            return
+        name = args[1]
+        success, message = handle_highlight_remove(name, state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
         print(message)
         return
 
@@ -302,6 +332,8 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         print("Usage: highlight list             Show semantic highlighters")
         print("       highlight enable <name>    Enable a highlighter")
         print("       highlight disable <name>   Disable a highlighter")
+        print("       highlight add <name> <pattern> [--style <style>] [--priority <num>]")
+        print("       highlight remove <name>    Remove custom highlighter")
         print("       highlight /pattern/        Add regex highlight (legacy)")
         print("       highlight clear            Clear regex highlights (legacy)")
         return

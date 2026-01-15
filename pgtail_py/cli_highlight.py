@@ -4,6 +4,8 @@ Provides commands for managing semantic highlighting:
 - highlight list: Show all highlighters with status
 - highlight enable <name>: Enable a specific highlighter
 - highlight disable <name>: Disable a specific highlighter
+- highlight add <name> <pattern>: Add a custom regex highlighter
+- highlight remove <name>: Remove a custom highlighter
 """
 
 from __future__ import annotations
@@ -14,7 +16,12 @@ from typing import TYPE_CHECKING
 from prompt_toolkit.formatted_text import FormattedText
 
 from pgtail_py.highlighter_registry import get_registry
-from pgtail_py.highlighting_config import BUILTIN_HIGHLIGHTER_NAMES, save_highlighter_state
+from pgtail_py.highlighting_config import (
+    BUILTIN_HIGHLIGHTER_NAMES,
+    CustomHighlighter,
+    save_highlighter_state,
+    save_highlighting_config,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -367,6 +374,170 @@ def handle_highlight_disable(
 
 
 # =============================================================================
+# Highlight Add/Remove Commands (Custom Highlighters)
+# =============================================================================
+
+
+def parse_add_args(args: list[str]) -> tuple[str | None, str | None, str, int | None]:
+    """Parse arguments for 'highlight add' command.
+
+    Expected format: <name> <pattern> [--style <style>] [--priority <num>]
+
+    Args:
+        args: Arguments after 'highlight add'.
+
+    Returns:
+        Tuple of (name, pattern, style, priority). Name or pattern may be None if missing.
+        Priority is None if not specified (will use default).
+    """
+    if len(args) < 2:
+        return None, None, "yellow", None
+
+    name = args[0]
+    pattern = args[1]
+    style = "yellow"  # default
+    priority: int | None = None
+
+    # Look for --style and --priority flags
+    i = 2
+    while i < len(args):
+        if args[i] == "--style" and i + 1 < len(args):
+            style = args[i + 1]
+            i += 2
+        elif args[i] == "--priority" and i + 1 < len(args):
+            try:
+                priority = int(args[i + 1])
+            except ValueError:
+                pass  # Invalid priority, ignore
+            i += 2
+        else:
+            i += 1
+
+    return name, pattern, style, priority
+
+
+def validate_custom_name(name: str, config: HighlightingConfig) -> tuple[bool, str | None]:
+    """Validate a custom highlighter name.
+
+    Checks:
+    1. Name is not empty
+    2. Name contains only alphanumeric and underscore
+    3. Name does not conflict with built-in highlighters
+    4. Name does not conflict with existing custom highlighters
+
+    Args:
+        name: Proposed highlighter name.
+        config: Current highlighting configuration.
+
+    Returns:
+        Tuple of (is_valid, error_message).
+    """
+    import re
+
+    if not name:
+        return False, "Name cannot be empty"
+
+    if not re.match(r"^[a-z][a-z0-9_]*$", name):
+        return False, "Name must start with a letter and contain only lowercase letters, numbers, and underscores"
+
+    if name in BUILTIN_HIGHLIGHTER_NAMES:
+        return False, f"Name '{name}' conflicts with built-in highlighter"
+
+    if config.get_custom(name):
+        return False, f"Custom highlighter '{name}' already exists"
+
+    return True, None
+
+
+def handle_highlight_add(
+    args: list[str],
+    config: HighlightingConfig,
+    warn_func: Callable[[str], None] | None = None,
+) -> tuple[bool, str]:
+    """Handle 'highlight add <name> <pattern> [--style <style>]' command.
+
+    Args:
+        args: Command arguments after 'highlight add'.
+        config: Highlighting configuration to modify.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        Tuple of (success, message).
+    """
+    from pgtail_py.highlighter import validate_custom_pattern
+
+    name, pattern, style, priority = parse_add_args(args)
+
+    if not name or not pattern:
+        return False, "Usage: highlight add <name> <pattern> [--style <style>] [--priority <num>]"
+
+    # Validate name
+    name_valid, name_error = validate_custom_name(name, config)
+    if not name_valid:
+        return False, name_error or "Invalid name"
+
+    # Validate pattern
+    pattern_valid, pattern_error = validate_custom_pattern(pattern)
+    if not pattern_valid:
+        return False, pattern_error or "Invalid pattern"
+
+    # Use provided priority or default (1050 + count)
+    final_priority = priority if priority is not None else 1050 + len(config.custom_highlighters)
+
+    # Create and add custom highlighter
+    custom = CustomHighlighter(
+        name=name,
+        pattern=pattern,
+        style=style,
+        priority=final_priority,
+        enabled=True,
+    )
+
+    try:
+        config.add_custom(custom)
+    except ValueError as e:
+        return False, str(e)
+
+    # Persist to config.toml
+    save_highlighting_config(config, warn_func)
+
+    return True, f"Added custom highlighter '{name}' with pattern '{pattern}'."
+
+
+def handle_highlight_remove(
+    name: str,
+    config: HighlightingConfig,
+    warn_func: Callable[[str], None] | None = None,
+) -> tuple[bool, str]:
+    """Handle 'highlight remove <name>' command.
+
+    Args:
+        name: Custom highlighter name to remove.
+        config: Highlighting configuration to modify.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        Tuple of (success, message).
+    """
+    # Check if it's a built-in highlighter
+    if name in BUILTIN_HIGHLIGHTER_NAMES:
+        return False, f"Cannot remove built-in highlighter '{name}'. Use 'highlight disable {name}' instead."
+
+    # Try to remove custom highlighter
+    if not config.remove_custom(name):
+        # Check if it exists at all
+        custom_names = [c.name for c in config.custom_highlighters]
+        if custom_names:
+            return False, f"Custom highlighter '{name}' not found. Available: {', '.join(custom_names)}"
+        return False, f"Custom highlighter '{name}' not found. No custom highlighters defined."
+
+    # Persist to config.toml
+    save_highlighting_config(config, warn_func)
+
+    return True, f"Removed custom highlighter '{name}'."
+
+
+# =============================================================================
 # Command Dispatcher
 # =============================================================================
 
@@ -405,7 +576,19 @@ def handle_highlight_command(
         name = args[1]
         return handle_highlight_disable(name, config)
 
+    elif subcommand == "add":
+        # highlight add <name> <pattern> [--style <style>]
+        return handle_highlight_add(args[1:], config)
+
+    elif subcommand == "remove":
+        if len(args) < 2:
+            return False, "Usage: highlight remove <name>"
+        name = args[1]
+        return handle_highlight_remove(name, config)
+
     else:
-        # Unknown subcommand - might be a highlighter name for status
-        # Or a legacy regex highlight pattern
-        return False, f"Unknown subcommand '{subcommand}'. Use 'highlight list', 'highlight enable <name>', or 'highlight disable <name>'."
+        # Unknown subcommand
+        return False, (
+            f"Unknown subcommand '{subcommand}'. Available: "
+            "list, enable, disable, add, remove."
+        )

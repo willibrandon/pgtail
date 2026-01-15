@@ -169,7 +169,7 @@ class HighlighterRegistry:
         """Create a HighlighterChain from configuration.
 
         Filters highlighters based on enabled/disabled state in config.
-        Custom highlighters from config are also included.
+        Custom highlighters from config are also included at priority 1050+.
 
         Args:
             config: Highlighting configuration.
@@ -177,7 +177,7 @@ class HighlighterRegistry:
         Returns:
             HighlighterChain with enabled highlighters.
         """
-        from pgtail_py.highlighter import RegexHighlighter
+        from pgtail_py.highlighter import CustomRegexHighlighter
 
         # Collect enabled built-in highlighters
         enabled_highlighters: list[Highlighter] = []
@@ -186,15 +186,16 @@ class HighlighterRegistry:
             if config.is_highlighter_enabled(name):
                 enabled_highlighters.append(highlighter)
 
-        # Add custom highlighters from config
+        # Add custom highlighters from config (priority 1050+)
         for custom in config.custom_highlighters:
             if custom.enabled:
                 try:
-                    custom_highlighter = RegexHighlighter(
-                        name=f"custom_{custom.name}",
+                    custom_highlighter = CustomRegexHighlighter(
+                        name=custom.name,
                         priority=custom.priority,
                         pattern=custom.pattern,
                         style=custom.style,
+                        description=f"Custom pattern: {custom.pattern}",
                     )
                     enabled_highlighters.append(custom_highlighter)
                 except ValueError:
@@ -226,4 +227,4 @@ def reset_registry() -> None:
 
     Used primarily for testing.
     """
-    HighlighterRegistry._instance = None
+    HighlighterRegistry._instance = None  # pyright: ignore[reportPrivateUsage]

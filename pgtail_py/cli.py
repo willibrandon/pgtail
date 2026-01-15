@@ -1,6 +1,7 @@
 """REPL loop and application state for pgtail."""
 
 import contextlib
+import shlex
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -237,7 +238,12 @@ def handle_command(state: AppState, line: str) -> bool:
             state.shell_mode = True
         return True
 
-    parts = line.split()
+    # Use shlex to properly handle quoted arguments
+    try:
+        parts = shlex.split(line)
+    except ValueError:
+        # Unclosed quote or other parse error - fall back to simple split
+        parts = line.split()
     cmd = parts[0].lower()
     args = parts[1:]
 

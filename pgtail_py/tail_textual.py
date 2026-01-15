@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import shlex
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -690,8 +691,12 @@ class TailApp(App[None]):
 
         log_widget = self.query_one("#log", TailLog)
 
-        # Format entry with current theme for SQL highlighting
-        formatted = format_entry_compact(entry, theme=self._state.theme_manager.current_theme)
+        # Format entry with current theme and highlighting config
+        formatted = format_entry_compact(
+            entry,
+            theme=self._state.theme_manager.current_theme,
+            highlighting_config=self._state.highlighting_config,
+        )
 
         # Track if we were at end (for FOLLOW mode)
         was_at_end = log_widget.is_vertical_scroll_end
@@ -752,7 +757,9 @@ class TailApp(App[None]):
         for entry in self._entries:
             if self._entry_matches_filters(entry):
                 formatted = format_entry_compact(
-                    entry, theme=self._state.theme_manager.current_theme
+                    entry,
+                    theme=self._state.theme_manager.current_theme,
+                    highlighting_config=self._state.highlighting_config,
                 )
                 log_widget.write_line(formatted)
                 if self._status:
@@ -824,7 +831,12 @@ class TailApp(App[None]):
         """
         from pgtail_py.cli_tail import handle_tail_command
 
-        parts = command_text.strip().split()
+        # Use shlex to properly handle quoted arguments
+        try:
+            parts = shlex.split(command_text.strip())
+        except ValueError:
+            # Unclosed quote or other parse error - fall back to simple split
+            parts = command_text.strip().split()
         if not parts:
             return
 
@@ -909,6 +921,19 @@ class TailApp(App[None]):
         filter_commands = {"level", "filter", "since", "until", "between"}
         needs_rebuild = cmd in filter_commands and not is_help_request
 
+        # Highlight commands that modify state need rebuild + cache reset
+        highlight_modifies = {"enable", "disable", "add", "remove"}
+        needs_highlight_rebuild = (
+            cmd == "highlight"
+            and args
+            and args[0].lower() in highlight_modifies
+            and not is_help_request
+        )
+
+        # For highlight commands that need rebuild, don't pass log_widget
+        # (message would be erased by rebuild). We'll show feedback after.
+        effective_log_widget = None if needs_highlight_rebuild else log_widget
+
         handle_tail_command(
             cmd=cmd,
             args=args,
@@ -917,11 +942,28 @@ class TailApp(App[None]):
             state=self._state,
             tailer=self._tailer,
             stop_callback=self._stop_tailing,
-            log_widget=log_widget,
+            log_widget=effective_log_widget,
         )
 
         # Rebuild log with new filters applied to stored entries
         if needs_rebuild:
             self._rebuild_log()
+
+        # Highlight changes need cache reset and rebuild to re-render with new styles
+        if needs_highlight_rebuild:
+            from pgtail_py.tail_rich import reset_highlighter_chain
+
+            reset_highlighter_chain()
+            self._rebuild_log()
+            # Show feedback after rebuild so it's not erased
+            subcommand = args[0].lower()
+            if subcommand == "add" and len(args) >= 2:
+                log_widget.write_line(f"[green]Added highlighter '{args[1]}'[/green]")
+            elif subcommand == "remove" and len(args) >= 2:
+                log_widget.write_line(f"[green]Removed highlighter '{args[1]}'[/green]")
+            elif subcommand == "enable" and len(args) >= 2:
+                log_widget.write_line(f"[green]Enabled highlighter '{args[1]}'[/green]")
+            elif subcommand == "disable" and len(args) >= 2:
+                log_widget.write_line(f"[green]Disabled highlighter '{args[1]}'[/green]")
 
         self._update_status()

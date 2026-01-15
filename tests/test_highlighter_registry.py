@@ -310,9 +310,9 @@ class TestCreateChain:
         )
 
         chain = registry.create_chain(config)
-        # Should include the custom highlighter
+        # Should include the custom highlighter (name is preserved without prefix)
         custom_names = [h.name for h in chain.highlighters]
-        assert "custom_custom_test" in custom_names
+        assert "custom_test" in custom_names
 
     def test_create_chain_excludes_disabled_custom(self) -> None:
         """create_chain should exclude disabled custom highlighters."""

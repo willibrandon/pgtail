@@ -16,9 +16,9 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-import ahocorasick
+import ahocorasick  # type: ignore[import-untyped]
 from prompt_toolkit.formatted_text import FormattedText
 
 if TYPE_CHECKING:
@@ -537,17 +537,17 @@ class KeywordHighlighter:
         self._keywords = keywords
 
         # Build Aho-Corasick automaton lazily
-        self._automaton: ahocorasick.Automaton | None = None
+        self._automaton: Any | None = None
 
-    def _ensure_automaton(self) -> ahocorasick.Automaton:
+    def _ensure_automaton(self) -> Any:
         """Build automaton on first use (lazy initialization)."""
         if self._automaton is None:
-            self._automaton = ahocorasick.Automaton()
+            self._automaton = ahocorasick.Automaton()  # type: ignore[no-untyped-call]
             for keyword, style in self._keywords.items():
                 key = keyword if self._case_sensitive else keyword.lower()
-                self._automaton.add_word(key, (len(key), style, keyword))
-            self._automaton.make_automaton()
-        return self._automaton
+                self._automaton.add_word(key, (len(key), style, keyword))  # type: ignore[union-attr]
+            self._automaton.make_automaton()  # type: ignore[union-attr]
+        return self._automaton  # type: ignore[return-value]
 
     @property
     def name(self) -> str:
@@ -835,14 +835,16 @@ def _get_rich_style(theme: Theme, style_key: str) -> str:
 
     Args:
         theme: Theme to look up style in.
-        style_key: Style key (e.g., "hl_timestamp_date").
+        style_key: Style key (e.g., "hl_timestamp_date") or literal color (e.g., "magenta").
 
     Returns:
         Rich style string (e.g., "bold red") or empty string for default.
     """
     color_style = theme.get_style(style_key)
     if color_style is None:
-        return ""
+        # Not a theme key - treat as literal color/style for custom highlighters
+        # Rich accepts colors like "magenta", "bold red", "#ff00ff"
+        return style_key
 
     parts: list[str] = []
     if color_style.fg:
@@ -866,14 +868,32 @@ def _get_prompt_toolkit_style(theme: Theme, style_key: str) -> str:
 
     Args:
         theme: Theme to look up style in.
-        style_key: Style key (e.g., "hl_timestamp_date").
+        style_key: Style key (e.g., "hl_timestamp_date") or literal color (e.g., "magenta").
 
     Returns:
-        Style class string (e.g., "class:hl_timestamp_date").
+        Style class string (e.g., "class:hl_timestamp_date") or inline style (e.g., "fg:magenta").
     """
     color_style = theme.get_style(style_key)
     if color_style is None:
-        return ""
+        # Not a theme key - treat as literal color/style for custom highlighters
+        # prompt_toolkit uses "fg:color" format for foreground colors
+        # Support formats: "magenta", "bold magenta", "#ff00ff", "bold #ff00ff"
+        parts = style_key.split()
+        result_parts: list[str] = []
+        for part in parts:
+            if part == "bold":
+                result_parts.append("bold")
+            elif part == "italic":
+                result_parts.append("italic")
+            elif part == "underline":
+                result_parts.append("underline")
+            elif part.startswith("#") or part.startswith("ansi"):
+                # Hex color or ansi color
+                result_parts.append(f"fg:{part}")
+            else:
+                # Named color like "magenta", "red", etc.
+                result_parts.append(f"fg:ansi{part}")
+        return " ".join(result_parts)
     return f"class:{style_key}"
 
 
@@ -1067,3 +1087,83 @@ def _build_rich_markup_with_tracker(
         result.append(escape_brackets(text[pos:]))
 
     return "".join(result)
+
+
+# =============================================================================
+# CustomRegexHighlighter (User-Defined Patterns)
+# =============================================================================
+
+
+class CustomRegexHighlighter(RegexHighlighter):
+    """User-defined regex-based highlighter.
+
+    Wraps a user's custom regex pattern for highlighting application-specific
+    text in log messages. Unlike built-in highlighters, custom highlighters:
+    - Have priority >= 1050 (run after all built-ins)
+    - Can be added/removed at runtime
+    - Are persisted to config.toml
+    """
+
+    def __init__(
+        self,
+        name: str,
+        pattern: str,
+        style: str = "yellow",
+        priority: int = 1050,
+        description: str | None = None,
+    ) -> None:
+        """Initialize custom highlighter.
+
+        Args:
+            name: Unique identifier (must not conflict with built-in names).
+            pattern: Regex pattern to match.
+            style: Color/style to apply (e.g., "yellow", "bold red").
+            priority: Processing order (default 1050, after built-ins).
+            description: Human-readable description for highlight list.
+
+        Raises:
+            ValueError: If pattern is invalid or matches empty string.
+        """
+        super().__init__(
+            name=name,
+            priority=priority,
+            pattern=pattern,
+            style=style,
+        )
+        self._description = description or f"Custom pattern: {pattern}"
+
+    @property
+    def description(self) -> str:
+        """Return human-readable description."""
+        return self._description
+
+
+def validate_custom_pattern(pattern: str) -> tuple[bool, str | None]:
+    """Validate a regex pattern for custom highlighter.
+
+    Checks:
+    1. Pattern is valid regex
+    2. Pattern does not match zero-length strings
+
+    Args:
+        pattern: Regex pattern to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message).
+        If valid, error_message is None.
+    """
+    # Check empty pattern
+    if not pattern:
+        return False, "Pattern cannot be empty"
+
+    # Check valid regex
+    try:
+        compiled = re.compile(pattern)
+    except re.error as e:
+        return False, f"Invalid regex: {e}"
+
+    # Check zero-length match
+    if compiled.match("") is not None:
+        return False, "Pattern matches zero-length strings"
+
+    return True, None

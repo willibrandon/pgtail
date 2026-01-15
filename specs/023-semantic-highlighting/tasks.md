@@ -264,15 +264,15 @@
 
 ### Commands (FR-138, FR-139)
 
-- [ ] T113 [US5] Implement `highlight add <name> <pattern> [--style <style>]` command in pgtail_py/cli_highlight.py
-- [ ] T114 [US5] Implement `highlight remove <name>` command in pgtail_py/cli_highlight.py
-- [ ] T115 [US5] Implement pattern validation (valid regex, non-zero-length match) in pgtail_py/cli_highlight.py
-- [ ] T116 [US5] Implement CustomHighlighter class in pgtail_py/highlighter.py (wraps user regex)
-- [ ] T117 [US5] Persist custom highlighters to config.toml [[highlighting.custom]] array
-- [ ] T118 [US5] Load custom highlighters on startup in pgtail_py/highlighting_config.py
-- [ ] T119 [US5] Register custom highlighters in HighlighterRegistry at priority 1050+
-- [ ] T120 [US5] Write tests for custom highlighter add/remove in tests/test_cli_highlight.py
-- [ ] T121 [US5] Write tests for invalid regex handling in tests/test_cli_highlight.py
+- [X] T113 [US5] Implement `highlight add <name> <pattern> [--style <style>]` command in pgtail_py/cli_highlight.py
+- [X] T114 [US5] Implement `highlight remove <name>` command in pgtail_py/cli_highlight.py
+- [X] T115 [US5] Implement pattern validation (valid regex, non-zero-length match) in pgtail_py/cli_highlight.py
+- [X] T116 [US5] Implement CustomHighlighter class in pgtail_py/highlighter.py (wraps user regex)
+- [X] T117 [US5] Persist custom highlighters to config.toml [[highlighting.custom]] array
+- [X] T118 [US5] Load custom highlighters on startup in pgtail_py/highlighting_config.py
+- [X] T119 [US5] Register custom highlighters in HighlighterRegistry at priority 1050+
+- [X] T120 [US5] Write tests for custom highlighter add/remove in tests/test_cli_highlight.py
+- [X] T121 [US5] Write tests for invalid regex handling in tests/test_cli_highlight.py
 
 **Checkpoint**: User Story 5 complete - custom patterns can be added and persist
 
