@@ -242,15 +242,15 @@
 
 ### Commands (FR-133, FR-134, FR-135)
 
-- [ ] T104 [US4] Implement `highlight list` command in pgtail_py/cli_highlight.py (show all with status)
-- [ ] T105 [US4] Implement `highlight enable <name>` command in pgtail_py/cli_highlight.py
-- [ ] T106 [US4] Implement `highlight disable <name>` command in pgtail_py/cli_highlight.py
-- [ ] T107 [US4] Add highlighter name validation with suggestions for typos in pgtail_py/cli_highlight.py
-- [ ] T108 [US4] Persist enable/disable state to config.toml via pgtail_py/highlighting_config.py
-- [ ] T109 [US4] Reload enable/disable state on pgtail restart in pgtail_py/highlighting_config.py
-- [ ] T110 [US4] Update HighlighterChain to skip disabled highlighters in pgtail_py/highlighter.py
-- [ ] T111 [US4] Add highlight commands to pgtail_py/commands.py completer with highlighter names
-- [ ] T112 [US4] Write tests for highlight list/enable/disable in tests/test_cli_highlight.py
+- [X] T104 [US4] Implement `highlight list` command in pgtail_py/cli_highlight.py (show all with status)
+- [X] T105 [US4] Implement `highlight enable <name>` command in pgtail_py/cli_highlight.py
+- [X] T106 [US4] Implement `highlight disable <name>` command in pgtail_py/cli_highlight.py
+- [X] T107 [US4] Add highlighter name validation with suggestions for typos in pgtail_py/cli_highlight.py
+- [X] T108 [US4] Persist enable/disable state to config.toml via pgtail_py/highlighting_config.py
+- [X] T109 [US4] Reload enable/disable state on pgtail restart in pgtail_py/highlighting_config.py
+- [X] T110 [US4] Update HighlighterChain to skip disabled highlighters in pgtail_py/highlighter.py
+- [X] T111 [US4] Add highlight commands to pgtail_py/commands.py completer with highlighter names
+- [X] T112 [US4] Write tests for highlight list/enable/disable in tests/test_cli_highlight.py
 
 **Checkpoint**: User Story 4 complete - individual highlighters can be toggled
 

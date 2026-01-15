@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from pgtail_py.cli import AppState
     from pgtail_py.tail_buffer import TailBuffer
     from pgtail_py.tail_log import TailLog
+    from pgtail_py.tail_status import TailStatus
 
 
 def handle_errors_command(
@@ -142,4 +143,104 @@ def handle_connections_command(
             log_widget.write_line("[dim]  By User:[/dim]")
             for user, count in sorted(by_user.items(), key=lambda x: x[1], reverse=True)[:5]:
                 log_widget.write_line(f"    [cyan]{user}[/cyan]: [magenta]{count}[/magenta]")
+    return True
+
+
+def handle_highlight_command(
+    args: list[str],
+    buffer: TailBuffer | None,
+    status: TailStatus,
+    state: AppState,
+    log_widget: TailLog | None = None,
+) -> bool:
+    """Handle 'highlight' command to manage semantic highlighters.
+
+    Subcommands:
+        list              Show all highlighters with status
+        enable <name>     Enable a highlighter
+        disable <name>    Disable a highlighter
+
+    Args:
+        args: Command arguments (e.g., ['list'], ['enable', 'timestamp'])
+        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
+        status: TailStatus instance
+        state: AppState instance
+        log_widget: TailLog widget (Textual) or None
+
+    Returns:
+        True if command was handled
+    """
+    from pgtail_py.cli_highlight import (
+        format_highlight_list,
+        format_highlight_list_rich,
+        handle_highlight_disable,
+        handle_highlight_enable,
+    )
+    from pgtail_py.cli_utils import warn
+
+    config = state.highlighting_config
+
+    # No args or 'list' - show highlighter list
+    if not args or (args and args[0].lower() == "list"):
+        if buffer is not None:
+            # prompt_toolkit mode
+            buffer.insert_command_output(format_highlight_list(config))
+        elif log_widget is not None:
+            # Textual mode - use Rich markup
+            output = format_highlight_list_rich(config)
+            for line in output.split("\n"):
+                if line:  # Skip empty lines
+                    log_widget.write_line(line)
+        return True
+
+    subcommand = args[0].lower()
+
+    # Handle 'enable' subcommand
+    if subcommand == "enable":
+        if len(args) < 2:
+            msg = "Usage: highlight enable <name>"
+            if buffer is not None:
+                buffer.insert_command_output(FormattedText([("class:error", msg)]))
+            elif log_widget is not None:
+                log_widget.write_line(f"[red]{msg}[/red]")
+            return True
+
+        name = args[1]
+        success, message = handle_highlight_enable(name, config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
+    # Handle 'disable' subcommand
+    if subcommand == "disable":
+        if len(args) < 2:
+            msg = "Usage: highlight disable <name>"
+            if buffer is not None:
+                buffer.insert_command_output(FormattedText([("class:error", msg)]))
+            elif log_widget is not None:
+                log_widget.write_line(f"[red]{msg}[/red]")
+            return True
+
+        name = args[1]
+        success, message = handle_highlight_disable(name, config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
+    # Unknown subcommand
+    msg = f"Unknown subcommand: {subcommand}. Use: list, enable <name>, disable <name>"
+    if buffer is not None:
+        buffer.insert_command_output(FormattedText([("class:error", msg)]))
+    elif log_widget is not None:
+        log_widget.write_line(f"[red]{msg}[/red]")
     return True

@@ -136,7 +136,7 @@ class PgtailCompleter(Completer):
         elif cmd == "filter":
             yield from self._complete_filter(arg_text)
         elif cmd == "highlight":
-            yield from self._complete_highlight(arg_text)
+            yield from self._complete_highlight(arg_text, parts)
         elif cmd == "slow":
             yield from self._complete_slow(arg_text)
         elif cmd == "set":
@@ -341,21 +341,49 @@ class PgtailCompleter(Completer):
                         display_meta=f"Filter by {field}",
                     )
 
-    def _complete_highlight(self, prefix: str) -> Iterable[Completion]:
-        """Complete highlight subcommands.
+    def _complete_highlight(
+        self, prefix: str, parts: list[str] | None = None
+    ) -> Iterable[Completion]:
+        """Complete highlight subcommands and highlighter names.
 
         Args:
             prefix: The prefix to match.
+            parts: All command parts so far (optional).
 
         Yields:
-            Completions for highlight subcommands.
+            Completions for highlight subcommands and highlighter names.
         """
-        if "clear".startswith(prefix.lower()):
-            yield Completion(
-                "clear",
-                start_position=-len(prefix),
-                display_meta="Clear all highlights",
-            )
+        from pgtail_py.highlighting_config import BUILTIN_HIGHLIGHTER_NAMES
+
+        prefix_lower = prefix.lower()
+
+        # If parts is None or first subcommand level, show subcommands
+        if parts is None or len(parts) <= 2:
+            subcommands = {
+                "list": "Show all highlighters with status",
+                "enable": "Enable a highlighter",
+                "disable": "Disable a highlighter",
+                "clear": "Clear all regex highlight patterns (legacy)",
+            }
+            for name, description in subcommands.items():
+                if name.startswith(prefix_lower):
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=description,
+                    )
+            return
+
+        # After enable or disable, complete highlighter names
+        if parts and len(parts) >= 2 and parts[1].lower() in ("enable", "disable"):
+            for name in sorted(BUILTIN_HIGHLIGHTER_NAMES):
+                if name.startswith(prefix_lower):
+                    action = "Enable" if parts[1].lower() == "enable" else "Disable"
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=f"{action} {name} highlighter",
+                    )
 
     def _complete_slow(self, prefix: str) -> Iterable[Completion]:
         """Complete slow query subcommands.

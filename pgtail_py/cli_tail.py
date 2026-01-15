@@ -49,6 +49,7 @@ TAIL_MODE_COMMANDS: list[str] = [
     # Display commands (inline output)
     "errors",  # show error summary
     "connections",  # show connection summary
+    "highlight",  # highlight list/enable/disable
     # Mode commands
     "pause",  # enter PAUSED mode
     "p",  # alias for pause
@@ -160,6 +161,11 @@ def handle_tail_command(
         from pgtail_py.cli_tail_display import handle_connections_command
 
         return handle_connections_command(args, buffer, state, log_widget)
+
+    if cmd == "highlight":
+        from pgtail_py.cli_tail_display import handle_highlight_command
+
+        return handle_highlight_command(args, buffer, status, state, log_widget)
 
     # Help command
     if cmd == "help":

@@ -6,12 +6,18 @@ Provides:
 - Duration threshold configuration
 - Custom highlighter management
 - Serialization to/from dict for TOML persistence
+- Persistence to/from config.toml
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import Any, cast
+
+import tomlkit
+from tomlkit.exceptions import TOMLKitError
 
 # =============================================================================
 # Default Highlighter Names
@@ -351,3 +357,245 @@ class HighlightingConfig:
                 pass
 
         return config
+
+
+# =============================================================================
+# Persistence Functions
+# =============================================================================
+
+
+def get_config_path() -> Path:
+    """Get the config file path.
+
+    Returns:
+        Path to config.toml file.
+    """
+    from pgtail_py.config import get_config_path as _get_config_path
+
+    return _get_config_path()
+
+
+def load_highlighting_config(
+    warn_func: Callable[[str], None] | None = None,
+) -> HighlightingConfig:
+    """Load highlighting configuration from config.toml.
+
+    If config file doesn't exist or contains errors, returns defaults.
+
+    Args:
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        HighlightingConfig with loaded or default values.
+    """
+    config_path = get_config_path()
+
+    if not config_path.exists():
+        return HighlightingConfig()
+
+    try:
+        content = config_path.read_text()
+        doc = tomlkit.parse(content)
+    except (OSError, TOMLKitError) as e:
+        if warn_func:
+            warn_func(f"Config parse error: {e}. Using highlighting defaults.")
+        return HighlightingConfig()
+
+    # Extract highlighting section
+    highlighting_data: dict[str, Any] = {}
+
+    if "highlighting" in doc:
+        hl_section = dict(doc["highlighting"])
+        highlighting_data["enabled"] = hl_section.get("enabled", True)
+        highlighting_data["max_length"] = hl_section.get("max_length", 10240)
+
+        # Duration subsection
+        if "duration" in hl_section:
+            highlighting_data["duration"] = dict(hl_section["duration"])
+
+        # Enabled highlighters subsection
+        if "enabled_highlighters" in hl_section:
+            highlighting_data["enabled_highlighters"] = dict(
+                hl_section["enabled_highlighters"]
+            )
+
+        # Custom highlighters array
+        if "custom" in hl_section:
+            highlighting_data["custom"] = list(hl_section["custom"])
+
+    return HighlightingConfig.from_dict(highlighting_data)
+
+
+def save_highlighting_config(
+    config: HighlightingConfig,
+    warn_func: Callable[[str], None] | None = None,
+) -> bool:
+    """Save highlighting configuration to config.toml.
+
+    Preserves other settings in the config file.
+
+    Args:
+        config: Highlighting configuration to save.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        True if saved successfully, False otherwise.
+    """
+    config_path = get_config_path()
+
+    # Load existing document or create new one
+    if config_path.exists():
+        try:
+            content = config_path.read_text()
+            doc = tomlkit.parse(content)
+        except (OSError, TOMLKitError):
+            doc = tomlkit.document()
+    else:
+        doc = tomlkit.document()
+
+    # Ensure parent directories exist
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        if warn_func:
+            warn_func(f"Cannot create config directory: {e}")
+        return False
+
+    # Create or update highlighting section
+    if "highlighting" not in doc:
+        doc["highlighting"] = tomlkit.table()
+
+    hl_section = cast(dict[str, Any], doc["highlighting"])
+
+    # Update global settings
+    hl_section["enabled"] = config.enabled
+    hl_section["max_length"] = config.max_length
+
+    # Update duration section
+    if "duration" not in hl_section:
+        hl_section["duration"] = tomlkit.table()
+    duration_section = cast(dict[str, Any], hl_section["duration"])
+    duration_section["slow"] = config.duration_slow
+    duration_section["very_slow"] = config.duration_very_slow
+    duration_section["critical"] = config.duration_critical
+
+    # Update enabled_highlighters section (only store disabled ones)
+    disabled_highlighters: dict[str, bool] = {}
+    for name in BUILTIN_HIGHLIGHTER_NAMES:
+        if name in config.enabled_highlighters and not config.enabled_highlighters[name]:
+            disabled_highlighters[name] = False
+
+    if disabled_highlighters:
+        if "enabled_highlighters" not in hl_section:
+            hl_section["enabled_highlighters"] = tomlkit.table()
+        eh_section = cast(dict[str, Any], hl_section["enabled_highlighters"])
+
+        # Remove all existing entries first, then add disabled ones
+        for name in list(eh_section.keys()):
+            del eh_section[name]
+        for name, value in disabled_highlighters.items():
+            eh_section[name] = value
+    else:
+        # No disabled highlighters - remove the section if it exists
+        if "enabled_highlighters" in hl_section:
+            del hl_section["enabled_highlighters"]
+
+    # Update custom highlighters
+    if config.custom_highlighters:
+        custom_array = tomlkit.array()
+        for custom in config.custom_highlighters:
+            custom_table = tomlkit.inline_table()
+            custom_table["name"] = custom.name
+            custom_table["pattern"] = custom.pattern
+            custom_table["style"] = custom.style
+            custom_table["priority"] = custom.priority
+            if not custom.enabled:
+                custom_table["enabled"] = False
+            custom_array.append(custom_table)
+        hl_section["custom"] = custom_array
+    else:
+        # No custom highlighters - remove the key if it exists
+        if "custom" in hl_section:
+            del hl_section["custom"]
+
+    # Write back
+    try:
+        config_path.write_text(tomlkit.dumps(doc))  # type: ignore[arg-type]
+        return True
+    except OSError as e:
+        if warn_func:
+            warn_func(f"Cannot save config: {e}")
+        return False
+
+
+def save_highlighter_state(
+    name: str,
+    enabled: bool,
+    warn_func: Callable[[str], None] | None = None,
+) -> bool:
+    """Save a single highlighter's enabled state to config.toml.
+
+    This is more efficient than saving the entire config when
+    only one highlighter's state has changed.
+
+    Args:
+        name: Highlighter name.
+        enabled: Whether the highlighter is enabled.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        True if saved successfully, False otherwise.
+    """
+    config_path = get_config_path()
+
+    # Load existing document or create new one
+    if config_path.exists():
+        try:
+            content = config_path.read_text()
+            doc = tomlkit.parse(content)
+        except (OSError, TOMLKitError):
+            doc = tomlkit.document()
+    else:
+        doc = tomlkit.document()
+
+    # Ensure parent directories exist
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        if warn_func:
+            warn_func(f"Cannot create config directory: {e}")
+        return False
+
+    # Create highlighting section if needed
+    if "highlighting" not in doc:
+        doc["highlighting"] = tomlkit.table()
+
+    hl_section = cast(dict[str, Any], doc["highlighting"])
+
+    # Create enabled_highlighters section if needed
+    if "enabled_highlighters" not in hl_section:
+        hl_section["enabled_highlighters"] = tomlkit.table()
+
+    eh_section = cast(dict[str, Any], hl_section["enabled_highlighters"])
+
+    # Update the specific highlighter
+    if enabled:
+        # Enabled is the default - remove from config to keep it clean
+        if name in eh_section:
+            del eh_section[name]
+    else:
+        # Store disabled state
+        eh_section[name] = False
+
+    # Clean up empty enabled_highlighters section
+    if not eh_section:
+        del hl_section["enabled_highlighters"]
+
+    # Write back
+    try:
+        config_path.write_text(tomlkit.dumps(doc))  # type: ignore[arg-type]
+        return True
+    except OSError as e:
+        if warn_func:
+            warn_func(f"Cannot save config: {e}")
+        return False

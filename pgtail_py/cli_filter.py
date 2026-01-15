@@ -5,6 +5,14 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from prompt_toolkit import print_formatted_text
+
+from pgtail_py.cli_highlight import (
+    format_highlight_list,
+    handle_highlight_disable,
+    handle_highlight_enable,
+)
+from pgtail_py.cli_utils import warn
 from pgtail_py.field_filter import (
     FIELD_ALIASES,
     get_available_field_names,
@@ -233,43 +241,73 @@ def filter_command(state: AppState, args: list[str]) -> None:
 
 
 def highlight_command(state: AppState, args: list[str]) -> None:
-    """Handle the 'highlight' command - set or display text highlights.
+    """Handle the 'highlight' command - semantic highlighters and regex patterns.
+
+    Subcommands:
+        list              Show all semantic highlighters with status
+        enable <name>     Enable a semantic highlighter
+        disable <name>    Disable a semantic highlighter
+        /pattern/         Add regex highlight pattern (legacy)
+        clear             Clear regex highlight patterns (legacy)
 
     Args:
         state: Current application state.
-        args: Highlight pattern or subcommand.
+        args: Subcommand or highlight pattern.
     """
-    # No args - show current highlight status
+    # No args - show semantic highlighter list
     if not args:
-        if not state.regex_state.has_highlights():
-            print("No highlights active")
-        else:
-            print("Active highlights:")
-            for h in state.regex_state.highlights:
-                cs = " (case-sensitive)" if h.case_sensitive else ""
-                print(f"  /{h.pattern}/{cs}")
-        print()
-        print("Usage: highlight /pattern/   Highlight matching text (yellow background)")
-        print("       highlight /pattern/c  Case-sensitive highlight")
-        print("       highlight clear       Clear all highlights")
+        formatted = format_highlight_list(state.highlighting_config)
+        print_formatted_text(formatted)
         return
 
-    arg = args[0]
+    arg = args[0].lower()
 
-    # Handle 'clear' subcommand
-    if arg.lower() == "clear":
+    # Handle 'list' subcommand - show semantic highlighters
+    if arg == "list":
+        formatted = format_highlight_list(state.highlighting_config)
+        print_formatted_text(formatted)
+        return
+
+    # Handle 'enable' subcommand
+    if arg == "enable":
+        if len(args) < 2:
+            print("Usage: highlight enable <name>")
+            return
+        name = args[1]
+        success, message = handle_highlight_enable(name, state.highlighting_config, warn)
+        print(message)
+        return
+
+    # Handle 'disable' subcommand
+    if arg == "disable":
+        if len(args) < 2:
+            print("Usage: highlight disable <name>")
+            return
+        name = args[1]
+        success, message = handle_highlight_disable(name, state.highlighting_config, warn)
+        print(message)
+        return
+
+    # Handle 'clear' subcommand - clear legacy regex highlights
+    if arg == "clear":
         state.regex_state.clear_highlights()
-        print("Highlights cleared")
+        print("Regex highlights cleared")
         return
 
-    # Parse the pattern
-    if not arg.startswith("/"):
-        print(f"Invalid highlight syntax: {arg}")
-        print("Use /pattern/ syntax (e.g., highlight /error/)")
+    # Legacy: Parse regex pattern
+    original_arg = args[0]  # Use original case for pattern
+    if not original_arg.startswith("/"):
+        print(f"Unknown subcommand: {arg}")
+        print()
+        print("Usage: highlight list             Show semantic highlighters")
+        print("       highlight enable <name>    Enable a highlighter")
+        print("       highlight disable <name>   Disable a highlighter")
+        print("       highlight /pattern/        Add regex highlight (legacy)")
+        print("       highlight clear            Clear regex highlights (legacy)")
         return
 
     try:
-        pattern, case_sensitive = parse_filter_arg(arg)
+        pattern, case_sensitive = parse_filter_arg(original_arg)
     except ValueError as e:
         print(f"Error: {e}")
         return
@@ -284,7 +322,7 @@ def highlight_command(state: AppState, args: list[str]) -> None:
     # Add the highlight
     state.regex_state.highlights.append(highlight)
     cs = " (case-sensitive)" if case_sensitive else ""
-    print(f"Highlight added: /{pattern}/{cs}")
+    print(f"Regex highlight added: /{pattern}/{cs}")
 
     # Update tailer if currently tailing
     if state.tailer:

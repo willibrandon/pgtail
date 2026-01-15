@@ -116,6 +116,17 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
             "connections clear      Reset statistics",
         ],
     },
+    "highlight": {
+        "usage": "highlight [list|enable <name>|disable <name>]",
+        "short": "Manage semantic highlighters",
+        "description": "Enable or disable individual semantic highlighters for log output.",
+        "examples": [
+            "highlight              Show all highlighters with status",
+            "highlight list         Same as above",
+            "highlight enable timestamp   Enable timestamp highlighting",
+            "highlight disable duration   Disable duration highlighting",
+        ],
+    },
     "pause": {
         "usage": "pause",
         "short": "Pause log updates (freeze display)",

@@ -53,6 +53,10 @@ from pgtail_py.display import DisplayState, OutputFormat, format_entry
 from pgtail_py.error_stats import ErrorStats
 from pgtail_py.field_filter import FieldFilterState
 from pgtail_py.filter import LogLevel
+from pgtail_py.highlighting_config import (
+    HighlightingConfig,
+    load_highlighting_config,
+)
 from pgtail_py.instance import Instance
 from pgtail_py.notifier import create_notifier
 from pgtail_py.notify import NotificationConfig, NotificationManager, NotificationRule, QuietHours
@@ -111,12 +115,14 @@ class AppState:
     stop_event: threading.Event = field(default_factory=threading.Event)
     shell_mode: bool = False
     config: ConfigSchema = field(default_factory=ConfigSchema)
+    highlighting_config: HighlightingConfig = field(default_factory=HighlightingConfig)
     display_state: DisplayState = field(default_factory=DisplayState)
     current_file_path: Path | None = None  # When tailing arbitrary file (no instance)
 
     def __post_init__(self) -> None:
         """Load config and apply settings after initialization."""
         self.config = load_config(warn_func=warn)
+        self.highlighting_config = load_highlighting_config(warn_func=warn)
         self._apply_config()
         self._init_notification_manager()
 
