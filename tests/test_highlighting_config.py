@@ -11,6 +11,8 @@ Tests cover:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from pgtail_py.highlighting_config import (
@@ -312,7 +314,7 @@ class TestSerialization:
 
     def test_from_dict_with_values(self) -> None:
         """Dict with values should be parsed correctly."""
-        data = {
+        data: dict[str, Any] = {
             "enabled": False,
             "max_length": 5000,
             "duration": {
@@ -403,7 +405,7 @@ class TestCustomHighlighter:
 
     def test_from_dict(self) -> None:
         """from_dict should create correct instance."""
-        data = {
+        data: dict[str, Any] = {
             "name": "test",
             "pattern": r"x",
             "style": "blue",

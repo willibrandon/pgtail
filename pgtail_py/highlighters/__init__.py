@@ -19,6 +19,11 @@ Highlighters are registered in the HighlighterRegistry at module load time.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pgtail_py.highlighter import Highlighter
+
 # Import all highlighter modules
 from pgtail_py.highlighters.checkpoint import (
     CheckpointHighlighter,
@@ -99,7 +104,7 @@ def get_all_highlighters(
     duration_slow: int = 100,
     duration_very_slow: int = 500,
     duration_critical: int = 5000,
-) -> list:
+) -> list[Highlighter]:
     """Return all built-in highlighters for registration.
 
     Args:
@@ -108,9 +113,9 @@ def get_all_highlighters(
         duration_critical: Critical query threshold (ms).
 
     Returns:
-        List of all highlighter instances.
+        List of all highlighter instances conforming to Highlighter protocol.
     """
-    highlighters = []
+    highlighters: list[Highlighter] = []
 
     # Add highlighters in priority order
     highlighters.extend(get_structural_highlighters())  # 100-199

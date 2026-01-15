@@ -264,9 +264,10 @@ class TestModuleFunctions:
         )
 
         duration = next(h for h in highlighters if h.name == "duration")
-        assert duration._slow == 50
-        assert duration._very_slow == 200
-        assert duration._critical == 1000
+        assert isinstance(duration, DurationHighlighter)
+        assert duration.slow == 50
+        assert duration.very_slow == 200
+        assert duration.critical == 1000
 
     def test_priority_order(self) -> None:
         """Highlighters should have priorities in 300-399 range."""

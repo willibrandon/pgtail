@@ -113,11 +113,9 @@ def register_all_highlighters() -> None:
         else:
             category = "misc"
 
-        try:
+        # Only register if not already present (avoids ValueError on duplicate)
+        if registry.get(h.name) is None:
             registry.register(h, category)
-        except ValueError:
-            # Already registered - skip
-            pass
 
     _highlighters_registered = True
 
@@ -158,10 +156,13 @@ def reset_highlighter_chain() -> None:
     """Reset the cached highlighter chain.
 
     Used when configuration changes or for testing.
+    Also resets the _highlighters_registered flag so highlighters
+    can be re-registered to a fresh registry.
     """
-    global _highlighter_chain, _highlighting_config
+    global _highlighter_chain, _highlighting_config, _highlighters_registered
     _highlighter_chain = None
     _highlighting_config = None
+    _highlighters_registered = False
 
 
 # =============================================================================

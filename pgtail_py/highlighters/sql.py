@@ -14,13 +14,8 @@ Migrated from sql_tokenizer.py and sql_highlighter.py.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
 
-from pgtail_py.highlighter import KeywordHighlighter, Match, RegexHighlighter
-
-if TYPE_CHECKING:
-    from pgtail_py.theme import Theme
-
+from pgtail_py.highlighter import KeywordHighlighter, RegexHighlighter
 
 # =============================================================================
 # SQL Keywords (from sql_tokenizer.py)

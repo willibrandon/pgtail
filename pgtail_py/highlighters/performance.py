@@ -71,6 +71,21 @@ class DurationHighlighter(RegexHighlighter):
         self._critical = critical
 
     @property
+    def slow(self) -> int:
+        """Return slow threshold (ms)."""
+        return self._slow
+
+    @property
+    def very_slow(self) -> int:
+        """Return very slow threshold (ms)."""
+        return self._very_slow
+
+    @property
+    def critical(self) -> int:
+        """Return critical threshold (ms)."""
+        return self._critical
+
+    @property
     def description(self) -> str:
         """Return human-readable description."""
         return f"Query durations (slow: {self._slow}ms, critical: {self._critical}ms)"

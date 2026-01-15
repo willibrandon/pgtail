@@ -788,6 +788,10 @@ class HighlighterChain:
     ) -> list[tuple[int, int, str, int]]:
         """Collect all matches from all highlighters.
 
+        SQL highlighters (names starting with "sql_") are only applied
+        within detected SQL contexts to avoid highlighting common English
+        words like "for", "with", "at" that happen to be SQL keywords.
+
         Args:
             text: Text to search.
             theme: Current theme.
@@ -795,10 +799,27 @@ class HighlighterChain:
         Returns:
             List of (start, end, style, priority) tuples.
         """
+        from pgtail_py.sql_detector import detect_sql_content
+
         all_matches: list[tuple[int, int, str, int]] = []
 
+        # Detect SQL context - SQL highlighters only apply within SQL region
+        sql_result = detect_sql_content(text)
+        has_sql = sql_result is not None
+        sql_start = len(sql_result.prefix) if sql_result else len(text)
+        sql_end = sql_start + len(sql_result.sql) if sql_result else len(text)
+
         for h in self.highlighters:
+            is_sql_highlighter = h.name.startswith("sql_")
+
             for m in h.find_matches(text, theme):
+                # For SQL highlighters, only include matches within SQL context
+                if is_sql_highlighter:
+                    if not has_sql:
+                        continue  # No SQL detected, skip all SQL matches
+                    if m.start < sql_start or m.end > sql_end:
+                        continue  # Match outside SQL region
+
                 all_matches.append((m.start, m.end, m.style, h.priority))
 
         return all_matches

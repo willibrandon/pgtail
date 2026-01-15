@@ -97,92 +97,92 @@
 
 #### Built-in Highlighters - Structural (FR-010, FR-011, FR-012)
 
-- [ ] T035 [P] [US1] Implement TimestampHighlighter in pgtail_py/highlighters/structural.py (date, time, ms, tz)
-- [ ] T036 [P] [US1] Implement PIDHighlighter in pgtail_py/highlighters/structural.py ([12345], [12345-1])
-- [ ] T037 [P] [US1] Implement ContextLabelHighlighter in pgtail_py/highlighters/structural.py (DETAIL:, HINT:, CONTEXT:)
-- [ ] T038 [US1] Register structural highlighters in pgtail_py/highlighters/__init__.py (priorities 100-199)
-- [ ] T039 [US1] Write tests for structural highlighters in tests/test_highlighters_structural.py
+- [X] T035 [P] [US1] Implement TimestampHighlighter in pgtail_py/highlighters/structural.py (date, time, ms, tz)
+- [X] T036 [P] [US1] Implement PIDHighlighter in pgtail_py/highlighters/structural.py ([12345], [12345-1])
+- [X] T037 [P] [US1] Implement ContextLabelHighlighter in pgtail_py/highlighters/structural.py (DETAIL:, HINT:, CONTEXT:)
+- [X] T038 [US1] Register structural highlighters in pgtail_py/highlighters/__init__.py (priorities 100-199)
+- [X] T039 [US1] Write tests for structural highlighters in tests/test_highlighters_structural.py
 
 #### Built-in Highlighters - Diagnostic (FR-020, FR-021)
 
-- [ ] T040 [P] [US1] Implement SQLStateHighlighter in pgtail_py/highlighters/diagnostic.py (error class coloring)
-- [ ] T041 [P] [US1] Implement ErrorNameHighlighter in pgtail_py/highlighters/diagnostic.py (unique_violation, deadlock_detected, etc. via Aho-Corasick)
-- [ ] T042 [US1] Register diagnostic highlighters in pgtail_py/highlighters/__init__.py (priorities 200-299)
-- [ ] T043 [US1] Write tests for diagnostic highlighters in tests/test_highlighters_diagnostic.py
+- [X] T040 [P] [US1] Implement SQLStateHighlighter in pgtail_py/highlighters/diagnostic.py (error class coloring)
+- [X] T041 [P] [US1] Implement ErrorNameHighlighter in pgtail_py/highlighters/diagnostic.py (unique_violation, deadlock_detected, etc. via Aho-Corasick)
+- [X] T042 [US1] Register diagnostic highlighters in pgtail_py/highlighters/__init__.py (priorities 200-299)
+- [X] T043 [US1] Write tests for diagnostic highlighters in tests/test_highlighters_diagnostic.py
 
 #### Built-in Highlighters - Performance (FR-030, FR-031, FR-032)
 
-- [ ] T044 [P] [US1] Implement DurationHighlighter in pgtail_py/highlighters/performance.py (threshold-based fast/slow/very_slow/critical)
-- [ ] T045 [P] [US1] Implement MemoryHighlighter in pgtail_py/highlighters/performance.py (bytes, kB, MB, GB, TB)
-- [ ] T046 [P] [US1] Implement StatisticsHighlighter in pgtail_py/highlighters/performance.py (checkpoint/vacuum counts, percentages)
-- [ ] T047 [US1] Register performance highlighters in pgtail_py/highlighters/__init__.py (priorities 300-399)
-- [ ] T048 [US1] Write tests for performance highlighters in tests/test_highlighters_performance.py
+- [X] T044 [P] [US1] Implement DurationHighlighter in pgtail_py/highlighters/performance.py (threshold-based fast/slow/very_slow/critical)
+- [X] T045 [P] [US1] Implement MemoryHighlighter in pgtail_py/highlighters/performance.py (bytes, kB, MB, GB, TB)
+- [X] T046 [P] [US1] Implement StatisticsHighlighter in pgtail_py/highlighters/performance.py (checkpoint/vacuum counts, percentages)
+- [X] T047 [US1] Register performance highlighters in pgtail_py/highlighters/__init__.py (priorities 300-399)
+- [X] T048 [US1] Write tests for performance highlighters in tests/test_highlighters_performance.py
 
 #### Built-in Highlighters - Objects (FR-040, FR-041, FR-042)
 
-- [ ] T049 [P] [US1] Implement IdentifierHighlighter in pgtail_py/highlighters/objects.py (double-quoted identifiers)
-- [ ] T050 [P] [US1] Implement RelationHighlighter in pgtail_py/highlighters/objects.py (relation "users", table "orders")
-- [ ] T051 [P] [US1] Implement SchemaHighlighter in pgtail_py/highlighters/objects.py (schema-qualified names)
-- [ ] T052 [US1] Register object highlighters in pgtail_py/highlighters/__init__.py (priorities 400-499)
-- [ ] T053 [US1] Write tests for object highlighters in tests/test_highlighters_objects.py
+- [X] T049 [P] [US1] Implement IdentifierHighlighter in pgtail_py/highlighters/objects.py (double-quoted identifiers)
+- [X] T050 [P] [US1] Implement RelationHighlighter in pgtail_py/highlighters/objects.py (relation "users", table "orders")
+- [X] T051 [P] [US1] Implement SchemaHighlighter in pgtail_py/highlighters/objects.py (schema-qualified names)
+- [X] T052 [US1] Register object highlighters in pgtail_py/highlighters/__init__.py (priorities 400-499)
+- [X] T053 [US1] Write tests for object highlighters in tests/test_highlighters_objects.py
 
 #### Built-in Highlighters - WAL (FR-050, FR-051, FR-052)
 
-- [ ] T054 [P] [US1] Implement LSNHighlighter in pgtail_py/highlighters/wal.py (segment/offset format)
-- [ ] T055 [P] [US1] Implement WALSegmentHighlighter in pgtail_py/highlighters/wal.py (24-char hex filenames)
-- [ ] T056 [P] [US1] Implement TxidHighlighter in pgtail_py/highlighters/wal.py (xid, transaction, xmin, xmax)
-- [ ] T057 [US1] Register WAL highlighters in pgtail_py/highlighters/__init__.py (priorities 500-599)
-- [ ] T058 [US1] Write tests for WAL highlighters in tests/test_highlighters_wal.py
+- [X] T054 [P] [US1] Implement LSNHighlighter in pgtail_py/highlighters/wal.py (segment/offset format)
+- [X] T055 [P] [US1] Implement WALSegmentHighlighter in pgtail_py/highlighters/wal.py (24-char hex filenames)
+- [X] T056 [P] [US1] Implement TxidHighlighter in pgtail_py/highlighters/wal.py (xid, transaction, xmin, xmax)
+- [X] T057 [US1] Register WAL highlighters in pgtail_py/highlighters/__init__.py (priorities 500-599)
+- [X] T058 [US1] Write tests for WAL highlighters in tests/test_highlighters_wal.py
 
 #### Built-in Highlighters - Connection (FR-060, FR-061, FR-062)
 
-- [ ] T059 [P] [US1] Implement ConnectionHighlighter in pgtail_py/highlighters/connection.py (host, port, user, database)
-- [ ] T060 [P] [US1] Implement IPHighlighter in pgtail_py/highlighters/connection.py (IPv4, IPv6, CIDR)
-- [ ] T061 [P] [US1] Implement BackendHighlighter in pgtail_py/highlighters/connection.py (autovacuum, checkpointer, etc. via Aho-Corasick)
-- [ ] T062 [US1] Register connection highlighters in pgtail_py/highlighters/__init__.py (priorities 600-699)
-- [ ] T063 [US1] Write tests for connection highlighters in tests/test_highlighters_connection.py
+- [X] T059 [P] [US1] Implement ConnectionHighlighter in pgtail_py/highlighters/connection.py (host, port, user, database)
+- [X] T060 [P] [US1] Implement IPHighlighter in pgtail_py/highlighters/connection.py (IPv4, IPv6, CIDR)
+- [X] T061 [P] [US1] Implement BackendHighlighter in pgtail_py/highlighters/connection.py (autovacuum, checkpointer, etc. via Aho-Corasick)
+- [X] T062 [US1] Register connection highlighters in pgtail_py/highlighters/__init__.py (priorities 600-699)
+- [X] T063 [US1] Write tests for connection highlighters in tests/test_highlighters_connection.py
 
 #### Built-in Highlighters - SQL (FR-070, FR-071, FR-072, FR-073, FR-074)
 
-- [ ] T064 [P] [US1] Implement SQLParamHighlighter in pgtail_py/highlighters/sql.py ($1, $2, etc.)
-- [ ] T065 [P] [US1] Migrate SQLTokenizer from sql_tokenizer.py to pgtail_py/highlighters/sql.py
-- [ ] T066 [P] [US1] Implement SQLKeywordHighlighter in pgtail_py/highlighters/sql.py (120+ keywords via Aho-Corasick with category-based styling: DML=select/insert/update/delete, DDL=create/alter/drop, DCL=grant/revoke, TCL=commit/rollback per FR-071)
-- [ ] T067 [P] [US1] Implement SQLStringHighlighter in pgtail_py/highlighters/sql.py (single/double/dollar-quoted)
-- [ ] T068 [P] [US1] Implement SQLNumberHighlighter in pgtail_py/highlighters/sql.py (integers, decimals, hex, scientific)
-- [ ] T069 [P] [US1] Implement SQLOperatorHighlighter in pgtail_py/highlighters/sql.py (=, <>, !=, <=, >=, ||, :: operators per existing sql_tokenizer.py migration)
-- [ ] T070 [US1] Implement SQL context detection in pgtail_py/highlighters/sql.py (statement:, execute:, parse:, bind: prefixes)
-- [ ] T071 [US1] Register SQL highlighters in pgtail_py/highlighters/__init__.py (priorities 700-799)
-- [ ] T072 [US1] Migrate tests from tests/test_sql_highlighter.py to tests/test_highlighters_sql.py
+- [X] T064 [P] [US1] Implement SQLParamHighlighter in pgtail_py/highlighters/sql.py ($1, $2, etc.)
+- [X] T065 [P] [US1] Migrate SQLTokenizer from sql_tokenizer.py to pgtail_py/highlighters/sql.py
+- [X] T066 [P] [US1] Implement SQLKeywordHighlighter in pgtail_py/highlighters/sql.py (120+ keywords via Aho-Corasick with category-based styling: DML=select/insert/update/delete, DDL=create/alter/drop, DCL=grant/revoke, TCL=commit/rollback per FR-071)
+- [X] T067 [P] [US1] Implement SQLStringHighlighter in pgtail_py/highlighters/sql.py (single/double/dollar-quoted)
+- [X] T068 [P] [US1] Implement SQLNumberHighlighter in pgtail_py/highlighters/sql.py (integers, decimals, hex, scientific)
+- [X] T069 [P] [US1] Implement SQLOperatorHighlighter in pgtail_py/highlighters/sql.py (=, <>, !=, <=, >=, ||, :: operators per existing sql_tokenizer.py migration)
+- [X] T070 [US1] Implement SQL context detection in pgtail_py/highlighters/sql.py (statement:, execute:, parse:, bind: prefixes)
+- [X] T071 [US1] Register SQL highlighters in pgtail_py/highlighters/__init__.py (priorities 700-799)
+- [X] T072 [US1] Migrate tests from tests/test_sql_highlighter.py to tests/test_highlighters_sql.py
 
 #### Built-in Highlighters - Lock (FR-080, FR-081)
 
-- [ ] T073 [P] [US1] Implement LockTypeHighlighter in pgtail_py/highlighters/lock.py (share vs exclusive via Aho-Corasick)
-- [ ] T074 [P] [US1] Implement LockWaitHighlighter in pgtail_py/highlighters/lock.py (waiting for, acquired, duration)
-- [ ] T075 [US1] Register lock highlighters in pgtail_py/highlighters/__init__.py (priorities 800-899)
-- [ ] T076 [US1] Write tests for lock highlighters in tests/test_highlighters_lock.py
+- [X] T073 [P] [US1] Implement LockTypeHighlighter in pgtail_py/highlighters/lock.py (share vs exclusive via Aho-Corasick)
+- [X] T074 [P] [US1] Implement LockWaitHighlighter in pgtail_py/highlighters/lock.py (waiting for, acquired, duration)
+- [X] T075 [US1] Register lock highlighters in pgtail_py/highlighters/__init__.py (priorities 800-899)
+- [X] T076 [US1] Write tests for lock highlighters in tests/test_highlighters_lock.py
 
 #### Built-in Highlighters - Checkpoint (FR-090, FR-091)
 
-- [ ] T077 [P] [US1] Implement CheckpointHighlighter in pgtail_py/highlighters/checkpoint.py (starting, complete, trigger, stats)
-- [ ] T078 [P] [US1] Implement RecoveryHighlighter in pgtail_py/highlighters/checkpoint.py (redo starts/done, ready to accept)
-- [ ] T079 [US1] Register checkpoint highlighters in pgtail_py/highlighters/__init__.py (priorities 900-999)
-- [ ] T080 [US1] Write tests for checkpoint highlighters in tests/test_highlighters_checkpoint.py
+- [X] T077 [P] [US1] Implement CheckpointHighlighter in pgtail_py/highlighters/checkpoint.py (starting, complete, trigger, stats)
+- [X] T078 [P] [US1] Implement RecoveryHighlighter in pgtail_py/highlighters/checkpoint.py (redo starts/done, ready to accept)
+- [X] T079 [US1] Register checkpoint highlighters in pgtail_py/highlighters/__init__.py (priorities 900-999)
+- [X] T080 [US1] Write tests for checkpoint highlighters in tests/test_highlighters_checkpoint.py
 
 #### Built-in Highlighters - Misc (FR-100, FR-101, FR-102, FR-103)
 
-- [ ] T081 [P] [US1] Implement BooleanHighlighter in pgtail_py/highlighters/misc.py (on/off, true/false, yes/no)
-- [ ] T082 [P] [US1] Implement NullHighlighter in pgtail_py/highlighters/misc.py (NULL keyword)
-- [ ] T083 [P] [US1] Implement OIDHighlighter in pgtail_py/highlighters/misc.py (OID patterns)
-- [ ] T084 [P] [US1] Implement PathHighlighter in pgtail_py/highlighters/misc.py (Unix file paths)
-- [ ] T085 [US1] Register misc highlighters in pgtail_py/highlighters/__init__.py (priorities 1000+)
-- [ ] T086 [US1] Write tests for misc highlighters in tests/test_highlighters_misc.py
+- [X] T081 [P] [US1] Implement BooleanHighlighter in pgtail_py/highlighters/misc.py (on/off, true/false, yes/no)
+- [X] T082 [P] [US1] Implement NullHighlighter in pgtail_py/highlighters/misc.py (NULL keyword)
+- [X] T083 [P] [US1] Implement OIDHighlighter in pgtail_py/highlighters/misc.py (OID patterns)
+- [X] T084 [P] [US1] Implement PathHighlighter in pgtail_py/highlighters/misc.py (Unix file paths)
+- [X] T085 [US1] Register misc highlighters in pgtail_py/highlighters/__init__.py (priorities 1000+)
+- [X] T086 [US1] Write tests for misc highlighters in tests/test_highlighters_misc.py
 
 #### Tail Mode Integration (FR-150)
 
-- [ ] T087 [US1] Integrate HighlighterChain into pgtail_py/tail_rich.py format_entry_compact()
-- [ ] T088 [US1] Remove direct sql_highlighter.py calls from pgtail_py/tail_rich.py
-- [ ] T089 [US1] Add highlighting state to TailApp in pgtail_py/tail_textual.py
-- [ ] T090 [US1] Write integration tests for tail mode highlighting in tests/test_highlighting_integration.py
+- [X] T087 [US1] Integrate HighlighterChain into pgtail_py/tail_rich.py format_entry_compact()
+- [X] T088 [US1] Remove direct sql_highlighter.py calls from pgtail_py/tail_rich.py
+- [X] T089 [US1] Add highlighting state to TailApp in pgtail_py/tail_textual.py
+- [X] T090 [US1] Write integration tests for tail mode highlighting in tests/test_highlighting_integration.py
 
 **Checkpoint**: User Story 1 complete - patterns are automatically colorized during tailing
 
@@ -194,11 +194,11 @@
 
 **Independent Test**: Switch themes with `theme dark` / `theme solarized-light` and observe color changes
 
-- [ ] T091 [US2] Pass theme parameter through HighlighterChain.apply_rich() call chain in pgtail_py/tail_rich.py
-- [ ] T092 [US2] Trigger _rebuild_log() on theme switch in pgtail_py/tail_textual.py to re-render with new colors
-- [ ] T093 [US2] Implement NO_COLOR environment variable check in HighlighterChain (FR-112) in pgtail_py/highlighter.py
-- [ ] T094 [US2] Write tests for theme switching in tests/test_highlighting_integration.py
-- [ ] T095 [US2] Write tests for NO_COLOR handling in tests/test_highlighting_integration.py
+- [X] T091 [US2] Pass theme parameter through HighlighterChain.apply_rich() call chain in pgtail_py/tail_rich.py
+- [X] T092 [US2] Trigger _rebuild_log() on theme switch in pgtail_py/tail_textual.py to re-render with new colors
+- [X] T093 [US2] Implement NO_COLOR environment variable check in HighlighterChain (FR-112) in pgtail_py/highlighter.py
+- [X] T094 [US2] Write tests for theme switching in tests/test_highlighting_integration.py
+- [X] T095 [US2] Write tests for NO_COLOR handling in tests/test_highlighting_integration.py
 
 **Checkpoint**: User Story 2 complete - theme changes immediately update highlight colors
 
@@ -210,10 +210,10 @@
 
 **Independent Test**: View log line with timestamp + PID + SQLSTATE + identifier and verify each is distinctly styled
 
-- [ ] T096 [US3] Verify OccupancyTracker prevents overlapping matches in pgtail_py/highlighter.py
-- [ ] T097 [US3] Implement priority-based conflict resolution (lower priority wins) in HighlighterChain
-- [ ] T098 [US3] Write tests for multi-pattern overlap scenarios in tests/test_highlighter.py
-- [ ] T099 [US3] Write tests for nested pattern handling (schema-qualified within relation) in tests/test_highlighter.py
+- [X] T096 [US3] Verify OccupancyTracker prevents overlapping matches in pgtail_py/highlighter.py
+- [X] T097 [US3] Implement priority-based conflict resolution (lower priority wins) in HighlighterChain
+- [X] T098 [US3] Write tests for multi-pattern overlap scenarios in tests/test_highlighter.py
+- [X] T099 [US3] Write tests for nested pattern handling (schema-qualified within relation) in tests/test_highlighter.py
 
 **Checkpoint**: User Story 3 complete - zero overlap artifacts occur
 
@@ -225,10 +225,10 @@
 
 **Independent Test**: Query logs in REPL and verify patterns are highlighted
 
-- [ ] T100 [US10] Integrate HighlighterChain into pgtail_py/display.py format functions (FR-151)
-- [ ] T101 [US10] Remove direct sql_highlighter.py calls from pgtail_py/display.py
-- [ ] T102 [US10] Implement apply() method returning FormattedText in all highlighters
-- [ ] T103 [US10] Write tests for REPL highlighting in tests/test_display.py
+- [X] T100 [US10] Integrate HighlighterChain into pgtail_py/display.py format functions (FR-151)
+- [X] T101 [US10] Remove direct sql_highlighter.py calls from pgtail_py/display.py
+- [X] T102 [US10] Implement apply() method returning FormattedText in all highlighters
+- [X] T103 [US10] Write tests for REPL highlighting in tests/test_display.py
 
 **Checkpoint**: P1 User Stories complete - MVP ready for validation
 

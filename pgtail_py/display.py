@@ -2,6 +2,8 @@
 
 Supports multiple display modes (compact, full, custom) and output formats
 (text, JSON) for rich error display with SQL state codes and extended fields.
+
+Includes semantic highlighting integration for REPL mode via HighlighterChain.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from pgtail_py.sql_highlighter import highlight_sql
 
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry
+    from pgtail_py.theme import Theme
 
 
 class DisplayMode(Enum):
@@ -105,6 +108,9 @@ def get_valid_display_fields() -> list[str]:
 def _format_message_with_sql(message: str, level_class: str) -> list[OneStyleAndTextTuple]:
     """Format a log message with SQL syntax highlighting if SQL is detected.
 
+    This is the legacy SQL-only highlighting function. For full semantic
+    highlighting, use _format_message_with_highlighting() instead.
+
     Args:
         message: The log message to format.
         level_class: The style class for the log level (e.g., "class:error").
@@ -135,6 +141,36 @@ def _format_message_with_sql(message: str, level_class: str) -> list[OneStyleAnd
         parts.append((level_class, detection.suffix))
 
     return parts
+
+
+def _format_message_with_highlighting(
+    message: str,
+    theme: Theme | None,
+    use_semantic_highlighting: bool = True,
+) -> FormattedText:
+    """Format a log message with semantic highlighting.
+
+    Uses the HighlighterChain to apply pattern-based highlighting to the
+    message content. Falls back to SQL-only highlighting if no theme is
+    provided or semantic highlighting is disabled.
+
+    Args:
+        message: The log message to format.
+        theme: Current theme for style lookups.
+        use_semantic_highlighting: Whether to apply semantic highlighting.
+
+    Returns:
+        FormattedText for prompt_toolkit.
+    """
+    if use_semantic_highlighting and theme is not None:
+        # Use semantic highlighting via highlighter chain
+        from pgtail_py.tail_rich import get_highlighter_chain
+
+        chain = get_highlighter_chain()
+        return chain.apply(message, theme)
+
+    # Fallback to SQL-only highlighting
+    return FormattedText(_format_message_with_sql(message, ""))
 
 
 class DisplayState:
@@ -214,17 +250,25 @@ class DisplayState:
         return f"Display: {mode_str}, Output: {self._output_format.value}"
 
 
-def format_entry_compact(entry: LogEntry) -> FormattedText:
+def format_entry_compact(
+    entry: LogEntry,
+    theme: Theme | None = None,
+    use_semantic_highlighting: bool = True,
+) -> FormattedText:
     """Format entry in compact mode (single line).
 
     Format: {timestamp} [{pid}] {level} {sql_state}: {message}
 
     For structured formats, includes SQL state code.
     For text format, behaves like existing format_log_entry().
-    SQL statements in messages are syntax-highlighted.
+    Messages are highlighted using semantic highlighting when enabled.
 
     Args:
-        entry: Log entry to format
+        entry: Log entry to format.
+        theme: Current theme for semantic highlighting. If None, falls back
+            to SQL-only highlighting.
+        use_semantic_highlighting: Whether to apply semantic highlighting
+            to the message content.
 
     Returns:
         FormattedText for prompt_toolkit
@@ -250,18 +294,30 @@ def format_entry_compact(entry: LogEntry) -> FormattedText:
     else:
         parts.append((level_class, f"{level_name}: "))
 
-    # Message with SQL highlighting
-    message_parts = _format_message_with_sql(entry.message, level_class)
-    parts.extend(message_parts)
+    # Message with highlighting
+    if use_semantic_highlighting and theme is not None:
+        # Use semantic highlighting via highlighter chain
+        message_formatted = _format_message_with_highlighting(
+            entry.message, theme, use_semantic_highlighting
+        )
+        parts.extend(list(message_formatted))
+    else:
+        # Fallback to SQL-only highlighting
+        message_parts = _format_message_with_sql(entry.message, level_class)
+        parts.extend(message_parts)
 
     return FormattedText(parts)
 
 
-def format_entry_full(entry: LogEntry) -> FormattedText:
+def format_entry_full(
+    entry: LogEntry,
+    theme: Theme | None = None,
+    use_semantic_highlighting: bool = True,
+) -> FormattedText:
     """Format entry in full mode (all fields).
 
     Shows primary line followed by indented secondary fields.
-    SQL statements in messages are syntax-highlighted.
+    Messages are highlighted using semantic highlighting when enabled.
 
     Example:
         10:23:45.123 [12345] ERROR 42P01: relation "foo" does not exist
@@ -272,7 +328,9 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
           Location: parse_relation.c:1234
 
     Args:
-        entry: Log entry to format
+        entry: Log entry to format.
+        theme: Current theme for semantic highlighting.
+        use_semantic_highlighting: Whether to apply semantic highlighting.
 
     Returns:
         FormattedText for prompt_toolkit
@@ -295,9 +353,15 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
     else:
         parts.append((level_class, f"{level_name}: "))
 
-    # Message with SQL highlighting
-    message_parts = _format_message_with_sql(entry.message, level_class)
-    parts.extend(message_parts)
+    # Message with highlighting
+    if use_semantic_highlighting and theme is not None:
+        message_formatted = _format_message_with_highlighting(
+            entry.message, theme, use_semantic_highlighting
+        )
+        parts.extend(list(message_formatted))
+    else:
+        message_parts = _format_message_with_sql(entry.message, level_class)
+        parts.extend(message_parts)
 
     # Secondary fields (indented)
     secondary_fields = [
@@ -320,22 +384,35 @@ def format_entry_full(entry: LogEntry) -> FormattedText:
             parts.append(("", f"\n  {label}: "))
             # Check if the field might contain SQL (query, detail)
             if field_name in ("query", "detail"):
-                field_parts = _format_message_with_sql(str(value), "class:detail")
-                parts.extend(field_parts)
+                if use_semantic_highlighting and theme is not None:
+                    field_formatted = _format_message_with_highlighting(
+                        str(value), theme, use_semantic_highlighting
+                    )
+                    parts.extend(list(field_formatted))
+                else:
+                    field_parts = _format_message_with_sql(str(value), "class:detail")
+                    parts.extend(field_parts)
             else:
                 parts.append(("class:detail", str(value)))
 
     return FormattedText(parts)
 
 
-def format_entry_custom(entry: LogEntry, fields: list[str]) -> FormattedText:
+def format_entry_custom(
+    entry: LogEntry,
+    fields: list[str],
+    theme: Theme | None = None,
+    use_semantic_highlighting: bool = True,
+) -> FormattedText:
     """Format entry with only specified fields.
 
-    SQL statements in message and query fields are syntax-highlighted.
+    Messages are highlighted using semantic highlighting when enabled.
 
     Args:
-        entry: Log entry to format
-        fields: Field names to include
+        entry: Log entry to format.
+        fields: Field names to include.
+        theme: Current theme for semantic highlighting.
+        use_semantic_highlighting: Whether to apply semantic highlighting.
 
     Returns:
         FormattedText for prompt_toolkit
@@ -368,17 +445,35 @@ def format_entry_custom(entry: LogEntry, fields: list[str]) -> FormattedText:
         elif field_name == "sql_state" and entry.sql_state:
             parts.append((level_class, entry.sql_state))
         elif field_name == "message":
-            # Apply SQL highlighting to message
-            message_parts = _format_message_with_sql(entry.message, level_class)
-            parts.extend(message_parts)
+            # Apply highlighting to message
+            if use_semantic_highlighting and theme is not None:
+                message_formatted = _format_message_with_highlighting(
+                    entry.message, theme, use_semantic_highlighting
+                )
+                parts.extend(list(message_formatted))
+            else:
+                message_parts = _format_message_with_sql(entry.message, level_class)
+                parts.extend(message_parts)
         elif field_name == "query":
             # Query field typically contains SQL
-            query_parts = _format_message_with_sql(str(value), "")
-            parts.extend(query_parts)
+            if use_semantic_highlighting and theme is not None:
+                query_formatted = _format_message_with_highlighting(
+                    str(value), theme, use_semantic_highlighting
+                )
+                parts.extend(list(query_formatted))
+            else:
+                query_parts = _format_message_with_sql(str(value), "")
+                parts.extend(query_parts)
         elif field_name == "detail":
             # Detail field may contain SQL context
-            detail_parts = _format_message_with_sql(str(value), "")
-            parts.extend(detail_parts)
+            if use_semantic_highlighting and theme is not None:
+                detail_formatted = _format_message_with_highlighting(
+                    str(value), theme, use_semantic_highlighting
+                )
+                parts.extend(list(detail_formatted))
+            else:
+                detail_parts = _format_message_with_sql(str(value), "")
+                parts.extend(detail_parts)
         else:
             parts.append(("", str(value)))
 
@@ -404,12 +499,16 @@ def format_entry_json(entry: LogEntry) -> str:
 def format_entry(
     entry: LogEntry,
     display_state: DisplayState,
+    theme: Theme | None = None,
+    use_semantic_highlighting: bool = True,
 ) -> FormattedText | str:
     """Format entry according to current display settings.
 
     Args:
-        entry: Log entry to format
-        display_state: Current display settings
+        entry: Log entry to format.
+        display_state: Current display settings.
+        theme: Current theme for semantic highlighting.
+        use_semantic_highlighting: Whether to apply semantic highlighting.
 
     Returns:
         FormattedText for text output, str for JSON output
@@ -418,14 +517,16 @@ def format_entry(
         return format_entry_json(entry)
 
     if display_state.mode == DisplayMode.COMPACT:
-        return format_entry_compact(entry)
+        return format_entry_compact(entry, theme, use_semantic_highlighting)
     elif display_state.mode == DisplayMode.FULL:
-        return format_entry_full(entry)
+        return format_entry_full(entry, theme, use_semantic_highlighting)
     elif display_state.mode == DisplayMode.CUSTOM:
-        return format_entry_custom(entry, display_state.custom_fields)
+        return format_entry_custom(
+            entry, display_state.custom_fields, theme, use_semantic_highlighting
+        )
 
     # Default fallback
-    return format_entry_compact(entry)
+    return format_entry_compact(entry, theme, use_semantic_highlighting)
 
 
 def format_entry_as_rich(entry: LogEntry) -> str:

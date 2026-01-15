@@ -353,21 +353,21 @@ class TestSQLContextDetection:
     def test_parse_prefix(self) -> None:
         """Should detect parse <name>: prefix."""
         text = "parse my_stmt: SELECT * FROM users"
-        has_sql, pos = detect_sql_context(text)
+        has_sql, _ = detect_sql_context(text)
 
         assert has_sql is True
 
     def test_bind_prefix(self) -> None:
         """Should detect bind <name>: prefix."""
         text = "bind stmt_1: some parameters"
-        has_sql, pos = detect_sql_context(text)
+        has_sql, _ = detect_sql_context(text)
 
         assert has_sql is True
 
     def test_duration_statement(self) -> None:
         """Should detect duration: ... statement: prefix."""
         text = "duration: 5.123 ms statement: SELECT 1"
-        has_sql, pos = detect_sql_context(text)
+        has_sql, _ = detect_sql_context(text)
 
         assert has_sql is True
 

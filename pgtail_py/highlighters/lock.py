@@ -8,13 +8,8 @@ Highlighters in this module:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
 
-from pgtail_py.highlighter import KeywordHighlighter, Match, RegexHighlighter
-
-if TYPE_CHECKING:
-    from pgtail_py.theme import Theme
-
+from pgtail_py.highlighter import KeywordHighlighter, RegexHighlighter
 
 # =============================================================================
 # LockTypeHighlighter
