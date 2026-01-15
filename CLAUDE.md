@@ -603,9 +603,9 @@ zcat archived.log.gz | pgtail tail --stdin
 - `pgtail_py/commands.py` - PathCompleter for tab completion
 
 ## Recent Changes
+- 023-semantic-highlighting: Added Python 3.10+ (targeting Python 3.12 for builds) + prompt_toolkit >=3.0.0, textual, pyahocorasick (NEW - for multi-keyword matching)
 - 022-repl-toolbar: Added Python 3.10+ + prompt_toolkit >=3.0.0 (already in use for REPL)
 - 021-tail-file-option: Added Python 3.10+ + prompt_toolkit, textual, typer, psutil
-- 020-nuitka-migration: Added Python 3.10+ (targeting Python 3.12 for builds)
 
 ## MCP Tools: Textual Documentation
 
@@ -664,3 +664,5 @@ get_textual_doc(path="widgets/log.md")
 - N/A (file system read-only) (021-tail-file-option)
 - Python 3.10+ + prompt_toolkit >=3.0.0 (already in use for REPL) (022-repl-toolbar)
 - N/A (extends existing config schema with `display.show_toolbar`) (022-repl-toolbar)
+- Python 3.10+ (targeting Python 3.12 for builds) + prompt_toolkit >=3.0.0, textual, pyahocorasick (NEW - for multi-keyword matching) (023-semantic-highlighting)
+- TOML configuration file (existing config.py infrastructure) (023-semantic-highlighting)
