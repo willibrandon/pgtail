@@ -25,9 +25,9 @@
 
 **Purpose**: Project initialization, dependency installation, and directory structure
 
-- [ ] T001 Add pyahocorasick dependency to pyproject.toml (BSD-3-Clause, cross-platform wheels)
-- [ ] T002 Create highlighters/ package directory with pgtail_py/highlighters/__init__.py
-- [ ] T003 [P] Create test file stubs for new modules in tests/
+- [X] T001 Add pyahocorasick dependency to pyproject.toml (BSD-3-Clause, cross-platform wheels)
+- [X] T002 Create highlighters/ package directory with pgtail_py/highlighters/__init__.py
+- [X] T003 [P] Create test file stubs for new modules in tests/
 
 ---
 
@@ -39,49 +39,49 @@
 
 ### Core Entities (from data-model.md)
 
-- [ ] T004 Implement Match dataclass in pgtail_py/highlighter.py (frozen, slots: start, end, style, text)
-- [ ] T005 Implement OccupancyTracker class in pgtail_py/highlighter.py (is_available, mark_occupied, available_ranges)
-- [ ] T006 Implement Highlighter protocol in pgtail_py/highlighter.py (name, priority, description, find_matches, apply, apply_rich)
-- [ ] T007 Implement RegexHighlighter base class in pgtail_py/highlighter.py (pre-compiled patterns, find_matches)
-- [ ] T008 Implement GroupedRegexHighlighter base class in pgtail_py/highlighter.py (named groups → styles mapping)
-- [ ] T009 Implement KeywordHighlighter base class in pgtail_py/highlighter.py (Aho-Corasick via pyahocorasick)
-- [ ] T010 Implement HighlighterChain compositor in pgtail_py/highlighter.py (priority ordering, overlap prevention)
-- [ ] T011 Implement escape_brackets utility in pgtail_py/highlighter.py (Rich markup escaping)
-- [ ] T012 Implement depth limiting (max_length) in HighlighterChain.apply_rich() per FR-006
+- [X] T004 Implement Match dataclass in pgtail_py/highlighter.py (frozen, slots: start, end, style, text)
+- [X] T005 Implement OccupancyTracker class in pgtail_py/highlighter.py (is_available, mark_occupied, available_ranges)
+- [X] T006 Implement Highlighter protocol in pgtail_py/highlighter.py (name, priority, description, find_matches, apply, apply_rich)
+- [X] T007 Implement RegexHighlighter base class in pgtail_py/highlighter.py (pre-compiled patterns, find_matches)
+- [X] T008 Implement GroupedRegexHighlighter base class in pgtail_py/highlighter.py (named groups → styles mapping)
+- [X] T009 Implement KeywordHighlighter base class in pgtail_py/highlighter.py (Aho-Corasick via pyahocorasick)
+- [X] T010 Implement HighlighterChain compositor in pgtail_py/highlighter.py (priority ordering, overlap prevention)
+- [X] T011 Implement escape_brackets utility in pgtail_py/highlighter.py (Rich markup escaping)
+- [X] T012 Implement depth limiting (max_length) in HighlighterChain.apply_rich() per FR-006
 
 ### Registry
 
-- [ ] T013 Implement HighlighterRegistry singleton in pgtail_py/highlighter_registry.py (register, get, get_by_category, all_names, all_categories)
-- [ ] T014 Implement create_chain method in HighlighterRegistry (builds HighlighterChain from HighlightingConfig)
+- [X] T013 Implement HighlighterRegistry singleton in pgtail_py/highlighter_registry.py (register, get, get_by_category, all_names, all_categories)
+- [X] T014 Implement create_chain method in HighlighterRegistry (builds HighlighterChain from HighlightingConfig)
 
 ### Configuration
 
-- [ ] T015 Add HighlightingSection dataclass to pgtail_py/config.py (enabled: bool, max_length: int)
-- [ ] T016 Add HighlightingDurationSection dataclass to pgtail_py/config.py (slow, very_slow, critical thresholds)
-- [ ] T017 Add HighlightingEnabledHighlightersSection dataclass to pgtail_py/config.py (29 highlighter toggles)
-- [ ] T018 Add CustomHighlighter dataclass to pgtail_py/config.py (name, pattern, style, priority)
-- [ ] T019 Implement HighlightingConfig class in pgtail_py/highlighting_config.py (runtime state, enable/disable, thresholds)
-- [ ] T020 Add highlighting.* section parsing to pgtail_py/config.py TOML loader
+- [X] T015 Add HighlightingSection dataclass to pgtail_py/config.py (enabled: bool, max_length: int)
+- [X] T016 Add HighlightingDurationSection dataclass to pgtail_py/config.py (slow, very_slow, critical thresholds)
+- [X] T017 Add HighlightingEnabledHighlightersSection dataclass to pgtail_py/config.py (29 highlighter toggles)
+- [X] T018 Add CustomHighlighter dataclass to pgtail_py/config.py (name, pattern, style, priority)
+- [X] T019 Implement HighlightingConfig class in pgtail_py/highlighting_config.py (runtime state, enable/disable, thresholds)
+- [X] T020 Add highlighting.* section parsing to pgtail_py/config.py TOML loader
 
 ### Theme Integration (FR-110, FR-111)
 
-- [ ] T021 Add get_style(key, fallback) method to Theme class in pgtail_py/theme.py (FR-110)
-- [ ] T022 [P] Add hl_* style keys to pgtail_py/themes/dark.py (~35 keys per research.md)
-- [ ] T023 [P] Add hl_* style keys to pgtail_py/themes/light.py
-- [ ] T024 [P] Add hl_* style keys to pgtail_py/themes/high_contrast.py
-- [ ] T025 [P] Add hl_* style keys to pgtail_py/themes/monokai.py
-- [ ] T026 [P] Add hl_* style keys to pgtail_py/themes/solarized_dark.py
-- [ ] T027 [P] Add hl_* style keys to pgtail_py/themes/solarized_light.py
+- [X] T021 Add get_style(key, fallback) method to Theme class in pgtail_py/theme.py (FR-110)
+- [X] T022 [P] Add hl_* style keys to pgtail_py/themes/dark.py (~35 keys per research.md)
+- [X] T023 [P] Add hl_* style keys to pgtail_py/themes/light.py
+- [X] T024 [P] Add hl_* style keys to pgtail_py/themes/high_contrast.py
+- [X] T025 [P] Add hl_* style keys to pgtail_py/themes/monokai.py
+- [X] T026 [P] Add hl_* style keys to pgtail_py/themes/solarized_dark.py
+- [X] T027 [P] Add hl_* style keys to pgtail_py/themes/solarized_light.py
 
 ### Foundational Tests
 
-- [ ] T028 Write tests for Match dataclass validation in tests/test_highlighter.py
-- [ ] T029 Write tests for OccupancyTracker in tests/test_highlighter.py (is_available, mark_occupied, edge cases)
-- [ ] T030 Write tests for HighlighterChain overlap prevention in tests/test_highlighter.py
-- [ ] T031 Write tests for escape_brackets in tests/test_highlighter.py
-- [ ] T032 Write tests for HighlighterRegistry in tests/test_highlighter_registry.py
-- [ ] T033 Write tests for HighlightingConfig in tests/test_highlighting_config.py
-- [ ] T034 Write tests for Theme.get_style() in existing tests/test_theme.py
+- [X] T028 Write tests for Match dataclass validation in tests/test_highlighter.py
+- [X] T029 Write tests for OccupancyTracker in tests/test_highlighter.py (is_available, mark_occupied, edge cases)
+- [X] T030 Write tests for HighlighterChain overlap prevention in tests/test_highlighter.py
+- [X] T031 Write tests for escape_brackets in tests/test_highlighter.py
+- [X] T032 Write tests for HighlighterRegistry in tests/test_highlighter_registry.py
+- [X] T033 Write tests for HighlightingConfig in tests/test_highlighting_config.py
+- [X] T034 Write tests for Theme.get_style() in existing tests/test_theme.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 

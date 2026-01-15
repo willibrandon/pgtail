@@ -61,5 +61,58 @@ DARK_THEME = Theme(
         "toolbar.filter": ColorStyle(fg="#55ffff", bg="#1a1a1a"),
         "toolbar.warning": ColorStyle(fg="#ffff55", bg="#1a1a1a"),
         "toolbar.shell": ColorStyle(fg="#ffffff", bg="#1a1a1a", bold=True),
+        # Semantic highlighting (hl_* keys)
+        # Structural
+        "hl_timestamp_date": ColorStyle(fg="ansibrightblack"),
+        "hl_timestamp_time": ColorStyle(fg="ansibrightblack"),
+        "hl_timestamp_ms": ColorStyle(fg="ansibrightblack", dim=True),
+        "hl_timestamp_tz": ColorStyle(fg="ansibrightblack", dim=True),
+        "hl_pid": ColorStyle(fg="ansicyan"),
+        "hl_context": ColorStyle(fg="ansiyellow", bold=True),
+        # Diagnostic
+        "hl_sqlstate_success": ColorStyle(fg="ansigreen"),
+        "hl_sqlstate_warning": ColorStyle(fg="ansiyellow"),
+        "hl_sqlstate_error": ColorStyle(fg="ansired"),
+        "hl_sqlstate_internal": ColorStyle(fg="ansired", bold=True),
+        "hl_error_name": ColorStyle(fg="ansired"),
+        # Performance
+        "hl_duration_fast": ColorStyle(fg="ansigreen"),
+        "hl_duration_slow": ColorStyle(fg="ansiyellow"),
+        "hl_duration_very_slow": ColorStyle(fg="ansibrightyellow", bold=True),
+        "hl_duration_critical": ColorStyle(fg="ansired", bold=True),
+        "hl_memory_value": ColorStyle(fg="ansimagenta"),
+        "hl_memory_unit": ColorStyle(fg="ansimagenta", dim=True),
+        "hl_statistics": ColorStyle(fg="ansicyan"),
+        # Objects
+        "hl_identifier": ColorStyle(fg="ansicyan"),
+        "hl_relation": ColorStyle(fg="ansicyan", bold=True),
+        "hl_schema": ColorStyle(fg="ansicyan"),
+        # WAL
+        "hl_lsn_segment": ColorStyle(fg="ansiblue"),
+        "hl_lsn_offset": ColorStyle(fg="ansiblue", dim=True),
+        "hl_wal_segment": ColorStyle(fg="ansiblue"),
+        "hl_txid": ColorStyle(fg="ansimagenta"),
+        # Connection
+        "hl_host": ColorStyle(fg="ansigreen"),
+        "hl_port": ColorStyle(fg="ansigreen", dim=True),
+        "hl_user": ColorStyle(fg="ansigreen"),
+        "hl_database": ColorStyle(fg="ansigreen", bold=True),
+        "hl_ip": ColorStyle(fg="ansigreen"),
+        "hl_backend": ColorStyle(fg="ansicyan"),
+        # SQL (additional to existing sql_* keys)
+        "hl_param": ColorStyle(fg="ansiyellow"),
+        # Lock
+        "hl_lock_share": ColorStyle(fg="ansiyellow"),
+        "hl_lock_exclusive": ColorStyle(fg="ansired"),
+        "hl_lock_wait": ColorStyle(fg="ansibrightyellow"),
+        # Checkpoint/Recovery
+        "hl_checkpoint": ColorStyle(fg="ansiblue"),
+        "hl_recovery": ColorStyle(fg="ansigreen"),
+        # Misc
+        "hl_bool_true": ColorStyle(fg="ansigreen"),
+        "hl_bool_false": ColorStyle(fg="ansired"),
+        "hl_null": ColorStyle(fg="ansibrightblack", italic=True),
+        "hl_oid": ColorStyle(fg="ansimagenta"),
+        "hl_path": ColorStyle(fg="ansicyan"),
     },
 )

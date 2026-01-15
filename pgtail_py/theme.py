@@ -435,6 +435,23 @@ class Theme:
         """
         return self.ui.get(element, ColorStyle())
 
+    def get_style(self, key: str, fallback: ColorStyle | None = None) -> ColorStyle | None:
+        """Get style by key from ui dictionary.
+
+        This method is used by the semantic highlighting system to look up
+        hl_* style keys for highlighter output.
+
+        Args:
+            key: Style key, e.g., "hl_timestamp_date", "hl_sqlstate_error".
+            fallback: Style to return if key not found.
+
+        Returns:
+            ColorStyle if found, fallback otherwise.
+        """
+        if key in self.ui:
+            return self.ui[key]
+        return fallback
+
 
 # =============================================================================
 # Platform-specific theme directory

@@ -62,5 +62,58 @@ HIGH_CONTRAST_THEME = Theme(
         "toolbar.filter": ColorStyle(fg="cyan", bg="ansiblack", bold=True),
         "toolbar.warning": ColorStyle(fg="yellow", bg="ansiblack", bold=True),
         "toolbar.shell": ColorStyle(fg="white", bg="ansiblack", bold=True, underline=True),
+        # Semantic highlighting (hl_* keys) - WCAG AA compliant
+        # Structural
+        "hl_timestamp_date": ColorStyle(fg="white"),
+        "hl_timestamp_time": ColorStyle(fg="white"),
+        "hl_timestamp_ms": ColorStyle(fg="white", dim=True),
+        "hl_timestamp_tz": ColorStyle(fg="white", dim=True),
+        "hl_pid": ColorStyle(fg="cyan", bold=True),
+        "hl_context": ColorStyle(fg="yellow", bold=True),
+        # Diagnostic
+        "hl_sqlstate_success": ColorStyle(fg="green", bold=True),
+        "hl_sqlstate_warning": ColorStyle(fg="yellow", bold=True),
+        "hl_sqlstate_error": ColorStyle(fg="red", bold=True),
+        "hl_sqlstate_internal": ColorStyle(fg="red", bold=True, underline=True),
+        "hl_error_name": ColorStyle(fg="red", bold=True),
+        # Performance
+        "hl_duration_fast": ColorStyle(fg="green", bold=True),
+        "hl_duration_slow": ColorStyle(fg="yellow", bold=True),
+        "hl_duration_very_slow": ColorStyle(fg="yellow", bold=True, underline=True),
+        "hl_duration_critical": ColorStyle(fg="red", bold=True, underline=True),
+        "hl_memory_value": ColorStyle(fg="magenta", bold=True),
+        "hl_memory_unit": ColorStyle(fg="magenta", bold=True),
+        "hl_statistics": ColorStyle(fg="cyan", bold=True),
+        # Objects
+        "hl_identifier": ColorStyle(fg="cyan", bold=True),
+        "hl_relation": ColorStyle(fg="cyan", bold=True, underline=True),
+        "hl_schema": ColorStyle(fg="cyan", bold=True),
+        # WAL
+        "hl_lsn_segment": ColorStyle(fg="blue", bold=True),
+        "hl_lsn_offset": ColorStyle(fg="blue", bold=True),
+        "hl_wal_segment": ColorStyle(fg="blue", bold=True),
+        "hl_txid": ColorStyle(fg="magenta", bold=True),
+        # Connection
+        "hl_host": ColorStyle(fg="green", bold=True),
+        "hl_port": ColorStyle(fg="green", bold=True),
+        "hl_user": ColorStyle(fg="green", bold=True),
+        "hl_database": ColorStyle(fg="green", bold=True, underline=True),
+        "hl_ip": ColorStyle(fg="green", bold=True),
+        "hl_backend": ColorStyle(fg="cyan", bold=True),
+        # SQL (additional to existing sql_* keys)
+        "hl_param": ColorStyle(fg="yellow", bold=True),
+        # Lock
+        "hl_lock_share": ColorStyle(fg="yellow", bold=True),
+        "hl_lock_exclusive": ColorStyle(fg="red", bold=True),
+        "hl_lock_wait": ColorStyle(fg="yellow", bold=True, underline=True),
+        # Checkpoint/Recovery
+        "hl_checkpoint": ColorStyle(fg="blue", bold=True),
+        "hl_recovery": ColorStyle(fg="green", bold=True),
+        # Misc
+        "hl_bool_true": ColorStyle(fg="green", bold=True),
+        "hl_bool_false": ColorStyle(fg="red", bold=True),
+        "hl_null": ColorStyle(fg="white", italic=True),
+        "hl_oid": ColorStyle(fg="magenta", bold=True),
+        "hl_path": ColorStyle(fg="cyan", bold=True),
     },
 )

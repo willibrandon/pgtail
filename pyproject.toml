@@ -31,6 +31,7 @@ dependencies = [
     "pyperclip>=1.8.0",
     "typer>=0.9.0",
     "certifi>=2023.0.0",
+    "pyahocorasick>=2.0.0",
 ]
 
 [project.optional-dependencies]

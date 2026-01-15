@@ -61,5 +61,58 @@ LIGHT_THEME = Theme(
         "toolbar.filter": ColorStyle(fg="#007acc", bg="#e0e0e0"),
         "toolbar.warning": ColorStyle(fg="#d9831f", bg="#e0e0e0"),
         "toolbar.shell": ColorStyle(fg="#000000", bg="#e0e0e0", bold=True),
+        # Semantic highlighting (hl_* keys)
+        # Structural
+        "hl_timestamp_date": ColorStyle(fg="gray"),
+        "hl_timestamp_time": ColorStyle(fg="gray"),
+        "hl_timestamp_ms": ColorStyle(fg="gray", dim=True),
+        "hl_timestamp_tz": ColorStyle(fg="gray", dim=True),
+        "hl_pid": ColorStyle(fg="teal"),
+        "hl_context": ColorStyle(fg="darkorange", bold=True),
+        # Diagnostic
+        "hl_sqlstate_success": ColorStyle(fg="darkgreen"),
+        "hl_sqlstate_warning": ColorStyle(fg="darkorange"),
+        "hl_sqlstate_error": ColorStyle(fg="darkred"),
+        "hl_sqlstate_internal": ColorStyle(fg="darkred", bold=True),
+        "hl_error_name": ColorStyle(fg="darkred"),
+        # Performance
+        "hl_duration_fast": ColorStyle(fg="darkgreen"),
+        "hl_duration_slow": ColorStyle(fg="darkorange"),
+        "hl_duration_very_slow": ColorStyle(fg="darkorange", bold=True),
+        "hl_duration_critical": ColorStyle(fg="darkred", bold=True),
+        "hl_memory_value": ColorStyle(fg="darkmagenta"),
+        "hl_memory_unit": ColorStyle(fg="darkmagenta", dim=True),
+        "hl_statistics": ColorStyle(fg="teal"),
+        # Objects
+        "hl_identifier": ColorStyle(fg="teal"),
+        "hl_relation": ColorStyle(fg="teal", bold=True),
+        "hl_schema": ColorStyle(fg="teal"),
+        # WAL
+        "hl_lsn_segment": ColorStyle(fg="darkblue"),
+        "hl_lsn_offset": ColorStyle(fg="darkblue", dim=True),
+        "hl_wal_segment": ColorStyle(fg="darkblue"),
+        "hl_txid": ColorStyle(fg="darkmagenta"),
+        # Connection
+        "hl_host": ColorStyle(fg="darkgreen"),
+        "hl_port": ColorStyle(fg="darkgreen", dim=True),
+        "hl_user": ColorStyle(fg="darkgreen"),
+        "hl_database": ColorStyle(fg="darkgreen", bold=True),
+        "hl_ip": ColorStyle(fg="darkgreen"),
+        "hl_backend": ColorStyle(fg="teal"),
+        # SQL (additional to existing sql_* keys)
+        "hl_param": ColorStyle(fg="darkorange"),
+        # Lock
+        "hl_lock_share": ColorStyle(fg="darkorange"),
+        "hl_lock_exclusive": ColorStyle(fg="darkred"),
+        "hl_lock_wait": ColorStyle(fg="darkorange", bold=True),
+        # Checkpoint/Recovery
+        "hl_checkpoint": ColorStyle(fg="darkblue"),
+        "hl_recovery": ColorStyle(fg="darkgreen"),
+        # Misc
+        "hl_bool_true": ColorStyle(fg="darkgreen"),
+        "hl_bool_false": ColorStyle(fg="darkred"),
+        "hl_null": ColorStyle(fg="gray", italic=True),
+        "hl_oid": ColorStyle(fg="darkmagenta"),
+        "hl_path": ColorStyle(fg="teal"),
     },
 )

@@ -152,6 +152,72 @@ class UpdatesSection:
 
 
 @dataclass
+class HighlightingSection:
+    """Semantic highlighting settings."""
+
+    enabled: bool = True  # Global toggle
+    max_length: int = 10240  # Depth limit in bytes
+
+
+@dataclass
+class HighlightingDurationSection:
+    """Duration threshold settings for highlighting."""
+
+    slow: int = 100  # Slow query threshold (ms)
+    very_slow: int = 500  # Very slow query threshold (ms)
+    critical: int = 5000  # Critical query threshold (ms)
+
+
+@dataclass
+class HighlightingEnabledHighlightersSection:
+    """Per-highlighter enable/disable settings.
+
+    All 29 highlighters default to True (enabled).
+    """
+
+    # Structural (100-199)
+    timestamp: bool = True
+    pid: bool = True
+    context: bool = True
+    # Diagnostic (200-299)
+    sqlstate: bool = True
+    error_name: bool = True
+    # Performance (300-399)
+    duration: bool = True
+    memory: bool = True
+    statistics: bool = True
+    # Objects (400-499)
+    identifier: bool = True
+    relation: bool = True
+    schema: bool = True
+    # WAL (500-599)
+    lsn: bool = True
+    wal_segment: bool = True
+    txid: bool = True
+    # Connection (600-699)
+    connection: bool = True
+    ip: bool = True
+    backend: bool = True
+    # SQL (700-799)
+    sql_keyword: bool = True
+    sql_string: bool = True
+    sql_number: bool = True
+    sql_param: bool = True
+    sql_operator: bool = True
+    # Lock (800-899)
+    lock_type: bool = True
+    lock_wait: bool = True
+    # Checkpoint (900-999)
+    checkpoint: bool = True
+    recovery: bool = True
+    # Misc (1000+)
+    boolean: bool = True
+    null: bool = True
+    oid: bool = True
+    path: bool = True
+
+
+@dataclass
 class ConfigSchema:
     """Complete configuration schema with all sections."""
 
@@ -162,6 +228,13 @@ class ConfigSchema:
     notifications: NotificationsSection = field(default_factory=NotificationsSection)
     buffer: BufferSection = field(default_factory=BufferSection)
     updates: UpdatesSection = field(default_factory=UpdatesSection)
+    highlighting: HighlightingSection = field(default_factory=HighlightingSection)
+    highlighting_duration: HighlightingDurationSection = field(
+        default_factory=HighlightingDurationSection
+    )
+    highlighting_enabled: HighlightingEnabledHighlightersSection = field(
+        default_factory=HighlightingEnabledHighlightersSection
+    )
 
 
 # =============================================================================
@@ -371,6 +444,43 @@ SETTINGS_SCHEMA: dict[str, SettingDef] = {
     "updates.check": (True, validate_bool, "bool"),
     "updates.last_check": ("", validate_iso8601, "str"),
     "updates.last_version": ("", validate_semver, "str"),
+    # Highlighting settings
+    "highlighting.enabled": (True, validate_bool, "bool"),
+    "highlighting.max_length": (10240, validate_positive_int, "int"),
+    "highlighting.duration.slow": (100, validate_positive_int, "int"),
+    "highlighting.duration.very_slow": (500, validate_positive_int, "int"),
+    "highlighting.duration.critical": (5000, validate_positive_int, "int"),
+    # Per-highlighter settings (29 highlighters)
+    "highlighting.enabled_highlighters.timestamp": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.pid": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.context": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.sqlstate": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.error_name": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.duration": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.memory": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.statistics": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.identifier": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.relation": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.schema": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.lsn": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.wal_segment": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.txid": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.connection": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.ip": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.backend": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.sql_keyword": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.sql_string": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.sql_number": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.sql_param": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.sql_operator": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.lock_type": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.lock_wait": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.checkpoint": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.recovery": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.boolean": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.null": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.oid": (True, validate_bool, "bool"),
+    "highlighting.enabled_highlighters.path": (True, validate_bool, "bool"),
 }
 
 SETTING_KEYS = list(SETTINGS_SCHEMA.keys())
@@ -485,6 +595,54 @@ DEFAULT_CONFIG_TEMPLATE = """\
 # check = true                 # Enable startup update check (set to false to disable)
 # last_check = ""              # Timestamp of last update check (managed automatically)
 # last_version = ""            # Latest version seen (managed automatically)
+
+[highlighting]
+# enabled = true              # Enable semantic highlighting (global toggle)
+# max_length = 10240          # Stop highlighting after this many bytes (depth limit)
+
+[highlighting.duration]
+# slow = 100                  # Slow query threshold (ms) - yellow
+# very_slow = 500             # Very slow query threshold (ms) - orange
+# critical = 5000             # Critical query threshold (ms) - red
+
+[highlighting.enabled_highlighters]
+# Toggle individual highlighters (all default to true)
+# timestamp = true            # Timestamps with date, time, ms, timezone
+# pid = true                  # Process IDs in brackets
+# context = true              # DETAIL:, HINT:, CONTEXT: labels
+# sqlstate = true             # SQLSTATE error codes
+# error_name = true           # Error names (unique_violation, deadlock_detected)
+# duration = true             # Query durations with threshold coloring
+# memory = true               # Memory values (kB, MB, GB)
+# statistics = true           # Checkpoint/vacuum statistics
+# identifier = true           # Double-quoted identifiers
+# relation = true             # Table/index names
+# schema = true               # Schema-qualified names
+# lsn = true                  # Log sequence numbers
+# wal_segment = true          # WAL segment filenames
+# txid = true                 # Transaction IDs
+# connection = true           # Connection info (host, port, user)
+# ip = true                   # IP addresses
+# backend = true              # Backend process types
+# sql_keyword = true          # SQL keywords
+# sql_string = true           # SQL strings
+# sql_number = true           # SQL numbers
+# sql_param = true            # SQL parameters ($1, $2)
+# sql_operator = true         # SQL operators
+# lock_type = true            # Lock type names
+# lock_wait = true            # Lock wait info
+# checkpoint = true           # Checkpoint messages
+# recovery = true             # Recovery messages
+# boolean = true              # Boolean values
+# null = true                 # NULL keyword
+# oid = true                  # Object IDs
+# path = true                 # File paths
+
+# [[highlighting.custom]]
+# name = "request_id"         # Custom highlighter name
+# pattern = "REQ-[0-9]{10}"   # Regex pattern
+# style = "yellow"            # Color to apply
+# priority = 1050             # Processing order (higher = later)
 """
 
 
@@ -553,8 +711,19 @@ def load_config(warn_func: Callable[[str], None] | None = None) -> ConfigSchema:
 def _apply_to_config(config: ConfigSchema, key: str, value: Any) -> None:
     """Apply a validated value to the config object."""
     parts = key.split(".")
-    section_name, attr_name = parts[0], parts[1]
 
+    # Handle nested highlighting settings (3+ levels)
+    if parts[0] == "highlighting" and len(parts) >= 3:
+        if parts[1] == "duration":
+            # highlighting.duration.slow -> highlighting_duration.slow
+            setattr(config.highlighting_duration, parts[2], value)
+        elif parts[1] == "enabled_highlighters":
+            # highlighting.enabled_highlighters.timestamp -> highlighting_enabled.timestamp
+            setattr(config.highlighting_enabled, parts[2], value)
+        return
+
+    # Standard 2-level nesting
+    section_name, attr_name = parts[0], parts[1]
     section = getattr(config, section_name)
     setattr(section, attr_name, value)
 

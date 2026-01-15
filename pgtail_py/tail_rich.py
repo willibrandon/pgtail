@@ -2,12 +2,14 @@
 
 This module provides functions to convert LogEntry objects to Rich Text
 for styled display in Textual widgets. Handles log level coloring,
-timestamp formatting, SQL syntax highlighting, and secondary field
-formatting (DETAIL, HINT, CONTEXT, STATEMENT).
+timestamp formatting, SQL syntax highlighting, semantic pattern highlighting,
+and secondary field formatting (DETAIL, HINT, CONTEXT, STATEMENT).
 
 Functions:
     format_entry_as_rich: Convert LogEntry to styled Rich Text object.
     format_entry_compact: Convert LogEntry to plain string for Log widget.
+    get_highlighter_chain: Get (or create) the cached HighlighterChain.
+    register_all_highlighters: Register all built-in highlighters with registry.
 """
 
 from __future__ import annotations
@@ -17,12 +19,21 @@ from typing import TYPE_CHECKING
 from rich.text import Text
 
 from pgtail_py.filter import LogLevel
+from pgtail_py.highlighter import HighlighterChain
+from pgtail_py.highlighter_registry import get_registry
+from pgtail_py.highlighting_config import HighlightingConfig
 from pgtail_py.sql_detector import detect_sql_content
 from pgtail_py.sql_highlighter import highlight_sql_rich
 
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry
     from pgtail_py.theme import Theme
+
+
+# Module-level cache for highlighter chain
+_highlighter_chain: HighlighterChain | None = None
+_highlighting_config: HighlightingConfig | None = None
+_highlighters_registered: bool = False
 
 
 # Rich styles for log levels - maps LogLevel to Rich style string
@@ -56,6 +67,106 @@ LEVEL_MARKUP: dict[LogLevel, str] = {
     LogLevel.DEBUG4: "dim",
     LogLevel.DEBUG5: "dim",
 }
+
+
+# =============================================================================
+# Highlighter Chain Management
+# =============================================================================
+
+
+def register_all_highlighters() -> None:
+    """Register all built-in highlighters with the registry.
+
+    This should be called once at startup. Subsequent calls are no-ops.
+    """
+    global _highlighters_registered
+
+    if _highlighters_registered:
+        return
+
+    from pgtail_py.highlighters import get_all_highlighters
+
+    registry = get_registry()
+
+    # Category mapping by priority range
+    highlighters = get_all_highlighters()
+    for h in highlighters:
+        priority = h.priority
+        if priority < 200:
+            category = "structural"
+        elif priority < 300:
+            category = "diagnostic"
+        elif priority < 400:
+            category = "performance"
+        elif priority < 500:
+            category = "objects"
+        elif priority < 600:
+            category = "wal"
+        elif priority < 700:
+            category = "connection"
+        elif priority < 800:
+            category = "sql"
+        elif priority < 900:
+            category = "lock"
+        elif priority < 1000:
+            category = "checkpoint"
+        else:
+            category = "misc"
+
+        try:
+            registry.register(h, category)
+        except ValueError:
+            # Already registered - skip
+            pass
+
+    _highlighters_registered = True
+
+
+def get_highlighter_chain(config: HighlightingConfig | None = None) -> HighlighterChain:
+    """Get or create the highlighter chain.
+
+    Uses a cached chain if config matches, otherwise creates a new one.
+
+    Args:
+        config: Highlighting configuration. If None, uses default config.
+
+    Returns:
+        HighlighterChain ready for use.
+    """
+    global _highlighter_chain, _highlighting_config
+
+    # Ensure highlighters are registered
+    register_all_highlighters()
+
+    # Use default config if none provided
+    if config is None:
+        config = HighlightingConfig()
+
+    # Reuse cached chain if config unchanged
+    if _highlighter_chain is not None and _highlighting_config == config:
+        return _highlighter_chain
+
+    # Create new chain from registry
+    registry = get_registry()
+    _highlighter_chain = registry.create_chain(config)
+    _highlighting_config = config
+
+    return _highlighter_chain
+
+
+def reset_highlighter_chain() -> None:
+    """Reset the cached highlighter chain.
+
+    Used when configuration changes or for testing.
+    """
+    global _highlighter_chain, _highlighting_config
+    _highlighter_chain = None
+    _highlighting_config = None
+
+
+# =============================================================================
+# Entry Formatting
+# =============================================================================
 
 
 def format_entry_as_rich(entry: LogEntry) -> Text:
@@ -118,7 +229,11 @@ def format_entry_as_rich(entry: LogEntry) -> Text:
     return text
 
 
-def format_entry_compact(entry: LogEntry, theme: Theme | None = None) -> str:
+def format_entry_compact(
+    entry: LogEntry,
+    theme: Theme | None = None,
+    use_semantic_highlighting: bool = True,
+) -> str:
     """Convert LogEntry to Rich markup string for Textual Log widget.
 
     Formats a log entry as a single-line Rich markup string suitable for
@@ -128,9 +243,14 @@ def format_entry_compact(entry: LogEntry, theme: Theme | None = None) -> str:
     When source_file is set (multi-file mode), shows the filename in
     brackets before the timestamp for easy identification. (T076)
 
+    When use_semantic_highlighting is True (default), applies semantic
+    pattern highlighting to the message content (durations, error names,
+    WAL segments, lock types, etc.).
+
     Args:
         entry: Parsed log entry to format.
         theme: Theme for SQL highlighting. If None, uses default colors.
+        use_semantic_highlighting: Whether to apply semantic highlighting.
 
     Returns:
         Rich markup string representation of the entry.
@@ -165,17 +285,44 @@ def format_entry_compact(entry: LogEntry, theme: Theme | None = None) -> str:
     else:
         parts.append(":")
 
-    # Message - detect and highlight SQL content
-    detection = detect_sql_content(entry.message)
-    if detection:
-        # SQL detected: escape prefix, highlight SQL, escape suffix
-        prefix = detection.prefix.replace("[", "\\[")
-        highlighted_sql = highlight_sql_rich(detection.sql, theme=theme)
-        suffix = detection.suffix.replace("[", "\\[")
-        parts.append(f"{prefix}{highlighted_sql}{suffix}")
+    # Message - apply highlighting
+    if use_semantic_highlighting and theme is not None:
+        # Apply semantic highlighting via highlighter chain
+        highlighted_message = _highlight_message(entry.message, theme)
+        parts.append(highlighted_message)
     else:
-        # No SQL: just escape brackets to prevent Rich markup parsing
-        safe_message = entry.message.replace("[", "\\[")
-        parts.append(safe_message)
+        # Fallback: detect and highlight SQL content only
+        detection = detect_sql_content(entry.message)
+        if detection:
+            # SQL detected: escape prefix, highlight SQL, escape suffix
+            prefix = detection.prefix.replace("[", "\\[")
+            highlighted_sql = highlight_sql_rich(detection.sql, theme=theme)
+            suffix = detection.suffix.replace("[", "\\[")
+            parts.append(f"{prefix}{highlighted_sql}{suffix}")
+        else:
+            # No SQL: just escape brackets to prevent Rich markup parsing
+            safe_message = entry.message.replace("[", "\\[")
+            parts.append(safe_message)
 
     return " ".join(parts)
+
+
+def _highlight_message(message: str, theme: Theme) -> str:
+    """Apply semantic highlighting to a log message.
+
+    Uses the highlighter chain for pattern-based highlighting. SQL content
+    is detected and highlighted using the specialized SQL highlighter
+    for better accuracy.
+
+    Args:
+        message: Log message to highlight.
+        theme: Current theme for style lookups.
+
+    Returns:
+        Rich markup string with highlighting.
+    """
+    # Get highlighter chain
+    chain = get_highlighter_chain()
+
+    # Apply semantic highlighting
+    return chain.apply_rich(message, theme)
