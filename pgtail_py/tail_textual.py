@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, ClassVar
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
-from textual.widgets import Input, Static
+from textual.widgets import Input, Rule, Static
 
 from pgtail_py.filter import LogLevel
 from pgtail_py.multi_tailer import GlobPattern, MultiFileTailer
@@ -110,9 +110,9 @@ class TailApp(App[None]):
         scrollbar-color-active: $primary;
     }
 
-    /* Separator line between log and input */
-    .separator {
-        height: 1;
+    /* Separator lines - override Rule default margin */
+    Rule {
+        margin: 0;
         color: $text-muted;
     }
 
@@ -255,22 +255,22 @@ class TailApp(App[None]):
 
         Layout (top to bottom):
         - Static: Header with keybinding hints
-        - Static: Separator line
+        - Rule: Separator line (full width)
         - TailLog: Log display area (flexible height)
-        - Static: Separator line
+        - Rule: Separator line (full width)
         - TailInput: Command input line (tail> prompt)
-        - Static: Separator line
+        - Rule: Separator line (full width)
         - Static: Status bar (FOLLOW/PAUSED, counts, filters)
 
         Yields:
             Widgets in layout order.
         """
         yield Static(id="header")
-        yield Static("─" * 200, classes="separator")
+        yield Rule()
         yield TailLog(max_lines=self._max_lines, auto_scroll=True, id="log")
-        yield Static("─" * 200, classes="separator")
+        yield Rule()
         yield TailInput()
-        yield Static("─" * 200, classes="separator")
+        yield Rule()
         yield Static(id="status")
 
     def on_mount(self) -> None:
