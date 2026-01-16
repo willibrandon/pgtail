@@ -867,42 +867,34 @@ class SQLDetectionResult(NamedTuple):
     suffix: str
 
 
-# Compiled patterns for SQL detection (ordered by specificity)
-# Pattern 1: LOG: duration: ... ms statement/parse/bind/execute: <SQL>
-_DURATION_SQL_PATTERN = re.compile(
-    r"^(.*?duration:\s*[\d.]+\s*ms\s+(?:statement|parse|bind|execute)\s*(?:\S+)?:\s*)(.*?)(\s*)$",
+# Combined SQL detection pattern for fast matching
+# Uses alternation with named groups to identify which pattern matched
+# Order: duration (most specific) -> statement -> execute -> parse -> bind -> DETAIL
+_SQL_DETECTION_PATTERN = re.compile(
+    r"^(?:"
+    # Duration with SQL command (most specific)
+    r"(?P<dur_prefix>.*?duration:\s*[\d.]+\s*ms\s+(?:statement|parse|bind|execute)\s*(?:\S+)?:\s*)(?P<dur_sql>.*?)(?P<dur_suffix>\s*)$"
+    r"|"
+    # Plain statement
+    r"(?P<stmt_prefix>.*?statement:\s*)(?P<stmt_sql>.*?)(?P<stmt_suffix>\s*)$"
+    r"|"
+    # Execute prepared statement
+    r"(?P<exec_prefix>.*?execute\s+\S+:\s*)(?P<exec_sql>.*?)(?P<exec_suffix>\s*)$"
+    r"|"
+    # Parse prepared statement
+    r"(?P<parse_prefix>.*?parse\s+\S+:\s*)(?P<parse_sql>.*?)(?P<parse_suffix>\s*)$"
+    r"|"
+    # Bind prepared statement
+    r"(?P<bind_prefix>.*?bind\s+\S+:\s*)(?P<bind_sql>.*?)(?P<bind_suffix>\s*)$"
+    r"|"
+    # DETAIL line
+    r"(?P<detail_prefix>DETAIL:\s*)(?P<detail_sql>.*?)(?P<detail_suffix>\s*)$"
+    r")",
     re.IGNORECASE | re.DOTALL,
 )
 
-# Pattern 2: LOG: statement: <SQL>
-_STATEMENT_PATTERN = re.compile(
-    r"^(.*?statement:\s*)(.*?)(\s*)$",
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Pattern 3: LOG: execute <name>: <SQL>
-_EXECUTE_PATTERN = re.compile(
-    r"^(.*?execute\s+\S+:\s*)(.*?)(\s*)$",
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Pattern 4: LOG: parse <name>: <SQL>
-_PARSE_PATTERN = re.compile(
-    r"^(.*?parse\s+\S+:\s*)(.*?)(\s*)$",
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Pattern 5: LOG: bind <name>: <SQL>
-_BIND_PATTERN = re.compile(
-    r"^(.*?bind\s+\S+:\s*)(.*?)(\s*)$",
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Pattern 6: DETAIL: <SQL context> - often contains SQL in error contexts
-_DETAIL_PATTERN = re.compile(
-    r"^(DETAIL:\s*)(.*?)(\s*)$",
-    re.IGNORECASE | re.DOTALL,
-)
+# Group name prefixes for extraction
+_SQL_GROUP_PREFIXES = ("dur", "stmt", "exec", "parse", "bind", "detail")
 
 
 def detect_sql_content(message: str) -> SQLDetectionResult | None:
@@ -916,6 +908,8 @@ def detect_sql_content(message: str) -> SQLDetectionResult | None:
     - LOG: duration: ... ms statement/parse/bind/execute: <SQL>
     - DETAIL: <SQL context>
 
+    Uses a single combined regex for performance.
+
     Args:
         message: Log message to analyze.
 
@@ -926,48 +920,20 @@ def detect_sql_content(message: str) -> SQLDetectionResult | None:
     if not message:
         return None
 
-    # Try patterns in order of specificity
-    # Duration + SQL command is most specific
-    match = _DURATION_SQL_PATTERN.match(message)
-    if match:
-        prefix, sql, suffix = match.groups()
-        if sql.strip():
-            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
+    match = _SQL_DETECTION_PATTERN.match(message)
+    if not match:
+        return None
 
-    # Plain statement
-    match = _STATEMENT_PATTERN.match(message)
-    if match:
-        prefix, sql, suffix = match.groups()
-        if sql.strip():
-            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
-
-    # Execute prepared statement
-    match = _EXECUTE_PATTERN.match(message)
-    if match:
-        prefix, sql, suffix = match.groups()
-        if sql.strip():
-            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
-
-    # Parse prepared statement
-    match = _PARSE_PATTERN.match(message)
-    if match:
-        prefix, sql, suffix = match.groups()
-        if sql.strip():
-            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
-
-    # Bind prepared statement
-    match = _BIND_PATTERN.match(message)
-    if match:
-        prefix, sql, suffix = match.groups()
-        if sql.strip():
-            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
-
-    # DETAIL line (often contains SQL context in errors)
-    match = _DETAIL_PATTERN.match(message)
-    if match:
-        prefix, sql, suffix = match.groups()
-        if sql.strip():
-            return SQLDetectionResult(prefix=prefix, sql=sql, suffix=suffix)
+    # Find which group matched
+    groups = match.groupdict()
+    for prefix_name in _SQL_GROUP_PREFIXES:
+        sql = groups.get(f"{prefix_name}_sql")
+        if sql is not None and sql.strip():
+            return SQLDetectionResult(
+                prefix=groups[f"{prefix_name}_prefix"],
+                sql=sql,
+                suffix=groups[f"{prefix_name}_suffix"],
+            )
 
     return None
 

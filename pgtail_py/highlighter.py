@@ -940,8 +940,15 @@ def _convert_ansi_color_to_rich(color: str) -> str:
     return color
 
 
+# Style cache to avoid repeated theme lookups
+# Key: (theme_name, style_key), Value: rich_style_string
+_rich_style_cache: dict[tuple[str, str], str] = {}
+
+
 def _get_rich_style(theme: Theme, style_key: str) -> str:
     """Convert theme style key to Rich markup style.
+
+    Uses caching to avoid repeated theme lookups.
 
     Args:
         theme: Theme to look up style in.
@@ -950,10 +957,16 @@ def _get_rich_style(theme: Theme, style_key: str) -> str:
     Returns:
         Rich style string (e.g., "bold red") or empty string for default.
     """
+    cache_key = (theme.name, style_key)
+    cached = _rich_style_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     color_style = theme.get_style(style_key)
     if color_style is None:
         # Not a theme key - treat as literal color/style for custom highlighters
         # Rich accepts colors like "magenta", "bold red", "#ff00ff"
+        _rich_style_cache[cache_key] = style_key
         return style_key
 
     parts: list[str] = []
@@ -970,11 +983,19 @@ def _get_rich_style(theme: Theme, style_key: str) -> str:
     if color_style.underline:
         parts.append("underline")
 
-    return " ".join(parts)
+    result = " ".join(parts)
+    _rich_style_cache[cache_key] = result
+    return result
+
+
+# Cache for prompt_toolkit style lookups
+_prompt_toolkit_style_cache: dict[tuple[str, str], str] = {}
 
 
 def _get_prompt_toolkit_style(theme: Theme, style_key: str) -> str:
     """Convert theme style key to prompt_toolkit style class.
+
+    Uses caching to avoid repeated lookups.
 
     Args:
         theme: Theme to look up style in.
@@ -983,6 +1004,11 @@ def _get_prompt_toolkit_style(theme: Theme, style_key: str) -> str:
     Returns:
         Style class string (e.g., "class:hl_timestamp_date") or inline style (e.g., "fg:magenta").
     """
+    cache_key = (theme.name, style_key)
+    cached = _prompt_toolkit_style_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     color_style = theme.get_style(style_key)
     if color_style is None:
         # Not a theme key - treat as literal color/style for custom highlighters
@@ -1003,8 +1029,13 @@ def _get_prompt_toolkit_style(theme: Theme, style_key: str) -> str:
             else:
                 # Named color like "magenta", "red", etc.
                 result_parts.append(f"fg:ansi{part}")
-        return " ".join(result_parts)
-    return f"class:{style_key}"
+        result = " ".join(result_parts)
+        _prompt_toolkit_style_cache[cache_key] = result
+        return result
+
+    result = f"class:{style_key}"
+    _prompt_toolkit_style_cache[cache_key] = result
+    return result
 
 
 def _build_formatted_text(text: str, matches: list[Match], theme: Theme) -> FormattedText:
