@@ -561,19 +561,21 @@ jobs:
           Write-Host "Base tree SHA: $baseTreeSha"
 
           # Create blobs for each manifest file and build tree entries
-          $treeEntries = @()
-          Get-ChildItem -Path "..\manifests" -Recurse -File | ForEach-Object {
+          $treeEntries = [System.Collections.ArrayList]@()
+          Get-ChildItem -Path "manifests" -Recurse -File | ForEach-Object {
             $content = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($_.FullName))
             $blobResponse = gh api repos/willibrandon/winget-pkgs/git/blobs -X POST -f content="$content" -f encoding="base64"
             $blobSha = $blobResponse | ConvertFrom-Json | Select-Object -ExpandProperty sha
             $path = "$manifestDir/$($_.Name)"
             Write-Host "Created blob for $path : $blobSha"
-            $treeEntries += @{path=$path; mode="100644"; type="blob"; sha=$blobSha}
+            [void]$treeEntries.Add(@{path=$path; mode="100644"; type="blob"; sha=$blobSha})
           }
 
           # Create new tree with manifest files added
-          $treeJson = @{base_tree=$baseTreeSha; tree=$treeEntries} | ConvertTo-Json -Compress -Depth 10
-          $treeJson | Out-File -FilePath tree.json -Encoding utf8
+          $treeData = @{base_tree=$baseTreeSha; tree=$treeEntries.ToArray()}
+          $treeJson = $treeData | ConvertTo-Json -Depth 10
+          Write-Host "Tree JSON: $treeJson"
+          $treeJson | Out-File -FilePath tree.json -Encoding utf8NoBOM
           $newTree = gh api repos/willibrandon/winget-pkgs/git/trees -X POST --input tree.json
           $newTreeSha = $newTree | ConvertFrom-Json | Select-Object -ExpandProperty sha
           Write-Host "New tree SHA: $newTreeSha"
