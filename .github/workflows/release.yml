@@ -548,12 +548,16 @@ jobs:
           $branch = "pgtail-$version"
           $manifestDir = "manifests/w/willibrandon/pgtail/$version"
 
-          # Get upstream master's latest commit SHA
-          $upstreamRef = gh api repos/microsoft/winget-pkgs/git/ref/heads/master --jq '.object.sha'
-          Write-Host "Upstream master SHA: $upstreamRef"
+          # Sync fork with upstream first
+          Write-Host "Syncing fork with upstream..."
+          gh api repos/willibrandon/winget-pkgs/merge-upstream -X POST -f branch="master"
+
+          # Get fork's master commit SHA (now synced with upstream)
+          $forkRef = gh api repos/willibrandon/winget-pkgs/git/ref/heads/master --jq '.object.sha'
+          Write-Host "Fork master SHA: $forkRef"
 
           # Get the tree SHA for that commit
-          $baseTreeSha = gh api "repos/microsoft/winget-pkgs/git/commits/$upstreamRef" --jq '.tree.sha'
+          $baseTreeSha = gh api "repos/willibrandon/winget-pkgs/git/commits/$forkRef" --jq '.tree.sha'
           Write-Host "Base tree SHA: $baseTreeSha"
 
           # Create blobs for each manifest file and build tree entries
@@ -567,7 +571,7 @@ jobs:
             $treeEntries += @{path=$path; mode="100644"; type="blob"; sha=$blobSha}
           }
 
-          # Create new tree with manifest files added to upstream's tree
+          # Create new tree with manifest files added
           $treeJson = @{base_tree=$baseTreeSha; tree=$treeEntries} | ConvertTo-Json -Compress -Depth 10
           $treeJson | Out-File -FilePath tree.json -Encoding utf8
           $newTree = gh api repos/willibrandon/winget-pkgs/git/trees -X POST --input tree.json
@@ -578,7 +582,7 @@ jobs:
           $commitJson = @{
             message="Update willibrandon.pgtail to $version"
             tree=$newTreeSha
-            parents=@($upstreamRef)
+            parents=@($forkRef)
           } | ConvertTo-Json -Compress
           $commitJson | Out-File -FilePath commit.json -Encoding utf8
           $newCommit = gh api repos/willibrandon/winget-pkgs/git/commits -X POST --input commit.json
