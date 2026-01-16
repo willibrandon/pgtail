@@ -861,3 +861,612 @@ class TestHighlightOnOff:
             # Turn back on
             handle_highlight_on(highlighting_config)
             assert highlighting_config.is_highlighter_enabled("timestamp")
+
+
+# =============================================================================
+# Test Highlight Export Command (T143)
+# =============================================================================
+
+
+class TestHighlightExportCommand:
+    """Tests for highlight export command."""
+
+    def test_export_to_stdout(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Export without --file returns TOML as message."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+
+        success, message = handle_highlight_export([], highlighting_config)
+
+        assert success is True
+        assert "[highlighting]" in message
+        assert "enabled = true" in message
+        assert "max_length = 10240" in message
+
+    def test_export_includes_duration_thresholds(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Export includes duration thresholds."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+
+        highlighting_config.duration_slow = 50
+        highlighting_config.duration_very_slow = 200
+        highlighting_config.duration_critical = 2000
+
+        success, message = handle_highlight_export([], highlighting_config)
+
+        assert success is True
+        assert "slow = 50" in message
+        assert "very_slow = 200" in message
+        assert "critical = 2000" in message
+
+    def test_export_includes_disabled_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Export includes disabled highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+
+        highlighting_config.disable_highlighter("timestamp")
+        highlighting_config.disable_highlighter("duration")
+
+        success, message = handle_highlight_export([], highlighting_config)
+
+        assert success is True
+        assert "[highlighting.enabled_highlighters]" in message
+        assert "timestamp = false" in message
+        assert "duration = false" in message
+
+    def test_export_includes_custom_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Export includes custom highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        custom = CustomHighlighter(
+            name="request_id",
+            pattern=r"REQ-\d+",
+            style="bold yellow",
+            priority=1050,
+        )
+        highlighting_config.custom_highlighters.append(custom)
+
+        success, message = handle_highlight_export([], highlighting_config)
+
+        assert success is True
+        assert 'name = "request_id"' in message
+        assert 'pattern = "REQ-\\\\d+"' in message or "REQ-\\d+" in message
+        assert 'style = "bold yellow"' in message
+
+    def test_export_to_file(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Export to file writes valid TOML."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+
+        file_path = tmp_path / "highlight.toml"
+
+        success, message = handle_highlight_export(
+            ["--file", str(file_path)], highlighting_config
+        )
+
+        assert success is True
+        assert "Exported" in message
+        assert file_path.exists()
+
+        # Verify file content is valid TOML
+        import tomlkit
+
+        content = file_path.read_text()
+        data = tomlkit.parse(content)
+        assert "highlighting" in data
+        assert data["highlighting"]["enabled"] is True
+
+    def test_export_short_flag(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Export supports -f short flag."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+
+        file_path = tmp_path / "highlight.toml"
+
+        success, message = handle_highlight_export(
+            ["-f", str(file_path)], highlighting_config
+        )
+
+        assert success is True
+        assert file_path.exists()
+
+    def test_export_via_dispatcher(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Export works through command dispatcher."""
+        success, message = handle_highlight_command(["export"], highlighting_config)
+
+        assert success is True
+        assert "[highlighting]" in message
+
+    def test_export_with_all_settings(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Export with all settings modified."""
+        from pgtail_py.cli_highlight import handle_highlight_export
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        # Modify all settings
+        highlighting_config.enabled = False
+        highlighting_config.max_length = 5000
+        highlighting_config.duration_slow = 75
+        highlighting_config.duration_very_slow = 300
+        highlighting_config.duration_critical = 3000
+        highlighting_config.disable_highlighter("pid")
+
+        custom = CustomHighlighter(
+            name="trace_id",
+            pattern=r"TRACE-[A-F0-9]{32}",
+            style="magenta",
+            priority=1100,
+            enabled=False,
+        )
+        highlighting_config.custom_highlighters.append(custom)
+
+        success, message = handle_highlight_export([], highlighting_config)
+
+        assert success is True
+        assert "enabled = false" in message
+        assert "max_length = 5000" in message
+        assert "slow = 75" in message
+        assert "pid = false" in message
+        assert 'name = "trace_id"' in message
+
+
+# =============================================================================
+# Test Highlight Import Command (T143)
+# =============================================================================
+
+
+class TestHighlightImportCommand:
+    """Tests for highlight import command."""
+
+    def test_import_requires_path(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Import requires path argument."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        success, message = handle_highlight_import([], highlighting_config)
+
+        assert success is False
+        assert "Usage:" in message
+
+    def test_import_file_not_found(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Import reports file not found."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        success, message = handle_highlight_import(
+            ["/nonexistent/path.toml"], highlighting_config
+        )
+
+        assert success is False
+        assert "not found" in message.lower()
+
+    def test_import_invalid_toml(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import reports invalid TOML."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "invalid.toml"
+        file_path.write_text("this is [not valid toml")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "Invalid TOML" in message
+
+    def test_import_missing_highlighting_section(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import reports missing highlighting section."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "missing_section.toml"
+        file_path.write_text("[other_section]\nkey = 'value'\n")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "Missing [highlighting]" in message
+
+    def test_import_valid_config(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import valid configuration successfully."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "valid.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = false
+max_length = 5000
+
+[highlighting.duration]
+slow = 50
+very_slow = 250
+critical = 2500
+""")
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import(
+                [str(file_path)], highlighting_config
+            )
+
+        assert success is True
+        assert "Imported" in message
+        assert highlighting_config.enabled is False
+        assert highlighting_config.max_length == 5000
+        assert highlighting_config.duration_slow == 50
+        assert highlighting_config.duration_very_slow == 250
+        assert highlighting_config.duration_critical == 2500
+
+    def test_import_disabled_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import applies disabled highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "disabled.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[highlighting.enabled_highlighters]
+timestamp = false
+duration = false
+""")
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import(
+                [str(file_path)], highlighting_config
+            )
+
+        assert success is True
+        assert highlighting_config.enabled_highlighters["timestamp"] is False
+        assert highlighting_config.enabled_highlighters["duration"] is False
+
+    def test_import_custom_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import applies custom highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "custom.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[[highlighting.custom]]
+name = "request_id"
+pattern = "REQ-\\\\d+"
+style = "yellow"
+priority = 1050
+""")
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import(
+                [str(file_path)], highlighting_config
+            )
+
+        assert success is True
+        assert len(highlighting_config.custom_highlighters) == 1
+        assert highlighting_config.custom_highlighters[0].name == "request_id"
+        assert highlighting_config.custom_highlighters[0].pattern == r"REQ-\d+"
+
+    def test_import_via_dispatcher(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import works through command dispatcher."""
+        file_path = tmp_path / "via_dispatcher.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+max_length = 8000
+""")
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_command(
+                ["import", str(file_path)], highlighting_config
+            )
+
+        assert success is True
+        assert highlighting_config.max_length == 8000
+
+    def test_import_persists_to_config(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import persists changes to config.toml."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "persist.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+""")
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config") as mock_save:
+            handle_highlight_import([str(file_path)], highlighting_config)
+            mock_save.assert_called_once()
+
+
+# =============================================================================
+# Test Import Validation (T142)
+# =============================================================================
+
+
+class TestImportValidation:
+    """Tests for import configuration validation."""
+
+    def test_validate_rejects_invalid_regex(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import rejects invalid regex patterns."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "invalid_regex.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[[highlighting.custom]]
+name = "bad_pattern"
+pattern = "[invalid"
+style = "yellow"
+""")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "invalid pattern" in message.lower()
+
+    def test_validate_rejects_zero_length_match(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import rejects patterns that match zero-length strings."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "zero_length.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[[highlighting.custom]]
+name = "empty_match"
+pattern = ".*"
+style = "yellow"
+""")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "zero-length" in message.lower()
+
+    def test_validate_rejects_builtin_name_conflict(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import rejects custom highlighter with built-in name."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "name_conflict.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[[highlighting.custom]]
+name = "timestamp"
+pattern = "TEST-\\\\d+"
+style = "yellow"
+""")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "conflicts with built-in" in message.lower()
+
+    def test_validate_warns_unknown_highlighter(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import warns about unknown highlighter names."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "unknown_hl.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[highlighting.enabled_highlighters]
+timestam = false
+unknown_name = false
+""")
+
+        warnings_received: list[str] = []
+        def warn_func(msg: str) -> None:
+            warnings_received.append(msg)
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import(
+                [str(file_path)], highlighting_config, warn_func
+            )
+
+        assert success is True  # Warnings don't block import
+        assert any("timestam" in w and "timestamp" in w for w in warnings_received)
+        assert any("unknown_name" in w for w in warnings_received)
+
+    def test_validate_rejects_negative_duration(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import rejects negative duration thresholds."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "negative_duration.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[highlighting.duration]
+slow = -100
+""")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "non-negative" in message.lower()
+
+    def test_validate_warns_very_high_duration(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import warns about very high duration thresholds."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "high_duration.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[highlighting.duration]
+slow = 100
+very_slow = 500
+critical = 4000000
+""")
+
+        warnings_received: list[str] = []
+        def warn_func(msg: str) -> None:
+            warnings_received.append(msg)
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import(
+                [str(file_path)], highlighting_config, warn_func
+            )
+
+        assert success is True  # Very high values generate warning, not error
+        assert any("very high" in w.lower() for w in warnings_received)
+
+    def test_validate_rejects_invalid_custom_name(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import rejects custom highlighter with invalid name format."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+
+        file_path = tmp_path / "invalid_name.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[[highlighting.custom]]
+name = "Invalid-Name"
+pattern = "TEST-\\\\d+"
+style = "yellow"
+""")
+
+        success, message = handle_highlight_import([str(file_path)], highlighting_config)
+
+        assert success is False
+        assert "lowercase" in message.lower()
+
+
+# =============================================================================
+# Test Export/Import Round-Trip (T143)
+# =============================================================================
+
+
+class TestExportImportRoundTrip:
+    """Tests for export/import round-trip integrity."""
+
+    def test_round_trip_preserves_config(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Export followed by import preserves configuration."""
+        from pgtail_py.cli_highlight import handle_highlight_export, handle_highlight_import
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        # Configure original
+        highlighting_config.enabled = False
+        highlighting_config.max_length = 7500
+        highlighting_config.duration_slow = 75
+        highlighting_config.duration_very_slow = 300
+        highlighting_config.duration_critical = 3500
+        highlighting_config.disable_highlighter("timestamp")
+        highlighting_config.disable_highlighter("pid")
+
+        custom = CustomHighlighter(
+            name="my_pattern",
+            pattern=r"PATTERN-\d{4}",
+            style="bold magenta",
+            priority=1100,
+        )
+        highlighting_config.custom_highlighters.append(custom)
+
+        # Export
+        file_path = tmp_path / "round_trip.toml"
+        handle_highlight_export(["--file", str(file_path)], highlighting_config)
+
+        # Create fresh config
+        fresh_config = HighlightingConfig()
+
+        # Import
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import([str(file_path)], fresh_config)
+
+        assert success is True
+
+        # Verify all settings preserved
+        assert fresh_config.enabled == highlighting_config.enabled
+        assert fresh_config.max_length == highlighting_config.max_length
+        assert fresh_config.duration_slow == highlighting_config.duration_slow
+        assert fresh_config.duration_very_slow == highlighting_config.duration_very_slow
+        assert fresh_config.duration_critical == highlighting_config.duration_critical
+        assert fresh_config.enabled_highlighters["timestamp"] is False
+        assert fresh_config.enabled_highlighters["pid"] is False
+        assert len(fresh_config.custom_highlighters) == 1
+        assert fresh_config.custom_highlighters[0].name == "my_pattern"
+        assert fresh_config.custom_highlighters[0].pattern == r"PATTERN-\d{4}"
+        assert fresh_config.custom_highlighters[0].style == "bold magenta"
+
+    def test_import_replaces_existing_custom_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig, tmp_path
+    ) -> None:
+        """Import replaces existing custom highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_import
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        # Add existing custom highlighter
+        existing = CustomHighlighter(
+            name="existing_one",
+            pattern=r"OLD-\d+",
+            style="red",
+        )
+        highlighting_config.custom_highlighters.append(existing)
+        assert len(highlighting_config.custom_highlighters) == 1
+
+        # Import with different custom highlighter
+        file_path = tmp_path / "replace_custom.toml"
+        file_path.write_text("""
+[highlighting]
+enabled = true
+
+[[highlighting.custom]]
+name = "new_one"
+pattern = "NEW-\\\\d+"
+style = "green"
+""")
+
+        with patch("pgtail_py.cli_highlight.save_highlighting_config"):
+            success, message = handle_highlight_import(
+                [str(file_path)], highlighting_config
+            )
+
+        assert success is True
+        assert len(highlighting_config.custom_highlighters) == 1
+        assert highlighting_config.custom_highlighters[0].name == "new_one"

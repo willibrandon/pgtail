@@ -178,6 +178,8 @@ def handle_highlight_command(
         handle_highlight_add,
         handle_highlight_disable,
         handle_highlight_enable,
+        handle_highlight_export,
+        handle_highlight_import,
         handle_highlight_off,
         handle_highlight_on,
         handle_highlight_remove,
@@ -300,8 +302,41 @@ def handle_highlight_command(
             log_widget.write_line(f"[{color}]{message}[/{color}]")
         return True
 
+    # Handle 'export' subcommand
+    if subcommand == "export":
+        success, message = handle_highlight_export(args[1:], config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            if success:
+                # Check if message is TOML (stdout) or confirmation (file)
+                if message.startswith("#") or message.startswith("["):
+                    # TOML output - show in dim
+                    for line in message.split("\n"):
+                        log_widget.write_line(f"[dim]{line}[/dim]")
+                else:
+                    # File export confirmation - show in green
+                    log_widget.write_line(f"[green]{message}[/green]")
+            else:
+                log_widget.write_line(f"[red]{message}[/red]")
+        return True
+
+    # Handle 'import' subcommand
+    if subcommand == "import":
+        success, message = handle_highlight_import(args[1:], config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
     # Unknown subcommand
-    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove"
+    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove, export, import"
     if buffer is not None:
         buffer.insert_command_output(FormattedText([("class:error", msg)]))
     elif log_widget is not None:

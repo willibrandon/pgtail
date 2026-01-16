@@ -117,7 +117,7 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
         ],
     },
     "highlight": {
-        "usage": "highlight [list|on|off|enable|disable|add|remove]",
+        "usage": "highlight [list|on|off|enable|disable|add|remove|export|import]",
         "short": "Manage semantic highlighters",
         "description": "Enable, disable, or add custom semantic highlighters for log output.",
         "examples": [
@@ -129,6 +129,9 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
             "highlight disable duration   Disable duration highlighting",
             "highlight add req_id 'REQ-\\d+' --style yellow --priority 500  Add custom",
             "highlight remove req_id    Remove custom highlighter",
+            "highlight export --file /tmp/hl.toml   Export config to file",
+            "highlight export       Print config as TOML",
+            "highlight import /tmp/hl.toml   Import config from file",
         ],
     },
     "set": {

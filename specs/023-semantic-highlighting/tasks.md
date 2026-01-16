@@ -339,12 +339,12 @@
 
 ### Commands (FR-140, FR-141)
 
-- [ ] T138 [US8] Implement `highlight export [--file <path>]` command in pgtail_py/cli_highlight.py
-- [ ] T139 [US8] Implement to_dict() method in HighlightingConfig for TOML export
-- [ ] T140 [US8] Implement `highlight import <path>` command in pgtail_py/cli_highlight.py
-- [ ] T141 [US8] Implement from_dict() class method in HighlightingConfig for TOML import
-- [ ] T142 [US8] Validate imported configuration (highlighter names, pattern validity)
-- [ ] T143 [US8] Write tests for export/import in tests/test_cli_highlight.py
+- [X] T138 [US8] Implement `highlight export [--file <path>]` command in pgtail_py/cli_highlight.py
+- [X] T139 [US8] Implement to_dict() method in HighlightingConfig for TOML export
+- [X] T140 [US8] Implement `highlight import <path>` command in pgtail_py/cli_highlight.py
+- [X] T141 [US8] Implement from_dict() class method in HighlightingConfig for TOML import
+- [X] T142 [US8] Validate imported configuration (highlighter names, pattern validity)
+- [X] T143 [US8] Write tests for export/import in tests/test_cli_highlight.py
 
 **Checkpoint**: User Story 8 complete - config portable
 
