@@ -39,21 +39,15 @@ class Match:
         end: End position (0-indexed, exclusive).
         style: Theme style key to apply (e.g., "hl_timestamp_date").
         text: Matched text (for debugging).
+
+    Note: Validation removed for performance. Highlighters are responsible
+    for producing valid matches (start >= 0, end > start, style non-empty).
     """
 
     start: int
     end: int
     style: str
     text: str
-
-    def __post_init__(self) -> None:
-        """Validate match bounds."""
-        if self.start < 0:
-            raise ValueError("start must be >= 0")
-        if self.end <= self.start:
-            raise ValueError("end must be > start")
-        if not self.style:
-            raise ValueError("style must not be empty")
 
 
 # =============================================================================
@@ -286,6 +280,9 @@ def escape_brackets(text: str) -> str:
     Returns:
         Text with [ escaped as \\[
     """
+    # Fast path: skip replace if no brackets present
+    if "[" not in text:
+        return text
     return text.replace("[", "\\[")
 
 

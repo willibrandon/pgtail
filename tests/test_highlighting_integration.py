@@ -780,10 +780,15 @@ class TestSQLContextAwareness:
 # =============================================================================
 
 
+@pytest.mark.performance
 class TestPerformanceThroughput:
     """Performance benchmark tests for highlighting throughput.
 
     Requirement: 10,000 lines/second throughput for semantic highlighting.
+
+    Note: These tests are marked as performance tests and skipped in CI
+    because CI runners have variable performance. Run locally with:
+        pytest -m performance tests/test_highlighting_integration.py
     """
 
     def test_throughput_10000_lines_per_second(self, test_theme: Theme) -> None:

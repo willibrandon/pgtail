@@ -77,23 +77,9 @@ class TestMatch:
         with pytest.raises(AttributeError):
             match.start = 1  # type: ignore[misc]
 
-    def test_match_negative_start(self) -> None:
-        """Match with negative start should raise ValueError."""
-        with pytest.raises(ValueError, match="start must be >= 0"):
-            Match(start=-1, end=5, style="hl_test", text="hello")
-
-    def test_match_end_not_greater_than_start(self) -> None:
-        """Match with end <= start should raise ValueError."""
-        with pytest.raises(ValueError, match="end must be > start"):
-            Match(start=5, end=5, style="hl_test", text="hello")
-
-        with pytest.raises(ValueError, match="end must be > start"):
-            Match(start=5, end=3, style="hl_test", text="hello")
-
-    def test_match_empty_style(self) -> None:
-        """Match with empty style should raise ValueError."""
-        with pytest.raises(ValueError, match="style must not be empty"):
-            Match(start=0, end=5, style="", text="hello")
+    # Note: Match validation was removed for performance. Highlighters are
+    # responsible for producing valid matches (start >= 0, end > start,
+    # style non-empty). See Match docstring.
 
     def test_match_equality(self) -> None:
         """Two matches with same values should be equal."""
