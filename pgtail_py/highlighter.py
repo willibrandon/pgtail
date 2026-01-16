@@ -750,9 +750,7 @@ class HighlighterChain:
     def _get_sql_highlighters(self) -> list[Highlighter]:
         """Return SQL highlighters sorted by priority (cached)."""
         if self._sql_highlighters is None:
-            self._sql_highlighters = [
-                h for h in self.highlighters if h.name.startswith("sql_")
-            ]
+            self._sql_highlighters = [h for h in self.highlighters if h.name.startswith("sql_")]
         return self._sql_highlighters
 
     @property
