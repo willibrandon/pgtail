@@ -5,6 +5,40 @@ All notable changes to pgtail are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-01-16
+
+### Added
+- **Semantic Highlighting**: 29 built-in highlighters for PostgreSQL log patterns
+  - Timestamps, PIDs, SQLSTATE codes, durations, identifiers
+  - WAL segments, LSNs, transaction IDs
+  - Lock types, checkpoint messages, recovery events
+  - Connection info, IP addresses, backend types
+  - SQL keywords, strings, numbers, parameters (context-aware)
+- `highlight` command with subcommands:
+  - `highlight list` - Show all highlighters with enable/disable status
+  - `highlight enable/disable <name>` - Toggle individual highlighters
+  - `highlight on/off` - Global highlighting toggle
+  - `highlight add <name> <pattern> [--style]` - Custom regex highlighters
+  - `highlight remove <name>` - Remove custom highlighters
+  - `highlight preview` - Preview all highlighters with sample output
+  - `highlight reset` - Reset all settings to defaults
+  - `highlight export [--file]` - Export configuration as TOML
+  - `highlight import <path>` - Import configuration from file
+- Duration threshold coloring (configurable slow/very slow/critical thresholds)
+- SQL context awareness (SQL highlighters only apply within detected SQL regions)
+- Configuration persistence for highlighting settings in config.toml
+
+### Changed
+- Consolidated SQL highlighting modules into single `highlighters/sql.py`
+- Performance optimizations for 10,000+ lines/second highlighting throughput:
+  - Interval-based OccupancyTracker with O(log n) availability checks
+  - Cached sorted highlighter lists
+  - Style lookup caching
+  - Combined SQL detection regex
+
+### Fixed
+- Tail mode separator lines now span full terminal width using Rule widget
+
 ## [0.4.1] - 2025-01-14
 
 ### Fixed
@@ -88,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.5.0]: https://github.com/willibrandon/pgtail/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/willibrandon/pgtail/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/willibrandon/pgtail/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/willibrandon/pgtail/compare/v0.2.4...v0.3.0
