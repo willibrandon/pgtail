@@ -546,18 +546,21 @@ jobs:
         run: |
           $version = "${{ steps.version.outputs.version }}"
 
-          # Clone fork, sync with upstream, create branch, add manifests, push, create PR
-          git clone --depth 1 https://x-access-token:$env:GH_TOKEN@github.com/willibrandon/winget-pkgs.git
+          # Clone fork with sparse checkout (manifests only) to avoid touching .github/workflows
+          git clone --filter=blob:none --no-checkout https://x-access-token:$env:GH_TOKEN@github.com/willibrandon/winget-pkgs.git
           cd winget-pkgs
 
-          git remote add upstream https://github.com/microsoft/winget-pkgs.git
-          git fetch upstream master --depth 1
-          git reset --hard upstream/master
+          git sparse-checkout init --cone
+          git sparse-checkout set manifests/w/willibrandon/pgtail
+          git checkout
 
-          # Remove workflow files to avoid needing workflow scope on the PAT
-          if (Test-Path ".github/workflows") {
-            Remove-Item -Recurse -Force ".github/workflows"
-          }
+          # Sync with upstream (manifests only)
+          git remote add upstream https://github.com/microsoft/winget-pkgs.git
+          git fetch upstream master --filter=blob:none
+          git checkout -B temp-sync upstream/master
+          git sparse-checkout reapply
+          git checkout -B main temp-sync
+          git branch -D temp-sync
 
           $branch = "pgtail-$version"
           git checkout -b $branch
@@ -572,7 +575,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add manifests/
           git commit -m "Update willibrandon.pgtail to $version"
           git push -f origin $branch
 
