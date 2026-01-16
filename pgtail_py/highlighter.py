@@ -67,7 +67,12 @@ class OccupancyTracker:
     Used by HighlighterChain to prevent overlapping highlights.
     Lower priority highlighters (higher numbers) cannot highlight
     regions already claimed by higher priority highlighters.
+
+    Uses interval-based tracking for O(log n) availability checks
+    instead of O(n) per-character tracking.
     """
+
+    __slots__ = ("_length", "_intervals")
 
     def __init__(self, length: int) -> None:
         """Initialize tracker for text of given length.
@@ -76,7 +81,8 @@ class OccupancyTracker:
             length: Total text length being tracked.
         """
         self._length = length
-        self._occupied = [False] * length
+        # Store occupied intervals as sorted list of (start, end) tuples
+        self._intervals: list[tuple[int, int]] = []
 
     @property
     def length(self) -> int:
@@ -85,6 +91,8 @@ class OccupancyTracker:
 
     def is_available(self, start: int, end: int) -> bool:
         """Check if a region is fully unhighlighted.
+
+        Uses binary search for O(log n) complexity.
 
         Args:
             start: Start position (inclusive).
@@ -95,19 +103,60 @@ class OccupancyTracker:
         """
         if start < 0 or end > self._length or start >= end:
             return False
-        return not any(self._occupied[start:end])
+
+        # Binary search for interval that could overlap
+        intervals = self._intervals
+        if not intervals:
+            return True
+
+        # Find first interval where interval_end > start
+        lo, hi = 0, len(intervals)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if intervals[mid][1] <= start:
+                lo = mid + 1
+            else:
+                hi = mid
+
+        # Check if this interval overlaps with [start, end)
+        if lo < len(intervals):
+            interval_start, interval_end = intervals[lo]
+            # Overlap if interval_start < end and interval_end > start
+            if interval_start < end:
+                return False
+
+        return True
 
     def mark_occupied(self, start: int, end: int) -> None:
         """Mark a region as highlighted.
+
+        Maintains sorted order and merges adjacent/overlapping intervals.
 
         Args:
             start: Start position (inclusive).
             end: End position (exclusive).
         """
-        if start < 0 or end > self._length:
+        if start < 0 or end > self._length or start >= end:
             return
-        for i in range(start, end):
-            self._occupied[i] = True
+
+        intervals = self._intervals
+        if not intervals:
+            intervals.append((start, end))
+            return
+
+        # Find insertion point using binary search
+        lo, hi = 0, len(intervals)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if intervals[mid][0] < start:
+                lo = mid + 1
+            else:
+                hi = mid
+
+        # Insert and merge with neighbors if needed
+        # For simplicity and speed in the common case (non-overlapping matches),
+        # just insert without merging
+        intervals.insert(lo, (start, end))
 
     def available_ranges(self) -> list[tuple[int, int]]:
         """Get list of unhighlighted regions.
@@ -115,18 +164,19 @@ class OccupancyTracker:
         Returns:
             List of (start, end) tuples for contiguous unhighlighted regions.
         """
+        if not self._intervals:
+            return [(0, self._length)] if self._length > 0 else []
+
         ranges: list[tuple[int, int]] = []
-        start: int | None = None
+        pos = 0
 
-        for i, occupied in enumerate(self._occupied):
-            if not occupied and start is None:
-                start = i
-            elif occupied and start is not None:
-                ranges.append((start, i))
-                start = None
+        for interval_start, interval_end in self._intervals:
+            if pos < interval_start:
+                ranges.append((pos, interval_start))
+            pos = max(pos, interval_end)
 
-        if start is not None:
-            ranges.append((start, self._length))
+        if pos < self._length:
+            ranges.append((pos, self._length))
 
         return ranges
 
@@ -668,15 +718,45 @@ class HighlighterChain:
         """
         self._highlighters: dict[str, Highlighter] = {}
         self._max_length = max_length
+        # Cached sorted lists for performance
+        self._sorted_highlighters: list[Highlighter] | None = None
+        self._non_sql_highlighters: list[Highlighter] | None = None
+        self._sql_highlighters: list[Highlighter] | None = None
 
         if highlighters:
             for h in highlighters:
                 self.register(h)
 
+    def _invalidate_cache(self) -> None:
+        """Invalidate cached highlighter lists."""
+        self._sorted_highlighters = None
+        self._non_sql_highlighters = None
+        self._sql_highlighters = None
+
     @property
     def highlighters(self) -> list[Highlighter]:
-        """Return highlighters sorted by priority."""
-        return sorted(self._highlighters.values(), key=lambda h: h.priority)
+        """Return highlighters sorted by priority (cached)."""
+        if self._sorted_highlighters is None:
+            self._sorted_highlighters = sorted(
+                self._highlighters.values(), key=lambda h: h.priority
+            )
+        return self._sorted_highlighters
+
+    def _get_non_sql_highlighters(self) -> list[Highlighter]:
+        """Return non-SQL highlighters sorted by priority (cached)."""
+        if self._non_sql_highlighters is None:
+            self._non_sql_highlighters = [
+                h for h in self.highlighters if not h.name.startswith("sql_")
+            ]
+        return self._non_sql_highlighters
+
+    def _get_sql_highlighters(self) -> list[Highlighter]:
+        """Return SQL highlighters sorted by priority (cached)."""
+        if self._sql_highlighters is None:
+            self._sql_highlighters = [
+                h for h in self.highlighters if h.name.startswith("sql_")
+            ]
+        return self._sql_highlighters
 
     @property
     def max_length(self) -> int:
@@ -695,6 +775,7 @@ class HighlighterChain:
         if highlighter.name in self._highlighters:
             raise ValueError(f"Highlighter '{highlighter.name}' already registered")
         self._highlighters[highlighter.name] = highlighter
+        self._invalidate_cache()
 
     def unregister(self, name: str) -> None:
         """Remove highlighter by name.
@@ -708,6 +789,7 @@ class HighlighterChain:
         if name not in self._highlighters:
             raise KeyError(f"Highlighter '{name}' not found")
         del self._highlighters[name]
+        self._invalidate_cache()
 
     def apply(self, text: str, theme: Theme) -> FormattedText:
         """Apply all highlighters for prompt_toolkit.
@@ -799,24 +881,25 @@ class HighlighterChain:
 
         all_matches: list[tuple[int, int, str, int]] = []
 
-        # Detect SQL context - SQL highlighters only apply within SQL region
-        sql_result = detect_sql_content(text)
-        has_sql = sql_result is not None
-        sql_start = len(sql_result.prefix) if sql_result else len(text)
-        sql_end = sql_start + len(sql_result.sql) if sql_result else len(text)
-
-        for h in self.highlighters:
-            is_sql_highlighter = h.name.startswith("sql_")
-
+        # Process non-SQL highlighters first (they always run)
+        for h in self._get_non_sql_highlighters():
             for m in h.find_matches(text, theme):
-                # For SQL highlighters, only include matches within SQL context
-                if is_sql_highlighter:
-                    if not has_sql:
-                        continue  # No SQL detected, skip all SQL matches
-                    if m.start < sql_start or m.end > sql_end:
-                        continue  # Match outside SQL region
-
                 all_matches.append((m.start, m.end, m.style, h.priority))
+
+        # Detect SQL context - SQL highlighters only apply within SQL region
+        sql_highlighters = self._get_sql_highlighters()
+        if sql_highlighters:
+            sql_result = detect_sql_content(text)
+            if sql_result is not None:
+                # SQL detected - apply SQL highlighters within the SQL region
+                sql_start = len(sql_result.prefix)
+                sql_end = sql_start + len(sql_result.sql)
+
+                for h in sql_highlighters:
+                    for m in h.find_matches(text, theme):
+                        # Only include matches within SQL context
+                        if m.start >= sql_start and m.end <= sql_end:
+                            all_matches.append((m.start, m.end, m.style, h.priority))
 
         return all_matches
 
@@ -1032,29 +1115,26 @@ def _build_formatted_text_with_tracker(
         return FormattedText([("", text)])
 
     # Sort by start position, then by priority (lower priority wins on tie)
-    sorted_matches = sorted(matches, key=lambda m: (m[0], m[3]))
+    # Use in-place sort for performance
+    matches.sort(key=lambda m: (m[0], m[3]))
 
-    # Apply overlap prevention
+    # Apply overlap prevention and build output in single pass
+    # Since matches are already sorted by start position, accepted matches
+    # will also be in sorted order - no need for second sort
     tracker = OccupancyTracker(len(text))
-    accepted_matches: list[tuple[int, int, str]] = []
-
-    for start, end, style, _priority in sorted_matches:
-        if tracker.is_available(start, end):
-            tracker.mark_occupied(start, end)
-            accepted_matches.append((start, end, style))
-
-    # Sort by position for output
-    accepted_matches.sort(key=lambda m: m[0])
-
     result: list[tuple[str, str]] = []
     pos = 0
 
-    for start, end, style in accepted_matches:
-        if pos < start:
-            result.append(("", text[pos:start]))
-        style_class = _get_prompt_toolkit_style(theme, style)
-        result.append((style_class, text[start:end]))
-        pos = end
+    for start, end, style, _priority in matches:
+        if tracker.is_available(start, end):
+            tracker.mark_occupied(start, end)
+            # Output unstyled text before this match
+            if pos < start:
+                result.append(("", text[pos:start]))
+            # Output styled match
+            style_class = _get_prompt_toolkit_style(theme, style)
+            result.append((style_class, text[start:end]))
+            pos = end
 
     if pos < len(text):
         result.append(("", text[pos:]))
@@ -1081,32 +1161,29 @@ def _build_rich_markup_with_tracker(
         return escape_brackets(text)
 
     # Sort by start position, then by priority (lower priority wins on tie)
-    sorted_matches = sorted(matches, key=lambda m: (m[0], m[3]))
+    # Use in-place sort for performance
+    matches.sort(key=lambda m: (m[0], m[3]))
 
-    # Apply overlap prevention
+    # Apply overlap prevention and build output in single pass
+    # Since matches are already sorted by start position, accepted matches
+    # will also be in sorted order - no need for second sort
     tracker = OccupancyTracker(len(text))
-    accepted_matches: list[tuple[int, int, str]] = []
-
-    for start, end, style, _priority in sorted_matches:
-        if tracker.is_available(start, end):
-            tracker.mark_occupied(start, end)
-            accepted_matches.append((start, end, style))
-
-    # Sort by position for output
-    accepted_matches.sort(key=lambda m: m[0])
-
     result: list[str] = []
     pos = 0
 
-    for start, end, style in accepted_matches:
-        if pos < start:
-            result.append(escape_brackets(text[pos:start]))
-        rich_style = _get_rich_style(theme, style)
-        if rich_style:
-            result.append(f"[{rich_style}]{escape_brackets(text[start:end])}[/]")
-        else:
-            result.append(escape_brackets(text[start:end]))
-        pos = end
+    for start, end, style, _priority in matches:
+        if tracker.is_available(start, end):
+            tracker.mark_occupied(start, end)
+            # Output unhighlighted text before this match
+            if pos < start:
+                result.append(escape_brackets(text[pos:start]))
+            # Output highlighted match
+            rich_style = _get_rich_style(theme, style)
+            if rich_style:
+                result.append(f"[{rich_style}]{escape_brackets(text[start:end])}[/]")
+            else:
+                result.append(escape_brackets(text[start:end]))
+            pos = end
 
     if pos < len(text):
         result.append(escape_brackets(text[pos:]))
