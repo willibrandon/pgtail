@@ -358,11 +358,11 @@
 
 ### Commands (FR-136)
 
-- [ ] T144 [US9] Implement `highlight preview` command in pgtail_py/cli_highlight.py
-- [ ] T145 [US9] Create sample log lines covering all 29 highlighter patterns
-- [ ] T146 [US9] Apply current highlighting settings to preview output
-- [ ] T147 [US9] Show which highlighters are disabled in preview
-- [ ] T148 [US9] Write tests for preview command in tests/test_cli_highlight.py
+- [X] T144 [US9] Implement `highlight preview` command in pgtail_py/cli_highlight.py
+- [X] T145 [US9] Create sample log lines covering all 29 highlighter patterns
+- [X] T146 [US9] Apply current highlighting settings to preview output
+- [X] T147 [US9] Show which highlighters are disabled in preview
+- [X] T148 [US9] Write tests for preview command in tests/test_cli_highlight.py
 
 **Checkpoint**: User Story 9 complete - preview works
 

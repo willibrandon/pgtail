@@ -830,6 +830,37 @@ class HighlighterChain:
 # =============================================================================
 
 
+def _convert_ansi_color_to_rich(color: str) -> str:
+    """Convert prompt_toolkit ANSI color name to Rich color name.
+
+    prompt_toolkit uses names like 'ansibrightblack', 'ansired', 'ansibrightred'.
+    Rich uses names like 'bright_black', 'red', 'bright_red'.
+
+    Args:
+        color: Color name in prompt_toolkit format.
+
+    Returns:
+        Color name in Rich format.
+    """
+    if not color:
+        return color
+
+    # Handle hex colors and named colors that don't start with 'ansi'
+    if not color.startswith("ansi"):
+        return color
+
+    # Remove 'ansi' prefix
+    color = color[4:]
+
+    # Handle 'bright' variants: ansibrightred -> bright_red
+    if color.startswith("bright"):
+        base_color = color[6:]  # Remove 'bright'
+        return f"bright_{base_color}"
+
+    # Handle standard colors: ansired -> red
+    return color
+
+
 def _get_rich_style(theme: Theme, style_key: str) -> str:
     """Convert theme style key to Rich markup style.
 
@@ -848,9 +879,9 @@ def _get_rich_style(theme: Theme, style_key: str) -> str:
 
     parts: list[str] = []
     if color_style.fg:
-        parts.append(color_style.fg)
+        parts.append(_convert_ansi_color_to_rich(color_style.fg))
     if color_style.bg:
-        parts.append(f"on {color_style.bg}")
+        parts.append(f"on {_convert_ansi_color_to_rich(color_style.bg)}")
     if color_style.bold:
         parts.append("bold")
     if color_style.dim:

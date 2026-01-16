@@ -335,8 +335,24 @@ def handle_highlight_command(
             log_widget.write_line(f"[{color}]{message}[/{color}]")
         return True
 
+    # Handle 'preview' subcommand
+    if subcommand == "preview":
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        # Use Rich format for Textual, FormattedText for prompt_toolkit
+        if log_widget is not None:
+            success, output = handle_highlight_preview(config, use_rich=True)
+            # output is a Rich markup string
+            for line in str(output).split("\n"):
+                log_widget.write_line(line)
+        elif buffer is not None:
+            success, output = handle_highlight_preview(config, use_rich=False)
+            # output is FormattedText
+            buffer.insert_command_output(output)
+        return True
+
     # Unknown subcommand
-    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove, export, import"
+    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove, export, import, preview"
     if buffer is not None:
         buffer.insert_command_output(FormattedText([("class:error", msg)]))
     elif log_widget is not None:

@@ -8,6 +8,7 @@ Provides commands for managing semantic highlighting:
 - highlight remove <name>: Remove a custom highlighter
 - highlight export [--file <path>]: Export config as TOML
 - highlight import <path>: Import config from TOML file
+- highlight preview: Preview highlighting with sample log lines
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pgtail_py.highlighting_config import HighlightingConfig
+    from pgtail_py.theme import Theme
 
 
 # =============================================================================
@@ -896,6 +898,542 @@ def handle_highlight_import(
 
 
 # =============================================================================
+# Highlight Preview Command (T144-T147)
+# =============================================================================
+
+# Sample log lines organized by highlighter category
+# Each sample is a tuple of (highlighter_names, sample_line, description)
+# The highlighter_names list shows which highlighters will match this line
+PREVIEW_SAMPLES: list[tuple[list[str], str, str]] = [
+    # Structural (timestamp, pid, context)
+    (
+        ["timestamp", "pid"],
+        "2024-01-15 14:30:45.123 UTC [12345] LOG:  database system is ready",
+        "Timestamp with timezone and process ID",
+    ),
+    (
+        ["context"],
+        "DETAIL:  Key (id)=(42) already exists.",
+        "Context label (DETAIL:)",
+    ),
+    (
+        ["context"],
+        "HINT:  Use UPSERT to handle duplicates.",
+        "Context label (HINT:)",
+    ),
+    # Diagnostic (sqlstate, error_name)
+    (
+        ["sqlstate"],
+        'ERROR:  23505: duplicate key value violates unique constraint "users_pkey"',
+        "SQLSTATE error code",
+    ),
+    (
+        ["error_name"],
+        "ERROR:  unique_violation: duplicate key value",
+        "Error name (unique_violation)",
+    ),
+    # Performance (duration, memory, statistics)
+    (
+        ["duration"],
+        "LOG:  duration: 45.123 ms  statement: SELECT * FROM users",
+        "Fast query duration",
+    ),
+    (
+        ["duration"],
+        "LOG:  duration: 150.456 ms  statement: SELECT * FROM orders",
+        "Slow query duration",
+    ),
+    (
+        ["duration"],
+        "LOG:  duration: 5500.789 ms  statement: SELECT * FROM large_table",
+        "Critical query duration",
+    ),
+    (
+        ["memory"],
+        "LOG:  temporary file: 15 MB used for sort",
+        "Memory/size value",
+    ),
+    (
+        ["statistics"],
+        "LOG:  checkpoint complete: wrote 1500 buffers (9.2%)",
+        "Checkpoint statistics with percentage",
+    ),
+    # Objects (identifier, relation, schema)
+    (
+        ["identifier"],
+        'ERROR:  column "user_name" does not exist',
+        "Double-quoted identifier",
+    ),
+    (
+        ["relation"],
+        'ERROR:  relation "orders" does not exist',
+        "Relation name",
+    ),
+    (
+        ["schema"],
+        "LOG:  autovacuum: analyzing public.users",
+        "Schema-qualified name",
+    ),
+    # WAL (lsn, wal_segment, txid)
+    (
+        ["lsn"],
+        "LOG:  redo starts at 0/1234ABCD",
+        "Log sequence number (LSN)",
+    ),
+    (
+        ["wal_segment"],
+        "LOG:  archived transaction log file 000000010000000100000023",
+        "WAL segment filename (24-char hex)",
+    ),
+    (
+        ["txid"],
+        "DETAIL:  xmin: 1234567, xmax: 1234570",
+        "Transaction ID",
+    ),
+    # Connection (connection, ip, backend)
+    (
+        ["connection", "ip"],
+        "LOG:  connection authorized: user=postgres database=mydb host=192.168.1.100 port=5432",
+        "Connection info with IP address",
+    ),
+    (
+        ["ip"],
+        "LOG:  connection from 2001:db8::1 rejected",
+        "IPv6 address",
+    ),
+    (
+        ["backend"],
+        "LOG:  autovacuum launcher started",
+        "Backend process type",
+    ),
+    # SQL (sql_keyword, sql_string, sql_number, sql_param, sql_operator)
+    (
+        ["sql_keyword", "sql_string", "sql_number"],
+        "LOG:  statement: SELECT id, 'hello' FROM users WHERE id = 42",
+        "SQL keywords, strings, and numbers",
+    ),
+    (
+        ["sql_param"],
+        "LOG:  execute <unnamed>: SELECT * FROM users WHERE id = $1",
+        "SQL parameter placeholder",
+    ),
+    (
+        ["sql_operator"],
+        "LOG:  statement: SELECT name || ' ' || email FROM users",
+        "SQL operator (||)",
+    ),
+    # Lock (lock_type, lock_wait)
+    (
+        ["lock_type"],
+        "LOG:  process 12345 acquired ShareLock on relation 16384",
+        "Lock type name (ShareLock)",
+    ),
+    (
+        ["lock_wait"],
+        "LOG:  process 12345 still waiting for ExclusiveLock after 5000.123 ms",
+        "Lock wait information",
+    ),
+    # Checkpoint (checkpoint, recovery)
+    (
+        ["checkpoint"],
+        "LOG:  checkpoint starting: time",
+        "Checkpoint message",
+    ),
+    (
+        ["recovery"],
+        "LOG:  redo done at 0/1234ABCD",
+        "Recovery message",
+    ),
+    # Misc (boolean, null, oid, path)
+    (
+        ["boolean"],
+        "LOG:  setting log_connections to on",
+        "Boolean value (on)",
+    ),
+    (
+        ["null"],
+        "LOG:  parameter value is NULL",
+        "NULL keyword",
+    ),
+    (
+        ["oid"],
+        "LOG:  dropping objects with OID 16384",
+        "Object ID (OID)",
+    ),
+    (
+        ["path"],
+        "LOG:  redirecting log output to /var/log/postgresql/postgresql-17-main.log",
+        "File path",
+    ),
+]
+
+
+def get_preview_samples() -> list[tuple[list[str], str, str]]:
+    """Return the list of preview samples.
+
+    Returns:
+        List of (highlighter_names, sample_line, description) tuples.
+    """
+    return PREVIEW_SAMPLES
+
+
+def format_preview_rich(
+    config: HighlightingConfig,
+    theme: Theme | None = None,
+) -> str:
+    """Format preview output with highlighted samples for Rich/Textual.
+
+    Args:
+        config: Current highlighting configuration.
+        theme: Current theme for style lookups. If None, uses default dark theme.
+
+    Returns:
+        Rich markup string for display.
+    """
+    from pgtail_py.tail_rich import get_highlighter_chain
+    from pgtail_py.theme import ThemeManager
+
+    # Get theme if not provided
+    if theme is None:
+        theme_manager = ThemeManager()
+        theme = theme_manager.current_theme
+
+    lines: list[str] = []
+
+    # Header
+    global_status = "enabled" if config.enabled else "disabled"
+    global_color = "green" if config.enabled else "red"
+    lines.append(f"[bold cyan]Highlight Preview[/] ([{global_color}]{global_status}[/])")
+    lines.append("")
+
+    if not config.enabled:
+        lines.append("[dim]Highlighting is disabled. Run 'highlight on' to enable.[/]")
+        lines.append("")
+
+    # Get the highlighter chain (ensures highlighters are registered)
+    chain = get_highlighter_chain(config)
+
+    # Track which highlighters are disabled
+    disabled_highlighters: set[str] = set()
+    for name in BUILTIN_HIGHLIGHTER_NAMES:
+        if not config.is_highlighter_enabled(name):
+            disabled_highlighters.add(name)
+
+    # Group samples by category
+    categories: dict[str, list[tuple[list[str], str, str]]] = {
+        "Structural": [],
+        "Diagnostic": [],
+        "Performance": [],
+        "Objects": [],
+        "WAL": [],
+        "Connection": [],
+        "SQL": [],
+        "Lock": [],
+        "Checkpoint": [],
+        "Misc": [],
+    }
+
+    # Organize samples by category
+    for highlighter_names, sample, desc in PREVIEW_SAMPLES:
+        # Determine category from first highlighter name
+        first_name = highlighter_names[0]
+        category_map = {
+            "timestamp": "Structural",
+            "pid": "Structural",
+            "context": "Structural",
+            "sqlstate": "Diagnostic",
+            "error_name": "Diagnostic",
+            "duration": "Performance",
+            "memory": "Performance",
+            "statistics": "Performance",
+            "identifier": "Objects",
+            "relation": "Objects",
+            "schema": "Objects",
+            "lsn": "WAL",
+            "wal_segment": "WAL",
+            "txid": "WAL",
+            "connection": "Connection",
+            "ip": "Connection",
+            "backend": "Connection",
+            "sql_keyword": "SQL",
+            "sql_string": "SQL",
+            "sql_number": "SQL",
+            "sql_param": "SQL",
+            "sql_operator": "SQL",
+            "lock_type": "Lock",
+            "lock_wait": "Lock",
+            "checkpoint": "Checkpoint",
+            "recovery": "Checkpoint",
+            "boolean": "Misc",
+            "null": "Misc",
+            "oid": "Misc",
+            "path": "Misc",
+        }
+        category = category_map.get(first_name, "Misc")
+        categories[category].append((highlighter_names, sample, desc))
+
+    # Display samples by category
+    category_order = [
+        "Structural",
+        "Diagnostic",
+        "Performance",
+        "Objects",
+        "WAL",
+        "Connection",
+        "SQL",
+        "Lock",
+        "Checkpoint",
+        "Misc",
+    ]
+
+    for category in category_order:
+        samples = categories.get(category, [])
+        if not samples:
+            continue
+
+        lines.append(f"[bold]{category}[/]")
+
+        for highlighter_names, sample, desc in samples:
+            # Check if any of the relevant highlighters are disabled
+            disabled_for_sample = [
+                name for name in highlighter_names if name in disabled_highlighters
+            ]
+
+            # Apply highlighting if enabled globally
+            if config.enabled:
+                highlighted = chain.apply_rich(sample, theme)
+            else:
+                # Escape brackets for display but no highlighting
+                highlighted = sample.replace("[", "\\[")
+
+            # Show the sample with description
+            lines.append(f"  [dim]{desc}[/]")
+            if disabled_for_sample:
+                disabled_list = ", ".join(disabled_for_sample)
+                lines.append(f"  [yellow]⚠ Disabled:[/] [dim]{disabled_list}[/]")
+            lines.append(f"  {highlighted}")
+            lines.append("")
+
+    # Show disabled highlighters summary
+    if disabled_highlighters:
+        lines.append("[bold yellow]Disabled Highlighters[/]")
+        for name in sorted(disabled_highlighters):
+            lines.append(f"  [dim]• {name}[/]")
+        lines.append("")
+        lines.append(
+            "[dim]Use 'highlight enable <name>' to enable disabled highlighters.[/]"
+        )
+
+    # Show custom highlighters
+    if config.custom_highlighters:
+        lines.append("")
+        lines.append("[bold]Custom Highlighters[/]")
+        for custom in config.custom_highlighters:
+            status = "enabled" if custom.enabled else "disabled"
+            status_color = "green" if custom.enabled else "red"
+            pattern = custom.pattern.replace("[", "\\[")
+            lines.append(
+                f"  [{status_color}]{custom.name}[/]: {pattern} "
+                f"[dim](style: {custom.style})[/]"
+            )
+
+    return "\n".join(lines)
+
+
+def format_preview_text(
+    config: HighlightingConfig,
+    theme: Theme | None = None,
+) -> FormattedText:
+    """Format preview output with highlighted samples for prompt_toolkit.
+
+    Args:
+        config: Current highlighting configuration.
+        theme: Current theme for style lookups. If None, uses default dark theme.
+
+    Returns:
+        FormattedText for REPL display.
+    """
+    from pgtail_py.tail_rich import get_highlighter_chain
+    from pgtail_py.theme import ThemeManager
+
+    # Get theme if not provided
+    if theme is None:
+        theme_manager = ThemeManager()
+        theme = theme_manager.current_theme
+
+    result: list[tuple[str, str]] = []
+
+    # Header
+    global_status = "enabled" if config.enabled else "disabled"
+    global_style = "class:success" if config.enabled else "class:error"
+    result.append(("class:bold", "Highlight Preview "))
+    result.append(("", "("))
+    result.append((global_style, global_status))
+    result.append(("", ")\n\n"))
+
+    if not config.enabled:
+        result.append(
+            ("class:dim", "Highlighting is disabled. Run 'highlight on' to enable.\n\n")
+        )
+
+    # Get the highlighter chain (ensures highlighters are registered)
+    chain = get_highlighter_chain(config)
+
+    # Track which highlighters are disabled
+    disabled_highlighters: set[str] = set()
+    for name in BUILTIN_HIGHLIGHTER_NAMES:
+        if not config.is_highlighter_enabled(name):
+            disabled_highlighters.add(name)
+
+    # Group samples by category (same as Rich version)
+    categories: dict[str, list[tuple[list[str], str, str]]] = {
+        "Structural": [],
+        "Diagnostic": [],
+        "Performance": [],
+        "Objects": [],
+        "WAL": [],
+        "Connection": [],
+        "SQL": [],
+        "Lock": [],
+        "Checkpoint": [],
+        "Misc": [],
+    }
+
+    # Organize samples by category
+    for highlighter_names, sample, desc in PREVIEW_SAMPLES:
+        first_name = highlighter_names[0]
+        category_map = {
+            "timestamp": "Structural",
+            "pid": "Structural",
+            "context": "Structural",
+            "sqlstate": "Diagnostic",
+            "error_name": "Diagnostic",
+            "duration": "Performance",
+            "memory": "Performance",
+            "statistics": "Performance",
+            "identifier": "Objects",
+            "relation": "Objects",
+            "schema": "Objects",
+            "lsn": "WAL",
+            "wal_segment": "WAL",
+            "txid": "WAL",
+            "connection": "Connection",
+            "ip": "Connection",
+            "backend": "Connection",
+            "sql_keyword": "SQL",
+            "sql_string": "SQL",
+            "sql_number": "SQL",
+            "sql_param": "SQL",
+            "sql_operator": "SQL",
+            "lock_type": "Lock",
+            "lock_wait": "Lock",
+            "checkpoint": "Checkpoint",
+            "recovery": "Checkpoint",
+            "boolean": "Misc",
+            "null": "Misc",
+            "oid": "Misc",
+            "path": "Misc",
+        }
+        category = category_map.get(first_name, "Misc")
+        categories[category].append((highlighter_names, sample, desc))
+
+    # Display samples by category
+    category_order = [
+        "Structural",
+        "Diagnostic",
+        "Performance",
+        "Objects",
+        "WAL",
+        "Connection",
+        "SQL",
+        "Lock",
+        "Checkpoint",
+        "Misc",
+    ]
+
+    for category in category_order:
+        samples = categories.get(category, [])
+        if not samples:
+            continue
+
+        result.append(("class:bold", f"{category}\n"))
+
+        for highlighter_names, sample, desc in samples:
+            disabled_for_sample = [
+                name for name in highlighter_names if name in disabled_highlighters
+            ]
+
+            # Apply highlighting if enabled globally
+            if config.enabled:
+                highlighted = chain.apply(sample, theme)
+                # highlighted is FormattedText - add description first
+                result.append(("class:dim", f"  {desc}\n"))
+                if disabled_for_sample:
+                    disabled_list = ", ".join(disabled_for_sample)
+                    result.append(("class:warning", f"  ⚠ Disabled: "))
+                    result.append(("class:dim", f"{disabled_list}\n"))
+                result.append(("", "  "))
+                # Append the FormattedText tuples
+                for style, text in highlighted:
+                    result.append((style, text))
+                result.append(("", "\n\n"))
+            else:
+                result.append(("class:dim", f"  {desc}\n"))
+                if disabled_for_sample:
+                    disabled_list = ", ".join(disabled_for_sample)
+                    result.append(("class:warning", f"  ⚠ Disabled: "))
+                    result.append(("class:dim", f"{disabled_list}\n"))
+                result.append(("", f"  {sample}\n\n"))
+
+    # Show disabled highlighters summary
+    if disabled_highlighters:
+        result.append(("class:warning", "Disabled Highlighters\n"))
+        for name in sorted(disabled_highlighters):
+            result.append(("class:dim", f"  • {name}\n"))
+        result.append(("", "\n"))
+        result.append(
+            ("class:dim", "Use 'highlight enable <name>' to enable disabled highlighters.\n")
+        )
+
+    # Show custom highlighters
+    if config.custom_highlighters:
+        result.append(("", "\n"))
+        result.append(("class:bold", "Custom Highlighters\n"))
+        for custom in config.custom_highlighters:
+            status_style = "class:success" if custom.enabled else "class:error"
+            result.append((status_style, f"  {custom.name}"))
+            result.append(("", ": "))
+            result.append(("", custom.pattern))
+            result.append(("class:dim", f" (style: {custom.style})\n"))
+
+    return FormattedText(result)
+
+
+def handle_highlight_preview(
+    config: HighlightingConfig,
+    theme: Theme | None = None,
+    use_rich: bool = False,
+) -> tuple[bool, str | FormattedText]:
+    """Handle 'highlight preview' command.
+
+    Shows sample log lines with current highlighting settings applied.
+    Indicates which highlighters are disabled.
+
+    Args:
+        config: Current highlighting configuration.
+        theme: Current theme for style lookups. If None, uses default theme.
+        use_rich: If True, return Rich markup string; if False, return FormattedText.
+
+    Returns:
+        Tuple of (success, formatted_output).
+    """
+    if use_rich:
+        return True, format_preview_rich(config, theme)
+    else:
+        return True, format_preview_text(config, theme)
+
+
+# =============================================================================
 # Command Dispatcher
 # =============================================================================
 
@@ -998,9 +1536,12 @@ def handle_highlight_command(
     elif subcommand == "import":
         return handle_highlight_import(args[1:], config)
 
+    elif subcommand == "preview":
+        return handle_highlight_preview(config, use_rich=False)
+
     else:
         # Unknown subcommand
         return False, (
             f"Unknown subcommand '{subcommand}'. Available: "
-            "list, on, off, enable, disable, add, remove, export, import."
+            "list, on, off, enable, disable, add, remove, export, import, preview."
         )

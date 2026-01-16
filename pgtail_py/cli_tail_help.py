@@ -117,7 +117,7 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
         ],
     },
     "highlight": {
-        "usage": "highlight [list|on|off|enable|disable|add|remove|export|import]",
+        "usage": "highlight [list|on|off|enable|disable|add|remove|export|import|preview]",
         "short": "Manage semantic highlighters",
         "description": "Enable, disable, or add custom semantic highlighters for log output.",
         "examples": [
@@ -132,6 +132,7 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
             "highlight export --file /tmp/hl.toml   Export config to file",
             "highlight export       Print config as TOML",
             "highlight import /tmp/hl.toml   Import config from file",
+            "highlight preview      Preview highlighting with sample log lines",
         ],
     },
     "set": {

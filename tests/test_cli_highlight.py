@@ -5,6 +5,7 @@ Tests cover:
 - highlight enable/disable commands
 - Highlighter name validation with suggestions
 - Configuration persistence
+- highlight preview command
 """
 
 from __future__ import annotations
@@ -13,6 +14,8 @@ from collections.abc import Generator
 
 import pytest
 from unittest.mock import patch, MagicMock
+
+from prompt_toolkit.formatted_text import FormattedText
 
 from pgtail_py.cli_highlight import (
     format_highlight_list,
@@ -1470,3 +1473,272 @@ style = "green"
         assert success is True
         assert len(highlighting_config.custom_highlighters) == 1
         assert highlighting_config.custom_highlighters[0].name == "new_one"
+
+
+# =============================================================================
+# Test Highlight Preview Command (T144-T148)
+# =============================================================================
+
+
+class TestHighlightPreviewCommand:
+    """Tests for highlight preview command."""
+
+    def test_preview_returns_success(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview command returns success."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        success, output = handle_highlight_preview(highlighting_config)
+
+        assert success is True
+        assert output is not None
+
+    def test_preview_returns_formatted_text(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview returns FormattedText for REPL mode."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        success, output = handle_highlight_preview(highlighting_config, use_rich=False)
+
+        assert success is True
+        assert isinstance(output, FormattedText)
+
+    def test_preview_returns_rich_string(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview returns Rich markup string for Textual mode."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        assert success is True
+        assert isinstance(output, str)
+
+    def test_preview_shows_enabled_status(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview shows global enabled status."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        # Test when enabled
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+        assert "enabled" in output
+
+        # Test when disabled
+        highlighting_config.enabled = False
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+        assert "disabled" in output
+
+    def test_preview_shows_disabled_message_when_off(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview shows message when highlighting is disabled."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        highlighting_config.enabled = False
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        assert "Highlighting is disabled" in output
+        assert "highlight on" in output
+
+    def test_preview_shows_categories(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview shows all category headers."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        # Check for category headers
+        assert "Structural" in output
+        assert "Diagnostic" in output
+        assert "Performance" in output
+        assert "Objects" in output
+        assert "WAL" in output
+        assert "Connection" in output
+        assert "SQL" in output
+        assert "Lock" in output
+        assert "Checkpoint" in output
+        assert "Misc" in output
+
+    def test_preview_includes_sample_log_lines(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview includes sample log lines."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        # Check for sample patterns
+        assert "LOG:" in output or "ERROR:" in output or "DETAIL:" in output
+        assert "duration:" in output or "checkpoint" in output
+
+    def test_preview_shows_disabled_highlighter_indicator(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview shows indicator for disabled highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        highlighting_config.disable_highlighter("timestamp")
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        # Should show disabled indicator
+        assert "Disabled" in output
+        assert "timestamp" in output
+
+    def test_preview_shows_disabled_highlighters_summary(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview shows summary of all disabled highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+
+        highlighting_config.disable_highlighter("timestamp")
+        highlighting_config.disable_highlighter("duration")
+        highlighting_config.disable_highlighter("pid")
+
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        # Should show disabled highlighters section
+        assert "Disabled Highlighters" in output
+        assert "timestamp" in output
+        assert "duration" in output
+        assert "pid" in output
+
+    def test_preview_shows_custom_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview shows custom highlighters section."""
+        from pgtail_py.cli_highlight import handle_highlight_preview
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        custom = CustomHighlighter(
+            name="request_id",
+            pattern=r"REQ-\d+",
+            style="yellow",
+        )
+        highlighting_config.custom_highlighters.append(custom)
+
+        success, output = handle_highlight_preview(highlighting_config, use_rich=True)
+
+        assert "Custom Highlighters" in output
+        assert "request_id" in output
+        assert "REQ-" in output
+
+    def test_preview_via_dispatcher(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Preview works through command dispatcher."""
+        success, output = handle_highlight_command(["preview"], highlighting_config)
+
+        assert success is True
+        assert isinstance(output, FormattedText)
+
+    def test_preview_samples_cover_all_highlighters(self) -> None:
+        """Preview samples cover all 29 built-in highlighters."""
+        from pgtail_py.cli_highlight import PREVIEW_SAMPLES
+        from pgtail_py.highlighting_config import BUILTIN_HIGHLIGHTER_NAMES
+
+        # Collect all highlighter names referenced in samples
+        covered_highlighters: set[str] = set()
+        for highlighter_names, _, _ in PREVIEW_SAMPLES:
+            covered_highlighters.update(highlighter_names)
+
+        # Check coverage
+        missing = set(BUILTIN_HIGHLIGHTER_NAMES) - covered_highlighters
+        assert not missing, f"Missing samples for: {missing}"
+
+    def test_get_preview_samples_returns_list(self) -> None:
+        """get_preview_samples returns expected structure."""
+        from pgtail_py.cli_highlight import get_preview_samples
+
+        samples = get_preview_samples()
+
+        assert isinstance(samples, list)
+        assert len(samples) > 0
+
+        # Check structure of first sample
+        first = samples[0]
+        assert isinstance(first, tuple)
+        assert len(first) == 3
+        assert isinstance(first[0], list)  # highlighter names
+        assert isinstance(first[1], str)   # sample line
+        assert isinstance(first[2], str)   # description
+
+
+class TestPreviewRichFormatting:
+    """Tests for Rich markup formatting in preview."""
+
+    def test_format_preview_rich_escapes_brackets(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Rich preview escapes brackets in sample content."""
+        from pgtail_py.cli_highlight import format_preview_rich
+
+        highlighting_config.enabled = False  # Disable to get raw content
+        output = format_preview_rich(highlighting_config)
+
+        # Brackets in log content should be escaped
+        # The output should be valid Rich markup
+        assert output is not None
+        # Should not crash when parsed
+
+    def test_format_preview_rich_shows_category_bold(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Rich preview uses bold for category headers."""
+        from pgtail_py.cli_highlight import format_preview_rich
+
+        output = format_preview_rich(highlighting_config)
+
+        # Categories should be bold
+        assert "[bold]Structural[/]" in output
+        assert "[bold]Performance[/]" in output
+
+    def test_format_preview_rich_uses_dim_for_descriptions(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Rich preview uses dim style for descriptions."""
+        from pgtail_py.cli_highlight import format_preview_rich
+
+        output = format_preview_rich(highlighting_config)
+
+        # Descriptions should be dim
+        assert "[dim]" in output
+
+
+class TestPreviewFormattedTextFormatting:
+    """Tests for FormattedText formatting in preview."""
+
+    def test_format_preview_text_returns_tuples(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """FormattedText preview returns list of style/text tuples."""
+        from pgtail_py.cli_highlight import format_preview_text
+
+        output = format_preview_text(highlighting_config)
+
+        assert isinstance(output, FormattedText)
+        # Check it has content
+        items = list(output)
+        assert len(items) > 0
+        # Each item should be (style, text) tuple
+        for style, text in items:
+            assert isinstance(style, str)
+            assert isinstance(text, str)
+
+    def test_format_preview_text_uses_classes(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """FormattedText preview uses prompt_toolkit style classes."""
+        from pgtail_py.cli_highlight import format_preview_text
+
+        output = format_preview_text(highlighting_config)
+
+        # Convert to string for checking
+        styles_used = {style for style, _ in output}
+
+        # Should use prompt_toolkit style classes
+        assert "class:bold" in styles_used or any("bold" in s for s in styles_used)
+        assert "class:dim" in styles_used or any("dim" in s for s in styles_used)

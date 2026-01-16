@@ -7,13 +7,17 @@ from typing import TYPE_CHECKING
 
 from prompt_toolkit import print_formatted_text
 
+from pgtail_py.colors import get_style
 from pgtail_py.cli_highlight import (
     format_highlight_list,
     handle_highlight_add,
     handle_highlight_disable,
     handle_highlight_enable,
+    handle_highlight_export,
+    handle_highlight_import,
     handle_highlight_off,
     handle_highlight_on,
+    handle_highlight_preview,
     handle_highlight_remove,
 )
 from pgtail_py.cli_utils import warn
@@ -265,7 +269,7 @@ def highlight_command(state: AppState, args: list[str]) -> None:
     # No args - show semantic highlighter list
     if not args:
         formatted = format_highlight_list(state.highlighting_config)
-        print_formatted_text(formatted)
+        print_formatted_text(formatted, style=get_style(state.theme_manager))
         return
 
     arg = args[0].lower()
@@ -273,7 +277,7 @@ def highlight_command(state: AppState, args: list[str]) -> None:
     # Handle 'list' subcommand - show semantic highlighters
     if arg == "list":
         formatted = format_highlight_list(state.highlighting_config)
-        print_formatted_text(formatted)
+        print_formatted_text(formatted, style=get_style(state.theme_manager))
         return
 
     # Handle 'on' subcommand - enable all highlighting
@@ -342,6 +346,33 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         print("Regex highlights cleared")
         return
 
+    # Handle 'export' subcommand - export highlighting config
+    if arg == "export":
+        success, message = handle_highlight_export(args[1:], state.highlighting_config, warn)
+        print(message)
+        return
+
+    # Handle 'import' subcommand - import highlighting config
+    if arg == "import":
+        success, message = handle_highlight_import(args[1:], state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
+        print(message)
+        return
+
+    # Handle 'preview' subcommand - preview highlighting with samples
+    if arg == "preview":
+        success, output = handle_highlight_preview(
+            state.highlighting_config,
+            theme=state.theme_manager.current_theme,
+            use_rich=False,
+        )
+        if isinstance(output, str):
+            print(output)
+        else:
+            print_formatted_text(output, style=get_style(state.theme_manager))
+        return
+
     # Legacy: Parse regex pattern
     original_arg = args[0]  # Use original case for pattern
     if not original_arg.startswith("/"):
@@ -354,6 +385,9 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         print("       highlight disable <name>   Disable a highlighter")
         print("       highlight add <name> <pattern> [--style <style>] [--priority <num>]")
         print("       highlight remove <name>    Remove custom highlighter")
+        print("       highlight export [--file <path>]  Export config as TOML")
+        print("       highlight import <path>    Import config from TOML")
+        print("       highlight preview          Preview with sample lines")
         print("       highlight /pattern/        Add regex highlight (legacy)")
         print("       highlight clear            Clear regex highlights (legacy)")
         return
