@@ -538,6 +538,19 @@ jobs:
             --urls $url `
             --out manifests
 
+          # Add ReleaseDate to installer manifest
+          $installerPath = "manifests/w/willibrandon/pgtail/$version/willibrandon.pgtail.installer.yaml"
+          $content = Get-Content $installerPath -Raw
+          $releaseDate = Get-Date -Format "yyyy-MM-dd"
+          $content = $content -replace "(ManifestType: installer)", "ReleaseDate: $releaseDate`n`$1"
+          Set-Content $installerPath $content -NoNewline
+
+          # Add ReleaseNotesUrl to locale manifest
+          $localePath = "manifests/w/willibrandon/pgtail/$version/willibrandon.pgtail.locale.en-US.yaml"
+          $content = Get-Content $localePath -Raw
+          $content = $content -replace "(ManifestType: defaultLocale)", "ReleaseNotesUrl: https://github.com/willibrandon/pgtail/releases/tag/v$version`n`$1"
+          Set-Content $localePath $content -NoNewline
+
       - name: Submit winget PR via GitHub API
         if: steps.check.outputs.exists == 'true'
         shell: pwsh
