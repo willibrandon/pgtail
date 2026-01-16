@@ -138,6 +138,57 @@ pgtail tail --file ./test.log --since 5m
 | `theme edit <name>` | Create/edit custom theme |
 | `theme reload` | Reload current theme |
 
+### Semantic Highlighting
+
+| Command | Description |
+|---------|-------------|
+| `highlight` | Show global status and all highlighters |
+| `highlight list` | Same as above |
+| `highlight on` | Enable all highlighting |
+| `highlight off` | Disable all highlighting |
+| `highlight enable <name>` | Enable specific highlighter |
+| `highlight disable <name>` | Disable specific highlighter |
+| `highlight add <name> <pattern> [--style <style>]` | Add custom regex highlighter |
+| `highlight remove <name>` | Remove custom highlighter |
+| `highlight preview` | Preview with sample log lines |
+| `highlight reset` | Reset to defaults |
+| `highlight export [--file <path>]` | Export config as TOML |
+| `highlight import <path>` | Import config from file |
+
+**Examples:**
+
+```
+# View all highlighters
+highlight
+
+# Toggle global highlighting
+highlight off
+highlight on
+
+# Enable/disable specific highlighters
+highlight disable timestamp
+highlight enable timestamp
+
+# Add custom pattern
+highlight add request_id "REQ-[A-Z]{3}-\d{6}" --style "cyan"
+highlight add txn_id "TXN:[0-9a-f]{16}" --style "bold magenta" --priority 500
+
+# Remove custom pattern
+highlight remove request_id
+
+# Export/import configuration
+highlight export --file ~/highlight.toml
+highlight import ~/highlight.toml
+
+# Preview highlighting
+highlight preview
+
+# Reset to defaults
+highlight reset
+```
+
+See the [Highlighting guide](guide/highlighting.md) for details.
+
 ### Display
 
 | Command | Description |
@@ -187,6 +238,7 @@ In tail mode (after `tail <id>`), use the `tail>` prompt:
 | `clear force` | Clear all filters |
 | `errors` | Show error stats |
 | `connections` | Show connection stats |
+| `highlight` | Manage semantic highlighters |
 | `pause` / `p` | Pause auto-scroll |
 | `follow` / `f` | Resume follow |
 | `help` | Show help |

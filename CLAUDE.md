@@ -129,9 +129,12 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/error_stats.py` - Error event tracking, SQLSTATE lookups, session statistics
 - `pgtail_py/error_trend.py` - Sparkline visualization and per-minute bucketing
 - `pgtail_py/cli_errors.py` - errors command handlers (summary, trend, live, code filter)
-- `pgtail_py/sql_tokenizer.py` - SQL tokenization (keywords, identifiers, strings, numbers, operators, comments, functions)
-- `pgtail_py/sql_highlighter.py` - SQL syntax highlighting with FormattedText output
-- `pgtail_py/sql_detector.py` - SQL content detection in PostgreSQL log messages
+- `pgtail_py/highlighters/sql.py` - SQL tokenization, detection, and syntax highlighting (consolidated module)
+- `pgtail_py/highlighter.py` - Highlighter base classes, HighlighterChain, RegexHighlighter, KeywordHighlighter
+- `pgtail_py/highlighter_registry.py` - HighlighterRegistry for managing all highlighters
+- `pgtail_py/highlighters/` - Built-in highlighters (duration, sqlstate, error_name, checkpoint, recovery, etc.)
+- `pgtail_py/highlighting_config.py` - HighlightingConfig, CustomHighlighter, config persistence
+- `pgtail_py/cli_highlight.py` - highlight command handlers (list, enable, disable, add, remove, on, off, preview, reset, export, import)
 - `pgtail_py/tail_textual.py` - TailApp Textual Application, main tail mode coordinator
 - `pgtail_py/tail_log.py` - TailLog widget with vim-style navigation, visual mode selection, clipboard support
 - `pgtail_py/tail_input.py` - TailInput widget for tail mode command entry
@@ -391,18 +394,16 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - `DETAIL:` - Error context details
 
 **Implementation:**
-- `sql_detector.py` - Regex patterns to detect SQL content in log messages
-- `sql_tokenizer.py` - Tokenizes SQL into KEYWORD, IDENTIFIER, STRING, NUMBER, OPERATOR, COMMENT, FUNCTION types
-- `sql_highlighter.py` - Converts tokens to Rich markup (Textual) or FormattedText (prompt_toolkit)
+- `highlighters/sql.py` - Consolidated SQL module: detection, tokenization, and highlighting
 - `tail_rich.py` - Textual mode: `format_entry_compact()` calls `highlight_sql_rich()`
 - `display.py` - REPL mode: Integration via `_format_message_with_sql()` in format functions
 
 **Theme Integration:**
 - SQL colors defined in each theme under `ui.sql_*` keys
 - Theme switching in tail mode triggers `_rebuild_log()` to re-render all entries with new colors
-- Current theme passed through call chain: `tail_textual.py` → `tail_rich.py` → `sql_highlighter.py`
+- Current theme passed through call chain: `tail_textual.py` → `tail_rich.py` → `highlighters/sql.py`
 
-**Token Matching Order** (per research.md):
+**Token Matching Order:**
 1. Whitespace
 2. Block comments (`/* ... */`)
 3. Line comments (`--`)
@@ -422,9 +423,87 @@ SQL syntax highlighting is an **always-on** feature that automatically colors SQ
 - Missing theme keys: Falls back to default text color
 
 **Modules:**
-- `pgtail_py/sql_tokenizer.py` - SQLTokenType enum, SQLToken dataclass, SQLTokenizer class
-- `pgtail_py/sql_highlighter.py` - TOKEN_TYPE_TO_THEME_KEY mapping, highlight_sql_rich() for Textual, highlight_sql() for prompt_toolkit
-- `pgtail_py/sql_detector.py` - SQLDetectionResult namedtuple, detect_sql_content() function
+- `pgtail_py/highlighters/sql.py` - SQLTokenType enum, SQLToken dataclass, SQLTokenizer class, SQLDetectionResult namedtuple, detect_sql_content(), highlight_sql_rich(), highlight_sql()
+
+## Semantic Highlighting
+
+Semantic highlighting extends beyond SQL to colorize meaningful patterns throughout PostgreSQL log messages. 29 built-in highlighters recognize timestamps, PIDs, SQLSTATE codes, durations, identifiers, WAL segments, lock types, and more.
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `highlight` | Show global status and list all highlighters |
+| `highlight list` | Same as above |
+| `highlight on` | Enable all highlighting globally |
+| `highlight off` | Disable all highlighting globally |
+| `highlight enable <name>` | Enable a specific highlighter |
+| `highlight disable <name>` | Disable a specific highlighter |
+| `highlight add <name> <pattern> [--style <style>]` | Add custom regex highlighter |
+| `highlight remove <name>` | Remove custom highlighter |
+| `highlight preview` | Preview all highlighters with sample output |
+| `highlight reset` | Reset all settings to defaults |
+| `highlight export [--file <path>]` | Export config as TOML |
+| `highlight import <path>` | Import config from TOML file |
+
+**Built-in Highlighter Categories:**
+
+| Category | Highlighters | Examples |
+|----------|--------------|----------|
+| Structural | timestamp, pid, context | `2024-01-15 14:30:45.123 UTC`, `[12345]`, `DETAIL:` |
+| Diagnostic | sqlstate, error_name | `23505`, `unique_violation` |
+| Performance | duration, memory, statistics | `150.234 ms`, `1024 MB`, `wrote 1500 buffers` |
+| Objects | identifier, relation, schema | `"users_pkey"`, relation `users`, `public.users` |
+| WAL | lsn, wal_segment, txid | `0/1234ABCD`, `000000010000000000000001` |
+| Connection | connection, ip, backend | `host=192.168.1.1`, `autovacuum launcher` |
+| SQL | sql_keyword, sql_string, sql_number, sql_param | `SELECT`, `'hello'`, `42`, `$1` |
+| Lock | lock_type, lock_wait | `ShareLock`, `waiting for ExclusiveLock` |
+| Checkpoint | checkpoint, recovery | `checkpoint starting`, `redo done at` |
+| Misc | boolean, null, oid, path | `on`/`off`, `NULL`, `OID 16384`, `/var/log/...` |
+
+**Duration Threshold Coloring:**
+- Fast (< 100ms): Default color
+- Slow (100-499ms): Yellow (`hl_duration_slow`)
+- Very slow (500-4999ms): Orange (`hl_duration_very_slow`)
+- Critical (>= 5000ms): Red, bold (`hl_duration_critical`)
+
+Configure thresholds via:
+```toml
+[highlighting.duration]
+slow = 100
+very_slow = 500
+critical = 5000
+```
+
+**Custom Highlighters:**
+```
+highlight add request_id "REQ-[A-Z]{3}-\d{6}" --style "cyan"
+highlight add txn_id "TXN:[0-9a-f]{16}" --style "magenta"
+```
+
+Custom patterns use Python regex syntax. Style can be Rich markup (e.g., `"bold yellow"`, `"#ff6b6b"`).
+
+**Configuration Persistence:**
+- All settings stored in config.toml under `[highlighting]` section
+- Global enable/disable: `highlighting.enabled`
+- Per-highlighter enable/disable: `highlighting.enabled_highlighters.<name>`
+- Custom highlighters: `highlighting.custom` array
+- Duration thresholds: `highlighting.duration.slow/very_slow/critical`
+
+**Architecture:**
+- `highlighter.py` - Base classes: `Highlighter`, `RegexHighlighter`, `GroupedRegexHighlighter`, `KeywordHighlighter`, `HighlighterChain`
+- `highlighter_registry.py` - `HighlighterRegistry` singleton, category management, chain creation
+- `highlighters/` - Built-in highlighters organized by domain (duration, sqlstate, wal, lock, etc.)
+- `highlighting_config.py` - `HighlightingConfig` dataclass, `CustomHighlighter`, config load/save
+- `cli_highlight.py` - Command handlers for `highlight` subcommands
+
+**Non-Overlapping Composable Design:**
+Highlighters run in priority order. `OccupancyTracker` ensures already-highlighted regions are skipped by subsequent highlighters, preventing garbled output from overlapping patterns.
+
+**Performance:**
+- Throughput: >10,000 lines/second
+- Lazy Aho-Corasick automaton for keyword matching
+- Max line length: 10KB default (configurable)
+- Preview sample caching for repeated help screen renders
 
 ## Tail Mode (Textual)
 

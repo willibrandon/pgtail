@@ -37,6 +37,7 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Pipe logs to external commands (grep, jq, wc, etc.)
 - Color themes: 6 built-in themes plus custom TOML themes
 - **SQL syntax highlighting** in log messages (keywords, identifiers, strings, numbers, operators, comments)
+- **Semantic highlighting** - 29 built-in highlighters for timestamps, durations, SQLSTATE codes, WAL, locks, and more
 - Color-coded output by severity with SQL state codes
 - REPL with autocomplete, command history, and **bottom toolbar** (instance count, filters, theme)
 - **Shell mode** (`!` prefix) with clear toolbar indicator
@@ -216,7 +217,7 @@ filter /pattern/   Regex filter (see Filtering below)
 filter field=value Filter by field (app=, db=, user=) for CSV/JSON logs
 display [mode]     Set display mode (compact, full, fields <f1,f2,...>)
 output [format]    Set output format (text, json)
-highlight /pattern/ Highlight matching text (yellow background)
+highlight          Manage semantic highlighters (see Semantic Highlighting below)
 slow [w s c]       Configure slow query highlighting (thresholds in ms)
 stats              Show query duration statistics
 errors             Show error statistics (see Error Statistics below)
@@ -381,11 +382,14 @@ Available field filters: `app`/`application`, `db`/`database`, `user`, `pid`, `b
 
 ### Highlighting
 
+pgtail provides automatic semantic highlighting for PostgreSQL log patterns. See [Semantic Highlighting](#semantic-highlighting) for the full command reference.
+
+Quick examples:
 ```
-highlight /pattern/   Highlight matches with yellow background
-highlight /pattern/c  Case-sensitive highlight
-highlight clear       Remove all highlights
-highlight             Show current highlights
+highlight                 Show all highlighters and their status
+highlight preview         Preview highlighting with sample log lines
+highlight disable duration   Disable duration highlighting
+highlight add req_id "REQ-\d+" --style cyan   Add custom pattern
 ```
 
 ### Slow Query Detection
@@ -629,6 +633,72 @@ sql_number = { fg = "magenta" }
 sql_operator = { fg = "yellow" }
 sql_comment = { fg = "gray" }
 sql_function = { fg = "blue" }
+```
+
+### Semantic Highlighting
+
+Beyond SQL, pgtail automatically colorizes meaningful patterns throughout PostgreSQL log messages. 29 built-in highlighters recognize timestamps, PIDs, SQLSTATE codes, durations, identifiers, WAL segments, lock types, and more.
+
+**Commands:**
+
+```
+highlight                     Show global status and list all highlighters
+highlight list                Same as above
+highlight on                  Enable all highlighting globally
+highlight off                 Disable all highlighting globally
+highlight enable <name>       Enable a specific highlighter
+highlight disable <name>      Disable a specific highlighter
+highlight add <name> <pattern> [--style <style>]  Add custom regex highlighter
+highlight remove <name>       Remove custom highlighter
+highlight preview             Preview all highlighters with sample output
+highlight reset               Reset all settings to defaults
+highlight export [--file <path>]  Export config as TOML
+highlight import <path>       Import config from TOML file
+```
+
+**Built-in highlighter categories:**
+
+| Category | Highlighters | Examples |
+|----------|--------------|----------|
+| Structural | timestamp, pid, context | `2024-01-15 14:30:45.123 UTC`, `[12345]`, `DETAIL:` |
+| Diagnostic | sqlstate, error_name | `23505`, `unique_violation` |
+| Performance | duration, memory, statistics | `150.234 ms`, `1024 MB` |
+| Objects | identifier, relation, schema | `"users_pkey"`, `public.users` |
+| WAL | lsn, wal_segment, txid | `0/1234ABCD`, `000000010000000000000001` |
+| Connection | connection, ip, backend | `host=192.168.1.1`, `autovacuum launcher` |
+| SQL | sql_keyword, sql_string, sql_number | `SELECT`, `'hello'`, `42` |
+| Lock | lock_type, lock_wait | `ShareLock`, `waiting for ExclusiveLock` |
+| Checkpoint | checkpoint, recovery | `checkpoint starting`, `redo done at` |
+
+**Duration threshold coloring:**
+
+Query durations are colored based on configurable thresholds:
+- Fast (< 100ms): Default color
+- Slow (100-499ms): Yellow
+- Very slow (500-4999ms): Orange
+- Critical (≥ 5000ms): Red, bold
+
+Configure thresholds in `config.toml`:
+```toml
+[highlighting.duration]
+slow = 100        # ms
+very_slow = 500   # ms
+critical = 5000   # ms
+```
+
+**Custom highlighters:**
+
+Add your own regex patterns:
+```
+highlight add request_id "REQ-[A-Z]{3}-\d{6}" --style "cyan"
+highlight add txn_id "TXN:[0-9a-f]{16}" --style "bold magenta"
+highlight remove request_id
+```
+
+**Export/import configuration:**
+```
+highlight export --file ~/highlight.toml   # Save current config
+highlight import ~/highlight.toml          # Load config from file
 ```
 
 ### Export

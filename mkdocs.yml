@@ -59,6 +59,7 @@ nav:
       - Filtering: guide/filtering.md
       - Time Filters: guide/time-filters.md
       - Slow Queries: guide/slow-queries.md
+      - Highlighting: guide/highlighting.md
       - Notifications: guide/notifications.md
       - Themes: guide/themes.md
       - Export: guide/export.md

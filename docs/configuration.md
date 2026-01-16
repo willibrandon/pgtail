@@ -82,6 +82,34 @@ slow_query_ms = 500           # Alert on slow queries
 quiet_hours = "22:00-08:00"
 ```
 
+### Semantic Highlighting
+
+```toml
+[highlighting]
+enabled = true               # Global on/off switch
+max_length = 10240           # Max chars to highlight per line (10KB)
+
+[highlighting.duration]
+slow = 100                   # Slow threshold (ms) - yellow
+very_slow = 500              # Very slow threshold (ms) - orange
+critical = 5000              # Critical threshold (ms) - red
+
+[highlighting.enabled_highlighters]
+timestamp = true             # Enable/disable specific highlighters
+duration = true
+sqlstate = true
+# ... more highlighters
+
+[[highlighting.custom]]      # Custom regex highlighters
+name = "request_id"
+pattern = "REQ-[A-Z]{3}-\\d{6}"
+style = "cyan"
+priority = 1050
+enabled = true
+```
+
+See the [Highlighting guide](guide/highlighting.md) for details on all settings.
+
 ### Buffer Limits
 
 ```toml

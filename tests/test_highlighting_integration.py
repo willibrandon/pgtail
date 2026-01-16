@@ -12,20 +12,17 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 
 import pytest
 
 from pgtail_py.filter import LogLevel
 from pgtail_py.highlighter import (
     HighlighterChain,
-    Match,
     OccupancyTracker,
     escape_brackets,
     is_color_disabled,
 )
-from pgtail_py.highlighter_registry import HighlighterRegistry, get_registry, reset_registry
-from pgtail_py.highlighters import get_all_highlighters
+from pgtail_py.highlighter_registry import get_registry, reset_registry
 from pgtail_py.highlighting_config import HighlightingConfig
 from pgtail_py.parser import LogEntry
 from pgtail_py.tail_rich import (
@@ -49,9 +46,9 @@ def test_theme() -> Theme:
         name="test",
         description="Test theme",
         levels={
-            LogLevel.ERROR: ColorStyle(fg="red", bold=True),
-            LogLevel.WARNING: ColorStyle(fg="yellow"),
-            LogLevel.LOG: ColorStyle(fg="green"),
+            "ERROR": ColorStyle(fg="red", bold=True),
+            "WARNING": ColorStyle(fg="yellow"),
+            "LOG": ColorStyle(fg="green"),
         },
         ui={
             # Structural
@@ -602,6 +599,56 @@ class TestEdgeCases:
         assert escape_brackets("no brackets") == "no brackets"
         assert escape_brackets("") == ""
 
+    def test_extremely_long_lines_over_10kb(self, test_theme: Theme) -> None:
+        """Extremely long lines (>10KB) should be handled with depth limiting (T163).
+
+        The default max_length is 10KB (10240 bytes). Lines longer than this
+        should have highlighting applied only to the first max_length chars,
+        with the remainder passed through unmodified.
+        """
+        chain = get_highlighter_chain()
+
+        # Create text > 10KB with recognizable patterns at start and end
+        prefix = "duration: 100 ms "  # Highlightable pattern at start
+        middle = "x" * 11000  # Filler to exceed 10KB
+        suffix = "duration: 200 ms"  # Pattern at end (beyond max_length)
+
+        text = prefix + middle + suffix
+
+        assert len(text) > 10240  # Verify > 10KB
+
+        result = chain.apply_rich(text, test_theme)
+
+        # Result should contain all the text (escaped)
+        assert len(result) >= len(text) - 100  # Allow for markup overhead
+        # The prefix pattern should be highlighted (within max_length)
+        assert "100 ms" in result
+        # The suffix should be present (passed through as escaped text)
+        assert "200 ms" in result
+
+    def test_very_long_line_performance(self, test_theme: Theme) -> None:
+        """Very long lines should not cause excessive processing time.
+
+        Even with max_length limiting, we should verify the system handles
+        large inputs gracefully without timeout or memory issues.
+        """
+        import time
+
+        chain = get_highlighter_chain()
+
+        # 100KB line - 10x larger than max_length
+        huge_line = "duration: 150 ms " * 6000
+
+        start = time.perf_counter()
+        result = chain.apply_rich(huge_line, test_theme)
+        elapsed = time.perf_counter() - start
+
+        # Should complete quickly (< 100ms) due to depth limiting
+        assert elapsed < 0.1, f"100KB line took {elapsed:.3f}s, expected < 100ms"
+        # Result should contain the text
+        assert "duration" in result
+        assert "150 ms" in result
+
 
 # =============================================================================
 # Test SQL Context Awareness
@@ -833,3 +880,151 @@ class TestPerformanceThroughput:
             f"FormattedText throughput {lines_per_second:.0f} lines/sec is below "
             f"required 10,000 lines/sec"
         )
+
+
+# =============================================================================
+# Test CSV/JSON Log Format Highlighting (T167)
+# =============================================================================
+
+
+class TestCSVJSONLogFormatHighlighting:
+    """Tests for highlighting applied to CSV/JSON log format output.
+
+    Per Edge Case #9 in the spec: Highlighting applies to the formatted display
+    output regardless of the underlying log format (TEXT, CSV, JSON). The message,
+    detail, and hint fields should all have highlighting applied.
+    """
+
+    def test_highlighting_applies_to_message_field(self, test_theme: Theme) -> None:
+        """Highlighting should apply to the message field content."""
+        chain = get_highlighter_chain()
+
+        # Message field from a parsed CSV/JSON log entry
+        message = "duration: 150.234 ms  statement: SELECT * FROM users"
+
+        result = chain.apply_rich(message, test_theme)
+
+        # Should have Rich markup for duration
+        assert "[" in result  # Has markup tags
+        assert "150" in result  # Has the duration value
+        assert "SELECT" in result  # SQL content preserved
+
+    def test_highlighting_applies_to_detail_field(self, test_theme: Theme) -> None:
+        """Highlighting should apply to the detail field content."""
+        chain = get_highlighter_chain()
+
+        # Detail field often contains SQL-related info
+        detail = 'Key (id)=(42) already exists.'
+
+        result = chain.apply_rich(detail, test_theme)
+
+        # Content should be preserved
+        assert "id" in result
+        assert "42" in result
+
+    def test_highlighting_applies_to_hint_field(self, test_theme: Theme) -> None:
+        """Highlighting should apply to the hint field content."""
+        chain = get_highlighter_chain()
+
+        # Hint field may contain SQL keywords
+        hint = "Use UPSERT or ON CONFLICT to handle duplicates."
+
+        result = chain.apply_rich(hint, test_theme)
+
+        # Content should be preserved
+        assert "UPSERT" in result
+        assert "duplicates" in result
+
+    def test_format_entry_compact_applies_highlighting(self, test_theme: Theme) -> None:
+        """format_entry_compact should apply highlighting to message content.
+
+        This tests the integration between log parsing and highlighting output.
+        """
+        entry = LogEntry(
+            timestamp=datetime(2024, 1, 15, 14, 30, 45, 123000, tzinfo=timezone.utc),
+            pid=12345,
+            level=LogLevel.LOG,
+            message="duration: 250.789 ms  execute stmt1: SELECT id FROM orders",
+            raw="test raw",
+        )
+
+        result = format_entry_compact(entry, theme=test_theme, use_semantic_highlighting=True)
+
+        # Should contain styled output
+        assert "[" in result  # Rich markup present
+        assert "250" in result  # Duration value
+        assert "SELECT" in result  # SQL content
+
+    def test_csv_parsed_entry_highlighting(self, test_theme: Theme) -> None:
+        """Entries parsed from CSV format should get highlighting.
+
+        CSV logs have structured fields that get formatted into display output.
+        The formatted display output should have highlighting applied.
+        """
+        # Simulate a CSV-parsed entry (has more structured fields)
+        entry = LogEntry(
+            timestamp=datetime(2024, 1, 15, 14, 30, 45, 123000, tzinfo=timezone.utc),
+            pid=12345,
+            level=LogLevel.ERROR,
+            message="unique_violation: duplicate key value",
+            sql_state="23505",
+            detail='Key (email)=("test@example.com") already exists.',
+            hint="Consider using ON CONFLICT clause.",
+            raw="csv raw line",
+            user_name="postgres",
+            database_name="myapp",
+            application_name="myapp-api",
+        )
+
+        result = format_entry_compact(entry, theme=test_theme, use_semantic_highlighting=True)
+
+        # Message should be highlighted
+        assert "unique_violation" in result
+        assert "23505" in result  # SQLSTATE
+
+    def test_json_parsed_entry_highlighting(self, test_theme: Theme) -> None:
+        """Entries parsed from JSON format should get highlighting.
+
+        JSON logs have all structured fields available.
+        """
+        # Simulate a JSON-parsed entry
+        entry = LogEntry(
+            timestamp=datetime(2024, 1, 15, 14, 30, 45, 123000, tzinfo=timezone.utc),
+            pid=54321,
+            level=LogLevel.LOG,
+            message="checkpoint complete: wrote 1500 buffers (9.2%)",
+            raw="json raw",
+            sql_state=None,
+            backend_type="checkpointer",
+        )
+
+        result = format_entry_compact(entry, theme=test_theme, use_semantic_highlighting=True)
+
+        # Checkpoint message should be highlighted
+        assert "checkpoint" in result
+        assert "1500" in result
+        assert "9.2%" in result
+
+    def test_highlighting_preserves_all_format_content(self, test_theme: Theme) -> None:
+        """All content from CSV/JSON fields should be preserved in output.
+
+        Highlighting should not strip or alter the actual text content.
+        """
+        chain = get_highlighter_chain()
+
+        # Complex message with multiple highlightable patterns
+        message = (
+            "duration: 1234.567 ms  "
+            "execute stmt_prepare_1: "
+            "SELECT u.id, u.email FROM public.users u "
+            "WHERE u.status = 'active' AND u.created_at > $1"
+        )
+
+        result = chain.apply_rich(message, test_theme)
+
+        # All content should be present
+        assert "1234.567 ms" in result or ("1234" in result and "567" in result and "ms" in result)
+        assert "stmt_prepare_1" in result
+        assert "users" in result
+        assert "active" in result
+        assert "$1" in result

@@ -44,15 +44,23 @@ tail> level error
 
 ## Installation
 
-```bash
-brew install willibrandon/tap/pgtail
-```
+=== "Homebrew (macOS/Linux)"
 
-Or with pip:
+    ```bash
+    brew install willibrandon/tap/pgtail
+    ```
 
-```bash
-pip install git+https://github.com/willibrandon/pgtail.git
-```
+=== "winget (Windows)"
+
+    ```bash
+    winget install willibrandon.pgtail
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install git+https://github.com/willibrandon/pgtail.git
+    ```
 
 See the [Installation Guide](getting-started/installation.md) for all options including binary downloads.
 

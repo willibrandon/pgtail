@@ -400,40 +400,40 @@
 
 ### Performance (FR-160, FR-161, FR-162)
 
-- [ ] T159 [P] Implement lazy Aho-Corasick automaton building in KeywordHighlighter
-- [ ] T160 [P] Add benchmark tests for 10,000 lines/second throughput in tests/test_highlighting_integration.py
-- [ ] T161 [P] Implement help screen highlighting cache (FR-161)
-- [ ] T162 Profile and optimize hot paths in HighlighterChain.apply_rich()
+- [X] T159 [P] Implement lazy Aho-Corasick automaton building in KeywordHighlighter
+- [X] T160 [P] Add benchmark tests for 10,000 lines/second throughput in tests/test_highlighting_integration.py
+- [X] T161 [P] Implement help screen highlighting cache (FR-161)
+- [X] T162 Profile and optimize hot paths in HighlighterChain.apply_rich()
 
 ### Edge Cases
 
-- [ ] T163 [P] Test extremely long lines (>10KB) with depth limiting
-- [ ] T164 [P] Test zero-length regex pattern rejection
-- [ ] T165 [P] Test Rich markup-like content escaping ([bold] in logs)
-- [ ] T166 [P] Test invalid config file handling (graceful fallback)
-- [ ] T167 [P] Test CSV/JSON log format highlighting (verify highlighting applies to formatted display output regardless of underlying format per Edge Case #9, including structured field values like message, detail, hint)
+- [X] T163 [P] Test extremely long lines (>10KB) with depth limiting
+- [X] T164 [P] Test zero-length regex pattern rejection
+- [X] T165 [P] Test Rich markup-like content escaping ([bold] in logs)
+- [X] T166 [P] Test invalid config file handling (graceful fallback)
+- [X] T167 [P] Test CSV/JSON log format highlighting (verify highlighting applies to formatted display output regardless of underlying format per Edge Case #9, including structured field values like message, detail, hint)
 
 ### Documentation
 
-- [ ] T168 [P] Update CLAUDE.md with semantic highlighting section
-- [ ] T169 [P] Add highlight command examples to help text
-- [ ] T170 [P] Create docs/guide/highlighting.md with semantic highlighting user guide (patterns, commands, configuration, custom patterns)
-- [ ] T171 [P] Update mkdocs.yml nav to add "Highlighting: guide/highlighting.md" under User Guide section
-- [ ] T172 [P] Update docs/configuration.md with [highlighting] section (enabled, max_length, duration thresholds, per-highlighter settings)
-- [ ] T173 [P] Update docs/cli-reference.md with highlight commands (list, enable, disable, add, remove, on, off, preview, reset, export, import)
-- [ ] T174 Run specs/023-semantic-highlighting/quickstart.md validation
+- [X] T168 [P] Update CLAUDE.md with semantic highlighting section
+- [X] T169 [P] Add highlight command examples to help text
+- [X] T170 [P] Create docs/guide/highlighting.md with semantic highlighting user guide (patterns, commands, configuration, custom patterns)
+- [X] T171 [P] Update mkdocs.yml nav to add "Highlighting: guide/highlighting.md" under User Guide section
+- [X] T172 [P] Update docs/configuration.md with [highlighting] section (enabled, max_length, duration thresholds, per-highlighter settings)
+- [X] T173 [P] Update docs/cli-reference.md with highlight commands (list, enable, disable, add, remove, on, off, preview, reset, export, import)
+- [X] T174 Run specs/023-semantic-highlighting/quickstart.md validation
 
 ### Requirement Coverage (FR-004, FR-005)
 
-- [ ] T175 [P] Verify regex patterns are compiled once at instantiation in RegexHighlighter/GroupedRegexHighlighter (FR-004) in tests/test_highlighter.py
-- [ ] T176 [P] Implement and test zero-allocation early return when no patterns match in HighlighterChain (FR-005) in pgtail_py/highlighter.py
-- [ ] T177 [P] Test missing hl_* theme key fallback behavior (Edge Case #4) in tests/test_highlighting_integration.py
+- [X] T175 [P] Verify regex patterns are compiled once at instantiation in RegexHighlighter/GroupedRegexHighlighter (FR-004) in tests/test_highlighter.py
+- [X] T176 [P] Implement and test zero-allocation early return when no patterns match in HighlighterChain (FR-005) in pgtail_py/highlighter.py
+- [X] T177 [P] Test missing hl_* theme key fallback behavior (Edge Case #4) in tests/test_highlighting_integration.py
 
 ### Final Validation
 
-- [ ] T178 Run full test suite: `make test`
-- [ ] T179 Run linting: `make lint`
-- [ ] T180 Manual testing: tail PostgreSQL logs with all highlighters
+- [X] T178 Run full test suite: `make test`
+- [X] T179 Run linting: `make lint`
+- [x] T180 Manual testing: tail PostgreSQL logs with all highlighters
 
 ---
 

@@ -524,6 +524,153 @@ class TestKeywordHighlighter:
 
 
 # =============================================================================
+# Test Regex Compilation (FR-004, T175)
+# =============================================================================
+
+
+class TestRegexPatternCompiledOnce:
+    """Tests that regex patterns are compiled once at instantiation (FR-004).
+
+    This ensures optimal performance by avoiding re-compilation on each find_matches call.
+    """
+
+    def test_regex_highlighter_pattern_compiled_at_init(self, mock_theme: Theme) -> None:
+        """RegexHighlighter should compile pattern at __init__, not at find_matches."""
+        # Create highlighter
+        highlighter = RegexHighlighter(
+            name="test",
+            priority=100,
+            pattern=r"\d+",
+            style="hl_test",
+        )
+
+        # Verify _pattern attribute exists and is a compiled regex
+        assert hasattr(highlighter, "_pattern")
+        assert highlighter._pattern is not None
+
+        # Verify it's a compiled pattern object (not a string)
+        import re
+        assert isinstance(highlighter._pattern, re.Pattern)
+
+        # Multiple calls should use the same compiled pattern (no re-compilation)
+        pattern_id_1 = id(highlighter._pattern)
+        highlighter.find_matches("test 123", mock_theme)
+        pattern_id_2 = id(highlighter._pattern)
+        highlighter.find_matches("test 456 789", mock_theme)
+        pattern_id_3 = id(highlighter._pattern)
+
+        assert pattern_id_1 == pattern_id_2 == pattern_id_3, \
+            "Pattern should be the same object (not recompiled)"
+
+    def test_grouped_regex_highlighter_pattern_compiled_at_init(self, mock_theme: Theme) -> None:
+        """GroupedRegexHighlighter should compile pattern at __init__."""
+        highlighter = GroupedRegexHighlighter(
+            name="test",
+            priority=100,
+            pattern=r"(?P<key>\w+)=(?P<value>\d+)",
+            group_styles={"key": "hl_test", "value": "hl_test2"},
+        )
+
+        # Verify _pattern is compiled
+        import re
+        assert hasattr(highlighter, "_pattern")
+        assert isinstance(highlighter._pattern, re.Pattern)
+
+        # Verify same pattern across multiple calls
+        pattern_id_1 = id(highlighter._pattern)
+        highlighter.find_matches("a=1 b=2", mock_theme)
+        pattern_id_2 = id(highlighter._pattern)
+
+        assert pattern_id_1 == pattern_id_2
+
+
+# =============================================================================
+# Test Zero-Allocation Early Return (FR-005, T176)
+# =============================================================================
+
+
+class TestZeroAllocationEarlyReturn:
+    """Tests for zero-allocation early return when no patterns match (FR-005).
+
+    The HighlighterChain should return escaped input directly without allocating
+    new match lists when no highlighters produce matches.
+    """
+
+    def test_chain_returns_escaped_text_when_no_matches(self, mock_theme: Theme) -> None:
+        """HighlighterChain should return escaped text directly when no matches."""
+        # Create a highlighter that won't match anything in our test text
+        highlighter = RegexHighlighter(
+            name="test",
+            priority=100,
+            pattern=r"ZZZZNOTFOUND",  # Won't match
+            style="hl_test",
+        )
+
+        chain = HighlighterChain([highlighter])
+
+        # Text with no matching patterns
+        text = "plain text with no special patterns"
+        result = chain.apply_rich(text, mock_theme)
+
+        # Should be escaped text (brackets escaped)
+        assert result == text.replace("[", "\\[")
+
+    def test_chain_empty_text_returns_immediately(self, mock_theme: Theme) -> None:
+        """HighlighterChain should return empty string immediately for empty input."""
+        highlighter = RegexHighlighter(
+            name="test",
+            priority=100,
+            pattern=r"\d+",
+            style="hl_test",
+        )
+
+        chain = HighlighterChain([highlighter])
+
+        result = chain.apply_rich("", mock_theme)
+        assert result == ""
+
+    def test_chain_no_highlighters_returns_escaped(self, mock_theme: Theme) -> None:
+        """HighlighterChain with no highlighters should return escaped text."""
+        chain = HighlighterChain([])
+
+        text = "some [text] with brackets"
+        result = chain.apply_rich(text, mock_theme)
+
+        # Should escape brackets
+        assert result == "some \\[text] with brackets"
+
+    def test_chain_color_disabled_returns_escaped(self, mock_theme: Theme) -> None:
+        """HighlighterChain should return escaped text when color is disabled."""
+        import os
+
+        highlighter = RegexHighlighter(
+            name="test",
+            priority=100,
+            pattern=r"\d+",
+            style="hl_test",
+        )
+
+        chain = HighlighterChain([highlighter])
+
+        text = "test 123 [456]"
+
+        os.environ["NO_COLOR"] = "1"
+        try:
+            # Clear any cached result
+            from pgtail_py import utils
+            utils._color_disabled = None
+
+            result = chain.apply_rich(text, mock_theme)
+
+            # Should be escaped, no highlighting
+            assert result == "test 123 \\[456]"
+        finally:
+            os.environ.pop("NO_COLOR", None)
+            from pgtail_py import utils
+            utils._color_disabled = None
+
+
+# =============================================================================
 # Test is_color_disabled
 # =============================================================================
 

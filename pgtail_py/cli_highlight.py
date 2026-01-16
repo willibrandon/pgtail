@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import contextlib
 from difflib import get_close_matches
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from prompt_toolkit.formatted_text import FormattedText
 
@@ -33,6 +33,16 @@ if TYPE_CHECKING:
 
     from pgtail_py.highlighting_config import HighlightingConfig
     from pgtail_py.theme import Theme
+
+
+# =============================================================================
+# Preview Sample Cache (FR-161)
+# =============================================================================
+
+# Cache for highlighted preview samples
+# Key: (theme_name, highlighting_enabled, disabled_highlighters_tuple)
+# Value: dict mapping sample index to highlighted output
+_preview_sample_cache: dict[tuple[str, bool, tuple[str, ...]], dict[int, str]] = {}
 
 
 # =============================================================================
@@ -643,12 +653,12 @@ def handle_highlight_export(
             custom_table["priority"] = custom.priority
             if not custom.enabled:
                 custom_table["enabled"] = False
-            custom_array.append(custom_table)
+            custom_array.append(custom_table)  # type: ignore[arg-type]
         hl_table["custom"] = custom_array
 
     doc["highlighting"] = hl_table
 
-    toml_str = tomlkit.dumps(doc)
+    toml_str: str = tomlkit.dumps(doc)  # type: ignore[arg-type]
 
     if file_path:
         # Write to file
@@ -685,7 +695,7 @@ def parse_import_args(args: list[str]) -> str | None:
 
 
 def validate_imported_config(
-    data: dict[str, object],
+    data: dict[str, Any],
 ) -> tuple[bool, str | None, list[str]]:
     """Validate an imported highlighting configuration.
 
@@ -710,18 +720,20 @@ def validate_imported_config(
     if "highlighting" not in data:
         return False, "Missing [highlighting] section", []
 
-    hl_data = data["highlighting"]
-    if not isinstance(hl_data, dict):
+    hl_data_raw: Any = data["highlighting"]
+    if not isinstance(hl_data_raw, dict):
         return False, "[highlighting] section must be a table", []
+    hl_data = cast(dict[str, Any], hl_data_raw)
 
     # Validate enabled_highlighters
     if "enabled_highlighters" in hl_data:
-        eh_data = hl_data["enabled_highlighters"]
-        if not isinstance(eh_data, dict):
+        eh_data_raw: Any = hl_data["enabled_highlighters"]
+        if not isinstance(eh_data_raw, dict):
             return False, "[highlighting.enabled_highlighters] must be a table", warnings
+        eh_data = cast(dict[str, Any], eh_data_raw)
 
         for name in eh_data:
-            if name not in BUILTIN_HIGHLIGHTER_NAMES:
+            if str(name) not in BUILTIN_HIGHLIGHTER_NAMES:
                 # Check for close match
                 close_matches = get_close_matches(
                     str(name), BUILTIN_HIGHLIGHTER_NAMES, n=1, cutoff=0.6
@@ -735,11 +747,12 @@ def validate_imported_config(
 
     # Validate duration thresholds
     if "duration" in hl_data:
-        dur_data = hl_data["duration"]
+        dur_data: Any = hl_data["duration"]
         if isinstance(dur_data, dict):
+            dur_dict = cast(dict[str, Any], dur_data)
             for key in ("slow", "very_slow", "critical"):
-                if key in dur_data:
-                    value = dur_data[key]
+                if key in dur_dict:
+                    value: Any = dur_dict[key]
                     if not isinstance(value, int) or value < 0:
                         return (
                             False,
@@ -751,26 +764,27 @@ def validate_imported_config(
 
     # Validate custom highlighters
     if "custom" in hl_data:
-        custom_list = hl_data["custom"]
+        custom_list: Any = hl_data["custom"]
         if not isinstance(custom_list, list):
             return False, "[highlighting.custom] must be an array", warnings
 
-        for i, custom_data in enumerate(custom_list):
+        for i, custom_data in enumerate(cast(list[Any], custom_list)):
             if not isinstance(custom_data, dict):
                 return False, f"Custom highlighter {i} must be a table", warnings
+            custom_dict = cast(dict[str, Any], custom_data)
 
             # Required fields
-            if "name" not in custom_data:
+            if "name" not in custom_dict:
                 return False, f"Custom highlighter {i} missing 'name'", warnings
-            if "pattern" not in custom_data:
+            if "pattern" not in custom_dict:
                 return (
                     False,
-                    f"Custom highlighter '{custom_data.get('name', i)}' missing 'pattern'",
+                    f"Custom highlighter '{custom_dict.get('name', i)}' missing 'pattern'",
                     warnings,
                 )
 
-            name = str(custom_data["name"])
-            pattern = str(custom_data["pattern"])
+            name = str(custom_dict["name"])
+            pattern = str(custom_dict["pattern"])
 
             # Validate name format
             import re
@@ -863,7 +877,8 @@ def handle_highlight_import(
     if "highlighting" not in data:
         return False, "Missing [highlighting] section"
 
-    hl_data = dict(data["highlighting"])
+    # Convert tomlkit container to dict (type: ignore for tomlkit type stubs)
+    hl_data: dict[str, Any] = dict(data["highlighting"])  # type: ignore[arg-type]
 
     # Apply global settings
     if "enabled" in hl_data:
@@ -873,7 +888,7 @@ def handle_highlight_import(
 
     # Apply duration thresholds
     if "duration" in hl_data:
-        dur_data = dict(hl_data["duration"])
+        dur_data: dict[str, Any] = dict(hl_data["duration"])  # type: ignore[arg-type]
         if "slow" in dur_data:
             config.duration_slow = int(dur_data["slow"])
         if "very_slow" in dur_data:
@@ -883,7 +898,7 @@ def handle_highlight_import(
 
     # Apply enabled_highlighters
     if "enabled_highlighters" in hl_data:
-        eh_data = dict(hl_data["enabled_highlighters"])
+        eh_data: dict[str, Any] = dict(hl_data["enabled_highlighters"])  # type: ignore[arg-type]
         for name, value in eh_data.items():
             if name in BUILTIN_HIGHLIGHTER_NAMES:
                 config.enabled_highlighters[str(name)] = bool(value)
@@ -891,9 +906,8 @@ def handle_highlight_import(
     # Apply custom highlighters (replace existing)
     if "custom" in hl_data:
         config.custom_highlighters.clear()
-        for custom_data in hl_data["custom"]:
-            custom_dict = dict(custom_data)
-            custom = CustomHighlighter.from_dict(custom_dict)
+        for custom_data in hl_data["custom"]:  # type: ignore[union-attr]
+            custom = CustomHighlighter.from_dict(dict(custom_data))
             # Only add if it doesn't conflict
             if custom.name not in BUILTIN_HIGHLIGHTER_NAMES:
                 config.custom_highlighters.append(custom)
@@ -1089,11 +1103,86 @@ def get_preview_samples() -> list[tuple[list[str], str, str]]:
     return PREVIEW_SAMPLES
 
 
+def _get_preview_cache_key(
+    theme_name: str,
+    highlighting_enabled: bool,
+    disabled_highlighters: frozenset[str],
+) -> tuple[str, bool, tuple[str, ...]]:
+    """Build a cache key for preview samples.
+
+    Args:
+        theme_name: Name of the current theme.
+        highlighting_enabled: Whether highlighting is globally enabled.
+        disabled_highlighters: Set of disabled highlighter names.
+
+    Returns:
+        Tuple suitable as dict key.
+    """
+    return (theme_name, highlighting_enabled, tuple(sorted(disabled_highlighters)))
+
+
+def _get_cached_preview_sample(
+    cache_key: tuple[str, bool, tuple[str, ...]],
+    sample_index: int,
+    sample: str,
+    chain: object,
+    theme: Theme,
+    highlighting_enabled: bool,
+) -> str:
+    """Get a highlighted preview sample, using cache if available.
+
+    Args:
+        cache_key: Cache key for the current configuration.
+        sample_index: Index of the sample in PREVIEW_SAMPLES.
+        sample: The sample text to highlight.
+        chain: HighlighterChain to use.
+        theme: Current theme.
+        highlighting_enabled: Whether highlighting is enabled.
+
+    Returns:
+        Highlighted or escaped sample string.
+    """
+    global _preview_sample_cache
+
+    # Check cache
+    if cache_key in _preview_sample_cache:
+        cached_samples = _preview_sample_cache[cache_key]
+        if sample_index in cached_samples:
+            return cached_samples[sample_index]
+
+    # Not in cache - compute highlighted result
+    highlighted: str
+    if highlighting_enabled:
+        highlighted = cast(str, chain.apply_rich(sample, theme))  # type: ignore[union-attr]
+    else:
+        # Escape brackets for display but no highlighting
+        highlighted = sample.replace("[", "\\[")
+
+    # Store in cache
+    if cache_key not in _preview_sample_cache:
+        _preview_sample_cache[cache_key] = {}
+    _preview_sample_cache[cache_key][sample_index] = highlighted
+
+    return highlighted
+
+
+def clear_preview_cache() -> None:
+    """Clear the preview sample cache.
+
+    Call this when highlighter configuration changes.
+    """
+    global _preview_sample_cache
+    _preview_sample_cache.clear()
+
+
 def format_preview_rich(
     config: HighlightingConfig,
     theme: Theme | None = None,
 ) -> str:
     """Format preview output with highlighted samples for Rich/Textual.
+
+    Uses a cache for highlighted samples to improve performance (FR-161).
+    Cache is keyed by (theme_name, highlighting_enabled, disabled_highlighters).
 
     Args:
         config: Current highlighting configuration.
@@ -1109,6 +1198,9 @@ def format_preview_rich(
     if theme is None:
         theme_manager = ThemeManager()
         theme = theme_manager.current_theme
+
+    # Ensure theme is available (should always succeed with ThemeManager)
+    assert theme is not None, "No theme available"
 
     lines: list[str] = []
 
@@ -1131,8 +1223,13 @@ def format_preview_rich(
         if not config.is_highlighter_enabled(name):
             disabled_highlighters.add(name)
 
+    # Build cache key for current configuration
+    cache_key = _get_preview_cache_key(
+        theme.name, config.enabled, frozenset(disabled_highlighters)
+    )
+
     # Group samples by category
-    categories: dict[str, list[tuple[list[str], str, str]]] = {
+    categories: dict[str, list[tuple[int, list[str], str, str]]] = {
         "Structural": [],
         "Diagnostic": [],
         "Performance": [],
@@ -1145,8 +1242,8 @@ def format_preview_rich(
         "Misc": [],
     }
 
-    # Organize samples by category
-    for highlighter_names, sample, desc in PREVIEW_SAMPLES:
+    # Organize samples by category (include index for caching)
+    for idx, (highlighter_names, sample, desc) in enumerate(PREVIEW_SAMPLES):
         # Determine category from first highlighter name
         first_name = highlighter_names[0]
         category_map = {
@@ -1182,7 +1279,7 @@ def format_preview_rich(
             "path": "Misc",
         }
         category = category_map.get(first_name, "Misc")
-        categories[category].append((highlighter_names, sample, desc))
+        categories[category].append((idx, highlighter_names, sample, desc))
 
     # Display samples by category
     category_order = [
@@ -1205,18 +1302,16 @@ def format_preview_rich(
 
         lines.append(f"[bold]{category}[/]")
 
-        for highlighter_names, sample, desc in samples:
+        for idx, highlighter_names, sample, desc in samples:
             # Check if any of the relevant highlighters are disabled
             disabled_for_sample = [
                 name for name in highlighter_names if name in disabled_highlighters
             ]
 
-            # Apply highlighting if enabled globally
-            if config.enabled:
-                highlighted = chain.apply_rich(sample, theme)
-            else:
-                # Escape brackets for display but no highlighting
-                highlighted = sample.replace("[", "\\[")
+            # Get highlighted sample (cached)
+            highlighted = _get_cached_preview_sample(
+                cache_key, idx, sample, chain, theme, config.enabled
+            )
 
             # Show the sample with description
             lines.append(f"  [dim]{desc}[/]")
@@ -1268,6 +1363,9 @@ def format_preview_text(
     if theme is None:
         theme_manager = ThemeManager()
         theme = theme_manager.current_theme
+
+    # Ensure theme is available (should always succeed with ThemeManager)
+    assert theme is not None, "No theme available"
 
     result: list[tuple[str, str]] = []
 
@@ -1379,8 +1477,9 @@ def format_preview_text(
                     result.append(("class:warning", "  ⚠ Disabled: "))
                     result.append(("class:dim", f"{disabled_list}\n"))
                 result.append(("", "  "))
-                # Append the FormattedText tuples
-                for style, text in highlighted:
+                # Append the FormattedText tuples (handle 2 or 3 element tuples)
+                for item in highlighted:
+                    style, text = item[0], item[1]
                     result.append((style, text))
                 result.append(("", "\n\n"))
             else:
