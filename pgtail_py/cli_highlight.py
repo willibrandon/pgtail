@@ -1224,9 +1224,7 @@ def format_preview_rich(
             disabled_highlighters.add(name)
 
     # Build cache key for current configuration
-    cache_key = _get_preview_cache_key(
-        theme.name, config.enabled, frozenset(disabled_highlighters)
-    )
+    cache_key = _get_preview_cache_key(theme.name, config.enabled, frozenset(disabled_highlighters))
 
     # Group samples by category
     categories: dict[str, list[tuple[int, list[str], str, str]]] = {
