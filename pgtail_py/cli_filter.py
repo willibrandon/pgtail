@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 from prompt_toolkit import print_formatted_text
 
-from pgtail_py.colors import get_style
 from pgtail_py.cli_highlight import (
     format_highlight_list,
     handle_highlight_add,
@@ -19,8 +18,10 @@ from pgtail_py.cli_highlight import (
     handle_highlight_on,
     handle_highlight_preview,
     handle_highlight_remove,
+    handle_highlight_reset,
 )
 from pgtail_py.cli_utils import warn
+from pgtail_py.colors import get_style
 from pgtail_py.field_filter import (
     FIELD_ALIASES,
     get_available_field_names,
@@ -373,6 +374,14 @@ def highlight_command(state: AppState, args: list[str]) -> None:
             print_formatted_text(output, style=get_style(state.theme_manager))
         return
 
+    # Handle 'reset' subcommand - reset all settings to defaults
+    if arg == "reset":
+        success, message = handle_highlight_reset(state.highlighting_config, warn)
+        if success:
+            reset_highlighter_chain()
+        print(message)
+        return
+
     # Legacy: Parse regex pattern
     original_arg = args[0]  # Use original case for pattern
     if not original_arg.startswith("/"):
@@ -388,6 +397,7 @@ def highlight_command(state: AppState, args: list[str]) -> None:
         print("       highlight export [--file <path>]  Export config as TOML")
         print("       highlight import <path>    Import config from TOML")
         print("       highlight preview          Preview with sample lines")
+        print("       highlight reset            Reset all settings to defaults")
         print("       highlight /pattern/        Add regex highlight (legacy)")
         print("       highlight clear            Clear regex highlights (legacy)")
         return

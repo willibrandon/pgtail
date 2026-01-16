@@ -1742,3 +1742,175 @@ class TestPreviewFormattedTextFormatting:
         # Should use prompt_toolkit style classes
         assert "class:bold" in styles_used or any("bold" in s for s in styles_used)
         assert "class:dim" in styles_used or any("dim" in s for s in styles_used)
+
+
+# =============================================================================
+# Test Highlight Reset Command (T149-T151)
+# =============================================================================
+
+
+class TestHighlightResetCommand:
+    """Tests for highlight reset command."""
+
+    def test_reset_returns_success(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset command returns success."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        assert message is not None
+
+    def test_reset_enables_global_highlighting(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset enables highlighting if it was disabled."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+
+        # Disable highlighting first
+        highlighting_config.enabled = False
+
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        assert highlighting_config.enabled is True
+        assert "enabled highlighting" in message
+
+    def test_reset_enables_all_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset enables all built-in highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+        from pgtail_py.highlighting_config import BUILTIN_HIGHLIGHTER_NAMES
+
+        # Disable some highlighters first
+        highlighting_config.disable_highlighter("timestamp")
+        highlighting_config.disable_highlighter("duration")
+        highlighting_config.disable_highlighter("pid")
+
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        # All highlighters should be enabled
+        for name in BUILTIN_HIGHLIGHTER_NAMES:
+            assert highlighting_config.is_highlighter_enabled(name) is True
+        assert "enabled all highlighters" in message
+
+    def test_reset_removes_custom_highlighters(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset removes all custom highlighters."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        # Add custom highlighters first
+        custom1 = CustomHighlighter(name="custom_one", pattern=r"test\d+", style="yellow")
+        custom2 = CustomHighlighter(name="custom_two", pattern=r"foo-\w+", style="cyan")
+        highlighting_config.custom_highlighters.append(custom1)
+        highlighting_config.custom_highlighters.append(custom2)
+
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        assert len(highlighting_config.custom_highlighters) == 0
+        assert "removed custom highlighters" in message
+
+    def test_reset_restores_duration_thresholds(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset restores duration thresholds to defaults."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+
+        # Change thresholds from defaults
+        highlighting_config.duration_slow = 50
+        highlighting_config.duration_very_slow = 200
+        highlighting_config.duration_critical = 1000
+
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        # Check defaults are restored
+        assert highlighting_config.duration_slow == 100
+        assert highlighting_config.duration_very_slow == 500
+        assert highlighting_config.duration_critical == 5000
+        assert "reset duration thresholds" in message
+
+    def test_reset_restores_max_length(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset restores max_length to default."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+
+        # Change max_length from default
+        highlighting_config.max_length = 5000
+
+        success, _ = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        assert highlighting_config.max_length == 10240
+
+    def test_reset_message_when_already_defaults(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset returns appropriate message when all settings are already defaults."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+
+        # Everything is at defaults - fresh config
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        assert "already at defaults" in message
+
+    def test_reset_via_dispatcher(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset works through command dispatcher."""
+        # Disable something first
+        highlighting_config.enabled = False
+
+        success, message = handle_highlight_command(["reset"], highlighting_config)
+
+        assert success is True
+        assert highlighting_config.enabled is True
+
+    def test_reset_combines_multiple_changes(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset message lists all changes when multiple things were reset."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        # Set up multiple non-default states
+        highlighting_config.enabled = False
+        highlighting_config.disable_highlighter("timestamp")
+        highlighting_config.duration_slow = 50
+        custom = CustomHighlighter(name="custom_one", pattern=r"test", style="yellow")
+        highlighting_config.custom_highlighters.append(custom)
+
+        success, message = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        assert "enabled highlighting" in message
+        assert "enabled all highlighters" in message
+        assert "reset duration thresholds" in message
+        assert "removed custom highlighters" in message
+
+    def test_reset_clears_enabled_highlighters_dict(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """Reset clears and repopulates enabled_highlighters dict."""
+        from pgtail_py.cli_highlight import handle_highlight_reset
+        from pgtail_py.highlighting_config import BUILTIN_HIGHLIGHTER_NAMES
+
+        # Disable several highlighters
+        for name in BUILTIN_HIGHLIGHTER_NAMES[:5]:
+            highlighting_config.disable_highlighter(name)
+
+        success, _ = handle_highlight_reset(highlighting_config)
+
+        assert success is True
+        # All should be True now
+        for name in BUILTIN_HIGHLIGHTER_NAMES:
+            assert highlighting_config.enabled_highlighters[name] is True

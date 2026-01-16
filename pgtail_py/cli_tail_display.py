@@ -351,8 +351,22 @@ def handle_highlight_command(
             buffer.insert_command_output(output)
         return True
 
+    # Handle 'reset' subcommand
+    if subcommand == "reset":
+        from pgtail_py.cli_highlight import handle_highlight_reset
+
+        success, message = handle_highlight_reset(config, warn)
+
+        if buffer is not None:
+            style = "" if success else "class:error"
+            buffer.insert_command_output(FormattedText([(style, message)]))
+        elif log_widget is not None:
+            color = "green" if success else "red"
+            log_widget.write_line(f"[{color}]{message}[/{color}]")
+        return True
+
     # Unknown subcommand
-    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove, export, import, preview"
+    msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove, export, import, preview, reset"
     if buffer is not None:
         buffer.insert_command_output(FormattedText([("class:error", msg)]))
     elif log_widget is not None:

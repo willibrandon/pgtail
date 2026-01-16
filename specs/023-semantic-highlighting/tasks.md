@@ -374,9 +374,9 @@
 
 ### Command (FR-137)
 
-- [ ] T149 [US4] Implement `highlight reset` command in pgtail_py/cli_highlight.py
-- [ ] T150 [US4] Reset enabled highlighters, thresholds, and custom patterns to defaults
-- [ ] T151 [US4] Write tests for reset command in tests/test_cli_highlight.py
+- [X] T149 [US4] Implement `highlight reset` command in pgtail_py/cli_highlight.py
+- [X] T150 [US4] Reset enabled highlighters, thresholds, and custom patterns to defaults
+- [X] T151 [US4] Write tests for reset command in tests/test_cli_highlight.py
 
 ---
 

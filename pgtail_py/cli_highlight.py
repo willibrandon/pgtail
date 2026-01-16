@@ -9,6 +9,7 @@ Provides commands for managing semantic highlighting:
 - highlight export [--file <path>]: Export config as TOML
 - highlight import <path>: Import config from TOML file
 - highlight preview: Preview highlighting with sample log lines
+- highlight reset: Reset all settings to defaults
 """
 
 from __future__ import annotations
@@ -807,11 +808,11 @@ def handle_highlight_import(
     Returns:
         Tuple of (success, message).
     """
-    import tomlkit
     from pathlib import Path
+
+    import tomlkit
     from tomlkit.exceptions import TOMLKitError
 
-    from pgtail_py.highlighting_config import HighlightingConfig
 
     file_path = parse_import_args(args)
 
@@ -1229,7 +1230,6 @@ def format_preview_rich(
         lines.append("")
         lines.append("[bold]Custom Highlighters[/]")
         for custom in config.custom_highlighters:
-            status = "enabled" if custom.enabled else "disabled"
             status_color = "green" if custom.enabled else "red"
             pattern = custom.pattern.replace("[", "\\[")
             lines.append(
@@ -1370,7 +1370,7 @@ def format_preview_text(
                 result.append(("class:dim", f"  {desc}\n"))
                 if disabled_for_sample:
                     disabled_list = ", ".join(disabled_for_sample)
-                    result.append(("class:warning", f"  ⚠ Disabled: "))
+                    result.append(("class:warning", "  ⚠ Disabled: "))
                     result.append(("class:dim", f"{disabled_list}\n"))
                 result.append(("", "  "))
                 # Append the FormattedText tuples
@@ -1381,7 +1381,7 @@ def format_preview_text(
                 result.append(("class:dim", f"  {desc}\n"))
                 if disabled_for_sample:
                     disabled_list = ", ".join(disabled_for_sample)
-                    result.append(("class:warning", f"  ⚠ Disabled: "))
+                    result.append(("class:warning", "  ⚠ Disabled: "))
                     result.append(("class:dim", f"{disabled_list}\n"))
                 result.append(("", f"  {sample}\n\n"))
 
@@ -1431,6 +1431,67 @@ def handle_highlight_preview(
         return True, format_preview_rich(config, theme)
     else:
         return True, format_preview_text(config, theme)
+
+
+# =============================================================================
+# Highlight Reset Command (T149-T150)
+# =============================================================================
+
+
+def handle_highlight_reset(
+    config: HighlightingConfig,
+    warn_func: Callable[[str], None] | None = None,
+) -> tuple[bool, str]:
+    """Handle 'highlight reset' command.
+
+    Resets all highlighting settings to defaults:
+    - Enables highlighting globally
+    - Enables all built-in highlighters
+    - Resets duration thresholds to defaults
+    - Removes all custom highlighters
+    - Persists the reset configuration to config.toml
+
+    Args:
+        config: Highlighting configuration to reset.
+        warn_func: Optional function to call with warning messages.
+
+    Returns:
+        Tuple of (success, message).
+    """
+    # Track what's being reset for the message
+    had_disabled = any(
+        not config.enabled_highlighters.get(name, True)
+        for name in BUILTIN_HIGHLIGHTER_NAMES
+    )
+    had_custom = len(config.custom_highlighters) > 0
+    was_disabled = not config.enabled
+    had_custom_thresholds = (
+        config.duration_slow != 100
+        or config.duration_very_slow != 500
+        or config.duration_critical != 5000
+    )
+
+    # Perform the reset
+    config.reset()
+
+    # Persist to config.toml
+    save_highlighting_config(config, warn_func)
+
+    # Build descriptive message
+    reset_items: list[str] = []
+    if was_disabled:
+        reset_items.append("enabled highlighting")
+    if had_disabled:
+        reset_items.append("enabled all highlighters")
+    if had_custom_thresholds:
+        reset_items.append("reset duration thresholds")
+    if had_custom:
+        reset_items.append("removed custom highlighters")
+
+    if reset_items:
+        return True, f"Reset complete: {', '.join(reset_items)}."
+    else:
+        return True, "All settings were already at defaults."
 
 
 # =============================================================================
@@ -1539,9 +1600,12 @@ def handle_highlight_command(
     elif subcommand == "preview":
         return handle_highlight_preview(config, use_rich=False)
 
+    elif subcommand == "reset":
+        return handle_highlight_reset(config)
+
     else:
         # Unknown subcommand
         return False, (
             f"Unknown subcommand '{subcommand}'. Available: "
-            "list, on, off, enable, disable, add, remove, export, import, preview."
+            "list, on, off, enable, disable, add, remove, export, import, preview, reset."
         )

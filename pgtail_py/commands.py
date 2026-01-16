@@ -136,7 +136,7 @@ class PgtailCompleter(Completer):
         elif cmd == "filter":
             yield from self._complete_filter(arg_text)
         elif cmd == "highlight":
-            yield from self._complete_highlight(arg_text, parts)
+            yield from self._complete_highlight(arg_text, parts, document, complete_event)
         elif cmd == "slow":
             yield from self._complete_slow(arg_text)
         elif cmd == "set":
@@ -342,13 +342,19 @@ class PgtailCompleter(Completer):
                     )
 
     def _complete_highlight(
-        self, prefix: str, parts: list[str] | None = None
+        self,
+        prefix: str,
+        parts: list[str] | None = None,
+        document: Document | None = None,
+        complete_event: CompleteEvent | None = None,
     ) -> Iterable[Completion]:
         """Complete highlight subcommands and highlighter names.
 
         Args:
             prefix: The prefix to match.
             parts: All command parts so far (optional).
+            document: The current document for path completion.
+            complete_event: The completion event.
 
         Yields:
             Completions for highlight subcommands and highlighter names.
@@ -367,6 +373,10 @@ class PgtailCompleter(Completer):
                 "disable": "Disable a specific highlighter",
                 "add": "Add custom highlighter (name pattern [--style])",
                 "remove": "Remove custom highlighter",
+                "export": "Export highlighting config as TOML",
+                "import": "Import highlighting config from TOML file",
+                "preview": "Preview highlighting with sample log lines",
+                "reset": "Reset all highlighting settings to defaults",
                 "clear": "Clear all regex highlight patterns (legacy)",
             }
             for name, description in subcommands.items():
@@ -378,16 +388,62 @@ class PgtailCompleter(Completer):
                     )
             return
 
+        # Get the subcommand
+        subcommand = parts[1].lower() if len(parts) >= 2 else ""
+
         # After enable or disable, complete highlighter names
-        if parts and len(parts) >= 2 and parts[1].lower() in ("enable", "disable"):
+        if subcommand in ("enable", "disable"):
             for name in sorted(BUILTIN_HIGHLIGHTER_NAMES):
                 if name.startswith(prefix_lower):
-                    action = "Enable" if parts[1].lower() == "enable" else "Disable"
+                    action = "Enable" if subcommand == "enable" else "Disable"
                     yield Completion(
                         name,
                         start_position=-len(prefix),
                         display_meta=f"{action} {name} highlighter",
                     )
+            return
+
+        # After remove, complete custom highlighter names
+        if subcommand == "remove":
+            # Try to get custom highlighter names from the current config
+            try:
+                from pgtail_py.highlighting_config import load_highlighting_config
+
+                config = load_highlighting_config()
+                for custom in config.custom_highlighters:
+                    if custom.name.startswith(prefix_lower):
+                        yield Completion(
+                            custom.name,
+                            start_position=-len(prefix),
+                            display_meta=f"Remove custom: {custom.pattern[:20]}...",
+                        )
+            except Exception:
+                pass
+            return
+
+        # After import, complete file paths
+        if subcommand == "import" and document is not None and complete_event is not None:
+            path_doc = Document(prefix)
+            yield from self._path_completer.get_completions(path_doc, complete_event)
+            return
+
+        # After export, complete --file flag or file paths
+        if subcommand == "export":
+            # Check if --file was already provided
+            if "--file" in parts or "-f" in parts:
+                # Complete file paths after --file
+                if document is not None and complete_event is not None:
+                    path_doc = Document(prefix)
+                    yield from self._path_completer.get_completions(path_doc, complete_event)
+            else:
+                # Offer --file flag
+                if "--file".startswith(prefix_lower) or prefix == "":
+                    yield Completion(
+                        "--file",
+                        start_position=-len(prefix),
+                        display_meta="Export to file path",
+                    )
+            return
 
     def _complete_slow(self, prefix: str) -> Iterable[Completion]:
         """Complete slow query subcommands.
