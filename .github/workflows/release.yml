@@ -526,33 +526,9 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
 
-      - name: Sync winget-pkgs fork with upstream
+      - name: Generate winget manifest
         if: steps.check.outputs.exists == 'true'
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.WINGET_PKGS_TOKEN }}
-        run: |
-          # Sync fork with upstream microsoft/winget-pkgs
-          $headers = @{
-            "Accept" = "application/vnd.github+json"
-            "Authorization" = "Bearer $env:GH_TOKEN"
-            "X-GitHub-Api-Version" = "2022-11-28"
-          }
-          $body = @{ branch = "master" } | ConvertTo-Json
-
-          try {
-            Invoke-RestMethod -Uri "https://api.github.com/repos/willibrandon/winget-pkgs/merge-upstream" `
-              -Method Post -Headers $headers -Body $body -ContentType "application/json"
-            Write-Host "Fork synced successfully"
-          } catch {
-            Write-Host "Fork sync failed or already up to date: $_"
-          }
-
-      - name: Update and submit winget manifest
-        if: steps.check.outputs.exists == 'true'
-        shell: pwsh
-        env:
-          WINGET_PKGS_TOKEN: ${{ secrets.WINGET_PKGS_TOKEN }}
         run: |
           $version = "${{ steps.version.outputs.version }}"
           $url = "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.msi"
@@ -560,8 +536,45 @@ jobs:
           .\wingetcreate.exe update willibrandon.pgtail `
             --version $version `
             --urls $url `
-            --token $env:WINGET_PKGS_TOKEN `
-            --submit
+            --out manifests
+
+      - name: Submit winget PR via GitHub CLI
+        if: steps.check.outputs.exists == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PKGS_TOKEN }}
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+
+          # Clone fork, sync with upstream, create branch, add manifests, push, create PR
+          git clone --depth 1 https://x-access-token:$env:GH_TOKEN@github.com/willibrandon/winget-pkgs.git
+          cd winget-pkgs
+
+          git remote add upstream https://github.com/microsoft/winget-pkgs.git
+          git fetch upstream master --depth 1
+          git reset --hard upstream/master
+
+          $branch = "pgtail-$version"
+          git checkout -b $branch
+
+          # Copy manifests
+          $manifestDir = "manifests/w/willibrandon/pgtail/$version"
+          New-Item -ItemType Directory -Path $manifestDir -Force
+          Copy-Item -Path "..\manifests\w\willibrandon\pgtail\$version\*" -Destination $manifestDir
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Update willibrandon.pgtail to $version"
+          git push -f origin $branch
+
+          # Create PR
+          gh pr create `
+            --repo microsoft/winget-pkgs `
+            --base master `
+            --head willibrandon:$branch `
+            --title "Update willibrandon.pgtail to $version" `
+            --body "## Description`n`nUpdate pgtail to version $version`n`n## Release notes`n`nhttps://github.com/willibrandon/pgtail/releases/tag/v$version"
 
   # Notify on failure
   notify-failure:
