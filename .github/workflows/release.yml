@@ -569,7 +569,8 @@ jobs:
 
           # Create new tree with manifest files added to upstream's tree
           $treeJson = @{base_tree=$baseTreeSha; tree=$treeEntries} | ConvertTo-Json -Compress -Depth 10
-          $newTree = gh api repos/willibrandon/winget-pkgs/git/trees -X POST --input - <<< $treeJson
+          $treeJson | Out-File -FilePath tree.json -Encoding utf8
+          $newTree = gh api repos/willibrandon/winget-pkgs/git/trees -X POST --input tree.json
           $newTreeSha = $newTree | ConvertFrom-Json | Select-Object -ExpandProperty sha
           Write-Host "New tree SHA: $newTreeSha"
 
@@ -579,7 +580,8 @@ jobs:
             tree=$newTreeSha
             parents=@($upstreamRef)
           } | ConvertTo-Json -Compress
-          $newCommit = gh api repos/willibrandon/winget-pkgs/git/commits -X POST --input - <<< $commitJson
+          $commitJson | Out-File -FilePath commit.json -Encoding utf8
+          $newCommit = gh api repos/willibrandon/winget-pkgs/git/commits -X POST --input commit.json
           $newCommitSha = $newCommit | ConvertFrom-Json | Select-Object -ExpandProperty sha
           Write-Host "New commit SHA: $newCommitSha"
 
