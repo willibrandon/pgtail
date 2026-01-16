@@ -251,7 +251,7 @@ class TestFormatEntryCompactThemeSwitch:
 
     def test_theme_switch_updates_sql_colors(self) -> None:
         """Simulating theme switch should update SQL colors in output (T040)."""
-        from pgtail_py.sql_highlighter import _get_theme_manager, highlight_sql_rich
+        from pgtail_py.highlighters.sql import _get_theme_manager, highlight_sql_rich
         from pgtail_py.themes import BUILTIN_THEMES
 
         # Get the theme manager

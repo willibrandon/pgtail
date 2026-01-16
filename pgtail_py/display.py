@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from prompt_toolkit.formatted_text import FormattedText, OneStyleAndTextTuple
 
-from pgtail_py.sql_detector import detect_sql_content
-from pgtail_py.sql_highlighter import highlight_sql
+from pgtail_py.highlighters.sql import detect_sql_content, highlight_sql
 
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry

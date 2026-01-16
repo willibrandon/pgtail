@@ -792,7 +792,9 @@ class TailApp(App[None]):
         filtered_entries = [e for e in self._entries if self._entry_matches_filters(e)]
 
         if not filtered_entries:
-            log_widget.write_line("[yellow]⚠[/] No entries to export (buffer empty or all filtered)")
+            log_widget.write_line(
+                "[yellow]⚠[/] No entries to export (buffer empty or all filtered)"
+            )
             return
 
         # Export
@@ -822,9 +824,7 @@ class TailApp(App[None]):
                     append=False,
                     preserve_markup=False,  # Never preserve raw markup for standard export
                 )
-            log_widget.write_line(
-                f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]"
-            )
+            log_widget.write_line(f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]")
         except OSError as e:
             log_widget.write_line(f"[bold red]✗[/] Export failed: {e}")
 

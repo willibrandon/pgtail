@@ -193,7 +193,9 @@ class BackendHighlighter(KeywordHighlighter):
 # =============================================================================
 
 
-def get_connection_highlighters() -> list[ConnectionHighlighter | IPHighlighter | BackendHighlighter]:
+def get_connection_highlighters() -> list[
+    ConnectionHighlighter | IPHighlighter | BackendHighlighter
+]:
     """Return all connection highlighters for registration.
 
     Returns:

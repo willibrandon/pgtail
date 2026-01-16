@@ -384,13 +384,13 @@
 
 **Purpose**: Remove legacy SQL highlighting modules, update imports
 
-- [ ] T152 Remove pgtail_py/sql_highlighter.py (migrated to highlighters/sql.py)
-- [ ] T153 Remove pgtail_py/sql_tokenizer.py (migrated to highlighters/sql.py)
-- [ ] T154 Remove pgtail_py/sql_detector.py (integrated into highlighters/sql.py)
-- [ ] T155 Update all imports from sql_highlighter to highlighters.sql across codebase
-- [ ] T156 Update all imports from sql_tokenizer to highlighters.sql across codebase
-- [ ] T157 Update all imports from sql_detector to highlighters.sql across codebase
-- [ ] T158 Run full test suite to verify no broken imports
+- [X] T152 Remove pgtail_py/sql_highlighter.py (migrated to highlighters/sql.py)
+- [X] T153 Remove pgtail_py/sql_tokenizer.py (migrated to highlighters/sql.py)
+- [X] T154 Remove pgtail_py/sql_detector.py (integrated into highlighters/sql.py)
+- [X] T155 Update all imports from sql_highlighter to highlighters.sql across codebase
+- [X] T156 Update all imports from sql_tokenizer to highlighters.sql across codebase
+- [X] T157 Update all imports from sql_detector to highlighters.sql across codebase
+- [X] T158 Run full test suite to verify no broken imports
 
 ---
 

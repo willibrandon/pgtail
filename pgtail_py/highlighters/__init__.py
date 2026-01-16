@@ -120,11 +120,13 @@ def get_all_highlighters(
     # Add highlighters in priority order
     highlighters.extend(get_structural_highlighters())  # 100-199
     highlighters.extend(get_diagnostic_highlighters())  # 200-299
-    highlighters.extend(get_performance_highlighters(
-        duration_slow=duration_slow,
-        duration_very_slow=duration_very_slow,
-        duration_critical=duration_critical,
-    ))  # 300-399
+    highlighters.extend(
+        get_performance_highlighters(
+            duration_slow=duration_slow,
+            duration_very_slow=duration_very_slow,
+            duration_critical=duration_critical,
+        )
+    )  # 300-399
     highlighters.extend(get_object_highlighters())  # 400-499
     highlighters.extend(get_wal_highlighters())  # 500-599
     highlighters.extend(get_connection_highlighters())  # 600-699

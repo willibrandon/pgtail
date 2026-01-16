@@ -769,9 +769,7 @@ class HighlighterChain:
         all_matches = self._collect_matches(process_text, theme)
         if not all_matches:
             if truncated:
-                return escape_brackets(process_text) + escape_brackets(
-                    text[self._max_length :]
-                )
+                return escape_brackets(process_text) + escape_brackets(text[self._max_length :])
             return escape_brackets(text)
 
         # Apply overlap prevention and build output
@@ -783,9 +781,7 @@ class HighlighterChain:
 
         return result
 
-    def _collect_matches(
-        self, text: str, theme: Theme
-    ) -> list[tuple[int, int, str, int]]:
+    def _collect_matches(self, text: str, theme: Theme) -> list[tuple[int, int, str, int]]:
         """Collect all matches from all highlighters.
 
         SQL highlighters (names starting with "sql_") are only applied
@@ -799,7 +795,7 @@ class HighlighterChain:
         Returns:
             List of (start, end, style, priority) tuples.
         """
-        from pgtail_py.sql_detector import detect_sql_content
+        from pgtail_py.highlighters.sql import detect_sql_content
 
         all_matches: list[tuple[int, int, str, int]] = []
 
@@ -928,9 +924,7 @@ def _get_prompt_toolkit_style(theme: Theme, style_key: str) -> str:
     return f"class:{style_key}"
 
 
-def _build_formatted_text(
-    text: str, matches: list[Match], theme: Theme
-) -> FormattedText:
+def _build_formatted_text(text: str, matches: list[Match], theme: Theme) -> FormattedText:
     """Build FormattedText from matches (no overlap prevention).
 
     Used by individual highlighters that produce non-overlapping matches.
@@ -959,7 +953,7 @@ def _build_formatted_text(
 
         # Add unstyled text before this match
         if pos < m.start:
-            result.append(("", text[pos:m.start]))
+            result.append(("", text[pos : m.start]))
 
         # Add styled match
         style_class = _get_prompt_toolkit_style(theme, m.style)
@@ -1002,7 +996,7 @@ def _build_rich_markup(text: str, matches: list[Match], theme: Theme) -> str:
 
         # Add unstyled text before this match
         if pos < m.start:
-            result.append(escape_brackets(text[pos:m.start]))
+            result.append(escape_brackets(text[pos : m.start]))
 
         # Add styled match
         style = _get_rich_style(theme, m.style)

@@ -1,6 +1,6 @@
 """Unit tests for SQL detector."""
 
-from pgtail_py.sql_detector import SQLDetectionResult, detect_sql_content
+from pgtail_py.highlighters.sql import SQLDetectionResult, detect_sql_content
 
 
 class TestSQLDetectionResult:

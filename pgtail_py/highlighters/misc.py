@@ -189,7 +189,9 @@ class PathHighlighter(RegexHighlighter):
 # =============================================================================
 
 
-def get_misc_highlighters() -> list[BooleanHighlighter | NullHighlighter | OIDHighlighter | PathHighlighter]:
+def get_misc_highlighters() -> list[
+    BooleanHighlighter | NullHighlighter | OIDHighlighter | PathHighlighter
+]:
     """Return all miscellaneous highlighters for registration.
 
     Returns:

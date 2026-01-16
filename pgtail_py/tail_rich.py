@@ -21,9 +21,8 @@ from rich.text import Text
 from pgtail_py.filter import LogLevel
 from pgtail_py.highlighter import HighlighterChain
 from pgtail_py.highlighter_registry import get_registry
+from pgtail_py.highlighters.sql import detect_sql_content, highlight_sql_rich
 from pgtail_py.highlighting_config import HighlightingConfig
-from pgtail_py.sql_detector import detect_sql_content
-from pgtail_py.sql_highlighter import highlight_sql_rich
 
 if TYPE_CHECKING:
     from pgtail_py.parser import LogEntry
@@ -316,9 +315,7 @@ def format_entry_compact(
     return " ".join(parts)
 
 
-def _highlight_message(
-    message: str, theme: Theme, config: HighlightingConfig | None = None
-) -> str:
+def _highlight_message(message: str, theme: Theme, config: HighlightingConfig | None = None) -> str:
     """Apply semantic highlighting to a log message.
 
     Uses the highlighter chain for pattern-based highlighting. SQL content

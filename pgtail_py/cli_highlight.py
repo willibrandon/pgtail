@@ -276,8 +276,7 @@ def format_highlight_list_rich(config: HighlightingConfig) -> str:
             # Escape brackets in description
             desc = description.replace("[", "\\[")
             lines.append(
-                f"  \\[[{status_color}]{status_text:3}[/]\\] "
-                f"[cyan]{name:20}[/] [dim]{desc}[/]"
+                f"  \\[[{status_color}]{status_text:3}[/]\\] [cyan]{name:20}[/] [dim]{desc}[/]"
             )
 
         lines.append("")
@@ -332,7 +331,10 @@ def handle_highlight_enable(
 
         if suggestion:
             return False, f"Unknown highlighter '{name}'. Did you mean '{suggestion}'?"
-        return False, f"Unknown highlighter '{name}'. Use 'highlight list' to see available highlighters."
+        return (
+            False,
+            f"Unknown highlighter '{name}'. Use 'highlight list' to see available highlighters.",
+        )
 
     config.enable_highlighter(name)
 
@@ -369,7 +371,10 @@ def handle_highlight_disable(
 
         if suggestion:
             return False, f"Unknown highlighter '{name}'. Did you mean '{suggestion}'?"
-        return False, f"Unknown highlighter '{name}'. Use 'highlight list' to see available highlighters."
+        return (
+            False,
+            f"Unknown highlighter '{name}'. Use 'highlight list' to see available highlighters.",
+        )
 
     config.disable_highlighter(name)
 
@@ -442,7 +447,10 @@ def validate_custom_name(name: str, config: HighlightingConfig) -> tuple[bool, s
         return False, "Name cannot be empty"
 
     if not re.match(r"^[a-z][a-z0-9_]*$", name):
-        return False, "Name must start with a letter and contain only lowercase letters, numbers, and underscores"
+        return (
+            False,
+            "Name must start with a letter and contain only lowercase letters, numbers, and underscores",
+        )
 
     if name in BUILTIN_HIGHLIGHTER_NAMES:
         return False, f"Name '{name}' conflicts with built-in highlighter"
@@ -525,14 +533,20 @@ def handle_highlight_remove(
     """
     # Check if it's a built-in highlighter
     if name in BUILTIN_HIGHLIGHTER_NAMES:
-        return False, f"Cannot remove built-in highlighter '{name}'. Use 'highlight disable {name}' instead."
+        return (
+            False,
+            f"Cannot remove built-in highlighter '{name}'. Use 'highlight disable {name}' instead.",
+        )
 
     # Try to remove custom highlighter
     if not config.remove_custom(name):
         # Check if it exists at all
         custom_names = [c.name for c in config.custom_highlighters]
         if custom_names:
-            return False, f"Custom highlighter '{name}' not found. Available: {', '.join(custom_names)}"
+            return (
+                False,
+                f"Custom highlighter '{name}' not found. Available: {', '.join(custom_names)}",
+            )
         return False, f"Custom highlighter '{name}' not found. No custom highlighters defined."
 
     # Persist to config.toml
@@ -733,9 +747,7 @@ def validate_imported_config(
                             warnings,
                         )
                     if value > 3600000:  # 1 hour in ms
-                        warnings.append(
-                            f"Duration threshold '{key}' ({value}ms) is very high"
-                        )
+                        warnings.append(f"Duration threshold '{key}' ({value}ms) is very high")
 
     # Validate custom highlighters
     if "custom" in hl_data:
@@ -812,7 +824,6 @@ def handle_highlight_import(
 
     import tomlkit
     from tomlkit.exceptions import TOMLKitError
-
 
     file_path = parse_import_args(args)
 
@@ -1221,9 +1232,7 @@ def format_preview_rich(
         for name in sorted(disabled_highlighters):
             lines.append(f"  [dim]• {name}[/]")
         lines.append("")
-        lines.append(
-            "[dim]Use 'highlight enable <name>' to enable disabled highlighters.[/]"
-        )
+        lines.append("[dim]Use 'highlight enable <name>' to enable disabled highlighters.[/]")
 
     # Show custom highlighters
     if config.custom_highlighters:
@@ -1233,8 +1242,7 @@ def format_preview_rich(
             status_color = "green" if custom.enabled else "red"
             pattern = custom.pattern.replace("[", "\\[")
             lines.append(
-                f"  [{status_color}]{custom.name}[/]: {pattern} "
-                f"[dim](style: {custom.style})[/]"
+                f"  [{status_color}]{custom.name}[/]: {pattern} [dim](style: {custom.style})[/]"
             )
 
     return "\n".join(lines)
@@ -1272,9 +1280,7 @@ def format_preview_text(
     result.append(("", ")\n\n"))
 
     if not config.enabled:
-        result.append(
-            ("class:dim", "Highlighting is disabled. Run 'highlight on' to enable.\n\n")
-        )
+        result.append(("class:dim", "Highlighting is disabled. Run 'highlight on' to enable.\n\n"))
 
     # Get the highlighter chain (ensures highlighters are registered)
     chain = get_highlighter_chain(config)
@@ -1460,8 +1466,7 @@ def handle_highlight_reset(
     """
     # Track what's being reset for the message
     had_disabled = any(
-        not config.enabled_highlighters.get(name, True)
-        for name in BUILTIN_HIGHLIGHTER_NAMES
+        not config.enabled_highlighters.get(name, True) for name in BUILTIN_HIGHLIGHTER_NAMES
     )
     had_custom = len(config.custom_highlighters) > 0
     was_disabled = not config.enabled

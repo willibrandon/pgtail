@@ -161,7 +161,9 @@ class SchemaHighlighter(RegexHighlighter):
 # =============================================================================
 
 
-def get_object_highlighters() -> list[IdentifierHighlighter | RelationHighlighter | SchemaHighlighter]:
+def get_object_highlighters() -> list[
+    IdentifierHighlighter | RelationHighlighter | SchemaHighlighter
+]:
     """Return all object highlighters for registration.
 
     Returns:

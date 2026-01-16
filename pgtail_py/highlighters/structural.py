@@ -165,7 +165,9 @@ class ContextLabelHighlighter(RegexHighlighter):
 # =============================================================================
 
 
-def get_structural_highlighters() -> list[TimestampHighlighter | PIDHighlighter | ContextLabelHighlighter]:
+def get_structural_highlighters() -> list[
+    TimestampHighlighter | PIDHighlighter | ContextLabelHighlighter
+]:
     """Return all structural highlighters for registration.
 
     Returns:

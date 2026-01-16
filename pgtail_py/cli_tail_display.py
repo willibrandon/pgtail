@@ -487,6 +487,8 @@ def handle_set_command(
     if buffer is not None:
         buffer.insert_command_output(FormattedText([("", msg)]))
     elif log_widget is not None:
-        log_widget.write_line(f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{validated!r}[/magenta]")
+        log_widget.write_line(
+            f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{validated!r}[/magenta]"
+        )
 
     return True

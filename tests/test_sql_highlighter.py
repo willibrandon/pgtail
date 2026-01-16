@@ -5,14 +5,15 @@ from unittest.mock import patch
 
 import pytest
 
-from pgtail_py.sql_highlighter import (
+from pgtail_py.highlighters.sql import (
     SQLHighlighter,
+    SQLToken,
+    SQLTokenType,
     TOKEN_TO_STYLE,
     TOKEN_TYPE_TO_THEME_KEY,
     _color_style_to_rich_markup,
     highlight_sql_rich,
 )
-from pgtail_py.sql_tokenizer import SQLToken, SQLTokenType
 from pgtail_py.theme import ColorStyle, Theme
 
 

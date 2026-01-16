@@ -2,7 +2,7 @@
 
 import pytest
 
-from pgtail_py.sql_tokenizer import SQLToken, SQLTokenizer, SQLTokenType
+from pgtail_py.highlighters.sql import SQLToken, SQLTokenizer, SQLTokenType
 
 
 class TestSQLTokenType:

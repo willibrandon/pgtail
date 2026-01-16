@@ -415,9 +415,7 @@ def load_highlighting_config(
 
         # Enabled highlighters subsection
         if "enabled_highlighters" in hl_section:
-            highlighting_data["enabled_highlighters"] = dict(
-                hl_section["enabled_highlighters"]
-            )
+            highlighting_data["enabled_highlighters"] = dict(hl_section["enabled_highlighters"])
 
         # Custom highlighters array
         if "custom" in hl_section:
