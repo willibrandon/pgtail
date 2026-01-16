@@ -557,10 +557,13 @@ jobs:
           $branch = "pgtail-$version"
           git checkout -b $branch
 
-          # Copy manifests
-          $manifestDir = "manifests/w/willibrandon/pgtail/$version"
-          New-Item -ItemType Directory -Path $manifestDir -Force
-          Copy-Item -Path "..\manifests\w\willibrandon\pgtail\$version\*" -Destination $manifestDir
+          # Copy manifests (wingetcreate outputs to manifests/w/willibrandon/pgtail/<version>/)
+          $srcDir = "..\manifests"
+          $destDir = "manifests/w/willibrandon/pgtail/$version"
+          New-Item -ItemType Directory -Path $destDir -Force
+          Get-ChildItem -Path $srcDir -Recurse -File | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination $destDir
+          }
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
