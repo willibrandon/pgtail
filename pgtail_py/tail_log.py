@@ -369,13 +369,10 @@ class TailLog(Log):
         if selection is None:
             return
 
-        # Get selected text directly from _lines to avoid coordinate issues
-        selected_text = self._get_selected_text(selection)
-        if not selected_text:
+        # Get selected text directly from _lines (already plain text)
+        plain_text = self._get_selected_text(selection)
+        if not plain_text:
             return
-
-        # Strip Rich markup before copying
-        plain_text = self._strip_markup(selected_text)
 
         # Copy to clipboard
         success = self.copy_with_fallback(plain_text)
@@ -401,13 +398,10 @@ class TailLog(Log):
         if selection is None:
             return  # No-op with no selection
 
-        # Get selected text directly from _lines to avoid coordinate issues
-        selected_text = self._get_selected_text(selection)
-        if not selected_text:
+        # Get selected text directly from _lines (already plain text)
+        plain_text = self._get_selected_text(selection)
+        if not plain_text:
             return
-
-        # Strip Rich markup before copying
-        plain_text = self._strip_markup(selected_text)
 
         success = self.copy_with_fallback(plain_text)
         if success:
@@ -473,13 +467,10 @@ class TailLog(Log):
         if selection is None:
             return
 
-        # Get selected text directly from _lines to avoid coordinate issues
-        selected_text = self._get_selected_text(selection)
-        if not selected_text:
+        # Get selected text directly from _lines (already plain text)
+        plain_text = self._get_selected_text(selection)
+        if not plain_text:
             return
-
-        # Strip Rich markup before copying
-        plain_text = self._strip_markup(selected_text)
 
         # Copy to clipboard (silent - no message for mouse-up auto-copy)
         self.copy_with_fallback(plain_text)
@@ -597,8 +588,9 @@ class TailLog(Log):
                 rich_text = Text.from_markup(self._lines[i])
                 plain_lines.append(rich_text.plain)
             except MarkupError:
-                # Fall back to raw text if markup is malformed
-                plain_lines.append(self._lines[i])
+                # Fall back to stripping markup manually if parsing fails
+                # Uses smart stripping that preserves PIDs like [12345]
+                plain_lines.append(self._strip_markup(self._lines[i]))
 
         if not plain_lines:
             return ""
@@ -620,25 +612,26 @@ class TailLog(Log):
             return "\n".join(result)
 
     def _strip_markup(self, text: str) -> str:
-        """Strip Rich markup tags from text using regex.
+        """Strip Rich markup tags from text while preserving PIDs like [12345].
 
-        Uses regex to remove Rich console markup tags (e.g., [bold red], [/])
-        since partial selections can start mid-tag and break Rich's parser.
+        Rich markup tags start with letters (e.g., [bold], [dim], [red]),
+        forward slash (e.g., [/], [/bold]), or hash (e.g., [#ff0000]).
+        PIDs are purely numeric (e.g., [12345]) and should be preserved.
 
         Args:
             text: Text potentially containing Rich markup.
 
         Returns:
-            Plain text with all markup tags removed.
+            Plain text with markup tags removed but PIDs preserved.
         """
         import re
 
-        # Use regex to strip markup - handles partial/broken markup from selections
         # First, temporarily replace escaped brackets to protect them
         placeholder = "\x00ESCAPED_BRACKET\x00"
         text = text.replace("\\[", placeholder)
-        # Remove markup tags like [bold], [/bold], [dim], [/], [bold red], etc.
-        result = re.sub(r"\[/?[^\]]*\]", "", text)
+        # Remove only Rich markup tags (start with letter, /, or #), NOT PIDs (numeric)
+        # This preserves [12345] but removes [bold], [dim], [/], [#ff0000], etc.
+        result = re.sub(r"\[[/#a-zA-Z][^\]]*\]", "", text)
         # Restore escaped brackets as literal [
         result = result.replace(placeholder, "[")
         return result

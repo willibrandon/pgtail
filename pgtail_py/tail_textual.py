@@ -739,6 +739,95 @@ class TailApp(App[None]):
 
         return True
 
+    def _handle_export_command(self, args: list[str], log_widget: TailLog) -> None:
+        """Handle export command in tail mode.
+
+        Exports currently displayed entries to a file.
+
+        Args:
+            args: Command arguments [path, --format <fmt>, --highlighted]
+            log_widget: TailLog widget for feedback
+        """
+        from pgtail_py.export import ExportFormat, export_to_file
+
+        if not args:
+            log_widget.write_line(
+                "[bold red]✗[/] Usage: export <path> [--format text|json|csv] [--highlighted]"
+            )
+            return
+
+        # Parse arguments
+        path_str: str | None = None
+        fmt = ExportFormat.TEXT
+        preserve_markup = False
+
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            if arg == "--format" and i + 1 < len(args):
+                try:
+                    fmt = ExportFormat.from_string(args[i + 1])
+                except ValueError as e:
+                    log_widget.write_line(f"[bold red]✗[/] {e}")
+                    return
+                i += 2
+            elif arg == "--highlighted":
+                preserve_markup = True
+                i += 1
+            elif not arg.startswith("-"):
+                path_str = arg
+                i += 1
+            else:
+                log_widget.write_line(f"[bold red]✗[/] Unknown option: {arg}")
+                return
+
+        if not path_str:
+            log_widget.write_line("[bold red]✗[/] No output path specified")
+            return
+
+        # Expand ~ and resolve path
+        path = Path(path_str).expanduser().resolve()
+
+        # Get entries that match current filters
+        filtered_entries = [e for e in self._entries if self._entry_matches_filters(e)]
+
+        if not filtered_entries:
+            log_widget.write_line("[yellow]⚠[/] No entries to export (buffer empty or all filtered)")
+            return
+
+        # Export
+        try:
+            if preserve_markup and fmt == ExportFormat.TEXT:
+                # For --highlighted in tail mode, export the Rich-formatted lines
+                # (same as what's displayed in the log widget)
+                from pgtail_py.export import ensure_parent_dirs
+
+                ensure_parent_dirs(path)
+                count = 0
+                with open(path, "w", encoding="utf-8") as f:
+                    for entry in filtered_entries:
+                        formatted = format_entry_compact(
+                            entry,
+                            theme=self._state.theme_manager.current_theme,
+                            highlighting_config=self._state.highlighting_config,
+                        )
+                        f.write(formatted + "\n")
+                        count += 1
+            else:
+                # Standard export (strips markup for clean text/JSON/CSV)
+                count = export_to_file(
+                    filtered_entries,
+                    path,
+                    fmt,
+                    append=False,
+                    preserve_markup=False,  # Never preserve raw markup for standard export
+                )
+            log_widget.write_line(
+                f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]"
+            )
+        except OSError as e:
+            log_widget.write_line(f"[bold red]✗[/] Export failed: {e}")
+
     def _rebuild_log(self) -> None:
         """Rebuild log display from stored entries with current filters.
 
@@ -912,6 +1001,11 @@ class TailApp(App[None]):
                         f"[bold red]✗[/] Unknown theme [bold yellow]{theme_name}[/]. Available: {available}"
                     )
             self._update_status()
+            return
+
+        # Handle export command - needs access to self._entries
+        if cmd == "export":
+            self._handle_export_command(args, log_widget)
             return
 
         # Check if this is a help request (don't rebuild log for help)

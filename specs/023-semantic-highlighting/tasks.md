@@ -321,11 +321,11 @@
 
 ### Export Integration (FR-152, FR-153, FR-154)
 
-- [ ] T133 [US11] Implement strip_rich_markup() function in pgtail_py/export.py
-- [ ] T134 [US11] Update format_text_entry() to strip markup by default in pgtail_py/export.py (FR-152)
-- [ ] T135 [US11] Add --highlighted flag to export command in pgtail_py/cli_core.py (FR-153)
-- [ ] T136 [US11] Verify JSON export never includes markup in pgtail_py/export.py (FR-154)
-- [ ] T137 [US11] Write tests for export markup stripping in tests/test_export.py
+- [X] T133 [US11] Implement strip_rich_markup() function in pgtail_py/export.py
+- [X] T134 [US11] Update format_text_entry() to strip markup by default in pgtail_py/export.py (FR-152)
+- [X] T135 [US11] Add --highlighted flag to export command in pgtail_py/cli_core.py (FR-153)
+- [X] T136 [US11] Verify JSON export never includes markup in pgtail_py/export.py (FR-154)
+- [X] T137 [US11] Write tests for export markup stripping in tests/test_export.py
 
 **Checkpoint**: User Story 11 complete - exports are clean
 

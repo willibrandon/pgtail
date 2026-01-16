@@ -2,6 +2,7 @@
 
 import csv
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -14,6 +15,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pgtail_py.time_filter import parse_time
+
+# Regex to match Rich markup tags
+# Matches: [style], [/style], [/], [bold red], [on blue], etc.
+_RICH_MARKUP_PATTERN = re.compile(r"\[/?[^\]]*\]")
 
 if TYPE_CHECKING:
     from pgtail_py.filter import LogLevel
@@ -99,20 +104,52 @@ def parse_since(value: str) -> datetime:
     return parse_time(value)
 
 
-def format_text_entry(entry: "LogEntry") -> str:
+def strip_rich_markup(text: str) -> str:
+    """Strip Rich markup tags from text.
+
+    Removes Rich-style markup tags like [bold], [red], [/bold], [/], etc.
+    Used to produce clean plain text output for exports.
+
+    Args:
+        text: Text potentially containing Rich markup tags.
+
+    Returns:
+        Text with all Rich markup tags removed.
+
+    Examples:
+        >>> strip_rich_markup("[bold]Hello[/bold] World")
+        'Hello World'
+        >>> strip_rich_markup("[red on white]Error[/]")
+        'Error'
+        >>> strip_rich_markup("No markup here")
+        'No markup here'
+    """
+    return _RICH_MARKUP_PATTERN.sub("", text)
+
+
+def format_text_entry(entry: "LogEntry", preserve_markup: bool = False) -> str:
     """Format entry as raw text (original log line).
+
+    By default, strips Rich markup tags from the raw line to produce clean output.
+    Set preserve_markup=True to keep markup tags for highlighted exports.
 
     Args:
         entry: Log entry to format.
+        preserve_markup: If True, keep Rich markup tags in output.
 
     Returns:
-        Raw log line string.
+        Raw log line string, optionally with markup stripped.
     """
-    return entry.raw
+    if preserve_markup:
+        return entry.raw
+    return strip_rich_markup(entry.raw)
 
 
 def format_json_entry(entry: "LogEntry") -> str:
     """Format entry as JSON (JSONL format).
+
+    JSON export never includes Rich markup (FR-154).
+    Any markup in the message field is stripped.
 
     Args:
         entry: Log entry to format.
@@ -125,7 +162,7 @@ def format_json_entry(entry: "LogEntry") -> str:
             "timestamp": entry.timestamp.isoformat() if entry.timestamp else None,
             "level": entry.level.name,
             "pid": entry.pid,
-            "message": entry.message,
+            "message": strip_rich_markup(entry.message),
         },
         ensure_ascii=False,
     )
@@ -135,6 +172,7 @@ def format_csv_row(entry: "LogEntry") -> str:
     """Format entry as CSV row.
 
     Uses csv module with QUOTE_MINIMAL for proper escaping.
+    CSV export never includes Rich markup, like JSON.
 
     Args:
         entry: Log entry to format.
@@ -149,25 +187,26 @@ def format_csv_row(entry: "LogEntry") -> str:
             entry.timestamp.isoformat() if entry.timestamp else "",
             entry.level.name,
             entry.pid if entry.pid is not None else "",
-            entry.message,
+            strip_rich_markup(entry.message),
         ]
     )
     # Remove trailing newline added by csv.writer
     return output.getvalue().rstrip("\r\n")
 
 
-def format_entry(entry: "LogEntry", fmt: ExportFormat) -> str:
+def format_entry(entry: "LogEntry", fmt: ExportFormat, preserve_markup: bool = False) -> str:
     """Format entry according to specified format.
 
     Args:
         entry: Log entry to format.
         fmt: Output format.
+        preserve_markup: If True, preserve Rich markup tags in text output.
 
     Returns:
         Formatted string.
     """
     if fmt == ExportFormat.TEXT:
-        return format_text_entry(entry)
+        return format_text_entry(entry, preserve_markup=preserve_markup)
     elif fmt == ExportFormat.JSON:
         return format_json_entry(entry)
     elif fmt == ExportFormat.CSV:
@@ -247,6 +286,7 @@ def export_to_file(
     path: Path,
     fmt: ExportFormat = ExportFormat.TEXT,
     append: bool = False,
+    preserve_markup: bool = False,
 ) -> int:
     """Export entries to a file.
 
@@ -255,6 +295,7 @@ def export_to_file(
         path: Output file path.
         fmt: Output format.
         append: If True, append to existing file.
+        preserve_markup: If True, preserve Rich markup tags in text output.
 
     Returns:
         Number of entries written.
@@ -271,7 +312,7 @@ def export_to_file(
             f.write(CSV_HEADER + "\n")
 
         for entry in entries:
-            f.write(format_entry(entry, fmt) + "\n")
+            f.write(format_entry(entry, fmt, preserve_markup=preserve_markup) + "\n")
             count += 1
 
     return count
@@ -292,6 +333,7 @@ def follow_export(
     levels: "set[LogLevel] | None" = None,
     regex_state: "FilterState | None" = None,
     on_entry: "Callable[[LogEntry], None] | None" = None,
+    preserve_markup: bool = False,
 ) -> int:
     """Export entries in real-time as they arrive from tailer.
 
@@ -305,6 +347,7 @@ def follow_export(
         levels: Log levels to filter by.
         regex_state: Regex filter state.
         on_entry: Optional callback for each entry (for tee display).
+        preserve_markup: If True, preserve Rich markup tags in text output.
 
     Returns:
         Number of entries written when KeyboardInterrupt is caught.
@@ -336,7 +379,7 @@ def follow_export(
                     continue
 
                 # Write to file
-                f.write(format_entry(entry, fmt) + "\n")
+                f.write(format_entry(entry, fmt, preserve_markup=preserve_markup) + "\n")
                 f.flush()  # Flush immediately for real-time export
                 count += 1
 
@@ -363,6 +406,7 @@ def pipe_to_command(
     entries: Iterable["LogEntry"],
     command: str,
     fmt: ExportFormat = ExportFormat.TEXT,
+    preserve_markup: bool = False,
 ) -> PipeResult:
     """Pipe entries to an external command.
 
@@ -373,6 +417,7 @@ def pipe_to_command(
         entries: Log entries to pipe.
         command: Shell command string to execute.
         fmt: Output format for entries.
+        preserve_markup: If True, preserve Rich markup tags in text output.
 
     Returns:
         PipeResult with count, return code, stdout, and stderr.
@@ -401,7 +446,7 @@ def pipe_to_command(
     count = 0
     try:
         for entry in entries:
-            line = format_entry(entry, fmt)
+            line = format_entry(entry, fmt, preserve_markup=preserve_markup)
             proc.stdin.write(line + "\n")  # type: ignore[union-attr]
             count += 1
         proc.stdin.close()  # type: ignore[union-attr]

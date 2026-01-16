@@ -172,6 +172,17 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
             "help filter        Show filter command help",
         ],
     },
+    "export": {
+        "usage": "export <path> [--format text|json|csv] [--highlighted]",
+        "short": "Export displayed entries to a file",
+        "description": "Export log entries currently displayed (matching filters) to a file.",
+        "examples": [
+            "export /tmp/logs.txt            Export as plain text (default)",
+            "export /tmp/logs.json --format json   Export as JSON Lines",
+            "export /tmp/logs.csv --format csv     Export as CSV",
+            "export /tmp/logs.txt --highlighted    Preserve Rich markup tags",
+        ],
+    },
 }
 
 
@@ -320,6 +331,7 @@ def handle_help_command(
         ("connections", "Show connection statistics"),
         ("highlight", "Manage semantic highlighters"),
         ("set <key>", "Configure settings"),
+        ("export <path>", "Export entries to file"),
         ("stop/exit/q", "Exit tail mode"),
     ]
     for cmd, desc in commands:

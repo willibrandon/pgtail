@@ -271,23 +271,28 @@ def format_entry_compact(
         ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]  # HH:MM:SS.mmm
         parts.append(f"[dim]{ts_str}[/dim]")
 
-    # PID (dim) - escape brackets
+    # PID (dim) - escape brackets, pad to 5 digits for alignment
     if entry.pid:
-        parts.append(f"[dim]\\[{entry.pid}][/dim]")
+        pid_str = str(entry.pid).ljust(5)  # Left-pad to 5 digits
+        parts.append(f"[dim]\\[{pid_str}][/dim]")
 
-    # Level name with color (padded for alignment)
+    # Level name with color (padded for alignment) + colon
+    # Combined into one part so " ".join() doesn't add space between level and colon
     level_style = LEVEL_MARKUP.get(entry.level, "")
     level_name = entry.level.name.ljust(7)
-    if level_style:
-        parts.append(f"[{level_style}]{level_name}[/]")
-    else:
-        parts.append(level_name)
 
-    # SQL state code (cyan) and message
     if entry.sql_state:
-        parts.append(f"[cyan]{entry.sql_state}[/]:")
+        # Level + SQL state + colon
+        if level_style:
+            parts.append(f"[{level_style}]{level_name}[/][cyan]{entry.sql_state}[/]:")
+        else:
+            parts.append(f"{level_name}[cyan]{entry.sql_state}[/]:")
     else:
-        parts.append(":")
+        # Level + colon
+        if level_style:
+            parts.append(f"[{level_style}]{level_name}[/]:")
+        else:
+            parts.append(f"{level_name}:")
 
     # Message - apply highlighting
     if use_semantic_highlighting and theme is not None:

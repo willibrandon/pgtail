@@ -32,9 +32,10 @@ def export_command(state: AppState, args: list[str]) -> None:
         print("No log file loaded. Use 'tail <instance>' first.")
         return
 
-    # Parse arguments: export [--append] [--format fmt] [--since time] [--follow] <filename>
+    # Parse arguments: export [--append] [--format fmt] [--since time] [--follow] [--highlighted] <filename>
     append = False
     follow = False
+    highlighted = False
     fmt = ExportFormat.TEXT
     since = None
     filename = None
@@ -47,6 +48,9 @@ def export_command(state: AppState, args: list[str]) -> None:
             i += 1
         elif arg == "--follow":
             follow = True
+            i += 1
+        elif arg == "--highlighted":
+            highlighted = True
             i += 1
         elif arg == "--format" and i + 1 < len(args):
             try:
@@ -79,6 +83,7 @@ def export_command(state: AppState, args: list[str]) -> None:
         print("  --format <fmt>   Output format (text, json, csv)")
         print("  --since <time>   Only entries after time (e.g., 1h, 30m, 2d)")
         print("  --follow         Continuous export (like tail -f | tee)")
+        print("  --highlighted    Preserve Rich markup tags in text output")
         return
 
     # Validate options
@@ -99,7 +104,7 @@ def export_command(state: AppState, args: list[str]) -> None:
 
     # Handle follow mode
     if follow:
-        _export_follow_mode(state, path, fmt)
+        _export_follow_mode(state, path, fmt, preserve_markup=highlighted)
         return
 
     # Get filtered entries from the tailer's buffer
@@ -112,7 +117,7 @@ def export_command(state: AppState, args: list[str]) -> None:
 
     # Export to file
     try:
-        count = export_to_file(entries, path, fmt, append)
+        count = export_to_file(entries, path, fmt, append, preserve_markup=highlighted)
         if count == 0:
             print("No entries to export (buffer is empty or all filtered out).")
         else:
@@ -124,13 +129,19 @@ def export_command(state: AppState, args: list[str]) -> None:
         print(f"Error writing to file: {e}")
 
 
-def _export_follow_mode(state: AppState, path: Path, fmt: ExportFormat) -> None:
+def _export_follow_mode(
+    state: AppState,
+    path: Path,
+    fmt: ExportFormat,
+    preserve_markup: bool = False,
+) -> None:
     """Handle continuous export mode (--follow).
 
     Args:
         state: Current application state.
         path: Output file path.
         fmt: Output format.
+        preserve_markup: If True, preserve Rich markup tags in text output.
     """
     if state.tailer is None:
         print("No log file loaded. Use 'tail <instance>' first.")
@@ -150,6 +161,7 @@ def _export_follow_mode(state: AppState, path: Path, fmt: ExportFormat) -> None:
         state.active_levels,
         state.regex_state,
         on_entry=print_log_entry,  # Tee behavior - display on screen
+        preserve_markup=preserve_markup,
     )
 
     print()

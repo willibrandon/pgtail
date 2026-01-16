@@ -52,6 +52,8 @@ TAIL_MODE_COMMANDS: list[str] = [
     "highlight",  # highlight list/enable/disable
     # Config commands
     "set",  # set config values
+    # Export commands
+    "export",  # export entries to file
     # Mode commands
     "pause",  # enter PAUSED mode
     "p",  # alias for pause
