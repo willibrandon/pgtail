@@ -144,7 +144,7 @@
 - [x] T053 [P] Update README.md with Microsoft Store installation option in Installation section
 - [x] T054 [P] Add docs/installation/windows-store.md with Store installation instructions for mkdocs
 - [x] T055 [P] Update docs/installation/index.md to include Windows Store as installation method
-- [ ] T056 Commit msix/ directory with AppxManifest.xml and Assets/ to repository
+- [x] T056 Commit msix/ directory with AppxManifest.xml and Assets/ to repository
 
 ---
 
@@ -152,15 +152,15 @@
 
 **Purpose**: Validate CI/CD workflow with a release candidate before production release
 
-- [ ] T057 Push RC tag (e.g., `v0.5.1-rc1`) to trigger release workflow
-- [ ] T058 Verify ARM64 build job completes successfully on `windows-11-arm` runner
-- [ ] T059 Verify x64 MSIX package is created in build-msix job
-- [ ] T060 Verify ARM64 MSIX package is created in build-msix job
-- [ ] T061 Verify MSIX bundle (pgtail.msixbundle) is created from x64 and ARM64 packages
-- [ ] T062 Verify MSIX bundle is uploaded as GitHub Release artifact
-- [ ] T063 Verify update-store job runs (may fail if Store secrets not configured for test)
-- [ ] T064 Download and locally test the MSIX bundle from GitHub Release
-- [ ] T065 Delete RC tag and release after validation: `git push origin :refs/tags/v0.5.1-rc1`
+- [x] T057 Push RC tag (e.g., `v0.6.0-rc1`) to trigger release workflow
+- [x] T058 Verify ARM64 build job completes successfully on `windows-11-arm` runner
+- [x] T059 Verify x64 MSIX package is created in build-msix job
+- [x] T060 Verify ARM64 MSIX package is created in build-msix job
+- [x] T061 Verify MSIX bundle (pgtail.msixbundle) is created from x64 and ARM64 packages
+- [x] T062 Verify MSIX bundle is uploaded as GitHub Release artifact
+- [x] T063 Verify update-store job skipped for prerelease (correct behavior)
+- [x] T064 Download and locally test the MSIX bundle from GitHub Release
+- [x] T065 Delete RC tag and release after validation
 
 **Checkpoint**: CI/CD workflow validated - ready for production release
 
