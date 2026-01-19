@@ -34,8 +34,9 @@ This guide walks through the one-time setup required to enable Microsoft Store d
 2. Navigate to **Apps and games** → **New product** → **MSIX or PWA app**
 3. Reserve the name **"pgtail"**
 4. Note these values from the app overview:
-   - **Package Identity Name**: `12345Publisher.pgtail`
-   - **Publisher CN**: `CN=12345678-ABCD-...`
+   - **Package Identity Name**: `willibrandon.pgtail`
+   - **Publisher CN**: `CN=D5CABD13-9566-41E6-B3CA-A0F512C3FD38`
+   - **Store App ID**: `9NWX1SPCWFNQ`
 
 ## Phase 2: Azure AD App Setup
 
@@ -84,21 +85,23 @@ Add these secrets to your GitHub repository:
 | `STORE_TENANT_ID` | Directory (tenant) ID | Azure AD app |
 | `STORE_APP_ID` | App ID | Partner Center |
 
-## Phase 4: Update Manifest Placeholders
+## Phase 4: Manifest Placeholders
 
-Update `msix/AppxManifest.xml` with Partner Center values:
+The `msix/AppxManifest.xml` contains placeholders that are substituted during CI/CD build:
 
 ```xml
 <Identity
-  Name="YOUR_PACKAGE_IDENTITY_NAME"
-  Publisher="YOUR_PUBLISHER_CN"
+  Name="YOUR_PACKAGE_IDENTITY_NAME"     <!-- Replaced with STORE_PACKAGE_NAME secret -->
+  Publisher="YOUR_PUBLISHER_CN"          <!-- Replaced with STORE_PUBLISHER_CN secret -->
   ...
 />
 ```
 
-Replace:
-- `YOUR_PACKAGE_IDENTITY_NAME` → Package Identity Name from Partner Center
-- `YOUR_PUBLISHER_CN` → Publisher CN from Partner Center
+**Actual values for pgtail:**
+- `STORE_PACKAGE_NAME`: `willibrandon.pgtail`
+- `STORE_PUBLISHER_CN`: `CN=D5CABD13-9566-41E6-B3CA-A0F512C3FD38`
+
+These values are stored as GitHub secrets and substituted by the `build-msix` workflow job.
 
 ## Phase 5: First Submission (Manual)
 
@@ -138,6 +141,21 @@ gh run watch
 2. Monitor certification status (1-3 business days)
 3. Receive email notification on completion
 
+## Automatic Updates
+
+Microsoft Store handles automatic updates natively. When a new version is published:
+
+1. **Background download**: Windows downloads updates automatically
+2. **Install on next launch**: Updates apply when the app restarts
+3. **No user action required**: Users don't need to manually check for updates
+
+Users can also manually check for updates in Microsoft Store → Library → Get updates.
+
+**Troubleshooting update issues:**
+- "Update pending": Restart the app to apply the waiting update
+- "Update failed": Check Windows Update settings, ensure Microsoft Store is up to date
+- Old version persists: Try `winget upgrade pgtail` as fallback
+
 ## Troubleshooting
 
 ### "Package identity mismatch"
@@ -173,3 +191,26 @@ Azure AD client secrets expire. Before expiry:
 3. Delete old secret from Azure Portal
 
 Set a calendar reminder for rotation based on your chosen expiration.
+
+**Recommended schedule:**
+- Set secret expiration to 12-24 months
+- Create calendar reminder 2 weeks before expiry
+- Keep at most 2 active secrets during rotation
+
+## Verify GitHub Secrets
+
+Check that all required secrets are configured:
+
+```powershell
+# List all repository secrets (names only, not values)
+gh secret list
+
+# Expected secrets:
+# STORE_CLIENT_ID
+# STORE_CLIENT_SECRET
+# STORE_TENANT_ID
+# STORE_APP_ID
+# STORE_PACKAGE_NAME
+# STORE_PUBLISHER_CN
+# STORE_SELLER_ID (optional, for msstore-cli)
+```

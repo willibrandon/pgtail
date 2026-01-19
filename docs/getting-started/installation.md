@@ -37,6 +37,22 @@ brew install pgtail
 winget install willibrandon.pgtail
 ```
 
+## Microsoft Store (Windows)
+
+Install pgtail directly from the Microsoft Store for the easiest Windows experience:
+
+[![Get it from Microsoft](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/detail/9NWX1SPCWFNQ)
+
+Or search for **"pgtail"** in the Microsoft Store app.
+
+**Benefits:**
+- No SmartScreen warnings (Microsoft-signed)
+- Automatic updates via Microsoft Store
+- Works on both x64 and ARM64 Windows
+- Command available immediately as `pgtail` in any terminal
+
+**Note:** The Microsoft Store version is functionally identical to winget/MSI/ZIP installations.
+
 ## Binary Download
 
 Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest).
@@ -124,6 +140,7 @@ make lint # Lint code
 | pip / pipx / uv | All | Yes (3.10+) | Manual | |
 | Homebrew | macOS, Linux | No | `brew upgrade` | |
 | winget | Windows | No | `winget upgrade` | |
+| Microsoft Store | Windows | No | Automatic | x64 and ARM64, no SmartScreen |
 | MSI | Windows | No | Manual | Admin required, adds to PATH |
 | ZIP/tar.gz | All | No | Manual | Portable, extract and run |
 
@@ -175,6 +192,7 @@ Upgrade commands by installation method:
 | uv | `uv tool upgrade pgtail` |
 | Homebrew | `brew upgrade pgtail` |
 | winget | `winget upgrade willibrandon.pgtail` |
+| Microsoft Store | Automatic (or Microsoft Store → Library → Get updates) |
 | MSI | Download and run new MSI |
 | ZIP/tar.gz | Re-download and extract from [releases](https://github.com/willibrandon/pgtail/releases/latest) |
 

@@ -89,12 +89,15 @@ Any remediation containing these patterns will be INSTANTLY REJECTED by the user
 ## Commands
 
 ```bash
-make run      # Run from source
-make test     # Run all tests
-make lint     # Lint code
-make format   # Format code
-make build    # Build single executable
-make clean    # Remove build artifacts
+make run       # Run from source
+make test      # Run all tests
+make lint      # Lint code
+make format    # Format code
+make build     # Build single executable
+make msi       # Build Windows MSI installer
+make msix      # Build Windows MSIX package for Store
+make msix-test # Test MSIX install/uninstall cycle
+make clean     # Remove build artifacts
 ```
 
 ## Architecture
@@ -732,6 +735,39 @@ get_textual_doc(path="widgets/log.md")
 - `tail_status.py` - Status bar state
 - `tail_help.py` - HelpScreen modal
 - `tail_rich.py` - Rich text formatting
+
+## Windows Store Distribution
+
+pgtail is distributed via Microsoft Store for Windows users. The release workflow builds and submits MSIX packages automatically.
+
+**Workflow Jobs (in `.github/workflows/release.yml`):**
+- `build-windows`: Builds x64 Nuitka standalone executable
+- `build-windows-arm64`: Builds ARM64 Nuitka standalone executable (native `windows-11-arm` runner)
+- `build-msix`: Creates MSIX packages for both architectures, bundles into `.msixbundle`
+- `update-store`: Submits MSIXBUNDLE to Microsoft Store via Partner Center API
+
+**MSIX Structure (`msix/` directory):**
+- `AppxManifest.xml`: Package manifest with placeholders for identity (substituted at build time)
+- `Assets/`: Logo assets (StoreLogo, Square44x44, Square150x150, Wide310x150)
+
+**GitHub Secrets Required:**
+- `STORE_CLIENT_ID`: Azure AD application ID
+- `STORE_CLIENT_SECRET`: Azure AD client secret
+- `STORE_TENANT_ID`: Azure AD tenant ID
+- `STORE_APP_ID`: Partner Center app ID (`9NWX1SPCWFNQ`)
+- `STORE_PACKAGE_NAME`: Package identity name (`willibrandon.pgtail`)
+- `STORE_PUBLISHER_CN`: Publisher CN (`CN=D5CABD13-9566-41E6-B3CA-A0F512C3FD38`)
+
+**Local Testing:**
+```powershell
+make msix       # Build local MSIX package (generates self-signed cert)
+make msix-test  # Install, test, and uninstall the package
+```
+
+**Key Files:**
+- `scripts/build-msix.ps1`: Local MSIX build script
+- `scripts/test-msix.ps1`: Local install/test/uninstall cycle
+- `specs/024-windows-store/quickstart.md`: Setup documentation
 
 ## Active Technologies
 - N/A (no persistence required) (018-textual-sql-highlighting)

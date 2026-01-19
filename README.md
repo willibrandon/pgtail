@@ -76,6 +76,16 @@ brew install pgtail
 winget install willibrandon.pgtail
 ```
 
+### Microsoft Store (Windows)
+
+Install pgtail from the Microsoft Store for automatic updates and no SmartScreen warnings:
+
+<a href="https://apps.microsoft.com/detail/9NWX1SPCWFNQ">
+  <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" width="200"/>
+</a>
+
+Or search for "pgtail" in the Microsoft Store app.
+
 ### Binary Download
 
 Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest).

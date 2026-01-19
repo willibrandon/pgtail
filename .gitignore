@@ -50,3 +50,6 @@ pgtail.spec
 # MCP servers
 .mcp.json
 site/
+# MSIX build artifacts
+msix/pgtail.pfx
+msix-stage-local/

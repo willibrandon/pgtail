@@ -19,11 +19,11 @@
 
 **Purpose**: Create MSIX directory structure and generate logo assets
 
-- [ ] T001 Create `msix/` directory structure per plan.md
-- [ ] T002 [P] Generate StoreLogo.png (50x50) from art/pgtail.ico using ImageMagick in msix/Assets/StoreLogo.png
-- [ ] T003 [P] Generate Square44x44Logo.png (44x44) from art/pgtail.ico in msix/Assets/Square44x44Logo.png
-- [ ] T004 [P] Generate Square150x150Logo.png (150x150) from art/pgtail.ico in msix/Assets/Square150x150Logo.png
-- [ ] T005 [P] Generate Wide310x150Logo.png (310x150) from art/pgtail.ico in msix/Assets/Wide310x150Logo.png
+- [x] T001 Create `msix/` directory structure per plan.md
+- [x] T002 [P] Generate StoreLogo.png (50x50) from art/pgtail.ico using ImageMagick in msix/Assets/StoreLogo.png
+- [x] T003 [P] Generate Square44x44Logo.png (44x44) from art/pgtail.ico in msix/Assets/Square44x44Logo.png
+- [x] T004 [P] Generate Square150x150Logo.png (150x150) from art/pgtail.ico in msix/Assets/Square150x150Logo.png
+- [x] T005 [P] Generate Wide310x150Logo.png (310x150) from art/pgtail.ico in msix/Assets/Wide310x150Logo.png
 
 ---
 
@@ -33,11 +33,11 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create AppxManifest.xml template with Identity placeholders in msix/AppxManifest.xml
-- [ ] T007 Add AppExecutionAlias extension with `desktop4:Subsystem="console"` for `pgtail.exe` in msix/AppxManifest.xml
-- [ ] T008 Add `runFullTrust` capability declaration in msix/AppxManifest.xml
-- [ ] T009 Add logo asset references (StoreLogo, Square44x44Logo, Square150x150Logo, Wide310x150Logo) in msix/AppxManifest.xml
-- [ ] T010 Add TargetDeviceFamily for Windows 10 1809 (build 17763) minimum in msix/AppxManifest.xml
+- [x] T006 Create AppxManifest.xml template with Identity placeholders in msix/AppxManifest.xml
+- [x] T007 Add AppExecutionAlias extension with `desktop4:Subsystem="console"` for `pgtail.exe` in msix/AppxManifest.xml
+- [x] T008 Add `runFullTrust` capability declaration in msix/AppxManifest.xml
+- [x] T009 Add logo asset references (StoreLogo, Square44x44Logo, Square150x150Logo, Wide310x150Logo) in msix/AppxManifest.xml
+- [x] T010 Add TargetDeviceFamily for Windows 10 1809 (build 17763) minimum in msix/AppxManifest.xml
 
 **Checkpoint**: Foundation ready - manifest template complete, user story implementation can begin
 
@@ -51,18 +51,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Add `build-windows-arm64` job to .github/workflows/release.yml using `windows-11-arm` runner
-- [ ] T012 [US1] Configure Nuitka ARM64 build with `--mode=standalone` in build-windows-arm64 job
-- [ ] T013 [US1] Add `build-msix` job that depends on both x64 and ARM64 build jobs in .github/workflows/release.yml
-- [ ] T014 [US1] Add step to substitute Package Identity Name from `STORE_PACKAGE_NAME` secret into AppxManifest.xml in build-msix job
-- [ ] T015 [US1] Add step to substitute Publisher CN from `STORE_PUBLISHER_CN` secret into AppxManifest.xml in build-msix job
-- [ ] T016 [US1] Add step to convert semantic version to X.Y.Z.0 format for MSIX in build-msix job
-- [ ] T017 [US1] Add step to create msix-stage-x64/ directory with manifest, assets, and Nuitka output in build-msix job
-- [ ] T018 [US1] Add step to create msix-stage-arm64/ directory with manifest, assets, and Nuitka output in build-msix job
-- [ ] T019 [US1] Add step to run `makeappx pack` for x64 MSIX package in build-msix job
-- [ ] T020 [US1] Add step to run `makeappx pack` for ARM64 MSIX package in build-msix job
-- [ ] T021 [US1] Add step to run `makeappx bundle` to create pgtail.msixbundle from x64 and ARM64 packages in build-msix job
-- [ ] T022 [US1] Add step to upload pgtail.msixbundle as GitHub Release artifact in build-msix job
+- [x] T011 [US1] Add `build-windows-arm64` job to .github/workflows/release.yml using `windows-11-arm` runner
+- [x] T012 [US1] Configure Nuitka ARM64 build with `--mode=standalone` in build-windows-arm64 job
+- [x] T013 [US1] Add `build-msix` job that depends on both x64 and ARM64 build jobs in .github/workflows/release.yml
+- [x] T014 [US1] Add step to substitute Package Identity Name from `STORE_PACKAGE_NAME` secret into AppxManifest.xml in build-msix job
+- [x] T015 [US1] Add step to substitute Publisher CN from `STORE_PUBLISHER_CN` secret into AppxManifest.xml in build-msix job
+- [x] T016 [US1] Add step to convert semantic version to X.Y.Z.0 format for MSIX in build-msix job
+- [x] T017 [US1] Add step to create msix-stage-x64/ directory with manifest, assets, and Nuitka output in build-msix job
+- [x] T018 [US1] Add step to create msix-stage-arm64/ directory with manifest, assets, and Nuitka output in build-msix job
+- [x] T019 [US1] Add step to run `makeappx pack` for x64 MSIX package in build-msix job
+- [x] T020 [US1] Add step to run `makeappx pack` for ARM64 MSIX package in build-msix job
+- [x] T021 [US1] Add step to run `makeappx bundle` to create pgtail.msixbundle from x64 and ARM64 packages in build-msix job
+- [x] T022 [US1] Add step to upload pgtail.msixbundle as GitHub Release artifact in build-msix job
 
 **Checkpoint**: MSIX bundle builds and uploads on every release tag - ready for manual Store submission
 
@@ -76,7 +76,7 @@
 
 **Note**: This user story is satisfied by User Story 1 + User Story 3 - Microsoft Store handles automatic updates natively. No additional implementation required beyond building and submitting MSIX packages.
 
-- [ ] T023 [US2] Document automatic update behavior in quickstart.md troubleshooting section
+- [x] T023 [US2] Document automatic update behavior in quickstart.md troubleshooting section
 
 **Checkpoint**: Automatic updates work via native Store functionality
 
@@ -90,18 +90,18 @@
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Add `update-store` job that depends on build-msix in .github/workflows/release.yml
-- [ ] T025 [US3] Add step to authenticate with Partner Center API using OAuth2 client credentials flow in update-store job
-- [ ] T026 [US3] Add step to get application info and check for pending submission in update-store job
-- [ ] T027 [US3] Add step to delete pending submission if exists (409 Conflict handling) in update-store job
-- [ ] T028 [US3] Add step to create new submission and get fileUploadUrl in update-store job
-- [ ] T029 [US3] Add step to update submission with package metadata in update-store job
-- [ ] T030 [US3] Add step to create submission.zip containing pgtail.msixbundle in update-store job
-- [ ] T031 [US3] Add step to upload submission.zip to Azure Blob Storage via SAS URL with retry logic (3 retries, 30s/60s/120s backoff) in update-store job
-- [ ] T032 [US3] Add step to commit submission in update-store job
-- [ ] T033 [US3] Add step to poll submission status until it leaves `CommitStarted` state in update-store job
-- [ ] T034 [US3] Add step to fail workflow if status is not `PreProcessing` or `Certification` in update-store job
-- [ ] T035 [US3] Add workflow output summary with submission ID and status in update-store job
+- [x] T024 [US3] Add `update-store` job that depends on build-msix in .github/workflows/release.yml
+- [x] T025 [US3] Add step to authenticate with Partner Center API using OAuth2 client credentials flow in update-store job
+- [x] T026 [US3] Add step to get application info and check for pending submission in update-store job
+- [x] T027 [US3] Add step to delete pending submission if exists (409 Conflict handling) in update-store job
+- [x] T028 [US3] Add step to create new submission and get fileUploadUrl in update-store job
+- [x] T029 [US3] Add step to update submission with package metadata in update-store job
+- [x] T030 [US3] Add step to create submission.zip containing pgtail.msixbundle in update-store job
+- [x] T031 [US3] Add step to upload submission.zip to Azure Blob Storage via SAS URL with retry logic (3 retries, 30s/60s/120s backoff) in update-store job
+- [x] T032 [US3] Add step to commit submission in update-store job
+- [x] T033 [US3] Add step to poll submission status until it leaves `CommitStarted` state in update-store job
+- [x] T034 [US3] Add step to fail workflow if status is not `PreProcessing` or `Certification` in update-store job
+- [x] T035 [US3] Add workflow output summary with submission ID and status in update-store job
 
 **Checkpoint**: Store submission automation complete - every release tag triggers Store update
 
@@ -115,11 +115,11 @@
 
 **Note**: Most of this user story is already complete (developer account, app reservation, Azure AD, GitHub secrets). Remaining tasks document and finalize setup.
 
-- [ ] T036 [US4] Update quickstart.md with actual Package Identity Name (`willibrandon.pgtail`) in Phase 4 section
-- [ ] T037 [US4] Update quickstart.md with actual Publisher CN (`CN=D5CABD13-9566-41E6-B3CA-A0F512C3FD38`) in Phase 4 section
-- [ ] T038 [US4] Update quickstart.md with actual Store App ID (`9NWX1SPCWFNQ`) in Phase 3 section
-- [ ] T039 [US4] Document secret rotation schedule in quickstart.md (client secret expiration)
-- [ ] T040 [US4] Add GitHub secrets list verification command example in quickstart.md
+- [x] T036 [US4] Update quickstart.md with actual Package Identity Name (`willibrandon.pgtail`) in Phase 4 section
+- [x] T037 [US4] Update quickstart.md with actual Publisher CN (`CN=D5CABD13-9566-41E6-B3CA-A0F512C3FD38`) in Phase 4 section
+- [x] T038 [US4] Update quickstart.md with actual Store App ID (`9NWX1SPCWFNQ`) in Phase 3 section
+- [x] T039 [US4] Document secret rotation schedule in quickstart.md (client secret expiration)
+- [x] T040 [US4] Add GitHub secrets list verification command example in quickstart.md
 
 **Checkpoint**: Setup documentation complete with real values
 
@@ -129,22 +129,40 @@
 
 **Purpose**: Finalize implementation and handle edge cases
 
-- [ ] T041 [P] Add workflow timeout of 30 minutes to all Windows Store jobs in .github/workflows/release.yml
-- [ ] T042 [P] Add error handling for Package Identity mismatch with clear error message in build-msix job
-- [ ] T043 [P] Add version format validation to reject invalid tags gracefully in build-msix job
-- [ ] T044 [P] Add MSIX package size check (warn if >35MB) in build-msix job
-- [ ] T045 [P] Create scripts/build-msix.ps1 for local MSIX builds (generates self-signed cert, builds package)
-- [ ] T046 [P] Add Windows SDK and ImageMagick install check to scripts/build-msix.ps1 with install instructions on failure
-- [ ] T047 [P] Create scripts/test-msix.ps1 for local install/test/uninstall cycle
-- [ ] T048 [P] Add `make msix` target to Makefile that runs build-msix.ps1
-- [ ] T049 Document local MSIX testing workflow in docs/development/msix-testing.md
-- [ ] T050 Verify AppExecutionAlias creates `pgtail.exe` stub in WindowsApps (manual local test)
-- [ ] T051 Verify MSIX uninstall removes all components cleanly (manual local test)
-- [ ] T052 Update CLAUDE.md with Windows Store distribution section documenting workflow jobs
-- [ ] T053 [P] Update README.md with Microsoft Store installation option in Installation section
-- [ ] T054 [P] Add docs/installation/windows-store.md with Store installation instructions for mkdocs
-- [ ] T055 [P] Update docs/installation/index.md to include Windows Store as installation method
+- [x] T041 [P] Add workflow timeout of 30 minutes to all Windows Store jobs in .github/workflows/release.yml
+- [x] T042 [P] Add error handling for Package Identity mismatch with clear error message in build-msix job
+- [x] T043 [P] Add version format validation to reject invalid tags gracefully in build-msix job
+- [x] T044 [P] Add MSIX package size check (warn if >35MB) in build-msix job
+- [x] T045 [P] Create scripts/build-msix.ps1 for local MSIX builds (generates self-signed cert, builds package)
+- [x] T046 [P] Add Windows SDK and ImageMagick install check to scripts/build-msix.ps1 with install instructions on failure
+- [x] T047 [P] Create scripts/test-msix.ps1 for local install/test/uninstall cycle
+- [x] T048 [P] Add `make msix` target to Makefile that runs build-msix.ps1
+- [x] T049 Document local MSIX testing workflow in scripts/build-msix.ps1 and scripts/test-msix.ps1 (scripts are self-documenting)
+- [x] T050 Verify AppExecutionAlias creates `pgtail.exe` stub in WindowsApps (manual local test)
+- [x] T051 Verify MSIX uninstall removes all components cleanly (manual local test)
+- [x] T052 Update CLAUDE.md with Windows Store distribution section documenting workflow jobs
+- [x] T053 [P] Update README.md with Microsoft Store installation option in Installation section
+- [x] T054 [P] Add docs/installation/windows-store.md with Store installation instructions for mkdocs
+- [x] T055 [P] Update docs/installation/index.md to include Windows Store as installation method
 - [ ] T056 Commit msix/ directory with AppxManifest.xml and Assets/ to repository
+
+---
+
+## Phase 8: RC Release Validation
+
+**Purpose**: Validate CI/CD workflow with a release candidate before production release
+
+- [ ] T057 Push RC tag (e.g., `v0.5.1-rc1`) to trigger release workflow
+- [ ] T058 Verify ARM64 build job completes successfully on `windows-11-arm` runner
+- [ ] T059 Verify x64 MSIX package is created in build-msix job
+- [ ] T060 Verify ARM64 MSIX package is created in build-msix job
+- [ ] T061 Verify MSIX bundle (pgtail.msixbundle) is created from x64 and ARM64 packages
+- [ ] T062 Verify MSIX bundle is uploaded as GitHub Release artifact
+- [ ] T063 Verify update-store job runs (may fail if Store secrets not configured for test)
+- [ ] T064 Download and locally test the MSIX bundle from GitHub Release
+- [ ] T065 Delete RC tag and release after validation: `git push origin :refs/tags/v0.5.1-rc1`
+
+**Checkpoint**: CI/CD workflow validated - ready for production release
 
 ---
 

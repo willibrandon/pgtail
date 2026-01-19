@@ -323,9 +323,260 @@ jobs:
           path: dist/pgtail-windows-x86_64.msi
           retention-days: 1
 
+  # Build binary for Windows ARM64 (native ARM64 runner)
+  build-windows-arm64:
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build binary with Nuitka
+        run: |
+          uv run nuitka `
+            --mode=standalone `
+            --output-dir=dist `
+            --output-filename=pgtail `
+            --windows-icon-from-ico=art/pgtail.ico `
+            --include-package=pgtail_py `
+            --include-package=psutil `
+            --include-package-data=certifi `
+            --include-module=pgtail_py.detector_unix `
+            --include-module=pgtail_py.detector_windows `
+            --include-module=pgtail_py.notifier_unix `
+            --include-module=pgtail_py.notifier_windows `
+            --nofollow-import-to=psutil.tests `
+            --python-flag=no_asserts `
+            --python-flag=-m `
+            --assume-yes-for-downloads `
+            pgtail_py
+
+      - name: Rename output directory
+        shell: pwsh
+        run: |
+          # Nuitka outputs to pgtail.dist/, pgtail_py.dist/, or __main__.dist/
+          if (Test-Path "dist\pgtail.dist") {
+            Move-Item "dist\pgtail.dist" "dist\pgtail-windows-arm64"
+          } elseif (Test-Path "dist\pgtail_py.dist") {
+            Move-Item "dist\pgtail_py.dist" "dist\pgtail-windows-arm64"
+          } elseif (Test-Path "dist\__main__.dist") {
+            Move-Item "dist\__main__.dist" "dist\pgtail-windows-arm64"
+          } else {
+            Write-Error "Nuitka output directory not found"
+            Get-ChildItem dist\
+            exit 1
+          }
+
+      - name: Verify binary runs
+        run: |
+          .\dist\pgtail-windows-arm64\pgtail.exe --version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtail-windows-arm64
+          path: dist/pgtail-windows-arm64
+          retention-days: 1
+
+  # Build MSIX bundle for Microsoft Store submission
+  build-msix:
+    needs: [build-windows, build-windows-arm64]
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download x64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: pgtail-windows-x86_64
+          path: artifacts/x64
+
+      - name: Download ARM64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: pgtail-windows-arm64
+          path: artifacts/arm64
+
+      - name: Extract x64 ZIP
+        shell: pwsh
+        run: |
+          Expand-Archive -Path artifacts/x64/pgtail-windows-x86_64.zip -DestinationPath artifacts/x64/extracted
+
+      - name: Convert version to MSIX format
+        id: version
+        shell: pwsh
+        run: |
+          # Strip 'v' prefix and any prerelease suffix, append .0 for MSIX
+          $fullVersion = "${{ github.ref_name }}" -replace '^v', ''
+          $msixVersion = ($fullVersion -replace '-.*$', '') + ".0"
+          echo "msix_version=$msixVersion" >> $env:GITHUB_OUTPUT
+          echo "full_version=$fullVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Full version: $fullVersion, MSIX version: $msixVersion"
+
+      - name: Validate version format
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.msix_version }}"
+          if ($version -notmatch '^\d+\.\d+\.\d+\.0$') {
+            Write-Error "Invalid MSIX version format: $version (expected X.Y.Z.0)"
+            exit 1
+          }
+
+      - name: Substitute Package Identity in manifest
+        shell: pwsh
+        run: |
+          $manifest = Get-Content msix/AppxManifest.xml -Raw
+          $manifest = $manifest -replace 'YOUR_PACKAGE_IDENTITY_NAME', '${{ secrets.STORE_PACKAGE_NAME }}'
+          $manifest = $manifest -replace 'YOUR_PUBLISHER_CN', '${{ secrets.STORE_PUBLISHER_CN }}'
+          Set-Content -Path msix/AppxManifest.xml -Value $manifest
+          Write-Host "Updated AppxManifest.xml with Package Identity"
+
+      - name: Validate Package Identity substitution
+        shell: pwsh
+        run: |
+          $manifest = Get-Content msix/AppxManifest.xml -Raw
+          if ($manifest -match 'YOUR_PACKAGE_IDENTITY_NAME' -or $manifest -match 'YOUR_PUBLISHER_CN') {
+            Write-Error "Package Identity placeholders not substituted. Check STORE_PACKAGE_NAME and STORE_PUBLISHER_CN secrets."
+            exit 1
+          }
+          Write-Host "Package Identity validated"
+
+      - name: Create x64 MSIX staging directory
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.msix_version }}"
+
+          # Create staging directory
+          New-Item -ItemType Directory -Path msix-stage-x64 -Force
+
+          # Copy manifest and substitute version/architecture
+          $manifest = Get-Content msix/AppxManifest.xml -Raw
+          $manifest = $manifest -replace 'Version="0\.0\.0\.0"', "Version=`"$version`""
+          $manifest = $manifest -replace 'ProcessorArchitecture="PROCESSOR_ARCHITECTURE"', 'ProcessorArchitecture="x64"'
+          Set-Content -Path msix-stage-x64/AppxManifest.xml -Value $manifest
+
+          # Copy assets
+          Copy-Item -Path msix/Assets -Destination msix-stage-x64/Assets -Recurse
+
+          # Copy Nuitka output to pgtail subdirectory (matches Executable path in manifest)
+          Copy-Item -Path artifacts/x64/extracted/pgtail-windows-x86_64 -Destination msix-stage-x64/pgtail -Recurse
+
+          # Verify structure
+          Write-Host "x64 staging directory structure:"
+          Get-ChildItem -Recurse msix-stage-x64 | Select-Object FullName
+
+      - name: Create ARM64 MSIX staging directory
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.msix_version }}"
+
+          # Create staging directory
+          New-Item -ItemType Directory -Path msix-stage-arm64 -Force
+
+          # Copy manifest and substitute version/architecture
+          $manifest = Get-Content msix/AppxManifest.xml -Raw
+          $manifest = $manifest -replace 'Version="0\.0\.0\.0"', "Version=`"$version`""
+          $manifest = $manifest -replace 'ProcessorArchitecture="PROCESSOR_ARCHITECTURE"', 'ProcessorArchitecture="arm64"'
+          Set-Content -Path msix-stage-arm64/AppxManifest.xml -Value $manifest
+
+          # Copy assets
+          Copy-Item -Path msix/Assets -Destination msix-stage-arm64/Assets -Recurse
+
+          # Copy Nuitka output to pgtail subdirectory (matches Executable path in manifest)
+          Copy-Item -Path artifacts/arm64 -Destination msix-stage-arm64/pgtail -Recurse
+
+          # Verify structure
+          Write-Host "ARM64 staging directory structure:"
+          Get-ChildItem -Recurse msix-stage-arm64 | Select-Object FullName
+
+      - name: Build x64 MSIX package
+        shell: pwsh
+        run: |
+          # MakeAppx.exe is in Windows SDK
+          $sdkPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
+                     Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+                     Select-Object -First 1
+          Write-Host "Using MakeAppx from: $($sdkPath.FullName)"
+
+          & $sdkPath.FullName pack /d msix-stage-x64 /p pgtail-x64.msix /nv
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create x64 MSIX package"
+            exit 1
+          }
+
+      - name: Build ARM64 MSIX package
+        shell: pwsh
+        run: |
+          $sdkPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
+                     Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+                     Select-Object -First 1
+
+          & $sdkPath.FullName pack /d msix-stage-arm64 /p pgtail-arm64.msix /nv
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create ARM64 MSIX package"
+            exit 1
+          }
+
+      - name: Create MSIX bundle
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.msix_version }}"
+
+          # Create directory containing both MSIX packages
+          New-Item -ItemType Directory -Path msix-packages -Force
+          Move-Item pgtail-x64.msix msix-packages/
+          Move-Item pgtail-arm64.msix msix-packages/
+
+          $sdkPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
+                     Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+                     Select-Object -First 1
+
+          & $sdkPath.FullName bundle /d msix-packages /p pgtail.msixbundle /bv $version
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create MSIX bundle"
+            exit 1
+          }
+
+          Write-Host "Created pgtail.msixbundle"
+          Get-Item pgtail.msixbundle | Select-Object Name, Length
+
+      - name: Check MSIX bundle size
+        shell: pwsh
+        run: |
+          $bundle = Get-Item pgtail.msixbundle
+          $sizeMB = [math]::Round($bundle.Length / 1MB, 2)
+          Write-Host "MSIX bundle size: $sizeMB MB"
+
+          if ($bundle.Length -gt 35MB) {
+            Write-Warning "MSIX bundle exceeds 35MB: $sizeMB MB"
+          }
+
+      - name: Upload MSIX bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtail-msixbundle
+          path: pgtail.msixbundle
+          retention-days: 1
+
   # Create release with all binaries
   release:
-    needs: [build-unix, build-windows]
+    needs: [build-unix, build-windows, build-msix]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -335,6 +586,7 @@ jobs:
       sha256_linux_arm64: ${{ steps.checksums.outputs.sha256_linux_arm64 }}
       sha256_windows_x86_64: ${{ steps.checksums.outputs.sha256_windows_x86_64 }}
       sha256_windows_msi: ${{ steps.checksums.outputs.sha256_windows_msi }}
+      sha256_msixbundle: ${{ steps.checksums.outputs.sha256_msixbundle }}
 
     steps:
       - name: Record workflow start time
@@ -356,6 +608,7 @@ jobs:
           mv artifacts/pgtail-linux-arm64/pgtail-linux-arm64.tar.gz release/
           mv artifacts/pgtail-windows-x86_64/pgtail-windows-x86_64.zip release/
           mv artifacts/pgtail-windows-x86_64-msi/pgtail-windows-x86_64.msi release/
+          mv artifacts/pgtail-msixbundle/pgtail.msixbundle release/
 
       - name: Check archive sizes
         run: |
@@ -381,6 +634,7 @@ jobs:
           sha256sum pgtail-linux-arm64.tar.gz > pgtail-linux-arm64.tar.gz.sha256
           sha256sum pgtail-windows-x86_64.zip > pgtail-windows-x86_64.zip.sha256
           sha256sum pgtail-windows-x86_64.msi > pgtail-windows-x86_64.msi.sha256
+          sha256sum pgtail.msixbundle > pgtail.msixbundle.sha256
 
           # Export checksums as outputs for downstream jobs
           echo "sha256_macos_arm64=$(cut -d' ' -f1 pgtail-macos-arm64.tar.gz.sha256)" >> $GITHUB_OUTPUT
@@ -389,6 +643,7 @@ jobs:
           echo "sha256_linux_arm64=$(cut -d' ' -f1 pgtail-linux-arm64.tar.gz.sha256)" >> $GITHUB_OUTPUT
           echo "sha256_windows_x86_64=$(cut -d' ' -f1 pgtail-windows-x86_64.zip.sha256)" >> $GITHUB_OUTPUT
           echo "sha256_windows_msi=$(cut -d' ' -f1 pgtail-windows-x86_64.msi.sha256)" >> $GITHUB_OUTPUT
+          echo "sha256_msixbundle=$(cut -d' ' -f1 pgtail.msixbundle.sha256)" >> $GITHUB_OUTPUT
 
           # Display checksums
           echo "SHA256 Checksums:"
@@ -410,6 +665,8 @@ jobs:
             release/pgtail-windows-x86_64.zip.sha256
             release/pgtail-windows-x86_64.msi
             release/pgtail-windows-x86_64.msi.sha256
+            release/pgtail.msixbundle
+            release/pgtail.msixbundle.sha256
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -612,9 +869,288 @@ jobs:
             --title "Update willibrandon.pgtail to $version" `
             --body "## Description`n`nUpdate pgtail to version $version`n`n## Release notes`n`nhttps://github.com/willibrandon/pgtail/releases/tag/v$version"
 
+  # Submit MSIX bundle to Microsoft Store via Partner Center API
+  update-store:
+    needs: [build-msix, release]
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Download MSIX bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: pgtail-msixbundle
+          path: artifacts
+
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Submitting version $version to Microsoft Store"
+
+      - name: Get OAuth access token
+        id: auth
+        shell: pwsh
+        run: |
+          $body = @{
+            grant_type    = "client_credentials"
+            client_id     = "${{ secrets.STORE_CLIENT_ID }}"
+            client_secret = "${{ secrets.STORE_CLIENT_SECRET }}"
+            resource      = "https://manage.devcenter.microsoft.com"
+          }
+
+          $response = Invoke-RestMethod -Method Post `
+            -Uri "https://login.microsoftonline.com/${{ secrets.STORE_TENANT_ID }}/oauth2/token" `
+            -Body $body
+
+          # Mask token in logs
+          Write-Host "::add-mask::$($response.access_token)"
+          echo "token=$($response.access_token)" >> $env:GITHUB_OUTPUT
+          Write-Host "OAuth token obtained successfully"
+
+      - name: Get application and check for pending submission
+        id: app_info
+        shell: pwsh
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:TOKEN"
+          }
+
+          $app = Invoke-RestMethod -Method Get `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/${{ secrets.STORE_APP_ID }}" `
+            -Headers $headers
+
+          Write-Host "Application: $($app.primaryName)"
+          Write-Host "Package Family: $($app.packageFamilyName)"
+
+          if ($app.pendingApplicationSubmission) {
+            $pendingId = $app.pendingApplicationSubmission.id
+            Write-Host "Pending submission found: $pendingId"
+            echo "pending_id=$pendingId" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "No pending submission"
+            echo "pending_id=" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Delete pending submission if exists
+        if: steps.app_info.outputs.pending_id != ''
+        shell: pwsh
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:TOKEN"
+          }
+
+          $pendingId = "${{ steps.app_info.outputs.pending_id }}"
+          Write-Host "Deleting pending submission: $pendingId"
+
+          Invoke-RestMethod -Method Delete `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/${{ secrets.STORE_APP_ID }}/submissions/$pendingId" `
+            -Headers $headers
+
+          Write-Host "Pending submission deleted"
+
+      - name: Create new submission
+        id: create_submission
+        shell: pwsh
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:TOKEN"
+          }
+
+          $submission = Invoke-RestMethod -Method Post `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/${{ secrets.STORE_APP_ID }}/submissions" `
+            -Headers $headers
+
+          Write-Host "Created submission: $($submission.id)"
+          Write-Host "Status: $($submission.status)"
+          Write-Host "Upload URL obtained"
+
+          # Mask the SAS URL in logs
+          Write-Host "::add-mask::$($submission.fileUploadUrl)"
+
+          echo "submission_id=$($submission.id)" >> $env:GITHUB_OUTPUT
+          echo "upload_url=$($submission.fileUploadUrl)" >> $env:GITHUB_OUTPUT
+
+          # Save submission for update
+          $submission | ConvertTo-Json -Depth 10 | Out-File -FilePath submission.json -Encoding utf8
+
+      - name: Update submission with package metadata
+        shell: pwsh
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          $headers = @{
+            Authorization  = "Bearer $env:TOKEN"
+            "Content-Type" = "application/json"
+          }
+
+          # Read current submission
+          $submission = Get-Content submission.json | ConvertFrom-Json
+
+          # Update package info
+          $submission.applicationPackages = @(
+            @{
+              fileName              = "pgtail.msixbundle"
+              fileStatus            = "PendingUpload"
+              minimumDirectXVersion = "None"
+              minimumSystemRam      = "None"
+            }
+          )
+
+          $body = $submission | ConvertTo-Json -Depth 10
+
+          $updated = Invoke-RestMethod -Method Put `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/${{ secrets.STORE_APP_ID }}/submissions/${{ steps.create_submission.outputs.submission_id }}" `
+            -Headers $headers `
+            -Body $body
+
+          Write-Host "Submission updated with package metadata"
+
+      - name: Create submission ZIP
+        shell: pwsh
+        run: |
+          # Partner Center requires the MSIX bundle inside a ZIP
+          Compress-Archive -Path artifacts/pgtail.msixbundle -DestinationPath submission.zip
+          Write-Host "Created submission.zip"
+          Get-Item submission.zip | Select-Object Name, Length
+
+      - name: Upload to Azure Blob Storage
+        shell: pwsh
+        env:
+          UPLOAD_URL: ${{ steps.create_submission.outputs.upload_url }}
+        run: |
+          $maxRetries = 3
+          $delays = @(30, 60, 120)
+
+          for ($i = 0; $i -lt $maxRetries; $i++) {
+            try {
+              Write-Host "Upload attempt $($i + 1) of $maxRetries..."
+
+              $headers = @{
+                "x-ms-blob-type" = "BlockBlob"
+              }
+
+              Invoke-RestMethod -Method Put `
+                -Uri $env:UPLOAD_URL `
+                -Headers $headers `
+                -InFile submission.zip `
+                -ContentType "application/zip"
+
+              Write-Host "Upload successful"
+              break
+            } catch {
+              Write-Host "Upload failed: $_"
+              if ($i -eq $maxRetries - 1) {
+                throw "Upload failed after $maxRetries attempts"
+              }
+              Write-Host "Retrying in $($delays[$i]) seconds..."
+              Start-Sleep -Seconds $delays[$i]
+            }
+          }
+
+      - name: Commit submission
+        id: commit
+        shell: pwsh
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:TOKEN"
+          }
+
+          $result = Invoke-RestMethod -Method Post `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/${{ secrets.STORE_APP_ID }}/submissions/${{ steps.create_submission.outputs.submission_id }}/commit" `
+            -Headers $headers
+
+          Write-Host "Commit initiated: $($result.status)"
+
+      - name: Poll submission status
+        id: poll
+        shell: pwsh
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:TOKEN"
+          }
+
+          $maxPolls = 30
+          $pollInterval = 30  # seconds
+
+          for ($i = 0; $i -lt $maxPolls; $i++) {
+            $status = Invoke-RestMethod -Method Get `
+              -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/${{ secrets.STORE_APP_ID }}/submissions/${{ steps.create_submission.outputs.submission_id }}/status" `
+              -Headers $headers
+
+            Write-Host "Poll $($i + 1): Status = $($status.status)"
+
+            if ($status.status -ne "CommitStarted") {
+              echo "final_status=$($status.status)" >> $env:GITHUB_OUTPUT
+
+              if ($status.statusDetails.errors.Count -gt 0) {
+                Write-Host "Errors:"
+                $status.statusDetails.errors | ForEach-Object { Write-Host "  - $($_.code): $($_.details)" }
+              }
+
+              if ($status.statusDetails.warnings.Count -gt 0) {
+                Write-Host "Warnings:"
+                $status.statusDetails.warnings | ForEach-Object { Write-Host "  - $($_.code): $($_.details)" }
+              }
+
+              break
+            }
+
+            Start-Sleep -Seconds $pollInterval
+          }
+
+          if ($status.status -eq "CommitStarted") {
+            Write-Host "::warning::Polling timed out, submission still processing"
+            echo "final_status=CommitStarted" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Validate final status
+        shell: pwsh
+        run: |
+          $status = "${{ steps.poll.outputs.final_status }}"
+          $validStatuses = @("PreProcessing", "Certification", "Release", "Publishing")
+
+          if ($status -in $validStatuses) {
+            Write-Host "Submission successful: $status"
+          } elseif ($status -eq "CommitStarted") {
+            Write-Host "::warning::Submission still processing, check Partner Center for status"
+          } else {
+            Write-Error "Submission failed with status: $status"
+            exit 1
+          }
+
+      - name: Output workflow summary
+        shell: pwsh
+        run: |
+          $summary = @"
+          ## Microsoft Store Submission
+
+          | Field | Value |
+          |-------|-------|
+          | Version | ${{ steps.version.outputs.version }} |
+          | Submission ID | ${{ steps.create_submission.outputs.submission_id }} |
+          | Final Status | ${{ steps.poll.outputs.final_status }} |
+
+          View submission in [Partner Center](https://partner.microsoft.com/dashboard/apps/${{ secrets.STORE_APP_ID }}/submissions)
+          "@
+
+          echo $summary >> $env:GITHUB_STEP_SUMMARY
+
   # Notify on failure
   notify-failure:
-    needs: [build-unix, build-windows, release, update-homebrew, update-winget]
+    needs: [build-unix, build-windows, build-windows-arm64, build-msix, release, update-homebrew, update-winget, update-store]
     if: failure()
     runs-on: ubuntu-latest
     steps:

@@ -1,4 +1,4 @@
-.PHONY: help run test test-perf lint format build build-test msi clean shell docs docs-serve
+.PHONY: help run test test-perf lint format build build-test msi msix msix-test clean shell docs docs-serve
 
 # Detect OS for platform-specific commands
 ifeq ($(OS),Windows_NT)
@@ -21,6 +21,8 @@ help:
 	@echo "  build      Build standalone executable with Nuitka"
 	@echo "  build-test Verify build works (runs --version)"
 	@echo "  msi        Build Windows MSI installer (Windows only, requires WiX)"
+	@echo "  msix       Build Windows MSIX package (Windows only, requires Windows SDK)"
+	@echo "  msix-test  Test MSIX package install/uninstall (Windows only, requires admin)"
 	@echo "  clean      Remove build artifacts"
 	@echo "  shell      Enter virtual environment shell"
 	@echo "  docs       Build documentation site"
@@ -86,6 +88,24 @@ else
 	@exit 1
 endif
 
+msix:
+ifeq ($(DETECTED_OS),Windows)
+	@echo "Building MSIX package..."
+	@powershell -ExecutionPolicy Bypass -File scripts/build-msix.ps1
+else
+	@echo "Error: MSIX build is only supported on Windows"
+	@exit 1
+endif
+
+msix-test:
+ifeq ($(DETECTED_OS),Windows)
+	@echo "Testing MSIX package..."
+	@powershell -ExecutionPolicy Bypass -File scripts/test-msix.ps1
+else
+	@echo "Error: MSIX test is only supported on Windows"
+	@exit 1
+endif
+
 clean:
 ifeq ($(DETECTED_OS),Windows)
 	-@if exist build rd /s /q build
@@ -98,9 +118,12 @@ ifeq ($(DETECTED_OS),Windows)
 	-@if exist pgtail.build rd /s /q pgtail.build
 	-@if exist pgtail.dist rd /s /q pgtail.dist
 	-@if exist pgtail.onefile-build rd /s /q pgtail.onefile-build
+	-@if exist msix-stage-local rd /s /q msix-stage-local
+	-@if exist msix\pgtail-test.pfx del /q msix\pgtail-test.pfx
 else
 	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/ site/
 	rm -rf pgtail.build/ pgtail.dist/ *.onefile-build/
+	rm -rf msix-stage-local/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 endif
 
