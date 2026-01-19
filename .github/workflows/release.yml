@@ -687,6 +687,8 @@ jobs:
 
   # Update Homebrew formula with new version and checksums
   update-homebrew:
+    # Skip prereleases (tags with hyphens like v0.6.0-rc1)
+    if: ${{ !contains(github.ref_name, '-') }}
     needs: release
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -753,6 +755,8 @@ jobs:
 
   # Update winget manifest and submit PR
   update-winget:
+    # Skip prereleases (tags with hyphens like v0.6.0-rc1)
+    if: ${{ !contains(github.ref_name, '-') }}
     needs: release
     runs-on: windows-latest
     timeout-minutes: 30
@@ -871,6 +875,8 @@ jobs:
 
   # Submit MSIX bundle to Microsoft Store via Partner Center API
   update-store:
+    # Skip prereleases (tags with hyphens like v0.6.0-rc1)
+    if: ${{ !contains(github.ref_name, '-') }}
     needs: [build-msix, release]
     runs-on: windows-latest
     timeout-minutes: 30
