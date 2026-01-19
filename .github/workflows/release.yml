@@ -532,6 +532,42 @@ jobs:
             exit 1
           }
 
+      - name: Create self-signed certificate for testing
+        shell: pwsh
+        run: |
+          # Create certificate matching the Store publisher CN for local testing
+          $publisher = '${{ secrets.STORE_PUBLISHER_CN }}'
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject $publisher `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "pgtail MSIX Test Certificate" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+          # Export to PFX for SignTool
+          $password = ConvertTo-SecureString -String "pgtail-ci" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath pgtail-ci.pfx -Password $password
+
+          # Export public cert for users to import
+          Export-Certificate -Cert $cert -FilePath pgtail-ci.cer
+          Write-Host "Created test certificate: $($cert.Thumbprint)"
+
+      - name: Sign MSIX packages
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" |
+                      Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+                      Select-Object -First 1
+
+          & $signTool.FullName sign /fd SHA256 /a /f pgtail-ci.pfx /p "pgtail-ci" pgtail-x64.msix
+          if ($LASTEXITCODE -ne 0) { Write-Error "Failed to sign x64 MSIX"; exit 1 }
+
+          & $signTool.FullName sign /fd SHA256 /a /f pgtail-ci.pfx /p "pgtail-ci" pgtail-arm64.msix
+          if ($LASTEXITCODE -ne 0) { Write-Error "Failed to sign ARM64 MSIX"; exit 1 }
+
+          Write-Host "Signed both MSIX packages"
+
       - name: Create MSIX bundle
         shell: pwsh
         run: |
@@ -571,7 +607,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pgtail-msixbundle
-          path: pgtail.msixbundle
+          path: |
+            pgtail.msixbundle
+            pgtail-ci.cer
           retention-days: 1
 
   # Create release with all binaries
@@ -609,6 +647,7 @@ jobs:
           mv artifacts/pgtail-windows-x86_64/pgtail-windows-x86_64.zip release/
           mv artifacts/pgtail-windows-x86_64-msi/pgtail-windows-x86_64.msi release/
           mv artifacts/pgtail-msixbundle/pgtail.msixbundle release/
+          mv artifacts/pgtail-msixbundle/pgtail-ci.cer release/
 
       - name: Check archive sizes
         run: |
@@ -667,6 +706,7 @@ jobs:
             release/pgtail-windows-x86_64.msi.sha256
             release/pgtail.msixbundle
             release/pgtail.msixbundle.sha256
+            release/pgtail-ci.cer
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
