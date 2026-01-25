@@ -58,7 +58,7 @@ class TestGetLogInfo:
             assert enabled is False
 
     def test_logging_enabled_no_logs(self) -> None:
-        """Test returns None path but enabled=True when no log files exist."""
+        """Test returns expected log_directory but no log_path when dir doesn't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = Path(tmpdir)
             conf = data_dir / "postgresql.conf"
@@ -66,7 +66,7 @@ class TestGetLogInfo:
 
             log_path, log_directory, enabled = get_log_info(data_dir)
             assert log_path is None
-            assert log_directory is None  # No log dir yet
+            assert log_directory == data_dir / "log"  # Expected path returned
             assert enabled is True
 
     def test_logging_enabled_with_logs(self) -> None:

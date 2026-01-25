@@ -381,6 +381,9 @@ class TailApp(App[None]):
             self._tailer.start()
         self._start_consumer()
 
+        # Check for permission issues and show warning if file is not readable
+        self._check_initial_file_access()
+
         # Update initial status
         self._update_status()
 
@@ -399,6 +402,43 @@ class TailApp(App[None]):
             self._multi_tailer.stop()
         if self._stdin_reader:
             self._stdin_reader.stop()
+
+    def _check_initial_file_access(self) -> None:
+        """Check if log file is accessible and show warning if not.
+
+        Called after tailer starts to detect permission issues early and
+        provide actionable feedback to the user.
+        """
+        import sys
+
+        # Only check for single-file mode with a valid path
+        if not self._log_path or self._stdin_mode or self._is_multi_file:
+            return
+
+        try:
+            with open(self._log_path) as f:
+                f.read(1)  # Try to read a single byte
+        except PermissionError:
+            # File exists but we can't read it - show helpful message
+            log_widget = self.query_one("#log", TailLog)
+            log_widget.write_line(
+                "[bold yellow]Warning:[/] Cannot read log file due to permissions"
+            )
+            log_widget.write_line(f"[dim]File:[/] {self._log_path}")
+            log_widget.write_line("")
+
+            # Platform-specific fix suggestions
+            if sys.platform != "win32":
+                log_widget.write_line("[dim]To fix, set in postgresql.conf:[/]")
+                log_widget.write_line("  [cyan]log_file_mode = 0644[/]")
+                log_widget.write_line("[dim]Then restart PostgreSQL.[/]")
+
+            # Mark file as unavailable in status
+            self._status.set_file_unavailable(True)
+            self._update_status()
+        except OSError:
+            # File doesn't exist or other error - tailer will handle this
+            pass
 
     # Actions
 
