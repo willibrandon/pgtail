@@ -238,7 +238,11 @@ class TailStatus:
         # PostgreSQL instance info (T009 - filename fallback)
         if self.pg_version:
             # Show standard format if version is known (from instance or detected from content)
-            parts.append(("class:status.instance", f"PG{self.pg_version}:{self.pg_port}"))
+            if self.file_unavailable:
+                parts.append(("class:status.instance", f"PG{self.pg_version}:{self.pg_port} "))
+                parts.append(("class:status.warning", "(unavailable)"))
+            else:
+                parts.append(("class:status.instance", f"PG{self.pg_version}:{self.pg_port}"))
         elif self.filename:
             # File-based tailing without detected instance info
             if self.file_unavailable:
@@ -318,7 +322,10 @@ class TailStatus:
         # PostgreSQL instance info (T010 - filename fallback)
         if self.pg_version:
             # Show standard format if version is known (from instance or detected from content)
-            parts.append(f"PG{self.pg_version}:{self.pg_port}")
+            if self.file_unavailable:
+                parts.append(f"PG{self.pg_version}:{self.pg_port} (unavailable)")
+            else:
+                parts.append(f"PG{self.pg_version}:{self.pg_port}")
         elif self.filename:
             # File-based tailing without detected instance info
             if self.file_unavailable:
@@ -408,6 +415,9 @@ class TailStatus:
         if self.pg_version:
             # Show standard format if version is known (from instance or detected from content)
             text.append(f"PG{self.pg_version}:{self.pg_port}", style="bright_white")
+            if self.file_unavailable:
+                text.append(" ")
+                text.append("(unavailable)", style="bright_yellow")
         elif self.filename:
             # File-based tailing without detected instance info
             if self.file_unavailable:

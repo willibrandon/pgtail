@@ -320,15 +320,45 @@ def tail_command(state: AppState, args: list[str]) -> None:
                 print(f"  {inst.id}: {inst.data_dir}")
             return
 
-    if not instance.log_path:
-        print(f"Logging not enabled for instance {instance.id}")
-        print(f"Data directory: {instance.data_dir}")
-        print()
-        print("Enable logging with: enable-logging {instance.id}")
+    # Determine log path to tail
+    log_path = instance.log_path
+    if not log_path and instance.log_directory:
+        # Try to find latest log file in the directory
+        from pgtail_py.detector import find_latest_log
+        log_path = find_latest_log(instance.log_directory)
+
+    if not log_path:
+        if instance.logging_enabled:
+            print(f"Cannot access log files for instance {instance.id}")
+            print(f"Log directory: {instance.log_directory or 'unknown'}")
+            print()
+            import sys
+            if sys.platform == "win32":
+                print("Log files not found. Check that logging_collector is enabled")
+                print("and PostgreSQL has been restarted.")
+            else:
+                print("The log directory is inside a restricted data directory.")
+                print()
+                print("To fix, set log_directory to an accessible path in postgresql.conf:")
+                if sys.platform == "darwin":
+                    print("  log_directory = '/usr/local/var/log/postgresql'")
+                else:
+                    print("  log_directory = '/var/log/postgresql'")
+        else:
+            print(f"Logging not enabled for instance {instance.id}")
+            print(f"Data directory: {instance.data_dir}")
+            print()
+            print(f"Enable logging with: enable-logging {instance.id}")
         return
 
-    if not instance.log_path.exists():
-        print(f"Log file not found: {instance.log_path}")
+    try:
+        if not log_path.exists():
+            print(f"Log file not found: {log_path}")
+            return
+    except PermissionError:
+        print(f"Permission denied accessing: {log_path}")
+        print()
+        print("Try: sudo -u postgres pgtail")
         return
 
     # Apply --since as time filter if provided

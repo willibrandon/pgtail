@@ -13,8 +13,46 @@ else:
     from pgtail_py import detector_unix as platform_detector
 
 
+def find_postgresql_conf(data_dir: Path) -> Path | None:
+    """Find postgresql.conf for a data directory.
+
+    Handles both standard PostgreSQL layout (config in data_dir) and
+    Debian/Ubuntu layout (config in /etc/postgresql/<version>/<cluster>/).
+
+    Args:
+        data_dir: PostgreSQL data directory.
+
+    Returns:
+        Path to postgresql.conf if found and readable, None otherwise.
+    """
+    # First, try standard location in data directory
+    conf_path = data_dir / "postgresql.conf"
+    try:
+        if conf_path.exists():
+            return conf_path
+    except (OSError, PermissionError):
+        pass  # Can't access, try Debian path
+
+    # Try Debian/Ubuntu layout: /etc/postgresql/<version>/<cluster>/
+    # Data dir is typically /var/lib/postgresql/<version>/<cluster>/
+    match = re.search(r"/postgresql/(\d+)/([^/]+)/?$", str(data_dir))
+    if match:
+        version = match.group(1)
+        cluster = match.group(2)
+        debian_conf = Path(f"/etc/postgresql/{version}/{cluster}/postgresql.conf")
+        try:
+            if debian_conf.exists():
+                return debian_conf
+        except (OSError, PermissionError):
+            pass
+
+    return None
+
+
 def get_version(data_dir: Path) -> str:
     """Read PostgreSQL version from PG_VERSION file.
+
+    Falls back to extracting version from Debian/Ubuntu path pattern.
 
     Args:
         data_dir: Path to the PostgreSQL data directory.
@@ -26,6 +64,11 @@ def get_version(data_dir: Path) -> str:
     try:
         return pg_version_file.read_text().strip()
     except (OSError, PermissionError):
+        # Try to extract version from Debian/Ubuntu path pattern
+        # e.g., /var/lib/postgresql/18/main -> "18"
+        match = re.search(r"/postgresql/(\d+)/[^/]+/?$", str(data_dir))
+        if match:
+            return match.group(1)
         return "unknown"
 
 
@@ -44,8 +87,8 @@ def get_log_info(data_dir: Path) -> tuple[Path | None, Path | None, bool]:
     Returns:
         Tuple of (log_file_path, log_directory, logging_enabled).
     """
-    conf_file = data_dir / "postgresql.conf"
-    if not conf_file.exists():
+    conf_file = find_postgresql_conf(data_dir)
+    if conf_file is None:
         return None, None, False
 
     try:
@@ -69,19 +112,39 @@ def get_log_info(data_dir: Path) -> tuple[Path | None, Path | None, bool]:
     else:
         log_dir = Path(log_directory)
 
-    if not log_dir.is_dir():
-        # Try pg_log for older versions
-        log_dir = data_dir / "pg_log"
-        if not log_dir.is_dir():
-            return None, None, True  # logging enabled but no log dir yet
+    # Check if log_dir exists (but continue even if we can't access it)
+    log_dir_accessible = False
+    try:
+        if log_dir.is_dir():
+            log_dir_accessible = True
+        else:
+            # Try pg_log for older versions
+            alt_log_dir = data_dir / "pg_log"
+            if alt_log_dir.is_dir():
+                log_dir = alt_log_dir
+                log_dir_accessible = True
+    except (OSError, PermissionError):
+        pass  # Can't verify, but continue with expected path
 
     # Try current_logfiles first (PostgreSQL 10+, most reliable)
     log_path = read_current_logfiles(data_dir)
-    if log_path and log_path.exists():
-        return log_path, log_dir, True
+    try:
+        if log_path and log_path.exists():
+            return log_path, log_dir, True
+    except (OSError, PermissionError):
+        # Can't verify exists, but return expected path if we got one
+        if log_path:
+            return log_path, log_dir, True
 
     # Fall back to finding most recent log file by mtime
-    return find_latest_log(log_dir), log_dir, True
+    if log_dir_accessible:
+        latest = find_latest_log(log_dir)
+        if latest:
+            return latest, log_dir, True
+
+    # Return log_dir even if we couldn't find a specific file
+    # The tailer will handle permission errors
+    return None, log_dir, True
 
 
 def get_port(data_dir: Path) -> int | None:
@@ -96,9 +159,9 @@ def get_port(data_dir: Path) -> int | None:
     Returns:
         Port number, or None if not configured.
     """
-    # Try postgresql.conf first
-    conf_file = data_dir / "postgresql.conf"
-    if conf_file.exists():
+    # Try postgresql.conf first (handles standard and Debian/Ubuntu layouts)
+    conf_file = find_postgresql_conf(data_dir)
+    if conf_file is not None:
         try:
             conf_content = conf_file.read_text()
             port_str = _get_conf_value(conf_content, "port")
@@ -109,14 +172,14 @@ def get_port(data_dir: Path) -> int | None:
 
     # Fall back to postmaster.pid (line 4 contains port)
     postmaster_pid = data_dir / "postmaster.pid"
-    if postmaster_pid.exists():
-        try:
+    try:
+        if postmaster_pid.exists():
             content = postmaster_pid.read_text()
             lines = content.splitlines()
             if len(lines) >= 4:
                 return int(lines[3].strip())
-        except (OSError, ValueError, IndexError):
-            pass
+    except (OSError, PermissionError, ValueError, IndexError):
+        pass
 
     return None
 
@@ -145,8 +208,14 @@ def find_latest_log(log_dir: Path) -> Path | None:
     if not log_files:
         return None
 
-    # Return most recently modified
-    return max(log_files, key=lambda f: f.stat().st_mtime)
+    # Return most recently modified (skip files we can't stat)
+    def safe_mtime(f: Path) -> float:
+        try:
+            return f.stat().st_mtime
+        except (OSError, PermissionError):
+            return 0.0
+
+    return max(log_files, key=safe_mtime)
 
 
 def read_current_logfiles(data_dir: Path) -> Path | None:
@@ -202,8 +271,8 @@ def _is_process_running(data_dir: Path, known_pids: dict[Path, int]) -> tuple[bo
     # Fall back to postmaster.pid file check
     # This file exists when PostgreSQL is running and contains the PID
     postmaster_pid = data_dir / "postmaster.pid"
-    if postmaster_pid.exists():
-        try:
+    try:
+        if postmaster_pid.exists():
             # First line of postmaster.pid is the PID
             content = postmaster_pid.read_text()
             pid_line = content.splitlines()[0].strip()
@@ -218,8 +287,8 @@ def _is_process_running(data_dir: Path, known_pids: dict[Path, int]) -> tuple[bo
                         return (True, pid)
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
-        except (OSError, ValueError, IndexError):
-            pass
+    except (OSError, PermissionError, ValueError, IndexError):
+        pass
 
     return (False, None)
 
