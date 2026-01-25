@@ -325,6 +325,7 @@ def tail_command(state: AppState, args: list[str]) -> None:
     if not log_path and instance.log_directory:
         # Try to find latest log file in the directory
         from pgtail_py.detector import find_latest_log
+
         log_path = find_latest_log(instance.log_directory)
 
     if not log_path:
@@ -333,6 +334,7 @@ def tail_command(state: AppState, args: list[str]) -> None:
             print(f"Log directory: {instance.log_directory or 'unknown'}")
             print()
             import sys
+
             if sys.platform == "win32":
                 print("Log files not found. Check that logging_collector is enabled")
                 print("and PostgreSQL has been restarted.")

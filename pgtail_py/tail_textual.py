@@ -416,7 +416,7 @@ class TailApp(App[None]):
             return
 
         try:
-            with open(self._log_path, "r") as f:
+            with open(self._log_path) as f:
                 f.read(1)  # Try to read a single byte
         except PermissionError:
             # File exists but we can't read it - show helpful message
