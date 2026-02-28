@@ -17,23 +17,26 @@ def deny_read_access(path: Path) -> Generator[None, None, None]:
     """Cross-platform context manager that denies read access to a file.
 
     On Unix: uses chmod(0o000) to remove all permissions.
-    On Windows: uses icacls to add a deny ACE for the current user.
+    On Windows: uses icacls to add a deny ACE for file read data.
+        Denies only (RD) — not the full generic (R) — so that
+        READ_CONTROL remains available for ACL cleanup.
 
     The original permissions are restored when the context exits.
     """
     if sys.platform == "win32":
         user = os.environ.get("USERNAME", "")
         subprocess.run(
-            ["icacls", str(path), "/deny", f"{user}:(R)"],
+            ["icacls", str(path), "/deny", f"{user}:(RD)"],
             check=True,
             capture_output=True,
         )
         try:
             yield
         finally:
+            # Remove deny ACE. Don't check=True — if cleanup fails,
+            # the temp directory cleanup will handle the file.
             subprocess.run(
                 ["icacls", str(path), "/remove:d", user],
-                check=True,
                 capture_output=True,
             )
     else:
@@ -50,14 +53,14 @@ def deny_write_access(path: Path) -> Generator[None, None, None]:
     """Cross-platform context manager that denies write access to a file.
 
     On Unix: uses chmod(0o444) to make read-only.
-    On Windows: uses icacls to add a deny ACE for write.
+    On Windows: uses icacls to add a deny ACE for write data and append data.
 
     The original permissions are restored when the context exits.
     """
     if sys.platform == "win32":
         user = os.environ.get("USERNAME", "")
         subprocess.run(
-            ["icacls", str(path), "/deny", f"{user}:(W)"],
+            ["icacls", str(path), "/deny", f"{user}:(WD,AD)"],
             check=True,
             capture_output=True,
         )
@@ -66,7 +69,6 @@ def deny_write_access(path: Path) -> Generator[None, None, None]:
         finally:
             subprocess.run(
                 ["icacls", str(path), "/remove:d", user],
-                check=True,
                 capture_output=True,
             )
     else:

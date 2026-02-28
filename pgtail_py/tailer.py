@@ -292,13 +292,22 @@ class LogTailer:
                 self._check_for_new_log_file()
 
         except PermissionError:
-            # File exists but we can't read it - distinct from file-missing
-            self._file_permission_denied = True
+            # File exists but we can't read it - distinct from file-missing.
+            # On Windows, deleted files can briefly raise PermissionError
+            # instead of FileNotFoundError, so verify the file actually exists.
+            if self._log_path.exists():
+                self._file_permission_denied = True
+            else:
+                self._file_permission_denied = False
             if self._file_unavailable_since is None:
                 self._file_unavailable_since = time.time()
 
         except OSError:
             # File unavailable (deleted, missing) - try to find a new log file
+            # Clear permission denied since this is a file-missing scenario
+            # (on Windows, deleted files can briefly raise PermissionError
+            # before the OS fully releases the file handle)
+            self._file_permission_denied = False
             if self._file_unavailable_since is None:
                 self._file_unavailable_since = time.time()
 
