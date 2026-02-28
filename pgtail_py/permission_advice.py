@@ -7,7 +7,11 @@ permission issues when accessing PostgreSQL log files and configuration.
 import sys
 
 
-def get_log_permission_advice(*, rich_markup: bool = False) -> list[str]:
+def get_log_permission_advice(
+    *,
+    rich_markup: bool = False,
+    platform: str | None = None,
+) -> list[str]:
     """Get advice for fixing log file permission errors.
 
     Returns platform-specific guidance for when log files exist but cannot
@@ -16,13 +20,16 @@ def get_log_permission_advice(*, rich_markup: bool = False) -> list[str]:
 
     Args:
         rich_markup: If True, return lines with Rich markup tags.
+        platform: Override platform detection (e.g. "win32", "linux", "darwin").
+            Defaults to sys.platform.
 
     Returns:
         List of advice lines.
     """
-    if sys.platform == "win32":
+    plat = platform or sys.platform
+    if plat == "win32":
         return _windows_log_advice(rich_markup=rich_markup)
-    elif sys.platform == "darwin":
+    elif plat == "darwin":
         return _unix_log_advice(
             log_dir_path="/usr/local/var/log/postgresql",
             rich_markup=rich_markup,
@@ -38,6 +45,7 @@ def get_conf_permission_advice(
     conf_path: str,
     *,
     rich_markup: bool = False,
+    platform: str | None = None,
 ) -> list[str]:
     """Get advice for fixing postgresql.conf permission errors.
 
@@ -47,17 +55,24 @@ def get_conf_permission_advice(
     Args:
         conf_path: Path to the postgresql.conf file that could not be accessed.
         rich_markup: If True, return lines with Rich markup tags.
+        platform: Override platform detection (e.g. "win32", "linux", "darwin").
+            Defaults to sys.platform.
 
     Returns:
         List of advice lines.
     """
-    if sys.platform == "win32":
+    plat = platform or sys.platform
+    if plat == "win32":
         return _windows_conf_advice(conf_path, rich_markup=rich_markup)
     else:
         return _unix_conf_advice(conf_path, rich_markup=rich_markup)
 
 
-def get_logs_not_found_advice(*, rich_markup: bool = False) -> list[str]:
+def get_logs_not_found_advice(
+    *,
+    rich_markup: bool = False,
+    platform: str | None = None,
+) -> list[str]:
     """Get advice for when log files cannot be found at all.
 
     Different from permission errors: this is for the case where logging
@@ -65,13 +80,16 @@ def get_logs_not_found_advice(*, rich_markup: bool = False) -> list[str]:
 
     Args:
         rich_markup: If True, return lines with Rich markup tags.
+        platform: Override platform detection (e.g. "win32", "linux", "darwin").
+            Defaults to sys.platform.
 
     Returns:
         List of advice lines.
     """
-    if sys.platform == "win32":
+    plat = platform or sys.platform
+    if plat == "win32":
         return _windows_logs_not_found_advice(rich_markup=rich_markup)
-    elif sys.platform == "darwin":
+    elif plat == "darwin":
         return _unix_logs_not_found_advice(
             log_dir_path="/usr/local/var/log/postgresql",
             rich_markup=rich_markup,

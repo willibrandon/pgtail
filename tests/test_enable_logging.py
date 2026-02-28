@@ -2,9 +2,9 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 from pgtail_py.enable_logging import enable_logging, read_postgresql_conf
+from tests.conftest import deny_read_access, deny_write_access
 
 
 class TestEnableLoggingStandardLayout:
@@ -103,68 +103,48 @@ class TestEnableLoggingDebianLayout:
 
 
 class TestEnableLoggingPermissionErrors:
-    """Tests for permission error handling."""
+    """Tests for permission error handling.
 
-    @patch("pgtail_py.permission_advice.sys")
-    def test_read_permission_error_linux(self, mock_sys) -> None:
-        """Permission error on read shows Linux-specific advice."""
-        mock_sys.platform = "linux"
+    These tests verify that enable_logging() handles PermissionError
+    correctly on the real platform. Platform-specific advice content
+    is tested separately in test_permission_advice.py.
+    """
+
+    def test_read_permission_error(self) -> None:
+        """Permission error on read returns failure with advice."""
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = Path(tmpdir)
             conf = data_dir / "postgresql.conf"
             conf.write_text("logging_collector = off\n")
-            conf.chmod(0o000)
 
-            try:
+            with deny_read_access(conf):
                 result = enable_logging(data_dir)
 
-                assert result.success is False
-                assert "Permission denied" in result.message
-                # Should contain Linux-specific advice, not "sudo chown $USER"
-                assert "sudo -u postgres" in result.message
-                assert "chown" not in result.message
-            finally:
-                conf.chmod(0o644)
+            assert result.success is False
+            assert "Permission denied" in result.message
 
-    @patch("pgtail_py.permission_advice.sys")
-    def test_read_permission_error_windows(self, mock_sys) -> None:
-        """Permission error on read shows Windows-specific advice."""
-        mock_sys.platform = "win32"
-        with tempfile.TemporaryDirectory() as tmpdir:
-            data_dir = Path(tmpdir)
-            conf = data_dir / "postgresql.conf"
-            conf.write_text("logging_collector = off\n")
-            conf.chmod(0o000)
-
-            try:
-                result = enable_logging(data_dir)
-
-                assert result.success is False
-                assert "Permission denied" in result.message
-                # Should contain Windows-specific advice
-                assert "Administrator" in result.message
-                assert "icacls" in result.message
-                # Must NOT contain Unix-specific advice
-                assert "sudo" not in result.message
-            finally:
-                conf.chmod(0o644)
-
-    @patch("pgtail_py.permission_advice.sys")
-    def test_write_permission_error_linux(self, mock_sys) -> None:
-        """Permission error on write shows Linux-specific advice."""
-        mock_sys.platform = "linux"
+    def test_write_permission_error(self) -> None:
+        """Permission error on write returns failure with advice."""
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = Path(tmpdir)
             conf = data_dir / "postgresql.conf"
             conf.write_text("#logging_collector = off\n")
-            # Make readable but not writable
-            conf.chmod(0o444)
 
-            try:
+            with deny_write_access(conf):
                 result = enable_logging(data_dir)
 
-                assert result.success is False
-                assert "Permission denied" in result.message
-                assert "sudo -u postgres" in result.message
-            finally:
-                conf.chmod(0o644)
+            assert result.success is False
+            assert "Permission denied" in result.message
+
+    def test_permission_error_includes_conf_path(self) -> None:
+        """Permission error message includes the conf file path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+            conf = data_dir / "postgresql.conf"
+            conf.write_text("logging_collector = off\n")
+
+            with deny_read_access(conf):
+                result = enable_logging(data_dir)
+
+            assert result.success is False
+            assert "postgresql.conf" in result.message

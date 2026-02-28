@@ -372,6 +372,8 @@ class TestLogTailerPermissionDenied:
 
     def test_permission_denied_detected(self, tmp_path: Path) -> None:
         """Tailer detects PermissionError distinctly from file-missing."""
+        from tests.conftest import deny_read_access
+
         log_file = tmp_path / "test.log"
         log_file.write_text("2024-01-15 10:00:00.000 UTC [12345] LOG:  initial\n")
 
@@ -381,18 +383,17 @@ class TestLogTailerPermissionDenied:
         try:
             time.sleep(0.05)
 
-            # Make file unreadable
-            log_file.chmod(0o000)
-            time.sleep(0.15)
-
-            assert tailer.file_permission_denied is True
-            assert tailer.file_unavailable is True
+            with deny_read_access(log_file):
+                time.sleep(0.15)
+                assert tailer.file_permission_denied is True
+                assert tailer.file_unavailable is True
         finally:
-            log_file.chmod(0o644)
             tailer.stop()
 
     def test_permission_denied_clears_on_read_success(self, tmp_path: Path) -> None:
         """Permission denied flag clears when file becomes readable again."""
+        from tests.conftest import deny_read_access
+
         log_file = tmp_path / "test.log"
         log_file.write_text("2024-01-15 10:00:00.000 UTC [12345] LOG:  initial\n")
 
@@ -402,18 +403,15 @@ class TestLogTailerPermissionDenied:
         try:
             time.sleep(0.05)
 
-            # Make unreadable
-            log_file.chmod(0o000)
-            time.sleep(0.15)
-            assert tailer.file_permission_denied is True
+            with deny_read_access(log_file):
+                time.sleep(0.15)
+                assert tailer.file_permission_denied is True
 
-            # Make readable again
-            log_file.chmod(0o644)
+            # File is readable again after context exit
             time.sleep(0.15)
             assert tailer.file_permission_denied is False
             assert tailer.file_unavailable is False
         finally:
-            log_file.chmod(0o644)
             tailer.stop()
 
     def test_file_missing_not_permission_denied(self, tmp_path: Path) -> None:

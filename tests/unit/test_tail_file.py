@@ -124,19 +124,18 @@ class TestValidateFilePath:
 
     def test_permission_denied(self, tmp_path: Path) -> None:
         """Test validation when file is not readable."""
+        from tests.conftest import deny_read_access
+
         test_file = tmp_path / "unreadable.log"
         test_file.write_text("test content")
-        test_file.chmod(0o000)
 
-        try:
+        with deny_read_access(test_file):
             resolved, error = validate_file_path(str(test_file))
 
             # On some systems (especially macOS with SIP), root can still read
             # So we check that either it's an error or passes
             if error is not None:
                 assert "Permission denied" in error or "Cannot access" in error
-        finally:
-            test_file.chmod(0o644)
 
 
 class TestValidateTailArgs:
