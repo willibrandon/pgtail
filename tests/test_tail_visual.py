@@ -35,26 +35,26 @@ class TestVisualModeBoundaries:
     def test_visual_mode_flags_independent(self) -> None:
         """Test visual_mode and visual_line_mode are independent."""
         widget = TailLog()
-        setattr(widget, "_visual_mode", True)
-        setattr(widget, "_visual_line_mode", False)
+        widget._visual_mode = True
+        widget._visual_line_mode = False
         assert widget.visual_mode is True
         assert widget.visual_line_mode is False
 
-        setattr(widget, "_visual_line_mode", True)
+        widget._visual_line_mode = True
         assert widget.visual_line_mode is True
 
     def test_visual_state_can_be_cleared(self) -> None:
         """Test visual state can be cleared directly."""
         widget = TailLog()
-        setattr(widget, "_visual_mode", True)
-        setattr(widget, "_visual_line_mode", True)
-        setattr(widget, "_visual_anchor_line", 10)
-        setattr(widget, "_visual_anchor_col", 5)
+        widget._visual_mode = True
+        widget._visual_line_mode = True
+        widget._visual_anchor_line = 10
+        widget._visual_anchor_col = 5
 
         # Clear directly (avoid _exit_visual_mode which posts message)
-        setattr(widget, "_visual_mode", False)
-        setattr(widget, "_visual_line_mode", False)
-        setattr(widget, "_visual_anchor_line", None)
+        widget._visual_mode = False
+        widget._visual_line_mode = False
+        widget._visual_anchor_line = None
 
         assert widget.visual_mode is False
         assert widget.visual_line_mode is False

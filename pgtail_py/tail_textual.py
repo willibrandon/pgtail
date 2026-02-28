@@ -409,7 +409,7 @@ class TailApp(App[None]):
         Called after tailer starts to detect permission issues early and
         provide actionable feedback to the user.
         """
-        import sys
+        from pgtail_py.permission_advice import get_log_permission_advice
 
         # Only check for single-file mode with a valid path
         if not self._log_path or self._stdin_mode or self._is_multi_file:
@@ -428,12 +428,11 @@ class TailApp(App[None]):
             log_widget.write_line("")
 
             # Platform-specific fix suggestions
-            if sys.platform != "win32":
-                log_widget.write_line("[dim]To fix, set in postgresql.conf:[/]")
-                log_widget.write_line("  [cyan]log_file_mode = 0644[/]")
-                log_widget.write_line("[dim]Then restart PostgreSQL.[/]")
+            for line in get_log_permission_advice(rich_markup=True):
+                log_widget.write_line(line)
 
-            # Mark file as unavailable in status
+            # Mark file as permission denied and unavailable in status
+            self._status.set_file_permission_denied(True)
             self._status.set_file_unavailable(True)
             self._update_status()
         except OSError:
@@ -605,7 +604,7 @@ class TailApp(App[None]):
 
         Called periodically from the consumer loop to detect when the log file
         is deleted or becomes inaccessible. Updates the status bar to show
-        "(unavailable)" indicator when file is missing. (T052)
+        "(permission denied)" or "(unavailable)" indicator. (T052)
 
         For multi-file mode, shows unavailable if any file is unavailable.
         """
@@ -615,15 +614,21 @@ class TailApp(App[None]):
         if self._multi_tailer:
             # Multi-file mode: check if any files are unavailable
             current_unavailable = len(self._multi_tailer.files_unavailable) > 0
+            current_permission_denied = False
         elif self._tailer:
             # Single-file mode
             current_unavailable = self._tailer.file_unavailable
+            current_permission_denied = self._tailer.file_permission_denied
         else:
             return
 
         if current_unavailable != self._last_file_unavailable:
             self._last_file_unavailable = current_unavailable
             self._status.set_file_unavailable(current_unavailable)
+            self._status.set_file_permission_denied(current_permission_denied)
+            self._update_status()
+        elif current_permission_denied != self._status.file_permission_denied:
+            self._status.set_file_permission_denied(current_permission_denied)
             self._update_status()
 
     def _on_raw_entry(self, entry: LogEntry) -> None:

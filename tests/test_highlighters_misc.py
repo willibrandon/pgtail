@@ -20,7 +20,6 @@ from pgtail_py.highlighters.misc import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

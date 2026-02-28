@@ -467,7 +467,7 @@ def enable_logging_command(state: AppState, args: list[str]) -> None:
     print(f"Data directory: {instance.data_dir}")
     print()
 
-    result = enable_logging(instance.data_dir)
+    result = enable_logging(instance.data_dir, config_path=instance.config_path)
 
     if result.changes:
         print("Changes made:")

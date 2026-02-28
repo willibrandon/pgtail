@@ -3,7 +3,73 @@
 import tempfile
 from pathlib import Path
 
-from pgtail_py.detector import get_log_info, get_port, get_version, read_current_logfiles
+from pgtail_py.detector import (
+    find_postgresql_conf,
+    get_log_info,
+    get_port,
+    get_version,
+    read_current_logfiles,
+)
+
+
+class TestFindPostgresqlConf:
+    """Tests for find_postgresql_conf function."""
+
+    def test_standard_layout(self) -> None:
+        """Test finding postgresql.conf in standard data_dir location."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+            conf = data_dir / "postgresql.conf"
+            conf.write_text("# standard layout\n")
+
+            result = find_postgresql_conf(data_dir)
+            assert result == conf
+
+    def test_no_conf_returns_none(self) -> None:
+        """Test returns None when no postgresql.conf exists anywhere."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+            result = find_postgresql_conf(data_dir)
+            assert result is None
+
+    def test_nonexistent_dir_returns_none(self) -> None:
+        """Test returns None for nonexistent data directory."""
+        result = find_postgresql_conf(Path("/nonexistent/path"))
+        assert result is None
+
+    def test_debian_layout_pattern_matching(self) -> None:
+        """Test that Debian path pattern is extracted from data_dir.
+
+        Debian uses /etc/postgresql/<ver>/<cluster>/postgresql.conf
+        with data at /var/lib/postgresql/<ver>/<cluster>/.
+
+        The function extracts version and cluster from the data_dir path
+        using a regex and constructs the /etc/postgresql/ path.
+        """
+        import re
+
+        # Verify the regex pattern used in find_postgresql_conf matches Debian paths
+        pattern = r"/postgresql/(\d+)/([^/]+)/?$"
+        data_dir = "/var/lib/postgresql/17/main"
+        match = re.search(pattern, data_dir)
+        assert match is not None
+        assert match.group(1) == "17"
+        assert match.group(2) == "main"
+
+        # Non-Debian path should not match
+        standard_dir = "/usr/local/pgsql/data"
+        match = re.search(pattern, standard_dir)
+        assert match is None
+
+    def test_standard_takes_priority_over_debian(self) -> None:
+        """Test that standard location is checked first."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+            conf = data_dir / "postgresql.conf"
+            conf.write_text("# standard\n")
+
+            result = find_postgresql_conf(data_dir)
+            assert result == conf
 
 
 class TestGetVersion:

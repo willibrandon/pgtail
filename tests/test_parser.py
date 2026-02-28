@@ -1,7 +1,5 @@
 """Tests for pgtail_py.parser module."""
 
-
-
 from pgtail_py.filter import LogLevel
 from pgtail_py.parser import parse_log_line
 

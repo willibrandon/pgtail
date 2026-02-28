@@ -14,11 +14,7 @@ Tests for:
 from __future__ import annotations
 
 import os
-import tempfile
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 from pgtail_py.cli_utils import validate_file_path, validate_tail_args
 from pgtail_py.filter import LogLevel
@@ -283,6 +279,89 @@ class TestTailStatusFilenameDisplay:
         assert "PG16.2:5433" in text
 
 
+class TestTailStatusPermissionDenied:
+    """Tests for TailStatus permission denied display."""
+
+    def test_format_plain_permission_denied(self) -> None:
+        """Test format_plain() shows '(permission denied)' instead of '(unavailable)'."""
+        status = TailStatus()
+        status.set_instance_info("17", 5432)
+        status.set_file_unavailable(True)
+        status.set_file_permission_denied(True)
+
+        text = status.format_plain()
+        assert "(permission denied)" in text
+        assert "(unavailable)" not in text
+
+    def test_format_plain_unavailable(self) -> None:
+        """Test format_plain() shows '(unavailable)' when not permission denied."""
+        status = TailStatus()
+        status.set_instance_info("17", 5432)
+        status.set_file_unavailable(True)
+        status.set_file_permission_denied(False)
+
+        text = status.format_plain()
+        assert "(unavailable)" in text
+        assert "(permission denied)" not in text
+
+    def test_format_rich_permission_denied(self) -> None:
+        """Test format_rich() shows '(permission denied)' instead of '(unavailable)'."""
+        status = TailStatus()
+        status.set_instance_info("17", 5432)
+        status.set_file_unavailable(True)
+        status.set_file_permission_denied(True)
+
+        text = status.format_rich()
+        text_str = str(text)
+        assert "permission denied" in text_str
+        assert "unavailable" not in text_str
+
+    def test_format_rich_unavailable(self) -> None:
+        """Test format_rich() shows '(unavailable)' when not permission denied."""
+        status = TailStatus()
+        status.set_instance_info("17", 5432)
+        status.set_file_unavailable(True)
+        status.set_file_permission_denied(False)
+
+        text = status.format_rich()
+        text_str = str(text)
+        assert "unavailable" in text_str
+        assert "permission denied" not in text_str
+
+    def test_format_permission_denied_with_filename(self) -> None:
+        """Test format_plain() shows permission denied with filename."""
+        status = TailStatus()
+        status.set_file_source("postgresql.log")
+        status.set_file_unavailable(True)
+        status.set_file_permission_denied(True)
+
+        text = status.format_plain()
+        assert "postgresql.log" in text
+        assert "(permission denied)" in text
+
+    def test_format_no_unavailable_no_label(self) -> None:
+        """When file is available, no label is shown."""
+        status = TailStatus()
+        status.set_instance_info("17", 5432)
+        status.set_file_unavailable(False)
+        status.set_file_permission_denied(False)
+
+        text = status.format_plain()
+        assert "(permission denied)" not in text
+        assert "(unavailable)" not in text
+
+    def test_set_file_permission_denied(self) -> None:
+        """Test set_file_permission_denied setter."""
+        status = TailStatus()
+        assert status.file_permission_denied is False
+
+        status.set_file_permission_denied(True)
+        assert status.file_permission_denied is True
+
+        status.set_file_permission_denied(False)
+        assert status.file_permission_denied is False
+
+
 class TestInstanceDetectionPatterns:
     """Tests for instance detection patterns (T063)."""
 
@@ -399,10 +478,9 @@ class TestGlobPatternMatching:
 
     def test_glob_expansion_multiple_matches(self, tmp_path: Path) -> None:
         """Test glob expansion with multiple matching files."""
-        from pgtail_py.multi_tailer import GlobPattern
-
-        # Create multiple log files with different mtimes
         import time
+
+        from pgtail_py.multi_tailer import GlobPattern
 
         for name in ["a.log", "b.log", "c.log"]:
             log_file = tmp_path / name

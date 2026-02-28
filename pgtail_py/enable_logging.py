@@ -129,7 +129,7 @@ def write_postgresql_conf(conf_path: Path, settings: dict[str, str]) -> list[str
     return changes
 
 
-def enable_logging(data_dir: Path) -> ConfigUpdate:
+def enable_logging(data_dir: Path, config_path: Path | None = None) -> ConfigUpdate:
     """Enable logging_collector for a PostgreSQL instance.
 
     Updates postgresql.conf to set:
@@ -137,19 +137,39 @@ def enable_logging(data_dir: Path) -> ConfigUpdate:
     - log_directory = 'log' (if not set)
     - log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log' (if not set)
 
+    Handles both standard PostgreSQL layout (config in data_dir) and
+    Debian/Ubuntu layout (config in /etc/postgresql/<ver>/<cluster>/).
+
     Args:
         data_dir: PostgreSQL data directory.
+        config_path: Explicit path to postgresql.conf (from Instance.config_path).
+            If None, uses find_postgresql_conf() to locate it.
 
     Returns:
         ConfigUpdate with success status, message, and list of changes.
     """
-    conf_path = data_dir / "postgresql.conf"
+    from pgtail_py.detector import find_postgresql_conf
+    from pgtail_py.permission_advice import get_conf_permission_advice
+
+    # Find postgresql.conf - try explicit path, then auto-detect
+    conf_path = config_path or find_postgresql_conf(data_dir)
 
     # Check conf exists
-    if not conf_path.exists():
+    if conf_path is None or not conf_path.exists():
+        # List the paths we checked for a helpful error message
+        checked_paths = [str(data_dir / "postgresql.conf")]
+        # Also mention Debian path if applicable
+        import re
+
+        match = re.search(r"/postgresql/(\d+)/([^/]+)/?$", str(data_dir))
+        if match:
+            version = match.group(1)
+            cluster = match.group(2)
+            checked_paths.append(f"/etc/postgresql/{version}/{cluster}/postgresql.conf")
+        paths_str = "\n  ".join(checked_paths)
         return ConfigUpdate(
             success=False,
-            message=f"postgresql.conf not found at {conf_path}",
+            message=f"postgresql.conf not found.\n\nChecked:\n  {paths_str}",
             changes=[],
         )
 
@@ -157,9 +177,11 @@ def enable_logging(data_dir: Path) -> ConfigUpdate:
         # Read current settings
         current = read_postgresql_conf(conf_path)
     except PermissionError:
+        advice = get_conf_permission_advice(str(conf_path))
+        advice_str = "\n".join(advice)
         return ConfigUpdate(
             success=False,
-            message=f"Permission denied reading {conf_path}\n\nTry: sudo chown $USER {conf_path}",
+            message=f"Permission denied reading {conf_path}\n\n{advice_str}",
             changes=[],
         )
 
@@ -189,9 +211,11 @@ def enable_logging(data_dir: Path) -> ConfigUpdate:
     try:
         changes = write_postgresql_conf(conf_path, updates)
     except PermissionError:
+        advice = get_conf_permission_advice(str(conf_path))
+        advice_str = "\n".join(advice)
         return ConfigUpdate(
             success=False,
-            message=f"Permission denied writing to {conf_path}\n\nTry: sudo chown $USER {conf_path}",
+            message=f"Permission denied writing to {conf_path}\n\n{advice_str}",
             changes=[],
         )
 

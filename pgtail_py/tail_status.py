@@ -51,6 +51,7 @@ class TailStatus:
     # Fields for file-based tailing (T004, T005, T006)
     filename: str | None = None  # Filename when tailing arbitrary file
     file_unavailable: bool = False  # True when file is deleted/inaccessible
+    file_permission_denied: bool = False  # True when file exists but permissions block reading
     detected_from_content: bool = False  # True if pg_version/pg_port detected from log content
 
     def update_from_entry(self, entry: LogEntry) -> None:
@@ -146,6 +147,14 @@ class TailStatus:
         """
         self.file_unavailable = unavailable
 
+    def set_file_permission_denied(self, denied: bool) -> None:
+        """Set file permission denied status.
+
+        Args:
+            denied: True if file exists but cannot be read due to permissions
+        """
+        self.file_permission_denied = denied
+
     def set_detected_instance_info(self, version: str | None, port: int | None) -> None:
         """Set PostgreSQL instance info detected from log content.
 
@@ -236,17 +245,18 @@ class TailStatus:
         parts.append(("class:status.sep", " | "))
 
         # PostgreSQL instance info (T009 - filename fallback)
+        unavail_label = "(permission denied)" if self.file_permission_denied else "(unavailable)"
         if self.pg_version:
             # Show standard format if version is known (from instance or detected from content)
             if self.file_unavailable:
                 parts.append(("class:status.instance", f"PG{self.pg_version}:{self.pg_port} "))
-                parts.append(("class:status.warning", "(unavailable)"))
+                parts.append(("class:status.warning", unavail_label))
             else:
                 parts.append(("class:status.instance", f"PG{self.pg_version}:{self.pg_port}"))
         elif self.filename:
             # File-based tailing without detected instance info
             if self.file_unavailable:
-                parts.append(("class:status.instance", f"{self.filename} (unavailable)"))
+                parts.append(("class:status.instance", f"{self.filename} {unavail_label}"))
             else:
                 parts.append(("class:status.instance", self.filename))
         else:
@@ -320,16 +330,17 @@ class TailStatus:
         parts.append("|")
 
         # PostgreSQL instance info (T010 - filename fallback)
+        unavail_label = "(permission denied)" if self.file_permission_denied else "(unavailable)"
         if self.pg_version:
             # Show standard format if version is known (from instance or detected from content)
             if self.file_unavailable:
-                parts.append(f"PG{self.pg_version}:{self.pg_port} (unavailable)")
+                parts.append(f"PG{self.pg_version}:{self.pg_port} {unavail_label}")
             else:
                 parts.append(f"PG{self.pg_version}:{self.pg_port}")
         elif self.filename:
             # File-based tailing without detected instance info
             if self.file_unavailable:
-                parts.append(f"{self.filename} (unavailable)")
+                parts.append(f"{self.filename} {unavail_label}")
             else:
                 parts.append(self.filename)
         else:
@@ -412,17 +423,18 @@ class TailStatus:
         text.append(" | ", style="dim")
 
         # PostgreSQL instance info - bright white for emphasis (T009 - filename fallback)
+        unavail_label = "(permission denied)" if self.file_permission_denied else "(unavailable)"
         if self.pg_version:
             # Show standard format if version is known (from instance or detected from content)
             text.append(f"PG{self.pg_version}:{self.pg_port}", style="bright_white")
             if self.file_unavailable:
                 text.append(" ")
-                text.append("(unavailable)", style="bright_yellow")
+                text.append(unavail_label, style="bright_yellow")
         elif self.filename:
             # File-based tailing without detected instance info
             if self.file_unavailable:
                 text.append(f"{self.filename} ", style="bright_white")
-                text.append("(unavailable)", style="bright_yellow")
+                text.append(unavail_label, style="bright_yellow")
             else:
                 text.append(self.filename, style="bright_white")
         else:

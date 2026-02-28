@@ -35,7 +35,7 @@ class TestTailLogBasic:
         binding_keys: set[str] = set()
         for b in TailLog.BINDINGS:
             if hasattr(b, "key"):
-                binding_keys.add(str(getattr(b, "key")))
+                binding_keys.add(str(b.key))
             elif isinstance(b, tuple):
                 binding_keys.add(str(b[0]))
         expected = {"j", "k", "g", "G", "ctrl+d", "ctrl+u", "ctrl+f", "ctrl+b"}
@@ -47,7 +47,7 @@ class TestTailLogBasic:
         binding_keys: set[str] = set()
         for b in TailLog.BINDINGS:
             if hasattr(b, "key"):
-                binding_keys.add(str(getattr(b, "key")))
+                binding_keys.add(str(b.key))
             elif isinstance(b, tuple):
                 binding_keys.add(str(b[0]))
         expected = {"v", "V", "y", "escape"}
@@ -59,7 +59,7 @@ class TestTailLogBasic:
         binding_keys: set[str] = set()
         for b in TailLog.BINDINGS:
             if hasattr(b, "key"):
-                binding_keys.add(str(getattr(b, "key")))
+                binding_keys.add(str(b.key))
             elif isinstance(b, tuple):
                 binding_keys.add(str(b[0]))
         expected = {"ctrl+a", "ctrl+c"}
@@ -145,7 +145,7 @@ class TestTailLogClipboard:
         # Mock app.copy_to_clipboard to fail, so pyperclip is called
         mock_app = MagicMock()
         mock_app.copy_to_clipboard.side_effect = Exception("No app")
-        setattr(widget, "_app", mock_app)
+        widget._app = mock_app
 
         with patch.dict("sys.modules", {"pyperclip": MagicMock()}):
             import sys
@@ -163,7 +163,7 @@ class TestTailLogClipboard:
         widget = TailLog()
         mock_app = MagicMock()
         mock_app.copy_to_clipboard.side_effect = Exception("No app")
-        setattr(widget, "_app", mock_app)
+        widget._app = mock_app
 
         large_text = "x" * (100 * 1024 + 1)
         with patch.dict("sys.modules", {"pyperclip": MagicMock()}):
@@ -185,14 +185,14 @@ class TestTailLogVisualMode:
         """Test that visual mode state can be cleared directly."""
         widget = TailLog()
         # Use setattr to access internals for testing
-        setattr(widget, "_visual_mode", True)
-        setattr(widget, "_visual_line_mode", True)
-        setattr(widget, "_visual_anchor_line", 5)
+        widget._visual_mode = True
+        widget._visual_line_mode = True
+        widget._visual_anchor_line = 5
 
         # Clear state directly (without post_message which needs app context)
-        setattr(widget, "_visual_mode", False)
-        setattr(widget, "_visual_line_mode", False)
-        setattr(widget, "_visual_anchor_line", None)
+        widget._visual_mode = False
+        widget._visual_line_mode = False
+        widget._visual_anchor_line = None
 
         assert widget.visual_mode is False
         assert widget.visual_line_mode is False
@@ -209,8 +209,8 @@ class TestTailLogVisualMode:
         assert widget.visual_mode is False
         assert widget.visual_line_mode is False
         # Use setattr to access internals for testing
-        setattr(widget, "_visual_mode", True)
-        setattr(widget, "_visual_line_mode", True)
+        widget._visual_mode = True
+        widget._visual_line_mode = True
         assert widget.visual_mode is True
         assert widget.visual_line_mode is True
 

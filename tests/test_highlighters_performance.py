@@ -18,7 +18,6 @@ from pgtail_py.highlighters.performance import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

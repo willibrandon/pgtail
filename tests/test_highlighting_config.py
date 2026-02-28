@@ -243,9 +243,7 @@ class TestReset:
             duration_critical=3,
         )
         config.disable_highlighter("timestamp")
-        config.add_custom(
-            CustomHighlighter(name="test", pattern=r"x", style="yellow")
-        )
+        config.add_custom(CustomHighlighter(name="test", pattern=r"x", style="yellow"))
 
         config.reset()
 
@@ -353,9 +351,7 @@ class TestSerialization:
         original.max_length = 5000
         original.duration_slow = 50
         original.disable_highlighter("timestamp")
-        original.add_custom(
-            CustomHighlighter(name="test", pattern=r"x", style="yellow")
-        )
+        original.add_custom(CustomHighlighter(name="test", pattern=r"x", style="yellow"))
 
         data = original.to_dict()
         restored = HighlightingConfig.from_dict(data)

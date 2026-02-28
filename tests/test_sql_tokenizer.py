@@ -1,5 +1,7 @@
 """Unit tests for SQL tokenizer."""
 
+import dataclasses
+
 import pytest
 
 from pgtail_py.highlighters.sql import SQLToken, SQLTokenizer, SQLTokenType
@@ -54,7 +56,7 @@ class TestSQLToken:
     def test_token_is_frozen(self) -> None:
         """Token should be immutable."""
         token = SQLToken(type=SQLTokenType.KEYWORD, text="SELECT", start=0, end=6)
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             token.text = "INSERT"  # type: ignore[misc]
 
     def test_invalid_start_position(self) -> None:

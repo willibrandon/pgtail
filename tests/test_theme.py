@@ -12,7 +12,6 @@ import pytest
 
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -53,16 +52,12 @@ class TestGetStyle:
         assert style.fg == "blue"
         assert style.bold is True
 
-    def test_get_style_missing_key_default_fallback(
-        self, test_theme: Theme
-    ) -> None:
+    def test_get_style_missing_key_default_fallback(self, test_theme: Theme) -> None:
         """get_style should return None for missing key by default."""
         style = test_theme.get_style("nonexistent_key")
         assert style is None
 
-    def test_get_style_missing_key_custom_fallback(
-        self, test_theme: Theme
-    ) -> None:
+    def test_get_style_missing_key_custom_fallback(self, test_theme: Theme) -> None:
         """get_style should return custom fallback for missing key."""
         fallback = ColorStyle(fg="green")
         style = test_theme.get_style("nonexistent_key", fallback=fallback)

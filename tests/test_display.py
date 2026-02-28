@@ -24,11 +24,10 @@ from pgtail_py.display import (
     format_entry_full,
 )
 from pgtail_py.filter import LogLevel
+from pgtail_py.highlighter_registry import reset_registry
 from pgtail_py.parser import LogEntry
 from pgtail_py.tail_rich import reset_highlighter_chain
-from pgtail_py.highlighter_registry import reset_registry
 from pgtail_py.theme import ColorStyle, Theme
-
 
 # =============================================================================
 # Fixtures
@@ -105,9 +104,7 @@ def reset_highlighters():
 class TestFormatEntryCompact:
     """Tests for format_entry_compact with semantic highlighting."""
 
-    def test_with_theme_and_highlighting(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_with_theme_and_highlighting(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should apply semantic highlighting when theme is provided."""
         result = format_entry_compact(
             sample_entry, theme=test_theme, use_semantic_highlighting=True
@@ -119,9 +116,7 @@ class TestFormatEntryCompact:
         assert "duration" in text_content
         assert "SELECT" in text_content
 
-    def test_without_highlighting(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_without_highlighting(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should use SQL-only highlighting when semantic highlighting disabled."""
         result = format_entry_compact(
             sample_entry, theme=test_theme, use_semantic_highlighting=False
@@ -133,9 +128,7 @@ class TestFormatEntryCompact:
 
     def test_without_theme(self, sample_entry: LogEntry) -> None:
         """Should fall back to SQL-only highlighting when no theme."""
-        result = format_entry_compact(
-            sample_entry, theme=None, use_semantic_highlighting=True
-        )
+        result = format_entry_compact(sample_entry, theme=None, use_semantic_highlighting=True)
 
         assert isinstance(result, FormattedText)
         text_content = "".join(part[1] for part in result)
@@ -171,13 +164,9 @@ class TestFormatEntryCompact:
 class TestFormatEntryFull:
     """Tests for format_entry_full with semantic highlighting."""
 
-    def test_with_theme_and_highlighting(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_with_theme_and_highlighting(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should apply semantic highlighting in full mode."""
-        result = format_entry_full(
-            sample_entry, theme=test_theme, use_semantic_highlighting=True
-        )
+        result = format_entry_full(sample_entry, theme=test_theme, use_semantic_highlighting=True)
 
         assert isinstance(result, FormattedText)
         text_content = "".join(part[1] for part in result)
@@ -213,9 +202,7 @@ class TestFormatEntryFull:
 class TestFormatEntryCustom:
     """Tests for format_entry_custom with semantic highlighting."""
 
-    def test_selected_fields_only(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_selected_fields_only(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should only include selected fields."""
         result = format_entry_custom(
             sample_entry,
@@ -229,9 +216,7 @@ class TestFormatEntryCustom:
         # Should not include timestamp since not in fields
         assert "14:30:45" not in text_content
 
-    def test_message_with_highlighting(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_message_with_highlighting(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should apply highlighting to message field."""
         result = format_entry_custom(
             sample_entry,
@@ -290,22 +275,16 @@ class TestFormatEntry:
         assert isinstance(result, str)
         assert "duration" in result
 
-    def test_passes_theme_to_compact(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_passes_theme_to_compact(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should pass theme parameter through to format functions."""
         state = DisplayState()
 
         # With highlighting enabled
-        result = format_entry(
-            sample_entry, state, theme=test_theme, use_semantic_highlighting=True
-        )
+        result = format_entry(sample_entry, state, theme=test_theme, use_semantic_highlighting=True)
 
         assert isinstance(result, FormattedText)
 
-    def test_highlighting_disabled(
-        self, test_theme: Theme, sample_entry: LogEntry
-    ) -> None:
+    def test_highlighting_disabled(self, test_theme: Theme, sample_entry: LogEntry) -> None:
         """Should respect use_semantic_highlighting flag."""
         state = DisplayState()
 

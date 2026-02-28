@@ -11,25 +11,23 @@ Tests cover:
 from __future__ import annotations
 
 from collections.abc import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import patch, MagicMock
-
 from prompt_toolkit.formatted_text import FormattedText
 
 from pgtail_py.cli_highlight import (
     format_highlight_list,
     format_highlight_list_rich,
-    handle_highlight_enable,
-    handle_highlight_disable,
-    handle_highlight_on,
-    handle_highlight_off,
-    handle_highlight_command,
-    validate_highlighter_name,
     get_all_highlighter_names,
+    handle_highlight_command,
+    handle_highlight_disable,
+    handle_highlight_enable,
+    handle_highlight_off,
+    handle_highlight_on,
+    validate_highlighter_name,
 )
 from pgtail_py.highlighting_config import HighlightingConfig
-
 
 # =============================================================================
 # Fixtures
@@ -452,9 +450,7 @@ class TestHighlightAddCommand:
         from pgtail_py.cli_highlight import handle_highlight_add
 
         with patch("pgtail_py.cli_highlight.save_highlighting_config"):
-            success, message = handle_highlight_add(
-                ["request_id", r"REQ-\d+"], highlighting_config
-            )
+            success, message = handle_highlight_add(["request_id", r"REQ-\d+"], highlighting_config)
 
         assert success is True
         assert "Added custom highlighter 'request_id'" in message
@@ -496,9 +492,7 @@ class TestHighlightAddCommand:
         """Cannot add highlighter with built-in name."""
         from pgtail_py.cli_highlight import handle_highlight_add
 
-        success, message = handle_highlight_add(
-            ["timestamp", r"TEST-\d+"], highlighting_config
-        )
+        success, message = handle_highlight_add(["timestamp", r"TEST-\d+"], highlighting_config)
 
         assert success is False
         assert "conflicts with built-in" in message
@@ -527,16 +521,12 @@ class TestHighlightAddCommand:
         from pgtail_py.cli_highlight import handle_highlight_add
 
         # Uppercase
-        success, message = handle_highlight_add(
-            ["MyPattern", r"TEST-\d+"], highlighting_config
-        )
+        success, message = handle_highlight_add(["MyPattern", r"TEST-\d+"], highlighting_config)
         assert success is False
         assert "lowercase" in message
 
         # With hyphen
-        success, message = handle_highlight_add(
-            ["my-pattern", r"TEST-\d+"], highlighting_config
-        )
+        success, message = handle_highlight_add(["my-pattern", r"TEST-\d+"], highlighting_config)
         assert success is False
 
     def test_add_via_dispatcher(
@@ -612,9 +602,7 @@ class TestHighlightRemoveCommand:
             handle_highlight_add(["test_hl", r"TEST-\d+"], highlighting_config)
 
             # Then remove it via dispatcher
-            success, message = handle_highlight_command(
-                ["remove", "test_hl"], highlighting_config
-            )
+            success, message = handle_highlight_command(["remove", "test_hl"], highlighting_config)
 
         assert success is True
         assert "Removed" in message
@@ -643,9 +631,7 @@ class TestInvalidRegexHandling:
         """Add rejects invalid regex pattern."""
         from pgtail_py.cli_highlight import handle_highlight_add
 
-        success, message = handle_highlight_add(
-            ["mypattern", r"[invalid"], highlighting_config
-        )
+        success, message = handle_highlight_add(["mypattern", r"[invalid"], highlighting_config)
 
         assert success is False
         assert "Invalid regex" in message
@@ -656,9 +642,7 @@ class TestInvalidRegexHandling:
         """Add rejects pattern that matches zero-length string."""
         from pgtail_py.cli_highlight import handle_highlight_add
 
-        success, message = handle_highlight_add(
-            ["mypattern", r".*"], highlighting_config
-        )
+        success, message = handle_highlight_add(["mypattern", r".*"], highlighting_config)
 
         assert success is False
         assert "zero-length" in message
@@ -669,9 +653,7 @@ class TestInvalidRegexHandling:
         """Add rejects empty pattern."""
         from pgtail_py.cli_highlight import handle_highlight_add
 
-        success, message = handle_highlight_add(
-            ["mypattern", ""], highlighting_config
-        )
+        success, message = handle_highlight_add(["mypattern", ""], highlighting_config)
 
         assert success is False
         assert "empty" in message.lower() or "Usage" in message
@@ -950,9 +932,7 @@ class TestHighlightExportCommand:
 
         file_path = tmp_path / "highlight.toml"
 
-        success, message = handle_highlight_export(
-            ["--file", str(file_path)], highlighting_config
-        )
+        success, message = handle_highlight_export(["--file", str(file_path)], highlighting_config)
 
         assert success is True
         assert "Exported" in message
@@ -974,9 +954,7 @@ class TestHighlightExportCommand:
 
         file_path = tmp_path / "highlight.toml"
 
-        success, message = handle_highlight_export(
-            ["-f", str(file_path)], highlighting_config
-        )
+        success, message = handle_highlight_export(["-f", str(file_path)], highlighting_config)
 
         assert success is True
         assert file_path.exists()
@@ -1049,9 +1027,7 @@ class TestHighlightImportCommand:
         """Import reports file not found."""
         from pgtail_py.cli_highlight import handle_highlight_import
 
-        success, message = handle_highlight_import(
-            ["/nonexistent/path.toml"], highlighting_config
-        )
+        success, message = handle_highlight_import(["/nonexistent/path.toml"], highlighting_config)
 
         assert success is False
         assert "not found" in message.lower()
@@ -1103,9 +1079,7 @@ critical = 2500
 """)
 
         with patch("pgtail_py.cli_highlight.save_highlighting_config"):
-            success, message = handle_highlight_import(
-                [str(file_path)], highlighting_config
-            )
+            success, message = handle_highlight_import([str(file_path)], highlighting_config)
 
         assert success is True
         assert "Imported" in message
@@ -1132,9 +1106,7 @@ duration = false
 """)
 
         with patch("pgtail_py.cli_highlight.save_highlighting_config"):
-            success, message = handle_highlight_import(
-                [str(file_path)], highlighting_config
-            )
+            success, message = handle_highlight_import([str(file_path)], highlighting_config)
 
         assert success is True
         assert highlighting_config.enabled_highlighters["timestamp"] is False
@@ -1159,9 +1131,7 @@ priority = 1050
 """)
 
         with patch("pgtail_py.cli_highlight.save_highlighting_config"):
-            success, message = handle_highlight_import(
-                [str(file_path)], highlighting_config
-            )
+            success, message = handle_highlight_import([str(file_path)], highlighting_config)
 
         assert success is True
         assert len(highlighting_config.custom_highlighters) == 1
@@ -1295,6 +1265,7 @@ unknown_name = false
 """)
 
         warnings_received: list[str] = []
+
         def warn_func(msg: str) -> None:
             warnings_received.append(msg)
 
@@ -1345,6 +1316,7 @@ critical = 4000000
 """)
 
         warnings_received: list[str] = []
+
         def warn_func(msg: str) -> None:
             warnings_received.append(msg)
 
@@ -1466,9 +1438,7 @@ style = "green"
 """)
 
         with patch("pgtail_py.cli_highlight.save_highlighting_config"):
-            success, message = handle_highlight_import(
-                [str(file_path)], highlighting_config
-            )
+            success, message = handle_highlight_import([str(file_path)], highlighting_config)
 
         assert success is True
         assert len(highlighting_config.custom_highlighters) == 1
@@ -1663,8 +1633,8 @@ class TestHighlightPreviewCommand:
         assert isinstance(first, tuple)
         assert len(first) == 3
         assert isinstance(first[0], list)  # highlighter names
-        assert isinstance(first[1], str)   # sample line
-        assert isinstance(first[2], str)   # description
+        assert isinstance(first[1], str)  # sample line
+        assert isinstance(first[2], str)  # description
 
 
 class TestPreviewRichFormatting:

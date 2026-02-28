@@ -16,7 +16,6 @@ from pgtail_py.highlighters.checkpoint import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

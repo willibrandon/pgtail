@@ -18,7 +18,6 @@ from pgtail_py.highlighters.structural import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

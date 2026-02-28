@@ -28,7 +28,6 @@ from pgtail_py.highlighter import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -278,15 +277,11 @@ class TestHighlighterChain:
     def test_register_duplicate_name(self) -> None:
         """Registering duplicate name should raise."""
         chain = HighlighterChain()
-        chain.register(
-            RegexHighlighter(name="test", priority=100, pattern=r"x", style="hl_test")
-        )
+        chain.register(RegexHighlighter(name="test", priority=100, pattern=r"x", style="hl_test"))
 
         with pytest.raises(ValueError, match="already registered"):
             chain.register(
-                RegexHighlighter(
-                    name="test", priority=200, pattern=r"y", style="hl_test"
-                )
+                RegexHighlighter(name="test", priority=200, pattern=r"y", style="hl_test")
             )
 
     def test_unregister_unknown(self) -> None:
@@ -536,6 +531,7 @@ class TestRegexPatternCompiledOnce:
 
         # Verify it's a compiled pattern object (not a string)
         import re
+
         assert isinstance(highlighter._pattern, re.Pattern)
 
         # Multiple calls should use the same compiled pattern (no re-compilation)
@@ -545,8 +541,9 @@ class TestRegexPatternCompiledOnce:
         highlighter.find_matches("test 456 789", mock_theme)
         pattern_id_3 = id(highlighter._pattern)
 
-        assert pattern_id_1 == pattern_id_2 == pattern_id_3, \
+        assert pattern_id_1 == pattern_id_2 == pattern_id_3, (
             "Pattern should be the same object (not recompiled)"
+        )
 
     def test_grouped_regex_highlighter_pattern_compiled_at_init(self, mock_theme: Theme) -> None:
         """GroupedRegexHighlighter should compile pattern at __init__."""
@@ -559,6 +556,7 @@ class TestRegexPatternCompiledOnce:
 
         # Verify _pattern is compiled
         import re
+
         assert hasattr(highlighter, "_pattern")
         assert isinstance(highlighter._pattern, re.Pattern)
 
@@ -644,6 +642,7 @@ class TestZeroAllocationEarlyReturn:
         try:
             # Clear any cached result
             from pgtail_py import utils
+
             utils._color_disabled = None
 
             result = chain.apply_rich(text, mock_theme)
@@ -653,6 +652,7 @@ class TestZeroAllocationEarlyReturn:
         finally:
             os.environ.pop("NO_COLOR", None)
             from pgtail_py import utils
+
             utils._color_disabled = None
 
 

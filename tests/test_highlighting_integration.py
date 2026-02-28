@@ -33,7 +33,6 @@ from pgtail_py.tail_rich import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -161,9 +160,13 @@ def reset_highlighters():
 class TestTailModeIntegration:
     """Tests for tail mode highlighting integration."""
 
-    def test_format_entry_applies_highlighting(self, test_theme: Theme, sample_log_entry: LogEntry) -> None:
+    def test_format_entry_applies_highlighting(
+        self, test_theme: Theme, sample_log_entry: LogEntry
+    ) -> None:
         """format_entry_compact should apply semantic highlighting."""
-        result = format_entry_compact(sample_log_entry, theme=test_theme, use_semantic_highlighting=True)
+        result = format_entry_compact(
+            sample_log_entry, theme=test_theme, use_semantic_highlighting=True
+        )
 
         # Should contain Rich markup (style tags)
         assert "[" in result
@@ -171,9 +174,13 @@ class TestTailModeIntegration:
         assert "duration" in result
         assert "SELECT" in result
 
-    def test_format_entry_without_highlighting(self, test_theme: Theme, sample_log_entry: LogEntry) -> None:
+    def test_format_entry_without_highlighting(
+        self, test_theme: Theme, sample_log_entry: LogEntry
+    ) -> None:
         """format_entry_compact with use_semantic_highlighting=False should not apply chain."""
-        result = format_entry_compact(sample_log_entry, theme=test_theme, use_semantic_highlighting=False)
+        result = format_entry_compact(
+            sample_log_entry, theme=test_theme, use_semantic_highlighting=False
+        )
 
         # Should still escape brackets but not apply semantic styles
         assert "duration" in result
@@ -663,9 +670,7 @@ class TestSQLContextAwareness:
     SQL statements detected by sql_detector.
     """
 
-    def test_sql_keywords_not_highlighted_outside_context(
-        self, test_theme: Theme
-    ) -> None:
+    def test_sql_keywords_not_highlighted_outside_context(self, test_theme: Theme) -> None:
         """SQL keywords in regular log text should NOT be highlighted."""
         chain = get_highlighter_chain()
 
@@ -680,9 +685,7 @@ class TestSQLContextAwareness:
         # Should not have SQL keyword styling
         assert "bold blue" not in result or result.count("bold blue") == 0
 
-    def test_sql_keywords_not_highlighted_for_with_at_or(
-        self, test_theme: Theme
-    ) -> None:
+    def test_sql_keywords_not_highlighted_for_with_at_or(self, test_theme: Theme) -> None:
         """Common words for/with/at/or should not be SQL-highlighted outside SQL."""
         chain = get_highlighter_chain()
 
@@ -701,9 +704,7 @@ class TestSQLContextAwareness:
             # The words should be present but not SQL-styled
             assert "bold blue" not in result
 
-    def test_sql_keywords_highlighted_inside_sql_context(
-        self, test_theme: Theme
-    ) -> None:
+    def test_sql_keywords_highlighted_inside_sql_context(self, test_theme: Theme) -> None:
         """SQL keywords within 'statement:' context SHOULD be highlighted."""
         chain = get_highlighter_chain()
 
@@ -743,9 +744,7 @@ class TestSQLContextAwareness:
         assert "FROM" in result
         assert "WHERE" in result
 
-    def test_non_sql_highlighters_still_work_everywhere(
-        self, test_theme: Theme
-    ) -> None:
+    def test_non_sql_highlighters_still_work_everywhere(self, test_theme: Theme) -> None:
         """Non-SQL highlighters (checkpoint, recovery, etc) should still apply."""
         chain = get_highlighter_chain()
 
@@ -919,7 +918,7 @@ class TestCSVJSONLogFormatHighlighting:
         chain = get_highlighter_chain()
 
         # Detail field often contains SQL-related info
-        detail = 'Key (id)=(42) already exists.'
+        detail = "Key (id)=(42) already exists."
 
         result = chain.apply_rich(detail, test_theme)
 

@@ -14,12 +14,10 @@ import pytest
 from pgtail_py.config import ConfigSchema, UpdatesSection
 from pgtail_py.version import (
     API_TIMEOUT,
-    CHECK_INTERVAL,
     GITHUB_RELEASES_PAGE,
     RELEASES_URL,
     InstallMethod,
     ReleaseAsset,
-    ReleaseInfo,
     UpdateInfo,
     _detect_homebrew,
     _detect_pip,
@@ -28,17 +26,14 @@ from pgtail_py.version import (
     _detect_winget,
     check_update_async,
     check_update_sync,
-    detect_install_method,
     fetch_latest_release,
     get_asset_for_platform,
     get_upgrade_command,
-    get_version,
     is_newer_available,
     notify_update,
     parse_version,
     should_check_update,
 )
-
 
 # =============================================================================
 # T095: Test --check-update shows "up to date" when current version equals latest
@@ -102,12 +97,14 @@ class TestVersionUpdateAvailable:
             mock_resp.__exit__ = MagicMock(return_value=False)
             mock_urlopen.return_value = mock_resp
 
-            with patch("pgtail_py.version.get_version", return_value="0.1.0"):
-                with patch(
+            with (
+                patch("pgtail_py.version.get_version", return_value="0.1.0"),
+                patch(
                     "pgtail_py.version.detect_install_method",
                     return_value=InstallMethod.HOMEBREW,
-                ):
-                    available, message = check_update_sync()
+                ),
+            ):
+                available, message = check_update_sync()
 
         assert available is True
         assert "0.2.0" in message
@@ -429,9 +426,11 @@ class TestGetAssetForPlatform:
             ReleaseAsset("pgtail-linux-x86_64", "https://...", 1000, "application/octet-stream"),
         ]
 
-        with patch("pgtail_py.version.platform.system", return_value="Darwin"):
-            with patch("pgtail_py.version.platform.machine", return_value="arm64"):
-                asset = get_asset_for_platform(assets)
+        with (
+            patch("pgtail_py.version.platform.system", return_value="Darwin"),
+            patch("pgtail_py.version.platform.machine", return_value="arm64"),
+        ):
+            asset = get_asset_for_platform(assets)
 
         assert asset is not None
         assert asset.name == "pgtail-darwin-arm64"
@@ -439,12 +438,16 @@ class TestGetAssetForPlatform:
     def test_get_asset_for_platform_windows(self) -> None:
         """Select correct asset for Windows."""
         assets = [
-            ReleaseAsset("pgtail-windows-x86_64.exe", "https://...", 1000, "application/octet-stream"),
+            ReleaseAsset(
+                "pgtail-windows-x86_64.exe", "https://...", 1000, "application/octet-stream"
+            ),
         ]
 
-        with patch("pgtail_py.version.platform.system", return_value="Windows"):
-            with patch("pgtail_py.version.platform.machine", return_value="AMD64"):
-                asset = get_asset_for_platform(assets)
+        with (
+            patch("pgtail_py.version.platform.system", return_value="Windows"),
+            patch("pgtail_py.version.platform.machine", return_value="AMD64"),
+        ):
+            asset = get_asset_for_platform(assets)
 
         assert asset is not None
         assert asset.name == "pgtail-windows-x86_64.exe"
@@ -491,7 +494,9 @@ class TestFetchLatestRelease:
         import urllib.error
 
         with patch("pgtail_py.version.urllib.request.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = urllib.error.HTTPError(RELEASES_URL, 404, "Not Found", {}, None)  # type: ignore
+            mock_urlopen.side_effect = urllib.error.HTTPError(
+                RELEASES_URL, 404, "Not Found", {}, None
+            )  # type: ignore
             result = fetch_latest_release()
 
         assert result is None
@@ -501,7 +506,9 @@ class TestFetchLatestRelease:
         import urllib.error
 
         with patch("pgtail_py.version.urllib.request.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = urllib.error.HTTPError(RELEASES_URL, 403, "Forbidden", {}, None)  # type: ignore
+            mock_urlopen.side_effect = urllib.error.HTTPError(
+                RELEASES_URL, 403, "Forbidden", {}, None
+            )  # type: ignore
             result = fetch_latest_release()
 
         assert result is None
@@ -562,9 +569,11 @@ class TestNoColorSupport:
             mock_resp.__exit__ = MagicMock(return_value=False)
             mock_urlopen.return_value = mock_resp
 
-            with patch("pgtail_py.version.get_version", return_value="0.1.0"):
-                with patch.dict(os.environ, {"NO_COLOR": "1"}):
-                    _available, message = check_update_sync()
+            with (
+                patch("pgtail_py.version.get_version", return_value="0.1.0"),
+                patch.dict(os.environ, {"NO_COLOR": "1"}),
+            ):
+                _available, message = check_update_sync()
 
         # Should not contain ANSI escape codes
         assert "\033[" not in message

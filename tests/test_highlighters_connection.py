@@ -18,7 +18,6 @@ from pgtail_py.highlighters.connection import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -101,7 +100,7 @@ class TestConnectionHighlighter:
     def test_application_name_field(self, test_theme: Theme) -> None:
         """Should match application_name=value pattern."""
         h = ConnectionHighlighter()
-        text = 'application_name=psql connected'
+        text = "application_name=psql connected"
         matches = h.find_matches(text, test_theme)
 
         assert len(matches) == 1

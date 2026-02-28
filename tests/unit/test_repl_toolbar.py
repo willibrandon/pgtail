@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pgtail_py.filter import LogLevel
 from pgtail_py.repl_toolbar import _format_filters, create_toolbar_func
 
