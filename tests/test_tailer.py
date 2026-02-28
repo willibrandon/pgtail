@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import time
 from pathlib import Path
 
@@ -117,16 +116,9 @@ class TestLogTailerRotation:
             assert original_found, "Tailer failed to read original file content"
 
             # Delete and recreate the file (simulating log rotation).
-            # On Windows, unlink fails if the tailer's poll thread has the
-            # file open, so retry briefly to wait for the handle to close.
-            for attempt in range(20):
-                try:
-                    os.unlink(log_file)
-                    break
-                except PermissionError:
-                    if attempt == 19:
-                        raise
-                    time.sleep(0.05)
+            from tests.conftest import unlink_file
+
+            unlink_file(log_file)
             time.sleep(0.1)  # Ensure file is fully deleted
             log_file.write_text("2024-01-15 10:00:01.000 UTC [12345] LOG:  new file\n")
 
@@ -435,7 +427,9 @@ class TestLogTailerPermissionDenied:
             time.sleep(0.05)
 
             # Delete file
-            log_file.unlink()
+            from tests.conftest import unlink_file
+
+            unlink_file(log_file)
             time.sleep(0.15)
 
             assert tailer.file_unavailable is True

@@ -6,6 +6,7 @@ import contextlib
 import os
 import subprocess
 import sys
+import time
 from collections.abc import Generator
 from pathlib import Path
 
@@ -78,6 +79,23 @@ def deny_write_access(path: Path) -> Generator[None, None, None]:
             yield
         finally:
             path.chmod(original_mode)
+
+
+def unlink_file(path: Path, retries: int = 20, delay: float = 0.05) -> None:
+    """Delete a file, retrying on Windows if another process holds it open.
+
+    On Windows, os.unlink fails with PermissionError (WinError 32) when
+    another thread/process has the file open. This retries briefly to
+    wait for the handle to close (e.g., between tailer poll cycles).
+    """
+    for attempt in range(retries):
+        try:
+            path.unlink()
+            return
+        except PermissionError:
+            if sys.platform != "win32" or attempt == retries - 1:
+                raise
+            time.sleep(delay)
 
 
 @pytest.fixture
