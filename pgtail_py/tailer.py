@@ -302,6 +302,11 @@ class LogTailer:
             if self._file_unavailable_since is None:
                 self._file_unavailable_since = time.time()
 
+            # Still check for new log files — PostgreSQL may have rotated
+            # to a new (readable) file while the old one became unreadable
+            if self._check_for_new_log_file():
+                return
+
         except OSError:
             # File unavailable (deleted, missing) - try to find a new log file
             # Clear permission denied since this is a file-missing scenario

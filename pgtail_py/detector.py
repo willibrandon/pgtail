@@ -34,8 +34,10 @@ def find_postgresql_conf(data_dir: Path) -> Path | None:
         pass  # Can't access, try Debian path
 
     # Try Debian/Ubuntu layout: /etc/postgresql/<version>/<cluster>/
-    # Data dir is typically /var/lib/postgresql/<version>/<cluster>/
-    match = re.search(r"/postgresql/(\d+)/([^/]+)/?$", str(data_dir))
+    # Data dir is /var/lib/postgresql/<version>/<cluster>/ — only match
+    # this specific prefix to avoid writing to the wrong cluster's config
+    # when a custom data directory happens to end in /postgresql/<ver>/<name>/
+    match = re.search(r"^/var/lib/postgresql/(\d+)/([^/]+)/?$", str(data_dir))
     if match:
         version = match.group(1)
         cluster = match.group(2)

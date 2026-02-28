@@ -161,7 +161,7 @@ def enable_logging(data_dir: Path, config_path: Path | None = None) -> ConfigUpd
         # Also mention Debian path if applicable
         import re
 
-        match = re.search(r"/postgresql/(\d+)/([^/]+)/?$", str(data_dir))
+        match = re.search(r"^/var/lib/postgresql/(\d+)/([^/]+)/?$", str(data_dir))
         if match:
             version = match.group(1)
             cluster = match.group(2)

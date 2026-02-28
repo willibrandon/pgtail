@@ -43,13 +43,13 @@ class TestFindPostgresqlConf:
         Debian uses /etc/postgresql/<ver>/<cluster>/postgresql.conf
         with data at /var/lib/postgresql/<ver>/<cluster>/.
 
-        The function extracts version and cluster from the data_dir path
-        using a regex and constructs the /etc/postgresql/ path.
+        The pattern is anchored to /var/lib/postgresql/ to avoid matching
+        custom data directories that happen to end in /postgresql/<ver>/<name>/.
         """
         import re
 
         # Verify the regex pattern used in find_postgresql_conf matches Debian paths
-        pattern = r"/postgresql/(\d+)/([^/]+)/?$"
+        pattern = r"^/var/lib/postgresql/(\d+)/([^/]+)/?$"
         data_dir = "/var/lib/postgresql/17/main"
         match = re.search(pattern, data_dir)
         assert match is not None
@@ -59,6 +59,11 @@ class TestFindPostgresqlConf:
         # Non-Debian path should not match
         standard_dir = "/usr/local/pgsql/data"
         match = re.search(pattern, standard_dir)
+        assert match is None
+
+        # Custom directory with similar suffix should NOT match
+        custom_dir = "/opt/myapp/postgresql/17/main"
+        match = re.search(pattern, custom_dir)
         assert match is None
 
     def test_standard_takes_priority_over_debian(self) -> None:
