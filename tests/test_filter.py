@@ -11,8 +11,18 @@ class TestLogLevel:
     def test_all_levels_exist(self) -> None:
         """Test that all expected log levels exist."""
         expected = [
-            "PANIC", "FATAL", "ERROR", "WARNING", "NOTICE",
-            "LOG", "INFO", "DEBUG1", "DEBUG2", "DEBUG3", "DEBUG4", "DEBUG5"
+            "PANIC",
+            "FATAL",
+            "ERROR",
+            "WARNING",
+            "NOTICE",
+            "LOG",
+            "INFO",
+            "DEBUG1",
+            "DEBUG2",
+            "DEBUG3",
+            "DEBUG4",
+            "DEBUG5",
         ]
         for name in expected:
             assert hasattr(LogLevel, name)

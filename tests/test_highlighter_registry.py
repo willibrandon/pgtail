@@ -20,7 +20,6 @@ from pgtail_py.highlighter_registry import (
 )
 from pgtail_py.highlighting_config import CustomHighlighter, HighlightingConfig
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

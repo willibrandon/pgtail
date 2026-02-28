@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from pgtail_py.connection_stats import ConnectionFilter, ConnectionStats
 from pgtail_py.connection_event import ConnectionEvent, ConnectionEventType
-from pgtail_py.parser import LogEntry
+from pgtail_py.connection_stats import ConnectionFilter, ConnectionStats
 from pgtail_py.filter import LogLevel
+from pgtail_py.parser import LogEntry
 
 
 class TestConnectionStatsBasics:
@@ -216,7 +216,7 @@ class TestConnectionStatsAggregations:
             entry = LogEntry(
                 timestamp=datetime.now(),
                 level=LogLevel.LOG,
-                message=f"connection authorized: user=postgres database=mydb",
+                message="connection authorized: user=postgres database=mydb",
                 raw="...",
                 pid=pid,
                 remote_host=host,

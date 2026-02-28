@@ -63,7 +63,13 @@ class TestLevelStyles:
 
     def test_debug_levels_are_dim(self) -> None:
         """Test that DEBUG levels use dim styling."""
-        for level in [LogLevel.DEBUG1, LogLevel.DEBUG2, LogLevel.DEBUG3, LogLevel.DEBUG4, LogLevel.DEBUG5]:
+        for level in [
+            LogLevel.DEBUG1,
+            LogLevel.DEBUG2,
+            LogLevel.DEBUG3,
+            LogLevel.DEBUG4,
+            LogLevel.DEBUG5,
+        ]:
             assert "dim" in LEVEL_STYLES[level]
 
 

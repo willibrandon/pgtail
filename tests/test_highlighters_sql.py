@@ -28,7 +28,6 @@ from pgtail_py.highlighters.sql import (
 )
 from pgtail_py.theme import ColorStyle, Theme
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -154,8 +153,10 @@ class TestSQLKeywordHighlighter:
     def test_keyword_count(self) -> None:
         """Should have at least 100 keywords."""
         total = (
-            len(SQL_KEYWORDS_DML) + len(SQL_KEYWORDS_DDL) +
-            len(SQL_KEYWORDS_TCL) + len(SQL_KEYWORDS_OTHER)
+            len(SQL_KEYWORDS_DML)
+            + len(SQL_KEYWORDS_DDL)
+            + len(SQL_KEYWORDS_TCL)
+            + len(SQL_KEYWORDS_OTHER)
         )
         assert total >= 100
 

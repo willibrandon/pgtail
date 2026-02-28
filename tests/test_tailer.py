@@ -130,7 +130,9 @@ class TestLogTailerRotation:
                     found = True
                     break
 
-            assert found, f"Expected 'new file' in buffer, got: {[e.message for e in tailer.get_buffer()]}"
+            assert found, (
+                f"Expected 'new file' in buffer, got: {[e.message for e in tailer.get_buffer()]}"
+            )
         finally:
             tailer.stop()
 
@@ -232,9 +234,7 @@ class TestLogTailerFilters:
         log_file = tmp_path / "test.log"
         log_file.write_text("")
 
-        tailer = LogTailer(
-            log_file, active_levels={LogLevel.ERROR}, poll_interval=0.01
-        )
+        tailer = LogTailer(log_file, active_levels={LogLevel.ERROR}, poll_interval=0.01)
         tailer.start()
 
         try:
@@ -365,6 +365,82 @@ class TestLogTailerCallback:
             assert tailer.buffer_size == 1
         finally:
             tailer.stop()
+
+
+class TestLogTailerPermissionDenied:
+    """Tests for permission-denied tracking."""
+
+    def test_permission_denied_detected(self, tmp_path: Path) -> None:
+        """Tailer detects PermissionError distinctly from file-missing."""
+        from tests.conftest import deny_read_access
+
+        log_file = tmp_path / "test.log"
+        log_file.write_text("2024-01-15 10:00:00.000 UTC [12345] LOG:  initial\n")
+
+        tailer = LogTailer(log_file, poll_interval=0.01)
+        tailer.start()
+
+        try:
+            time.sleep(0.05)
+
+            with deny_read_access(log_file):
+                time.sleep(0.15)
+                assert tailer.file_permission_denied is True
+                assert tailer.file_unavailable is True
+        finally:
+            tailer.stop()
+
+    def test_permission_denied_clears_on_read_success(self, tmp_path: Path) -> None:
+        """Permission denied flag clears when file becomes readable again."""
+        from tests.conftest import deny_read_access
+
+        log_file = tmp_path / "test.log"
+        log_file.write_text("2024-01-15 10:00:00.000 UTC [12345] LOG:  initial\n")
+
+        tailer = LogTailer(log_file, poll_interval=0.01)
+        tailer.start()
+
+        try:
+            time.sleep(0.05)
+
+            with deny_read_access(log_file):
+                time.sleep(0.15)
+                assert tailer.file_permission_denied is True
+
+            # File is readable again after context exit
+            time.sleep(0.15)
+            assert tailer.file_permission_denied is False
+            assert tailer.file_unavailable is False
+        finally:
+            tailer.stop()
+
+    def test_file_missing_not_permission_denied(self, tmp_path: Path) -> None:
+        """Deleted file shows unavailable but NOT permission denied."""
+        log_file = tmp_path / "test.log"
+        log_file.write_text("2024-01-15 10:00:00.000 UTC [12345] LOG:  initial\n")
+
+        tailer = LogTailer(log_file, poll_interval=0.01)
+        tailer.start()
+
+        try:
+            time.sleep(0.05)
+
+            # Delete file
+            log_file.unlink()
+            time.sleep(0.15)
+
+            assert tailer.file_unavailable is True
+            assert tailer.file_permission_denied is False
+        finally:
+            tailer.stop()
+
+    def test_initial_state_no_permission_denied(self, tmp_path: Path) -> None:
+        """Permission denied is False initially."""
+        log_file = tmp_path / "test.log"
+        log_file.write_text("")
+
+        tailer = LogTailer(log_file)
+        assert tailer.file_permission_denied is False
 
 
 class TestLogTailerEdgeCases:

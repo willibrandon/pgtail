@@ -330,22 +330,13 @@ def tail_command(state: AppState, args: list[str]) -> None:
 
     if not log_path:
         if instance.logging_enabled:
+            from pgtail_py.permission_advice import get_logs_not_found_advice
+
             print(f"Cannot access log files for instance {instance.id}")
             print(f"Log directory: {instance.log_directory or 'unknown'}")
             print()
-            import sys
-
-            if sys.platform == "win32":
-                print("Log files not found. Check that logging_collector is enabled")
-                print("and PostgreSQL has been restarted.")
-            else:
-                print("The log directory is inside a restricted data directory.")
-                print()
-                print("To fix, set log_directory to an accessible path in postgresql.conf:")
-                if sys.platform == "darwin":
-                    print("  log_directory = '/usr/local/var/log/postgresql'")
-                else:
-                    print("  log_directory = '/var/log/postgresql'")
+            for line in get_logs_not_found_advice():
+                print(line)
         else:
             print(f"Logging not enabled for instance {instance.id}")
             print(f"Data directory: {instance.data_dir}")
@@ -358,9 +349,12 @@ def tail_command(state: AppState, args: list[str]) -> None:
             print(f"Log file not found: {log_path}")
             return
     except PermissionError:
+        from pgtail_py.permission_advice import get_log_permission_advice
+
         print(f"Permission denied accessing: {log_path}")
         print()
-        print("Try: sudo -u postgres pgtail")
+        for line in get_log_permission_advice():
+            print(line)
         return
 
     # Apply --since as time filter if provided

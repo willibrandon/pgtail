@@ -10,9 +10,9 @@ from pgtail_py.connection_event import (
     ConnectionEvent,
     ConnectionEventType,
 )
-from pgtail_py.parser import LogEntry
 from pgtail_py.filter import LogLevel
 from pgtail_py.format_detector import LogFormat
+from pgtail_py.parser import LogEntry
 
 
 class TestConnectionEventType:

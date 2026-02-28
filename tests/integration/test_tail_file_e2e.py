@@ -13,22 +13,14 @@ End-to-end tests with real temporary log files:
 
 from __future__ import annotations
 
-import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-import pytest
 
 from pgtail_py.cli_utils import validate_file_path, validate_tail_args
 from pgtail_py.format_detector import LogFormat, detect_format
 from pgtail_py.parser import LogEntry, parse_log_line
 from pgtail_py.tailer import LogTailer
 from pgtail_py.time_filter import TimeFilter
-
-if TYPE_CHECKING:
-    pass
-
 
 # Sample PostgreSQL log entries for testing
 SAMPLE_TEXT_LOG = """\
@@ -88,9 +80,7 @@ class TestTailFileRelativePath:
 
         # Create tailer with absolute path and time filter to read from start
         # Use a time in the past so all entries are included
-        time_filter = TimeFilter(
-            since=datetime(2024, 1, 1, tzinfo=timezone.utc)
-        )
+        time_filter = TimeFilter(since=datetime(2024, 1, 1, tzinfo=timezone.utc))
         tailer = LogTailer(log_path=test_file.resolve(), time_filter=time_filter)
         tailer.start()
 
@@ -153,9 +143,7 @@ class TestTailFileSinceCombined:
 
         # Create time filter for entries after a specific time
         # The test log has timestamps from 2024-01-15, so filter for that date
-        time_filter = TimeFilter(
-            since=datetime(2024, 1, 15, 10, 30, 46, tzinfo=timezone.utc)
-        )
+        time_filter = TimeFilter(since=datetime(2024, 1, 15, 10, 30, 46, tzinfo=timezone.utc))
 
         tailer = LogTailer(log_path=test_file.resolve(), time_filter=time_filter)
         tailer.start()
@@ -169,7 +157,11 @@ class TestTailFileSinceCombined:
             for entry in buffer:
                 if entry.timestamp:
                     # The timestamp may be naive or UTC-aware; compare second
-                    assert entry.timestamp.second >= 46 or entry.timestamp.minute > 30 or entry.timestamp.hour > 10
+                    assert (
+                        entry.timestamp.second >= 46
+                        or entry.timestamp.minute > 30
+                        or entry.timestamp.hour > 10
+                    )
         finally:
             tailer.stop()
 
@@ -430,7 +422,6 @@ class TestMultiFileTimestampInterleaving:
     def test_entries_interleaved_by_timestamp(self, tmp_path: Path) -> None:
         """Test entries from multiple files are interleaved by timestamp."""
         import time
-
         from datetime import datetime, timezone
 
         from pgtail_py.multi_tailer import MultiFileTailer

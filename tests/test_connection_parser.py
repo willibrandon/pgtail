@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from pgtail_py.connection_parser import (
-    parse_connection_message,
-    PATTERN_CONNECTION_AUTHORIZED,
-    PATTERN_DISCONNECTION,
-    PATTERN_CONNECTION_RECEIVED,
-)
 from pgtail_py.connection_event import ConnectionEventType
+from pgtail_py.connection_parser import (
+    PATTERN_CONNECTION_AUTHORIZED,
+    PATTERN_CONNECTION_RECEIVED,
+    PATTERN_DISCONNECTION,
+    parse_connection_message,
+)
 
 
 class TestConnectionPatterns:
@@ -124,7 +124,7 @@ class TestParseConnectionMessage:
 
     def test_parse_fatal_auth_failed(self) -> None:
         """Test parsing FATAL auth failure message."""
-        msg = "password authentication failed for user \"unknown\""
+        msg = 'password authentication failed for user "unknown"'
         result = parse_connection_message(msg, is_fatal=True)
         assert result is not None
         event_type, _ = result

@@ -92,6 +92,7 @@ class LogTailer:
         self._log_directory = log_directory
         self._on_file_change = on_file_change
         self._file_unavailable_since: float | None = None
+        self._file_permission_denied: bool = False
         self._last_directory_scan: float = 0
 
     def _get_file_inode(self) -> int | None:
@@ -281,6 +282,8 @@ class LogTailer:
             # File is available - clear unavailability tracking
             if self._file_unavailable_since is not None:
                 self._file_unavailable_since = None
+            if self._file_permission_denied:
+                self._file_permission_denied = False
 
             # Proactively check for new log file when at EOF (no new lines)
             # This handles the case where PostgreSQL restarts and creates a new
@@ -288,8 +291,28 @@ class LogTailer:
             if lines_read == 0:
                 self._check_for_new_log_file()
 
+        except PermissionError:
+            # File exists but we can't read it - distinct from file-missing.
+            # On Windows, deleted files can briefly raise PermissionError
+            # instead of FileNotFoundError, so verify the file actually exists.
+            if self._log_path.exists():
+                self._file_permission_denied = True
+            else:
+                self._file_permission_denied = False
+            if self._file_unavailable_since is None:
+                self._file_unavailable_since = time.time()
+
+            # Still check for new log files — PostgreSQL may have rotated
+            # to a new (readable) file while the old one became unreadable
+            if self._check_for_new_log_file():
+                return
+
         except OSError:
-            # File unavailable - try to find a new log file
+            # File unavailable (deleted, missing) - try to find a new log file
+            # Clear permission denied since this is a file-missing scenario
+            # (on Windows, deleted files can briefly raise PermissionError
+            # before the OS fully releases the file handle)
+            self._file_permission_denied = False
             if self._file_unavailable_since is None:
                 self._file_unavailable_since = time.time()
 
@@ -489,6 +512,16 @@ class LogTailer:
         The tailer continues polling and will resume when the file returns.
         """
         return self._file_unavailable_since is not None
+
+    @property
+    def file_permission_denied(self) -> bool:
+        """Check if the log file has a permission error.
+
+        Returns True when the file exists but cannot be read due to OS
+        permissions (e.g., 0600 log files owned by postgres). This is
+        distinct from file_unavailable which covers file-missing/deleted.
+        """
+        return self._file_permission_denied
 
 
 def tail_file(

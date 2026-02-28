@@ -41,6 +41,7 @@ class Instance:
     pid: int | None = None
     port: int | None = None
     logging_enabled: bool = False
+    config_path: Path | None = None
 
     @property
     def status_str(self) -> str:

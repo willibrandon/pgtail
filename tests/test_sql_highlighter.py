@@ -6,11 +6,11 @@ from unittest.mock import patch
 import pytest
 
 from pgtail_py.highlighters.sql import (
+    TOKEN_TO_STYLE,
+    TOKEN_TYPE_TO_THEME_KEY,
     SQLHighlighter,
     SQLToken,
     SQLTokenType,
-    TOKEN_TO_STYLE,
-    TOKEN_TYPE_TO_THEME_KEY,
     _color_style_to_rich_markup,
     highlight_sql_rich,
 )
@@ -273,9 +273,7 @@ class TestSQLHighlighterPerformance:
 
         # Build a complex query with many joins
         tables = [f"table_{i}" for i in range(100)]
-        joins = [
-            f"LEFT JOIN {t} t{i} ON t{i}.id = t0.{t}_id" for i, t in enumerate(tables[1:], 1)
-        ]
+        joins = [f"LEFT JOIN {t} t{i} ON t{i}.id = t0.{t}_id" for i, t in enumerate(tables[1:], 1)]
         columns = [f"t{i}.col1, t{i}.col2, t{i}.col3" for i in range(len(tables))]
 
         sql = f"""SELECT {", ".join(columns)}
@@ -319,9 +317,7 @@ LIMIT 100"""
 
         assert elapsed_ms < 100, f"Highlighting took {elapsed_ms:.2f}ms"
 
-    def test_highlight_repeated_highlighting_consistent(
-        self, highlighter: SQLHighlighter
-    ) -> None:
+    def test_highlight_repeated_highlighting_consistent(self, highlighter: SQLHighlighter) -> None:
         """Repeated highlighting should have consistent performance."""
         import time
 
@@ -545,7 +541,9 @@ class TestHighlightSqlRichKeywordCoverage:
 
     def test_ddl_keywords_create_alter(self) -> None:
         """DDL keywords CREATE, ALTER should be highlighted."""
-        result = highlight_sql_rich("CREATE TABLE users (id INT); ALTER TABLE users ADD COLUMN name TEXT")
+        result = highlight_sql_rich(
+            "CREATE TABLE users (id INT); ALTER TABLE users ADD COLUMN name TEXT"
+        )
         assert "CREATE" in result
         assert "ALTER" in result
         assert "TABLE" in result
@@ -581,6 +579,7 @@ class TestHighlightSqlRichNoColor:
         with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=False):
             # Need to reload the cached check
             from pgtail_py import utils
+
             utils._color_disabled = None  # Clear cache
             try:
                 result = highlight_sql_rich("SELECT arr[1] FROM users")
@@ -595,6 +594,7 @@ class TestHighlightSqlRichNoColor:
         """With NO_COLOR=1, output should have no Rich markup tags."""
         with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=False):
             from pgtail_py import utils
+
             utils._color_disabled = None
             try:
                 result = highlight_sql_rich("SELECT id FROM users")
@@ -735,6 +735,7 @@ class TestHighlightSqlRichEdgeCases:
     def test_extremely_long_sql_50kb(self) -> None:
         """50KB SQL should complete without performance degradation."""
         import time
+
         # Build a 50KB+ SQL statement - need more columns to reach 50KB
         columns = [f"very_long_column_name_prefix_{i:06d}" for i in range(2000)]
         column_list = ", ".join(columns)
