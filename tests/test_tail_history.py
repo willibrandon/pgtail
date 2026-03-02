@@ -593,8 +593,10 @@ class TestGetTailHistoryPath:
         monkeypatch.setenv("APPDATA", "C:\\Users\\test\\AppData\\Roaming")
 
         path = mod.get_tail_history_path()
-        # Use as_posix() for cross-platform assertion
-        path_str = path.as_posix()
+        # Normalize all separators to forward slashes for cross-platform assertion.
+        # On non-Windows, Path treats backslashes as literal filename chars, so
+        # as_posix() alone won't convert them.
+        path_str = str(path).replace("\\", "/")
 
         assert "pgtail/tail_history" in path_str
         assert "Users/test/AppData/Roaming" in path_str
