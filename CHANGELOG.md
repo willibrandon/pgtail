@@ -5,6 +5,17 @@ All notable changes to pgtail are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-03-01
+
+### Fixed
+- Debian/Ubuntu PostgreSQL detection: config files in `/etc/postgresql/<version>/<cluster>/` are now found correctly
+- Version detection falls back to extracting from Debian data directory path when `PG_VERSION` is unreadable
+- Platform-aware permission advice: Windows shows icacls/Administrator guidance, Linux shows log_file_mode/usermod, macOS shows Homebrew-specific paths
+- Status bar shows "(permission denied)" instead of generic "(unavailable)" when log file exists but is unreadable
+- `enable-logging` command threads config path through for Debian layout and shows checked paths on failure
+- Tailer handles Windows edge case where deleted files briefly raise PermissionError instead of FileNotFoundError
+- Windows test stability: retry file unlink when tailer poll thread holds handle open
+
 ## [0.5.0] - 2025-01-16
 
 ### Added
@@ -122,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.5.1]: https://github.com/willibrandon/pgtail/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/willibrandon/pgtail/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/willibrandon/pgtail/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/willibrandon/pgtail/compare/v0.3.0...v0.4.0
