@@ -8,10 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from prompt_toolkit.formatted_text import FormattedText
-
 if TYPE_CHECKING:
-    from pgtail_py.tail_buffer import TailBuffer
     from pgtail_py.tail_log import TailLog
 
 
@@ -193,15 +190,13 @@ COMMAND_HELP: dict[str, dict[str, str | list[str]]] = {
 
 def show_command_help(
     cmd_name: str,
-    buffer: TailBuffer | None,
     log_widget: TailLog | None = None,
 ) -> bool:
     """Display detailed help for a specific command.
 
     Args:
         cmd_name: Command name to show help for
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if help was displayed, False if command not found
@@ -219,7 +214,6 @@ def show_command_help(
     see_also = help_info.get("see_also", "")
 
     if log_widget is not None:
-        # Textual mode
         log_widget.write_line(f"[bold cyan]{cmd_lower.upper()}[/bold cyan]")
         log_widget.write_line(f"  [dim]{short}[/dim]")
         log_widget.write_line("")
@@ -237,34 +231,12 @@ def show_command_help(
             log_widget.write_line(f"[bold]Aliases:[/bold] [dim]{aliases}[/dim]")
         if see_also:
             log_widget.write_line(f"[bold]See also:[/bold] [dim]{see_also}[/dim]")
-    elif buffer is not None:
-        # prompt_toolkit mode
-        lines: list[tuple[str, str]] = []
-        lines.append(("bold fg:ansicyan", f"{cmd_lower.upper()}\n"))
-        lines.append(("fg:ansigray", f"  {short}\n\n"))
-        lines.append(("bold", "Usage: "))
-        lines.append(("fg:ansigreen", f"{usage}\n\n"))
-        if description:
-            lines.append(("", f"  {description}\n\n"))
-        if examples:
-            lines.append(("bold", "Examples:\n"))
-            for ex in examples:
-                lines.append(("fg:ansiyellow", f"  {ex}\n"))
-            lines.append(("", "\n"))
-        if aliases:
-            lines.append(("bold", "Aliases: "))
-            lines.append(("fg:ansigray", f"{aliases}\n"))
-        if see_also:
-            lines.append(("bold", "See also: "))
-            lines.append(("fg:ansigray", f"{see_also}\n"))
-        buffer.insert_command_output(FormattedText(lines))
 
     return True
 
 
 def handle_help_command(
     args: list[str],
-    buffer: TailBuffer | None,
     log_widget: TailLog | None = None,
 ) -> bool:
     """Handle 'help' command to show available commands and shortcuts.
@@ -275,113 +247,85 @@ def handle_help_command(
 
     Args:
         args: Command arguments (e.g., ['keys', 'level'])
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
     """
     # Handle 'help keys' subcommand
     if args and args[0].lower() == "keys":
-        return handle_help_keys_command(buffer, log_widget)
+        return handle_help_keys_command(log_widget)
 
     # Handle 'help <command>' - show command-specific help
     if args and args[0].lower() in COMMAND_HELP:
-        return show_command_help(args[0], buffer, log_widget)
+        return show_command_help(args[0], log_widget)
 
-    # Build styled help text
-    lines: list[tuple[str, str]] = []
-
-    # Navigation section
-    lines.append(("bold fg:ansicyan", "Navigation\n"))
-    nav_keys = [
-        ("Up/Down", "Scroll 1 line"),
-        ("PgUp/PgDn", "Scroll full page"),
-        ("Ctrl+u/d", "Scroll half page"),
-        ("Ctrl+b/f", "Scroll full page"),
-        ("Home", "Go to top"),
-        ("End", "Go to bottom (resume FOLLOW mode)"),
-    ]
-    for key, desc in nav_keys:
-        lines.append(("fg:ansigreen", f"  {key:<12} "))
-        lines.append(("", f"{desc}\n"))
-
-    lines.append(("", "\n"))
-    lines.append(("bold fg:ansicyan", "Utility Keys\n"))
-    utility_keys = [
-        ("Ctrl+L", "Redraw screen"),
-        ("F12", "Toggle debug overlay"),
-        ("Ctrl+C", "Exit tail mode"),
-    ]
-    for key, desc in utility_keys:
-        lines.append(("fg:ansigreen", f"  {key:<12} "))
-        lines.append(("", f"{desc}\n"))
-
-    # Commands section
-    lines.append(("", "\n"))
-    lines.append(("bold fg:ansicyan", "Commands\n"))
-    commands = [
-        ("help", "Show this help"),
-        ("help keys", "Show keybinding reference"),
-        ("pause", "Enter PAUSED mode"),
-        ("follow", "Resume FOLLOW mode"),
-        ("level <lvl>", "Filter by level (e.g., 'level error,warning')"),
-        ("filter /re/", "Filter by regex pattern"),
-        ("since <time>", "Show entries since time (e.g., '5m', '14:30')"),
-        ("until <time>", "Show entries until time"),
-        ("between s e", "Show entries in time range"),
-        ("slow <ms>", "Set slow query threshold"),
-        ("clear", "Clear all filters"),
-        ("errors", "Show error statistics"),
-        ("connections", "Show connection statistics"),
-        ("highlight", "Manage semantic highlighters"),
-        ("set <key>", "Configure settings"),
-        ("export <path>", "Export entries to file"),
-        ("stop/exit/q", "Exit tail mode"),
-    ]
-    for cmd, desc in commands:
-        lines.append(("fg:ansiyellow", f"  {cmd:<12} "))
-        lines.append(("", f"{desc}\n"))
-
-    if buffer is not None:
-        buffer.insert_command_output(FormattedText(lines))
-    elif log_widget is not None:
-        # Textual mode: write styled help to log
+    if log_widget is not None:
+        # Navigation section
+        nav_keys = [
+            ("Up/Down", "Scroll 1 line"),
+            ("PgUp/PgDn", "Scroll full page"),
+            ("Ctrl+u/d", "Scroll half page"),
+            ("Ctrl+b/f", "Scroll full page"),
+            ("Home", "Go to top"),
+            ("End", "Go to bottom (resume FOLLOW mode)"),
+        ]
         log_widget.write_line("[bold cyan]Navigation[/bold cyan]")
         for key, desc in nav_keys:
             log_widget.write_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
+
         log_widget.write_line("")
+
+        utility_keys = [
+            ("Ctrl+L", "Redraw screen"),
+            ("F12", "Toggle debug overlay"),
+            ("Ctrl+C", "Exit tail mode"),
+        ]
         log_widget.write_line("[bold cyan]Utility Keys[/bold cyan]")
         for key, desc in utility_keys:
             log_widget.write_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
+
         log_widget.write_line("")
+
+        # Commands section
+        commands = [
+            ("help", "Show this help"),
+            ("help keys", "Show keybinding reference"),
+            ("pause", "Enter PAUSED mode"),
+            ("follow", "Resume FOLLOW mode"),
+            ("level <lvl>", "Filter by level (e.g., 'level error,warning')"),
+            ("filter /re/", "Filter by regex pattern"),
+            ("since <time>", "Show entries since time (e.g., '5m', '14:30')"),
+            ("until <time>", "Show entries until time"),
+            ("between s e", "Show entries in time range"),
+            ("slow <ms>", "Set slow query threshold"),
+            ("clear", "Clear all filters"),
+            ("errors", "Show error statistics"),
+            ("connections", "Show connection statistics"),
+            ("highlight", "Manage semantic highlighters"),
+            ("set <key>", "Configure settings"),
+            ("export <path>", "Export entries to file"),
+            ("stop/exit/q", "Exit tail mode"),
+        ]
         log_widget.write_line("[bold cyan]Commands[/bold cyan]")
         for cmd, desc in commands:
             log_widget.write_line(f"  [yellow]{cmd:<12}[/yellow] [dim]{desc}[/dim]")
+
     return True
 
 
-def handle_help_keys_command(buffer: TailBuffer | None, log_widget: TailLog | None = None) -> bool:
+def handle_help_keys_command(log_widget: TailLog | None = None) -> bool:
     """Handle 'help keys' command to show keybinding reference.
 
     Args:
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
     """
-    from pgtail_py.tail_help import KEYBINDINGS, format_keybindings_text
+    from pgtail_py.tail_help import KEYBINDINGS
 
-    if buffer is not None:
-        # Format for prompt_toolkit
-        keybindings_text = format_keybindings_text()
-        lines: list[tuple[str, str]] = []
-        for line in keybindings_text.split("\n"):
-            lines.append(("", f"{line}\n"))
-        buffer.insert_command_output(FormattedText(lines))
-    elif log_widget is not None:
-        # Textual mode: write styled keybindings to log
+    if log_widget is not None:
         for category, bindings in KEYBINDINGS.items():
             log_widget.write_line(f"[bold cyan]{category}[/bold cyan]")
             for key, desc in bindings:

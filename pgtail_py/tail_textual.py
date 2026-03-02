@@ -992,7 +992,6 @@ class TailApp(App[None]):
                 handle_tail_command(
                     cmd=cmd,
                     args=[],  # Don't pass 'force' to cli_tail
-                    buffer=None,
                     status=self._status,
                     state=self._state,
                     tailer=self._tailer,
@@ -1086,7 +1085,6 @@ class TailApp(App[None]):
         handle_tail_command(
             cmd=cmd,
             args=args,
-            buffer=None,  # Not used - replaced by log_widget
             status=self._status,
             state=self._state,
             tailer=self._tailer,

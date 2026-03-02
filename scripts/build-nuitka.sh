@@ -76,7 +76,7 @@ rm -rf dist/pgtail.build dist/pgtail.dist dist/pgtail.onefile-build dist/pgtail_
 #   - Exclude psutil.tests to avoid pytest dependency and speed up build
 echo "Running Nuitka build..."
 
-uv run nuitka \
+uv run --extra dev nuitka \
     --mode=standalone \
     --output-dir=dist \
     --output-filename=pgtail \

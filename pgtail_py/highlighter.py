@@ -15,8 +15,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, runtime_checkable
 
 import ahocorasick  # type: ignore[import-untyped]
 from prompt_toolkit.formatted_text import FormattedText
@@ -26,12 +25,11 @@ if TYPE_CHECKING:
 
 
 # =============================================================================
-# Match Dataclass
+# Match NamedTuple
 # =============================================================================
 
 
-@dataclass(frozen=True, slots=True)
-class Match:
+class Match(NamedTuple):
     """A single pattern match within text.
 
     Attributes:
@@ -124,7 +122,8 @@ class OccupancyTracker:
     def mark_occupied(self, start: int, end: int) -> None:
         """Mark a region as highlighted.
 
-        Maintains sorted order and merges adjacent/overlapping intervals.
+        Maintains sorted order. Optimized for the common case where
+        matches arrive in sorted order (append to end).
 
         Args:
             start: Start position (inclusive).
@@ -138,7 +137,13 @@ class OccupancyTracker:
             intervals.append((start, end))
             return
 
-        # Find insertion point using binary search
+        # Fast path: new interval goes at the end (common case when
+        # matches are sorted by start position)
+        if start >= intervals[-1][0]:
+            intervals.append((start, end))
+            return
+
+        # Slow path: binary search for insertion point
         lo, hi = 0, len(intervals)
         while lo < hi:
             mid = (lo + hi) // 2
@@ -147,9 +152,6 @@ class OccupancyTracker:
             else:
                 hi = mid
 
-        # Insert and merge with neighbors if needed
-        # For simplicity and speed in the common case (non-overlapping matches),
-        # just insert without merging
         intervals.insert(lo, (start, end))
 
     def available_ranges(self) -> list[tuple[int, int]]:
@@ -875,11 +877,13 @@ class HighlighterChain:
         from pgtail_py.highlighters.sql import detect_sql_content
 
         all_matches: list[tuple[int, int, str, int]] = []
+        append = all_matches.append  # Avoid attribute lookup in inner loop
 
         # Process non-SQL highlighters first (they always run)
         for h in self._get_non_sql_highlighters():
+            pri = h.priority  # Cache property outside inner loop
             for m in h.find_matches(text, theme):
-                all_matches.append((m.start, m.end, m.style, h.priority))
+                append((m.start, m.end, m.style, pri))
 
         # Detect SQL context - SQL highlighters only apply within SQL region
         sql_highlighters = self._get_sql_highlighters()
@@ -891,10 +895,11 @@ class HighlighterChain:
                 sql_end = sql_start + len(sql_result.sql)
 
                 for h in sql_highlighters:
+                    pri = h.priority
                     for m in h.find_matches(text, theme):
                         # Only include matches within SQL context
                         if m.start >= sql_start and m.end <= sql_end:
-                            all_matches.append((m.start, m.end, m.style, h.priority))
+                            append((m.start, m.end, m.style, pri))
 
         return all_matches
 
@@ -1193,26 +1198,30 @@ def _build_rich_markup_with_tracker(
     # Apply overlap prevention and build output in single pass
     # Since matches are already sorted by start position, accepted matches
     # will also be in sorted order - no need for second sort
-    tracker = OccupancyTracker(len(text))
+    text_len = len(text)
+    tracker = OccupancyTracker(text_len)
+    is_available = tracker.is_available  # Avoid attribute lookup in loop
+    mark_occupied = tracker.mark_occupied
     result: list[str] = []
+    append = result.append
     pos = 0
 
     for start, end, style, _priority in matches:
-        if tracker.is_available(start, end):
-            tracker.mark_occupied(start, end)
+        if is_available(start, end):
+            mark_occupied(start, end)
             # Output unhighlighted text before this match
             if pos < start:
-                result.append(escape_brackets(text[pos:start]))
+                append(escape_brackets(text[pos:start]))
             # Output highlighted match
             rich_style = _get_rich_style(theme, style)
             if rich_style:
-                result.append(f"[{rich_style}]{escape_brackets(text[start:end])}[/]")
+                append(f"[{rich_style}]{escape_brackets(text[start:end])}[/]")
             else:
-                result.append(escape_brackets(text[start:end]))
+                append(escape_brackets(text[start:end]))
             pos = end
 
-    if pos < len(text):
-        result.append(escape_brackets(text[pos:]))
+    if pos < text_len:
+        append(escape_brackets(text[pos:]))
 
     return "".join(result)
 

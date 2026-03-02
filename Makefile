@@ -3,7 +3,7 @@
 # Detect OS for platform-specific commands
 ifeq ($(OS),Windows_NT)
     DETECTED_OS := Windows
-    UV := $(USERPROFILE)\.local\bin\uv.exe
+    UV := uv
 else
     DETECTED_OS := $(shell uname -s)
     UV := uv

@@ -6,16 +6,12 @@ until, between, slow, clear) executed within the tail mode interface.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING
-
-from prompt_toolkit.formatted_text import FormattedText
 
 from pgtail_py.filter import LogLevel, parse_levels
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
-    from pgtail_py.tail_buffer import TailBuffer
     from pgtail_py.tail_log import TailLog
     from pgtail_py.tail_status import TailStatus
     from pgtail_py.tailer import LogTailer
@@ -23,7 +19,6 @@ if TYPE_CHECKING:
 
 def handle_level_command(
     args: list[str],
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
@@ -33,11 +28,10 @@ def handle_level_command(
 
     Args:
         args: Level names (e.g., ['error', 'warning'] or ['error,warning'])
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
@@ -50,9 +44,6 @@ def handle_level_command(
     levels, invalid = parse_levels(level_args)
 
     if invalid:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", f"Invalid levels: {', '.join(invalid)}")])
-            buffer.insert_command_output(error_msg)
         return True
 
     # Update state
@@ -66,10 +57,6 @@ def handle_level_command(
         status.set_level_filter(LogLevel.all_levels())
     else:
         status.set_level_filter(levels)
-
-    # Update buffer filters (prompt_toolkit mode only)
-    if buffer is not None:
-        rebuild_buffer_filters(buffer, state, status)
 
     # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
@@ -96,7 +83,6 @@ def _is_field_filter_arg(arg: str) -> bool:
 
 def handle_filter_command(
     args: list[str],
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
@@ -115,11 +101,10 @@ def handle_filter_command(
 
     Args:
         args: Pattern argument (e.g., ['/deadlock/'], ['-/noise/'], ['app=myapp'])
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
@@ -153,16 +138,6 @@ def handle_filter_command(
                         log_widget.write_line(f"[dim]and:[/] [green]&/{f.pattern}/{cs}[/]")
                 if has_field:
                     log_widget.write_line(f"[dim]{state.field_filter.format_status()}[/]")
-        elif buffer is not None:
-            if state.regex_state and state.regex_state.has_filters():
-                patterns: list[str] = [f.pattern for f in state.regex_state.includes]
-                if patterns:
-                    msg = FormattedText([("", f"Active filter: /{patterns[0]}/")])
-                else:
-                    msg = FormattedText([("", "No regex filter active")])
-            else:
-                msg = FormattedText([("", "No regex filter active")])
-            buffer.insert_command_output(msg)
         return True
 
     arg = args[0]
@@ -232,9 +207,6 @@ def handle_filter_command(
     except ValueError as e:
         if log_widget is not None:
             log_widget.write_line(f"[bold red]✗[/] Error: {e}")
-        elif buffer is not None:
-            error_msg = FormattedText([("class:error", f"Error: {e}")])
-            buffer.insert_command_output(error_msg)
         return True
 
     # Create and apply the filter
@@ -274,25 +246,17 @@ def handle_filter_command(
             cs = "c" if case_sensitive else ""
             log_widget.write_line(f"[bold green]✓[/] Filter {type_str}: [cyan]/{pattern}/{cs}[/]")
 
-        # Update buffer filters (prompt_toolkit mode only)
-        if buffer is not None:
-            rebuild_buffer_filters(buffer, state, status)
-
         # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
     except Exception as e:
         if log_widget is not None:
             log_widget.write_line(f"[bold red]✗[/] Invalid pattern: {e}")
-        elif buffer is not None:
-            error_msg = FormattedText([("class:error", f"Invalid pattern: {e}")])
-            buffer.insert_command_output(error_msg)
 
     return True
 
 
 def handle_since_command(
     args: list[str],
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
@@ -302,19 +266,15 @@ def handle_since_command(
 
     Args:
         args: Time specification (e.g., ['5m'] or ['14:30'])
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", "Usage: since <time> (e.g., 5m, 14:30)")])
-            buffer.insert_command_output(error_msg)
         return True
 
     time_str = args[0]
@@ -332,23 +292,16 @@ def handle_since_command(
         # Update status
         status.set_time_filter(f"since:{time_str}")
 
-        # Update buffer filters (prompt_toolkit mode only)
-        if buffer is not None:
-            rebuild_buffer_filters(buffer, state, status)
-
         # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
-    except Exception as e:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
-            buffer.insert_command_output(error_msg)
+    except Exception:
+        pass
 
     return True
 
 
 def handle_until_command(
     args: list[str],
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
@@ -358,19 +311,15 @@ def handle_until_command(
 
     Args:
         args: Time specification
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", "Usage: until <time>")])
-            buffer.insert_command_output(error_msg)
         return True
 
     time_str = args[0]
@@ -388,23 +337,16 @@ def handle_until_command(
         # Update status
         status.set_time_filter(f"until:{time_str}")
 
-        # Update buffer filters (prompt_toolkit mode only)
-        if buffer is not None:
-            rebuild_buffer_filters(buffer, state, status)
-
         # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
-    except Exception as e:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
-            buffer.insert_command_output(error_msg)
+    except Exception:
+        pass
 
     return True
 
 
 def handle_between_command(
     args: list[str],
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
@@ -414,19 +356,15 @@ def handle_between_command(
 
     Args:
         args: Start and end time specifications
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
     """
     if len(args) < 2:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", "Usage: between <start> <end>")])
-            buffer.insert_command_output(error_msg)
         return True
 
     start_str = args[0]
@@ -448,23 +386,16 @@ def handle_between_command(
         # Update status
         status.set_time_filter(f"between:{start_str}-{end_str}")
 
-        # Update buffer filters (prompt_toolkit mode only)
-        if buffer is not None:
-            rebuild_buffer_filters(buffer, state, status)
-
         # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
-    except Exception as e:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", f"Invalid time: {e}")])
-            buffer.insert_command_output(error_msg)
+    except Exception:
+        pass
 
     return True
 
 
 def handle_slow_command(
     args: list[str],
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     log_widget: TailLog | None = None,
@@ -473,24 +404,14 @@ def handle_slow_command(
 
     Args:
         args: Threshold in ms
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
     """
     if not args:
-        # Show current threshold (prompt_toolkit mode only)
-        if buffer is not None:
-            if state.slow_query_config and state.slow_query_config.enabled:
-                msg = FormattedText(
-                    [("", f"Slow query threshold: {state.slow_query_config.warning_ms}ms")]
-                )
-            else:
-                msg = FormattedText([("", "Slow query highlighting disabled")])
-            buffer.insert_command_output(msg)
         return True
 
     try:
@@ -511,16 +432,13 @@ def handle_slow_command(
         # Update status
         status.set_slow_threshold(threshold)
 
-    except ValueError as e:
-        if buffer is not None:
-            error_msg = FormattedText([("class:error", f"Invalid threshold: {e}")])
-            buffer.insert_command_output(error_msg)
+    except ValueError:
+        pass
 
     return True
 
 
 def handle_clear_command(
-    buffer: TailBuffer | None,
     status: TailStatus,
     state: AppState,
     tailer: LogTailer,
@@ -529,11 +447,10 @@ def handle_clear_command(
     """Handle 'clear' command to remove all filters.
 
     Args:
-        buffer: TailBuffer instance (prompt_toolkit) or None (Textual)
         status: TailStatus instance
         state: AppState instance
         tailer: LogTailer instance
-        log_widget: TailLog widget (Textual) or None
+        log_widget: TailLog widget or None
 
     Returns:
         True if command was handled
@@ -559,14 +476,6 @@ def handle_clear_command(
     status.set_time_filter(None)
     status.set_slow_threshold(None)
 
-    # Clear buffer filters and recalculate counts (prompt_toolkit mode only)
-    if buffer is not None:
-        buffer.update_filters([])
-        error_count, warning_count = buffer.get_filtered_error_warning_counts()
-        status.error_count = error_count
-        status.warning_count = warning_count
-        status.set_total_lines(buffer.filtered_count)
-
     # Textual mode: clear the log widget content
     if log_widget is not None:
         log_widget.clear()
@@ -575,52 +484,3 @@ def handle_clear_command(
         status.set_total_lines(0)
 
     return True
-
-
-def rebuild_buffer_filters(
-    buffer: TailBuffer, state: AppState, status: TailStatus | None = None
-) -> None:
-    """Rebuild buffer filter functions from state and recalculate counts.
-
-    Args:
-        buffer: TailBuffer instance
-        state: AppState with current filter settings
-        status: TailStatus instance to update counts (optional)
-    """
-    from pgtail_py.parser import LogEntry
-
-    filters: list[Callable[[LogEntry], bool]] = []
-
-    # Level filter
-    if state.active_levels is not None:
-
-        def level_filter(entry: LogEntry) -> bool:
-            return entry.level in state.active_levels  # type: ignore[operator]
-
-        filters.append(level_filter)
-
-    # Regex filter
-    if state.regex_state and state.regex_state.has_filters():
-
-        def regex_filter(entry: LogEntry) -> bool:
-            return state.regex_state.should_show(entry.raw)  # type: ignore[union-attr]
-
-        filters.append(regex_filter)
-
-    # Time filter
-    if state.time_filter and state.time_filter.is_active():
-
-        def time_filter(entry: LogEntry) -> bool:
-            return state.time_filter.matches(entry)  # type: ignore[union-attr]
-
-        filters.append(time_filter)
-
-    # Update buffer
-    buffer.update_filters(filters)
-
-    # Recalculate error/warning counts and line count from filtered entries
-    if status is not None:
-        error_count, warning_count = buffer.get_filtered_error_warning_counts()
-        status.error_count = error_count
-        status.warning_count = warning_count
-        status.set_total_lines(buffer.filtered_count)

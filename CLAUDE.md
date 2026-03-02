@@ -145,9 +145,6 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/cli_tail_filters.py` - Filter command handlers (level, filter, since, until, between, slow, clear)
 - `pgtail_py/cli_tail_display.py` - Display command handlers (errors, connections)
 - `pgtail_py/cli_tail_help.py` - Help command handlers and COMMAND_HELP dictionary
-- `pgtail_py/tail_buffer.py` - TailBuffer for prompt_toolkit mode (deprecated)
-- `pgtail_py/tail_layout.py` - TailLayout for prompt_toolkit mode (deprecated)
-- `pgtail_py/tail_app.py` - TailApp for prompt_toolkit mode (deprecated)
 
 **Detection priority:** Running processes → ~/.pgrx/data-* → PGDATA env → platform-specific paths
 
