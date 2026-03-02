@@ -14,7 +14,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-import shlex
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,14 +24,21 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.widgets import Input, Rule, Static
 
+from pgtail_py.cli_tail_help import COMMAND_HELP
+from pgtail_py.config import SETTING_KEYS
 from pgtail_py.filter import LogLevel
+from pgtail_py.highlighter_registry import get_registry
 from pgtail_py.multi_tailer import GlobPattern, MultiFileTailer
 from pgtail_py.regex_filter import FilterState
 from pgtail_py.stdin_reader import StdinReader
+from pgtail_py.tail_command_handler import TailCommandContext, handle_command
+from pgtail_py.tail_completion_data import TAIL_COMPLETION_DATA
+from pgtail_py.tail_history import TailCommandHistory, get_tail_history_path
 from pgtail_py.tail_input import TailInput
 from pgtail_py.tail_log import TailLog
 from pgtail_py.tail_rich import format_entry_compact
 from pgtail_py.tail_status import TailStatus
+from pgtail_py.tail_suggester import TailCommandSuggester
 from pgtail_py.tailer import LogTailer
 from pgtail_py.time_filter import TimeFilter
 
@@ -206,11 +212,42 @@ class TailApp(App[None]):
         # T080: Stdin mode flag and pre-buffered data
         self._stdin_mode: bool = stdin_mode
         self._stdin_data: str | None = stdin_data
+        # Command history for Up/Down recall (024: T003, T024)
+        self._history = TailCommandHistory(
+            max_entries=500,
+            history_path=get_tail_history_path(),
+        )
+        # Ghost text suggester (024: T008, T013)
+        self._suggester = TailCommandSuggester(
+            history=self._history,
+            completion_data=TAIL_COMPLETION_DATA,
+            dynamic_sources={
+                "highlighter_names": lambda: sorted(self._get_highlighter_names()),
+                "setting_keys": lambda: sorted(SETTING_KEYS),
+                "help_topics": lambda: sorted(list(COMMAND_HELP.keys()) + ["keys"]),
+            },
+        )
 
     @property
     def status(self) -> TailStatus | None:
         """Get the status object (for testing)."""
         return self._status
+
+    def _get_highlighter_names(self) -> list[str]:
+        """Return all available highlighter names (built-in + custom).
+
+        Combines names from the global HighlighterRegistry with any custom
+        highlighter names from the current highlighting configuration.
+
+        Returns:
+            List of highlighter name strings.
+        """
+        registry = get_registry()
+        names = set(registry.all_names())
+        # Include custom highlighter names from config
+        for custom in self._state.highlighting_config.custom_highlighters:
+            names.add(custom.name)
+        return list(names)
 
     @classmethod
     def run_tail_mode(
@@ -270,7 +307,7 @@ class TailApp(App[None]):
         yield Rule()
         yield TailLog(max_lines=self._max_lines, auto_scroll=True, id="log")
         yield Rule()
-        yield TailInput()
+        yield TailInput(history=self._history, suggester=self._suggester)
         yield Rule()
         yield Static(id="status")
 
@@ -292,6 +329,10 @@ class TailApp(App[None]):
                 deepcopy(self._state.time_filter) if self._state.time_filter else TimeFilter.empty()
             ),
         )
+
+        # Load command history and compact if needed (024: T024)
+        self._history.load()
+        self._history.compact()
 
         # Initialize status
         self._status = TailStatus()
@@ -482,6 +523,8 @@ class TailApp(App[None]):
         command = event.value.strip()
         event.input.value = ""
         if command:
+            if self._history.add(command):
+                self._history.save(command)
             self._handle_command(command)
         # Return focus to log
         self.query_one("#log", TailLog).focus()
@@ -784,94 +827,26 @@ class TailApp(App[None]):
 
         return True
 
-    def _handle_export_command(self, args: list[str], log_widget: TailLog) -> None:
-        """Handle export command in tail mode.
+    def _make_command_context(self) -> TailCommandContext:
+        """Create a TailCommandContext for command handler delegation."""
+        log_widget = self.query_one("#log", TailLog)
+        return TailCommandContext(
+            status=self._status,
+            state=self._state,
+            tailer=self._tailer,
+            log_widget=log_widget,
+            entries=self._entries,
+            stop_callback=self._stop_tailing,
+            set_paused=self._set_paused,
+            rebuild_log=self._rebuild_log,
+            reset_to_anchor=self._reset_to_anchor,
+            update_status=self._update_status,
+            entry_filter=self._entry_matches_filters,
+        )
 
-        Exports currently displayed entries to a file.
-
-        Args:
-            args: Command arguments [path, --format <fmt>, --highlighted]
-            log_widget: TailLog widget for feedback
-        """
-        from pgtail_py.export import ExportFormat, export_to_file
-
-        if not args:
-            log_widget.write_line(
-                "[bold red]✗[/] Usage: export <path> [--format text|json|csv] [--highlighted]"
-            )
-            return
-
-        # Parse arguments
-        path_str: str | None = None
-        fmt = ExportFormat.TEXT
-        preserve_markup = False
-
-        i = 0
-        while i < len(args):
-            arg = args[i]
-            if arg == "--format" and i + 1 < len(args):
-                try:
-                    fmt = ExportFormat.from_string(args[i + 1])
-                except ValueError as e:
-                    log_widget.write_line(f"[bold red]✗[/] {e}")
-                    return
-                i += 2
-            elif arg == "--highlighted":
-                preserve_markup = True
-                i += 1
-            elif not arg.startswith("-"):
-                path_str = arg
-                i += 1
-            else:
-                log_widget.write_line(f"[bold red]✗[/] Unknown option: {arg}")
-                return
-
-        if not path_str:
-            log_widget.write_line("[bold red]✗[/] No output path specified")
-            return
-
-        # Expand ~ and resolve path
-        path = Path(path_str).expanduser().resolve()
-
-        # Get entries that match current filters
-        filtered_entries = [e for e in self._entries if self._entry_matches_filters(e)]
-
-        if not filtered_entries:
-            log_widget.write_line(
-                "[yellow]⚠[/] No entries to export (buffer empty or all filtered)"
-            )
-            return
-
-        # Export
-        try:
-            if preserve_markup and fmt == ExportFormat.TEXT:
-                # For --highlighted in tail mode, export the Rich-formatted lines
-                # (same as what's displayed in the log widget)
-                from pgtail_py.export import ensure_parent_dirs
-
-                ensure_parent_dirs(path)
-                count = 0
-                with open(path, "w", encoding="utf-8") as f:
-                    for entry in filtered_entries:
-                        formatted = format_entry_compact(
-                            entry,
-                            theme=self._state.theme_manager.current_theme,
-                            highlighting_config=self._state.highlighting_config,
-                        )
-                        f.write(formatted + "\n")
-                        count += 1
-            else:
-                # Standard export (strips markup for clean text/JSON/CSV)
-                count = export_to_file(
-                    filtered_entries,
-                    path,
-                    fmt,
-                    append=False,
-                    preserve_markup=False,  # Never preserve raw markup for standard export
-                )
-            log_widget.write_line(f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]")
-        except OSError as e:
-            log_widget.write_line(f"[bold red]✗[/] Export failed: {e}")
+    def _set_paused(self, paused: bool) -> None:
+        """Set the explicit pause flag."""
+        self._paused = paused
 
     def _rebuild_log(self) -> None:
         """Rebuild log display from stored entries with current filters.
@@ -960,174 +935,11 @@ class TailApp(App[None]):
     def _handle_command(self, command_text: str) -> None:
         """Handle a command entered in the input line.
 
+        Delegates to the extracted handle_command() function via
+        TailCommandContext for constitution file-size compliance.
+
         Args:
             command_text: The command text entered by the user.
         """
-        from pgtail_py.cli_tail import handle_tail_command
-
-        # Use shlex to properly handle quoted arguments
-        try:
-            parts = shlex.split(command_text.strip())
-        except ValueError:
-            # Unclosed quote or other parse error - fall back to simple split
-            parts = command_text.strip().split()
-        if not parts:
-            return
-
-        cmd = parts[0].lower()
-        args = parts[1:]
-
-        # Get the log widget for commands that need it
-        log_widget = self.query_one("#log", TailLog)
-
-        # Guard against uninitialized state (shouldn't happen in normal flow)
-        if self._status is None or self._tailer is None:
-            return
-
-        # Handle clear command specially for anchor behavior
-        if cmd == "clear":
-            if args and args[0].lower() == "force":
-                # clear force: clear everything including anchor, start fresh
-                self._entries.clear()
-                handle_tail_command(
-                    cmd=cmd,
-                    args=[],  # Don't pass 'force' to cli_tail
-                    status=self._status,
-                    state=self._state,
-                    tailer=self._tailer,
-                    stop_callback=self._stop_tailing,
-                    log_widget=log_widget,
-                )
-            else:
-                # clear: reset to anchor (initial filters when tail mode started)
-                self._reset_to_anchor()
-            self._update_status()
-            return
-
-        # Handle pause/follow commands to set explicit pause flag
-        if cmd in ("pause", "p"):
-            self._paused = True
-            self._status.set_follow_mode(False, 0)
-            self._update_status()
-            return
-
-        if cmd in ("follow", "f"):
-            self._paused = False
-            self._status.set_follow_mode(True, 0)
-            # Rebuild log to include entries that arrived while paused
-            self._rebuild_log()
-            log_widget.scroll_end()
-            self._update_status()
-            return
-
-        # Handle theme command - switch theme and rebuild log with new colors
-        if cmd == "theme":
-            if not args:
-                # Show current theme
-                current = self._state.theme_manager.current_theme
-                if current:
-                    log_widget.write_line(f"[dim]Current theme:[/] [bold cyan]{current.name}[/]")
-                else:
-                    log_widget.write_line("[dim]No theme set[/]")
-            else:
-                theme_name = args[0]
-                if self._state.theme_manager.switch_theme(theme_name):
-                    # Rebuild log to re-render all entries with new theme colors
-                    self._rebuild_log()
-                    # Show success message with theme name in color
-                    log_widget.write_line(
-                        f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]"
-                    )
-                else:
-                    # Show error - theme not found
-                    available = ", ".join(sorted(self._state.theme_manager._themes.keys()))
-                    log_widget.write_line(
-                        f"[bold red]✗[/] Unknown theme [bold yellow]{theme_name}[/]. Available: {available}"
-                    )
-            self._update_status()
-            return
-
-        # Handle export command - needs access to self._entries
-        if cmd == "export":
-            self._handle_export_command(args, log_widget)
-            return
-
-        # Check if this is a help request (don't rebuild log for help)
-        is_help_request = args and args[0].lower() in ("help", "?")
-
-        # Track if this is a filter command that needs log rebuild
-        filter_commands = {"level", "filter", "since", "until", "between"}
-        needs_rebuild = cmd in filter_commands and not is_help_request
-
-        # Highlight commands that modify state need rebuild + cache reset
-        highlight_modifies = {"enable", "disable", "add", "remove", "on", "off"}
-        needs_highlight_rebuild = (
-            cmd == "highlight"
-            and args
-            and args[0].lower() in highlight_modifies
-            and not is_help_request
-        )
-
-        # Set commands that modify highlighting duration thresholds need rebuild
-        needs_set_highlight_rebuild = (
-            cmd == "set"
-            and len(args) >= 2
-            and args[0].startswith("highlighting.duration.")
-            and not is_help_request
-        )
-
-        # For commands that need rebuild, don't pass log_widget
-        # (message would be erased by rebuild). We'll show feedback after.
-        effective_log_widget = (
-            None if (needs_highlight_rebuild or needs_set_highlight_rebuild) else log_widget
-        )
-
-        handle_tail_command(
-            cmd=cmd,
-            args=args,
-            status=self._status,
-            state=self._state,
-            tailer=self._tailer,
-            stop_callback=self._stop_tailing,
-            log_widget=effective_log_widget,
-        )
-
-        # Rebuild log with new filters applied to stored entries
-        if needs_rebuild:
-            self._rebuild_log()
-
-        # Highlight changes need cache reset and rebuild to re-render with new styles
-        if needs_highlight_rebuild:
-            from pgtail_py.tail_rich import reset_highlighter_chain
-
-            reset_highlighter_chain()
-            self._rebuild_log()
-            # Show feedback after rebuild so it's not erased
-            subcommand = args[0].lower()
-            if subcommand == "add" and len(args) >= 2:
-                log_widget.write_line(f"[green]Added highlighter '{args[1]}'[/green]")
-            elif subcommand == "remove" and len(args) >= 2:
-                log_widget.write_line(f"[green]Removed highlighter '{args[1]}'[/green]")
-            elif subcommand == "enable" and len(args) >= 2:
-                log_widget.write_line(f"[green]Enabled highlighter '{args[1]}'[/green]")
-            elif subcommand == "disable" and len(args) >= 2:
-                log_widget.write_line(f"[green]Disabled highlighter '{args[1]}'[/green]")
-            elif subcommand == "on":
-                log_widget.write_line("[green]Highlighting enabled[/green]")
-            elif subcommand == "off":
-                log_widget.write_line("[yellow]Highlighting disabled[/yellow]")
-
-        # Set highlighting.duration.* changes need cache reset and rebuild
-        if needs_set_highlight_rebuild:
-            from pgtail_py.tail_rich import reset_highlighter_chain
-
-            reset_highlighter_chain()
-            self._rebuild_log()
-            # Show feedback after rebuild so it's not erased
-            key = args[0]
-            value = args[1] if len(args) > 1 else ""
-            log_widget.write_line(
-                f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{value}[/magenta]"
-            )
-
-        self._update_status()
+        ctx = self._make_command_context()
+        handle_command(command_text, ctx)

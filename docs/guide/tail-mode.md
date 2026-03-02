@@ -138,6 +138,50 @@ FOLLOW | E:5 W:12 | 1,234 lines | level=error | PG16:5432
 - **Filters**: Active filters (level, regex, time)
 - **Instance**: PostgreSQL version and port
 
+## Command Input
+
+The `tail>` prompt provides command history and context-aware ghost text autocomplete.
+
+### Command History
+
+Press **Up** and **Down** arrow keys to cycle through previously entered commands. History persists across sessions in a platform-specific file:
+
+- **macOS**: `~/Library/Application Support/pgtail/tail_history`
+- **Linux**: `~/.local/share/pgtail/tail_history`
+- **Windows**: `%APPDATA%/pgtail/tail_history`
+
+Up to 500 commands are stored, with duplicates removed (most recent kept).
+
+### Ghost Text Autocomplete
+
+As you type, dimmed suggestion text appears ahead of your cursor. Press **Right** or **End** to accept the suggestion.
+
+**What gets suggested:**
+
+| Context | Example Input | Suggestion |
+|---------|---------------|------------|
+| Command names | `lev` | `level` |
+| Level values | `level err` | `error` |
+| Level suffixes | `level error` | `error+` |
+| Subcommands | `highlight ` | `add` |
+| Flag names | `export --f` | `--format` |
+| Flag values | `export --format ` | `csv` |
+| Theme names | `theme ` | `dark` |
+| Time presets | `since ` | `10m` |
+| History fallback | `filter /dead` | `filter /deadlock/i` (from history) |
+
+The autocomplete pipeline tries structural completion first (command specs with flags, positionals, and subcommands), then falls back to history prefix search.
+
+### Input Keys
+
+| Key | Action |
+|-----|--------|
+| `Up` | Previous command from history |
+| `Down` | Next command in history |
+| `Right` / `End` | Accept ghost text suggestion |
+| `Enter` | Execute command |
+| `Escape` | Return focus to log display |
+
 ## Commands
 
 Type commands in the `tail>` prompt:

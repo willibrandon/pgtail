@@ -135,9 +135,13 @@ pgtail is an interactive CLI tool for tailing PostgreSQL log files. It auto-dete
 - `pgtail_py/highlighters/` - Built-in highlighters (duration, sqlstate, error_name, checkpoint, recovery, etc.)
 - `pgtail_py/highlighting_config.py` - HighlightingConfig, CustomHighlighter, config persistence
 - `pgtail_py/cli_highlight.py` - highlight command handlers (list, enable, disable, add, remove, on, off, preview, reset, export, import)
-- `pgtail_py/tail_textual.py` - TailApp Textual Application, main tail mode coordinator
+- `pgtail_py/tail_textual.py` - TailApp Textual Application, main tail mode coordinator (history/suggester wiring, dynamic sources)
 - `pgtail_py/tail_log.py` - TailLog widget with vim-style navigation, visual mode selection, clipboard support
-- `pgtail_py/tail_input.py` - TailInput widget for tail mode command entry
+- `pgtail_py/tail_input.py` - TailInput widget for tail mode command entry (Up/Down history navigation, ghost text suggestions)
+- `pgtail_py/tail_history.py` - Command history with 3-state cursor navigation and file persistence
+- `pgtail_py/tail_completion_data.py` - CompletionSpec dataclass and TAIL_COMPLETION_DATA for 21 commands
+- `pgtail_py/tail_suggester.py` - Context-aware ghost text suggester (structural + history fallback)
+- `pgtail_py/tail_command_handler.py` - Extracted command handler (TailCommandContext, handle_command, handle_export_command)
 - `pgtail_py/tail_status.py` - TailStatus for status bar state (counts, filters, mode, instance info)
 - `pgtail_py/tail_rich.py` - Rich text formatting for log entries (LEVEL_STYLES, format_entry_compact)
 - `pgtail_py/tail_help.py` - HelpScreen modal overlay with keybinding reference
@@ -584,10 +588,22 @@ The `tail` command enters a Textual-based split-screen interface:
 - `clear` resets to anchor state
 - `clear force` clears everything including anchor
 
+**Command input features:**
+- **Command history**: Up/Down arrow keys recall previous commands (persists across sessions)
+- **Ghost text autocomplete**: Context-aware suggestions appear as dimmed text ahead of cursor
+  - Command names: Type partial command to see suggestion (e.g., `lev` → `level`)
+  - Structural completions: Arguments, flags, and subcommands based on command spec
+  - History fallback: If no structural match, searches history for prefix match
+  - Accept suggestion with Right arrow or End key
+
 **Implementation:**
-- `tail_textual.py`: TailApp coordinator, asyncio entry consumer, filter management
+- `tail_textual.py`: TailApp coordinator, asyncio entry consumer, filter management, history/suggester wiring
 - `tail_log.py`: TailLog widget (inherits from Textual Log), vim navigation, visual mode
-- `tail_input.py`: TailInput widget for command entry
+- `tail_input.py`: TailInput widget for command entry, Up/Down history navigation, ghost text
+- `tail_history.py`: TailCommandHistory with 3-state cursor model, file persistence
+- `tail_completion_data.py`: CompletionSpec frozen dataclass, 21 command specs with flags/positionals/subcommands
+- `tail_suggester.py`: TailCommandSuggester extending Textual Suggester, structural + history pipeline
+- `tail_command_handler.py`: Extracted command handlers (TailCommandContext, handle_command, handle_export_command)
 - `tail_status.py`: TailStatus state container, format_header(), format_rich()
 - `tail_rich.py`: format_entry_compact() with Rich markup, LEVEL_STYLES
 - `tail_help.py`: HelpScreen modal with keybinding categories
@@ -678,7 +694,46 @@ zcat archived.log.gz | pgtail tail --stdin
 - `pgtail_py/parser.py` - source_file field on LogEntry
 - `pgtail_py/commands.py` - PathCompleter for tab completion
 
+## Tail Mode Command History & Autocomplete
+
+The tail mode command input supports persistent command history and context-aware ghost text autocomplete.
+
+**Command History:**
+- Up/Down arrow keys navigate through previously entered commands
+- History persists across sessions in a platform-specific file:
+  - **macOS**: `~/Library/Application Support/pgtail/tail_history`
+  - **Linux**: `~/.local/share/pgtail/tail_history`
+  - **Windows**: `%APPDATA%/pgtail/tail_history`
+- 3-state cursor model: at-rest, at-history-entry, past-newest
+- Maximum 500 entries, deduplicated (most recent occurrence kept)
+- Automatic compaction at 2x threshold (1000 lines)
+
+**Ghost Text Autocomplete (Suggester):**
+- Dimmed text appears ahead of cursor showing predicted completion
+- Accept with Right arrow or End key
+- Pipeline: structural completion → history prefix fallback → None
+- Structural completions cover 21 commands with flags, positionals, and subcommands
+- Dynamic sources resolve at suggestion time: highlighter names, setting keys, help topics
+- Static values use case-insensitive matching; dynamic sources use case-sensitive matching
+
+**CompletionSpec Architecture:**
+- Frozen dataclass with optional fields: static_values, dynamic_source, subcommands, flags, positionals, no_args
+- Flag scanning algorithm tracks consumed flags, pending value-taking flags, and positional index
+- Supports `--flag value`, `--flag=value`, boolean flags, and mixed flag+positional commands
+- Subcommand resolution recurses into nested CompletionSpec trees
+
+**New Modules:**
+- `pgtail_py/tail_history.py` - TailCommandHistory, get_tail_history_path()
+- `pgtail_py/tail_completion_data.py` - CompletionSpec, TAIL_COMPLETION_DATA (21 commands)
+- `pgtail_py/tail_suggester.py` - TailCommandSuggester (extends textual.suggester.Suggester)
+- `pgtail_py/tail_command_handler.py` - TailCommandContext, handle_command(), handle_export_command()
+
+**Modified Modules:**
+- `pgtail_py/tail_input.py` - Up/Down bindings, history/suggester params, watch_value guard
+- `pgtail_py/tail_textual.py` - History/suggester creation, dynamic sources, command handler delegation
+
 ## Recent Changes
+- 024-tail-history-completion: Added command history (Up/Down recall, file persistence) and context-aware ghost text autocomplete (structural + history fallback) in tail mode
 - 023-semantic-highlighting: Added Python 3.10+ (targeting Python 3.12 for builds) + prompt_toolkit >=3.0.0, textual, pyahocorasick (NEW - for multi-keyword matching)
 - 022-repl-toolbar: Added Python 3.10+ + prompt_toolkit >=3.0.0 (already in use for REPL)
 - 021-tail-file-option: Added Python 3.10+ + prompt_toolkit, textual, typer, psutil
@@ -742,3 +797,5 @@ get_textual_doc(path="widgets/log.md")
 - N/A (extends existing config schema with `display.show_toolbar`) (022-repl-toolbar)
 - Python 3.10+ (targeting Python 3.12 for builds) + prompt_toolkit >=3.0.0, textual, pyahocorasick (NEW - for multi-keyword matching) (023-semantic-highlighting)
 - TOML configuration file (existing config.py infrastructure) (023-semantic-highlighting)
+- Python 3.10+ + textual >=0.89.0 (Suggester base class, Input widget reactive system) (024-tail-history-completion)
+- Platform-specific UTF-8 text file (tail_history) (024-tail-history-completion)

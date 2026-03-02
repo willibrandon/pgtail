@@ -224,7 +224,12 @@ See the [Highlighting guide](guide/highlighting.md) for details.
 
 ## Tail Mode Commands
 
-In tail mode (after `tail <id>`), use the `tail>` prompt:
+In tail mode (after `tail <id>`), the `tail>` prompt supports:
+
+- **Command history**: Up/Down arrow keys to recall previous commands (persists across sessions)
+- **Ghost text autocomplete**: Dimmed suggestions for commands, arguments, flags, and subcommands (Right/End to accept)
+
+### Available Commands
 
 | Command | Description |
 |---------|-------------|

@@ -39,6 +39,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 - **SQL syntax highlighting** in log messages (keywords, identifiers, strings, numbers, operators, comments)
 - **Semantic highlighting** - 29 built-in highlighters for timestamps, durations, SQLSTATE codes, WAL, locks, and more
 - Color-coded output by severity with SQL state codes
+- **Command history** in tail mode with Up/Down arrow recall (persists across sessions)
+- **Ghost text autocomplete** in tail mode with context-aware suggestions for commands, arguments, and flags
 - REPL with autocomplete, command history, and **bottom toolbar** (instance count, filters, theme)
 - **Shell mode** (`!` prefix) with clear toolbar indicator
 - Cross-platform (macOS, Linux, Windows)
@@ -863,6 +865,23 @@ When you run `tail <id>`, pgtail enters a Textual-based split-screen interface:
 
 Text is copied to clipboard using OSC 52 (terminal clipboard) with pyperclip fallback.
 Mouse drag selection auto-copies to clipboard on release.
+
+**Command input (history & autocomplete):**
+
+The `tail>` command prompt supports persistent history and ghost text suggestions:
+
+| Key | Action |
+|-----|--------|
+| Up | Recall previous command from history |
+| Down | Navigate forward through history |
+| Right / End | Accept ghost text suggestion |
+
+- **Command history** persists across sessions (Up/Down arrows to navigate)
+- **Ghost text autocomplete** shows dimmed suggestions as you type:
+  - Command names (e.g., type `lev` to see `level` suggested)
+  - Arguments and flags based on command context (e.g., `level err` → `error`)
+  - Subcommands (e.g., `highlight ` → `add`, `disable`, `enable`, etc.)
+  - Falls back to history prefix search when no structural match exists
 
 **Commands in tail mode:**
 
