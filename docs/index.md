@@ -12,6 +12,8 @@ pgtail automatically discovers running PostgreSQL instances and provides real-ti
 - **SQL highlighting** - Syntax highlighting for SQL in log messages
 - **Vim navigation** - Navigate logs with vim-style keybindings (j/k, g/G, Ctrl+d/u)
 - **Visual selection** - Select text with v/V and copy with y or Ctrl+c
+- **Command history** - Up/Down arrow recall in tail mode, persists across sessions
+- **Ghost text autocomplete** - Context-aware suggestions for commands, arguments, and flags
 - **Slow query detection** - Highlight slow queries based on configurable thresholds
 - **Desktop notifications** - Get notified of errors, patterns, or slow queries
 - **Themeable** - Built-in themes (dark, light, monokai, solarized) plus custom themes

@@ -43,7 +43,7 @@ No setup tasks required.
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Implement TailCommandHistory in-memory core in pgtail_py/tail_history.py
+- [X] T001 [US1] Implement TailCommandHistory in-memory core in pgtail_py/tail_history.py
   - `__init__(max_entries: int = 500, history_path: Path | None = None)` with `_entries: list[str]`, `_cursor: int`, `_saved_input: str | None`, `_max_line_bytes: int = 4096`, `_compact_threshold: int = 1000`
   - `add(command: str)` — reject empty/whitespace-only (`if not command or not command.strip()`), consecutive dedup (`if _entries and _entries[-1] == command`), trim oldest when exceeding max_entries, reset navigation to at-rest
   - `navigate_back(current_input: str) -> str | None` — three-state cursor per data-model.md: from at-rest save current_input, set cursor=len-1, return entries[cursor]; from at-history-entry set cursor=max(0, cursor-1), return entries[cursor]; if history empty return None; at oldest entry (cursor 0) return entries[0] unchanged
@@ -51,7 +51,7 @@ No setup tasks required.
   - `reset_navigation()` — set cursor=len(entries), clear _saved_input to None
   - Properties: `at_rest: bool` (cursor == len and _saved_input is None), `entries: list[str]` (copy of _entries), `__len__` (len of _entries)
   - Per contracts/interfaces.md §1, data-model.md state machine, quickstart.md §Step 1
-- [ ] T002 [US1] Add history parameter, Up/Down bindings, and guard pattern to TailInput in pgtail_py/tail_input.py
+- [X] T002 [US1] Add history parameter, Up/Down bindings, and guard pattern to TailInput in pgtail_py/tail_input.py
   - Add `history: TailCommandHistory | None = None` to constructor (keyword-only, backward-compatible per FR-023); store as `self._history`
   - Add `self._navigating: bool = False` instance flag (synchronous guard per D-002, research.md R-002)
   - Add bindings to BINDINGS list: `Binding("up", "history_back", "History back", show=False)`, `Binding("down", "history_forward", "History forward", show=False)` per research.md R-008
@@ -60,7 +60,7 @@ No setup tasks required.
   - Implement `watch_value(self, value: str)` — if not `_navigating` and `_history`: call `self._history.reset_navigation()` (FR-004, FR-025, FR-026)
   - `action_clear_and_blur()` — existing method already sets `self.value = ""`, which triggers watch_value → reset_navigation; no changes needed
   - Per contracts/interfaces.md §4, research.md R-002 (synchronous reactives), R-006 (guard scope), R-008 (key bindings)
-- [ ] T003 [US1] Wire history creation and command recording in TailApp in pgtail_py/tail_textual.py
+- [X] T003 [US1] Wire history creation and command recording in TailApp in pgtail_py/tail_textual.py
   - Import `TailCommandHistory` from `pgtail_py.tail_history`
   - In `__init__()` (after existing init code): `self._history = TailCommandHistory(max_entries=500)` (no path yet — persistence wired in US5)
   - In `compose()`: pass `history=self._history` to `TailInput()` constructor call (currently at line ~271)
@@ -69,7 +69,7 @@ No setup tasks required.
 
 ### Tests for User Story 1
 
-- [ ] T004 [US1] Write TailCommandHistory in-memory unit tests in tests/test_tail_history.py
+- [X] T004 [US1] Write TailCommandHistory in-memory unit tests in tests/test_tail_history.py
   - **Navigation state transitions** (all 7 from data-model.md):
     - at-rest → Up → at-history-entry (saves input, returns newest entry)
     - at-rest → Down → at-rest (returns (None, False), no-op)
@@ -82,7 +82,7 @@ No setup tasks required.
   - **add() validation**: empty string rejected; whitespace-only rejected; consecutive dedup (same command twice → one entry); non-consecutive duplicate kept (A, B, A → three entries); max_entries trimming (501 adds with max=500 → 500 entries, oldest dropped); add resets navigation state to at-rest
   - **Properties**: at_rest True at init; False after navigate_back; True after reset_navigation; entries returns copy (mutation doesn't affect internal state); __len__ returns correct count
   - ~30 tests
-- [ ] T005 [US1] Write TailInput history integration tests in tests/test_tail_input_history.py
+- [X] T005 [US1] Write TailInput history integration tests in tests/test_tail_input_history.py
   - **Constructor backward compatibility**: `TailInput()` with no args works (no history, no errors)
   - **Constructor with history**: `TailInput(history=history)` stores reference in `_history`
   - **Up navigation**: updates input value to history entry; cursor positioned at end of text
@@ -110,13 +110,13 @@ No setup tasks required.
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Create CompletionSpec dataclass and initial TAIL_COMPLETION_DATA in pgtail_py/tail_completion_data.py
+- [X] T006 [US2] Create CompletionSpec dataclass and initial TAIL_COMPLETION_DATA in pgtail_py/tail_completion_data.py
   - Import `dataclasses.dataclass`
   - Define `@dataclass(frozen=True) class CompletionSpec` with fields: `static_values: list[str] | None = None`, `dynamic_source: str | None = None`, `subcommands: dict[str, CompletionSpec] | None = None`, `flags: dict[str, CompletionSpec | None] | None = None`, `positionals: list[CompletionSpec | None] | None = None`, `no_args: bool = False`
   - Define `TAIL_COMPLETION_DATA: dict[str, CompletionSpec]` with entries for all tail mode commands: `level`, `filter`, `since`, `until`, `between`, `slow`, `clear`, `errors`, `connections`, `highlight`, `set`, `export`, `theme`, `help`, `pause`, `p`, `follow`, `f`, `stop`, `exit`, `q` — initially with `CompletionSpec()` placeholders for commands with arguments, `CompletionSpec(no_args=True)` for no-arg commands (pause, p, follow, f, stop, exit, q)
   - Note: Full command specs (static values, flags, positionals, subcommands) completed in US3 (T010)
   - Per contracts/interfaces.md §3, research.md R-005
-- [ ] T007 [US2] Implement TailCommandSuggester with command name completion in pgtail_py/tail_suggester.py
+- [X] T007 [US2] Implement TailCommandSuggester with command name completion in pgtail_py/tail_suggester.py
   - Import `Suggester` from `textual.suggester`, `TailCommandHistory` from `pgtail_py.tail_history`, `CompletionSpec` from `pgtail_py.tail_completion_data`
   - `class TailCommandSuggester(Suggester):` with `super().__init__(use_cache=False, case_sensitive=True)` per D-001
   - `__init__(self, history: TailCommandHistory, completion_data: dict[str, CompletionSpec], dynamic_sources: dict[str, Callable[[], list[str]]])` — store all three as `_history`, `_completion_data`, `_dynamic_sources`
@@ -141,14 +141,14 @@ No setup tasks required.
     - **CRITICAL full-line return formula (FR-017)**: ALWAYS compute `suffix = matched_value[len(partial):]` and return `value + suffix`. This preserves the user's exact input text and ensures `suggestion.startswith(self.value)` is True — required by Textual's Input widget which validates this before displaying ghost text. For case-mismatched input like `"LEV"` matching `"level"`: suffix = `"level"[3:]` = `"el"`, return = `"LEV" + "el"` = `"LEVel"`. Ghost text shows `"el"`. When accepted, the command parser lowercases.
     - Note: Argument completion (_resolve_structural) added in US3; history fallback added in US4
   - Per contracts/interfaces.md §2, research.md R-001
-- [ ] T008 [US2] Add suggester parameter to TailInput and wire in TailApp in pgtail_py/tail_input.py and pgtail_py/tail_textual.py
+- [X] T008 [US2] Add suggester parameter to TailInput and wire in TailApp in pgtail_py/tail_input.py and pgtail_py/tail_textual.py
   - **tail_input.py**: Add `suggester: Suggester | None = None` keyword param to `__init__`; import `Suggester` from `textual.suggester`; pass `suggester=suggester` to `super().__init__()` call
   - **tail_textual.py**: Import `TailCommandSuggester` from `pgtail_py.tail_suggester` and `TAIL_COMPLETION_DATA` from `pgtail_py.tail_completion_data`; in `__init__()`: create `self._suggester = TailCommandSuggester(history=self._history, completion_data=TAIL_COMPLETION_DATA, dynamic_sources={})` (empty dynamic_sources initially, populated in US3 T013); in `compose()`: pass `suggester=self._suggester` to `TailInput()` constructor
   - Per quickstart.md §Step 5, contracts/interfaces.md §4-5
 
 ### Tests for User Story 2
 
-- [ ] T009 [US2] Write command name completion tests in tests/test_tail_suggester.py
+- [X] T009 [US2] Write command name completion tests in tests/test_tail_suggester.py
   - **Input parsing**: empty string → (None, [], ""); single partial `"le"` → (None, [], "le"); command+space `"level "` → ("level", [], ""); trailing spaces `"level  "` → ("level", [], ""); command+partial `"level e"` → ("level", [], "e"); multiple tokens `"errors --since 5m "` → ("errors", ["--since", "5m"], "")
   - **Command name matching**: `"le"` → `"level"` (full-line); `"hi"` → `"highlight"`; `"s"` → `"set"` (first alphabetical before since, slow, stop); `"LEVEL"` → case-insensitive match suggests `"LEVEL"` completed to full command
   - **Exact command match (empty suffix)**: `"p"` → None (exactly matches `p` command); `"q"` → None; `"level"` (no trailing space) → None (exact match, no ghost text for empty suffix)
@@ -175,7 +175,7 @@ No setup tasks required.
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Complete TAIL_COMPLETION_DATA with full command specs in pgtail_py/tail_completion_data.py
+- [X] T010 [US3] Complete TAIL_COMPLETION_DATA with full command specs in pgtail_py/tail_completion_data.py
   - Define static value constants (module-level, exported for testing):
     - `LEVEL_VALUES: list[str] = ["debug", "error", "fatal", "info", "log", "notice", "panic", "warning"]` (sorted alphabetically; full names only per R-010)
     - `TIME_PRESETS: list[str] = ["10m", "15m", "1d", "1h", "2h", "30m", "4h", "5m", "clear"]` (sorted alphabetically)
@@ -199,7 +199,7 @@ No setup tasks required.
     - `"theme"`: `CompletionSpec(positionals=[CompletionSpec(static_values=BUILTIN_THEME_NAMES)])`
     - `"help"`: `CompletionSpec(positionals=[CompletionSpec(dynamic_source="help_topics")])`
   - Per research.md R-010 (command inventory), contracts/interfaces.md §3
-- [ ] T011 [P] [US3] Write completion data validation tests in tests/test_tail_completion_data.py
+- [X] T011 [P] [US3] Write completion data validation tests in tests/test_tail_completion_data.py
   - **Inventory**: every command from `cli_tail.py` TAIL_MODE_COMMANDS list plus `theme` has a spec entry in TAIL_COMPLETION_DATA
   - **Boolean flags**: `--trend`, `--live`, `--history`, `--watch`, `--highlighted`, `--append`, `--follow` all map to None
   - **Value-taking flags**: `--code`, `--since`, `--format`, `--db`, `--user`, `--app`, `--file` all map to CompletionSpec instances
@@ -211,7 +211,7 @@ No setup tasks required.
   - **Static value lists**: LEVEL_VALUES, TIME_PRESETS, THRESHOLD_PRESETS, FORMAT_VALUES, BUILTIN_THEME_NAMES are all non-empty and sorted alphabetically
   - **Highlight subcommands**: all 11 subcommands present (list, on, off, enable, disable, add, remove, export, import, preview, reset)
   - ~15 tests
-- [ ] T012 [P] [US3] Implement _resolve_structural() and flag scanning in TailCommandSuggester in pgtail_py/tail_suggester.py
+- [X] T012 [P] [US3] Implement _resolve_structural() and flag scanning in TailCommandSuggester in pgtail_py/tail_suggester.py
   - `_resolve_structural(self, command: str, completed_args: list[str], partial: str) -> str | None`:
     - Look up command (casefolded) in `_completion_data`; if not found → return None
     - If spec.no_args → return None
@@ -230,14 +230,14 @@ No setup tasks required.
     - **Value resolution**: if CompletionSpec has static_values → _match_values(values, partial, case_sensitive=False); if dynamic_source → call `_dynamic_sources[key]()` → _match_values(values, partial, case_sensitive=True) (FR-018)
     - Return matched value (full value, not suffix), or None
   - Per data-model.md §CompletionSpec, contracts/interfaces.md §2
-- [ ] T013 [P] [US3] Wire dynamic_sources callables in TailApp in pgtail_py/tail_textual.py
+- [X] T013 [P] [US3] Wire dynamic_sources callables in TailApp in pgtail_py/tail_textual.py
   - In `__init__()` (or `compose()`), create `dynamic_sources` dict with three callables:
     - `"highlighter_names"`: `lambda: sorted(self._state.highlighting_config.get_all_names())` (or equivalent from HighlighterRegistry)
     - `"setting_keys"`: `lambda: sorted(list(SETTING_KEYS))` (import SETTING_KEYS from config module)
     - `"help_topics"`: `lambda: sorted(list(COMMAND_HELP.keys()) + ["keys"])` (import COMMAND_HELP from cli_tail_help)
   - Update TailCommandSuggester creation from T008: replace `dynamic_sources={}` with `dynamic_sources=dynamic_sources`
   - Per research.md R-007 (dynamic sources), contracts/interfaces.md §5
-- [ ] T014 [US3] Integrate _resolve_structural() into get_suggestion() in pgtail_py/tail_suggester.py (depends on T012 — same file, must be sequential)
+- [X] T014 [US3] Integrate _resolve_structural() into get_suggestion() in pgtail_py/tail_suggester.py (depends on T012 — same file, must be sequential)
   - In `get_suggestion()`: after parsing input, if command is identified (not None) and we have a partial or trailing space:
     - Call `_resolve_structural(command, completed_args, partial)`
     - If structural returns a non-None matched value: compute `suffix = matched_value[len(partial):]`; if suffix is non-empty:
@@ -250,7 +250,7 @@ No setup tasks required.
 
 ### Tests for User Story 3
 
-- [ ] T015 [US3] Write argument completion tests in tests/test_tail_suggester.py
+- [X] T015 [US3] Write argument completion tests in tests/test_tail_suggester.py
   - **Static values**: `"level "` → `"level debug"` (first alphabetical); `"level e"` → `"level error"`; `"since "` → first time preset; `"slow "` → first threshold preset
   - **Subcommands**: `"highlight "` → `"highlight add"` (first alphabetical); `"highlight enable "` → dynamic highlighter name (mock dynamic_sources)
   - **Nested subcommand with no_args**: `"highlight list "` → None (list takes no args)
@@ -287,21 +287,21 @@ No setup tasks required.
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Implement search_prefix() in TailCommandHistory in pgtail_py/tail_history.py
+- [X] T016 [US4] Implement search_prefix() in TailCommandHistory in pgtail_py/tail_history.py
   - `search_prefix(self, prefix: str) -> str | None`:
     - Iterate `_entries` from newest to oldest (reversed)
     - Find first entry where `entry.startswith(prefix)` and `entry != prefix` (must have non-empty suffix)
     - Case-sensitive matching per FR-018 (preserves regex patterns like `/Deadlock/`, usernames like `Admin`)
     - Return full entry string, or None if no match
   - Per contracts/interfaces.md §1
-- [ ] T017 [P] [US4] Implement history fallback path in TailCommandSuggester.get_suggestion() in pgtail_py/tail_suggester.py
+- [X] T017 [P] [US4] Implement history fallback path in TailCommandSuggester.get_suggestion() in pgtail_py/tail_suggester.py
   - In `get_suggestion()`: after structural resolution returns None or empty-suffix result:
     - Call `self._history.search_prefix(value)` where value is the full raw input string
     - If history match found → return it as the full-line suggestion (it already includes the prefix)
     - If no match → return None
   - Fallback triggers when: no structural match found, structural match has empty suffix (e.g., `level error` matches `error` exactly), free-form position skipped structural, unknown command
   - Per contracts/interfaces.md §2, data-model.md suggestion pipeline step 4
-- [ ] T018 [P] [US4] Write search_prefix() unit tests in tests/test_tail_history.py
+- [X] T018 [P] [US4] Write search_prefix() unit tests in tests/test_tail_history.py
   - **Case-sensitive**: `"level error"` matches history entry `"level error+"` → returns `"level error+"`; `"Level error"` does NOT match `"level error+"` (case-sensitive per FR-018)
   - **Most-recent-first**: entries ["level error+", "level error-"] → search `"level error"` returns `"level error-"` (most recent)
   - **Exact match excluded**: `"level error"` does NOT match history entry `"level error"` (requires non-empty suffix, entry != prefix)
@@ -313,7 +313,7 @@ No setup tasks required.
 
 ### Tests for User Story 4 (continued)
 
-- [ ] T019 [US4] Write history fallback integration tests in tests/test_tail_suggester.py
+- [X] T019 [US4] Write history fallback integration tests in tests/test_tail_suggester.py
   - **Structural empty suffix → history fallback**: history has `"level error+"`, type `"level error"` → structural matches `error` exactly (empty suffix) → fallback to history → suggests `"level error+"`
   - **No structural match → history fallback**: history has `"filter /deadlock/i"`, type `"filter /dead"` → structural returns None (free-form) → fallback → suggests `"filter /deadlock/i"`
   - **Structural takes priority**: history has `"since 5m"`, type `"since 5"` → structural suggests `5m` (from TIME_PRESETS) → NO fallback to history
@@ -337,14 +337,14 @@ No setup tasks required.
 
 ### Implementation for User Story 5
 
-- [ ] T020 [US5] Implement get_tail_history_path() in pgtail_py/tail_history.py
+- [X] T020 [US5] Implement get_tail_history_path() in pgtail_py/tail_history.py
   - Module-level function returning `Path`:
     - macOS (`sys.platform == "darwin"`): `Path.home() / "Library" / "Application Support" / "pgtail" / "tail_history"`
     - Windows (`sys.platform == "win32"`): `Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "pgtail" / "tail_history"`
     - Linux/other: `Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "pgtail" / "tail_history"`
   - Pattern mirrors existing `config.py` `get_history_path()` with different filename
   - Per research.md R-003, contracts/interfaces.md §1
-- [ ] T021 [US5] Implement load() in TailCommandHistory in pgtail_py/tail_history.py
+- [X] T021 [US5] Implement load() in TailCommandHistory in pgtail_py/tail_history.py
   - `load(self) -> None`:
     - If `_history_path` is None → return (in-memory only mode)
     - Wrap all in `try/except Exception:` with `logger.debug("Failed to load history: %s", e)`
@@ -356,7 +356,7 @@ No setup tasks required.
     - Reset navigation state
     - Handle FileNotFoundError specifically (first run → empty history, not even debug-logged as error)
   - Per contracts/interfaces.md §1, research.md R-009
-- [ ] T022 [US5] Implement save() in TailCommandHistory in pgtail_py/tail_history.py
+- [X] T022 [US5] Implement save() in TailCommandHistory in pgtail_py/tail_history.py
   - `save(self, command: str) -> None`:
     - If `_history_path` is None → return
     - Wrap all in `try/except Exception:` with `logger.debug("Failed to save history: %s", e)`
@@ -364,7 +364,7 @@ No setup tasks required.
     - Open file in append mode: `open(self._history_path, "a", encoding="utf-8")`
     - Write `command + "\n"`
   - Per contracts/interfaces.md §1, research.md R-009
-- [ ] T023 [US5] Implement compact() in TailCommandHistory in pgtail_py/tail_history.py
+- [X] T023 [US5] Implement compact() in TailCommandHistory in pgtail_py/tail_history.py
   - `compact(self) -> None`:
     - If `_history_path` is None → return
     - If `_history_path` does not exist → return
@@ -374,7 +374,7 @@ No setup tasks required.
     - Rewrite file with retained entries (overwrite mode, encoding="utf-8")
     - Not atomic with concurrent appenders (accepted per FR-006)
   - Per contracts/interfaces.md §1, research.md R-009
-- [ ] T024 [US5] Wire persistence lifecycle in TailApp in pgtail_py/tail_textual.py
+- [X] T024 [US5] Wire persistence lifecycle in TailApp in pgtail_py/tail_textual.py
   - Import `get_tail_history_path` from `pgtail_py.tail_history`
   - Update TailCommandHistory creation in `__init__()`: change from `TailCommandHistory(max_entries=500)` to `TailCommandHistory(max_entries=500, history_path=get_tail_history_path())`
   - In `on_mount()` (line 277): add `self._history.load()` and `self._history.compact()` after existing mount setup
@@ -383,7 +383,7 @@ No setup tasks required.
 
 ### Tests for User Story 5
 
-- [ ] T025 [US5] Write file persistence unit tests in tests/test_tail_history.py
+- [X] T025 [US5] Write file persistence unit tests in tests/test_tail_history.py
   - **get_tail_history_path (all three platforms via monkeypatch)**: monkeypatch `sys.platform` to `"darwin"` → path contains `"Library/Application Support/pgtail/tail_history"`; monkeypatch to `"linux"` → path contains `".local/share/pgtail/tail_history"` (or XDG_DATA_HOME override); monkeypatch to `"win32"` with APPDATA env → path contains `"pgtail/tail_history"` under APPDATA; verify XDG_DATA_HOME override on Linux; verify APPDATA fallback on Windows when env var missing
   - **load() normal**: write 5 lines to temp file → load() → 5 entries in correct order
   - **load() empty file**: empty temp file → load() → empty history, no error
@@ -410,7 +410,7 @@ No setup tasks required.
 
 **Purpose**: Constitution compliance (file size extraction), full test coverage verification, linting, and success criteria validation
 
-- [ ] T026 Extract command handler from tail_textual.py into pgtail_py/tail_command_handler.py
+- [X] T026 Extract command handler from tail_textual.py into pgtail_py/tail_command_handler.py
   - Create new file `pgtail_py/tail_command_handler.py`
   - Move `_handle_command()` method (lines 960–1133, ~173 LOC) from TailApp: extract as `handle_command(command_text, status, state, tailer, log_widget, ...)` top-level function receiving necessary context as parameters
   - Move `_handle_export_command()` method (lines 787–874, ~87 LOC) from TailApp: extract as `handle_export_command(args, log_widget, ...)` top-level function
@@ -418,21 +418,21 @@ No setup tasks required.
   - Add necessary imports in the new module (shlex, TailLog, TailStatus, etc.)
   - Reduces tail_textual.py from ~1145 to ~885 LOC (under 900 LOC constitution limit per plan.md D-005, research.md R-011)
   - No behavioral changes — pure refactoring
-- [ ] T027 Verify all existing tests pass after command handler extraction
+- [X] T027 Verify all existing tests pass after command handler extraction
   - Run `make test` — all existing tail mode tests must pass unchanged
   - Focus on: tests that exercise command handling (filter, level, since, errors, connections, export, theme, etc.)
   - Verify no import path changes break existing test files
-- [ ] T028 [P] Run full test suite and verify coverage thresholds
+- [X] T028 [P] Run full test suite and verify coverage thresholds
   - Run `pytest --cov=pgtail_py --cov-report=term-missing tests/test_tail_history.py tests/test_tail_suggester.py tests/test_tail_completion_data.py tests/test_tail_input_history.py`
   - Verify >95% branch coverage for: TailCommandHistory navigation state transitions, TailCommandSuggester structural-to-history fallback path, _resolve_structural composition rules (flag vs positional vs subcommand)
   - Verify >90% overall branch coverage for all new code (tail_history.py, tail_suggester.py, tail_completion_data.py, tail_input.py modifications, tail_command_handler.py)
   - SC-008 compliance check
-- [ ] T029 [P] Run linting and formatting on all new and modified files
+- [X] T029 [P] Run linting and formatting on all new and modified files
   - Run `make lint` and `make format`
   - Files to check: pgtail_py/tail_history.py, pgtail_py/tail_suggester.py, pgtail_py/tail_completion_data.py, pgtail_py/tail_command_handler.py, pgtail_py/tail_input.py, pgtail_py/tail_textual.py
   - Test files: tests/test_tail_history.py, tests/test_tail_suggester.py, tests/test_tail_completion_data.py, tests/test_tail_input_history.py
   - Fix any issues found
-- [ ] T030 Verify success criteria SC-001 through SC-007
+- [X] T030 Verify success criteria SC-001 through SC-007
   - **SC-001**: Most recent command in 1 Up press, Nth in N presses — verified by T004 tests
   - **SC-002**: Suggestion computation <1ms — add timing assertion in test_tail_suggester.py: call get_suggestion 100 times on complex input, verify average <1ms
   - **SC-003**: All commands discoverable via prefix typing — verified by T009 tests (every command in TAIL_COMPLETION_DATA)

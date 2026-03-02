@@ -61,7 +61,7 @@ cat log.gz | gunzip | pgtail tail --stdin  # From pipe
 This enters the **tail mode** - a split-screen interface with:
 
 - Log display area (scrollable, vim navigation)
-- Command input (`tail>` prompt)
+- Command input (`tail>` prompt) with command history (Up/Down) and ghost text autocomplete
 - Status bar (mode, counts, filters)
 
 ## Tail Mode Navigation
