@@ -87,22 +87,9 @@ else
 endif
 
 clean:
-ifeq ($(DETECTED_OS),Windows)
-	-@if exist build rd /s /q build
-	-@if exist dist rd /s /q dist
-	-@if exist .pytest_cache rd /s /q .pytest_cache
-	-@if exist .ruff_cache rd /s /q .ruff_cache
-	-@if exist pgtail_py\__pycache__ rd /s /q pgtail_py\__pycache__
-	-@if exist tests\__pycache__ rd /s /q tests\__pycache__
-	-@if exist site rd /s /q site
-	-@if exist pgtail.build rd /s /q pgtail.build
-	-@if exist pgtail.dist rd /s /q pgtail.dist
-	-@if exist pgtail.onefile-build rd /s /q pgtail.onefile-build
-else
 	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .ruff_cache/ site/
 	rm -rf pgtail.build/ pgtail.dist/ *.onefile-build/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-endif
 
 docs:
 	$(UV) run --extra docs mkdocs build
