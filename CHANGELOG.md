@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tailer handles Windows edge case where deleted files briefly raise PermissionError instead of FileNotFoundError
 - Windows test stability: retry file unlink when tailer poll thread holds handle open
 
-## [0.5.0] - 2025-01-16
+## [0.5.0] - 2026-01-16
 
 ### Added
 - **Semantic Highlighting**: 29 built-in highlighters for PostgreSQL log patterns
@@ -50,13 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Tail mode separator lines now span full terminal width using Rule widget
 
-## [0.4.1] - 2025-01-14
+## [0.4.1] - 2026-01-14
 
 ### Fixed
 - Windows log file flip-flopping between .log and .csv when PostgreSQL logs to both formats simultaneously
 - Disabled mtime-based rotation detection on Windows (file reads can update mtime, causing false triggers)
 
-## [0.4.0] - 2025-01-13
+## [0.4.0] - 2026-01-13
 
 ### Added
 - REPL bottom toolbar showing instance count, active filters, and current theme
@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Escape key now responds instantly in shell mode (removed 2-second delay)
 
-## [0.3.0] - 2025-01-12
+## [0.3.0] - 2026-01-12
 
 ### Added
 - `tail --file <path>` option to tail arbitrary log files
@@ -77,22 +77,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-file interleaving with `[filename]` prefix indicators
 - Windows application icon
 
-## [0.2.4] - 2025-01-04
+## [0.2.4] - 2026-01-04
 
 ### Fixed
 - Windows REPL startup error handling
 
-## [0.2.3] - 2025-01-03
+## [0.2.3] - 2026-01-03
 
 ### Fixed
 - Exit silently when stdin is not a TTY
 
-## [0.2.2] - 2025-01-02
+## [0.2.2] - 2026-01-02
 
 ### Fixed
 - Windows standalone launch detection for winget compatibility
 
-## [0.2.1] - 2025-01-02
+## [0.2.1] - 2026-01-02
 
 ### Added
 - pgtail logo in docs and README
@@ -101,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exit gracefully when stdin is not a TTY
 - Windows scroll animation timing in tests
 
-## [0.2.0] - 2025-01-01
+## [0.2.0] - 2026-01-01
 
 ### Added
 - Nuitka standalone binary distribution (replaces PyInstaller)
@@ -113,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migrated build system from PyInstaller to Nuitka for better performance
 
-## [0.1.0] - 2025-01-01
+## [0.1.0] - 2026-01-01
 
 ### Added
 - Initial release
