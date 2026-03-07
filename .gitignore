@@ -21,8 +21,11 @@
 *.log
 *.log.gz
 
-# Claude settings
-.claude/settings.local.json
+# AI assistants
+.claude/
+
+# MCP servers
+.mcp.json
 
 # Python
 __pycache__/
@@ -46,7 +49,3 @@ htmlcov/
 
 # Distribution / Packaging
 pgtail.spec
-
-# MCP servers
-.mcp.json
-site/
