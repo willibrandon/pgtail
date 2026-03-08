@@ -377,3 +377,101 @@ class TestMouseClickSelection:
             # (actual line selection is Textual's responsibility)
             # We verify the click was received and processed
             assert log.line_count == 2
+
+
+class TestRenderLineCache:
+    """Tests for the _render_line_cache in TailLog._render_line_strip."""
+
+    @pytest.mark.asyncio
+    async def test_cache_populated_after_render(self) -> None:
+        """Rendered lines are stored in the cache for reuse."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+            log.write_line("[bold]hello[/bold] world")
+            await pilot.pause()
+
+            # After rendering, line 0 should be cached
+            assert 0 in log._render_line_cache
+
+    @pytest.mark.asyncio
+    async def test_cache_hit_returns_same_strip(self) -> None:
+        """A second render of the same line returns the cached Strip."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+            log.write_line("[green]cached[/green]")
+            await pilot.pause()
+
+            cached_strip = log._render_line_cache.get(0)
+            assert cached_strip is not None
+
+            # Render again — should return the exact same object
+            from rich.style import Style
+
+            result = log._render_line_strip(0, Style())
+            assert result is cached_strip
+
+    @pytest.mark.asyncio
+    async def test_cache_cleared_on_clear(self) -> None:
+        """Calling clear() empties the render cache."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+            log.write_line("[red]line[/red]")
+            await pilot.pause()
+
+            assert len(log._render_line_cache) > 0
+
+            log.clear()
+            assert len(log._render_line_cache) == 0
+
+    @pytest.mark.asyncio
+    async def test_cache_bypassed_during_selection(self) -> None:
+        """Cache is not used when a text selection is active."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TailLog(id="log")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            log = app.query_one("#log", TailLog)
+            log.write_line("[blue]selectable[/blue]")
+            await pilot.pause()
+
+            # Populate cache
+            assert 0 in log._render_line_cache
+            cached_strip = log._render_line_cache.get(0)
+
+            # Activate a selection — cache should be bypassed
+            log.focus()
+            await pilot.pause()
+            await pilot.press("ctrl+a")
+            await pilot.pause()
+
+            from rich.style import Style
+
+            result = log._render_line_strip(0, Style())
+            # With selection active, result should be freshly rendered
+            # (not the same object as the cached clean strip)
+            assert result is not cached_strip

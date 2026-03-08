@@ -100,7 +100,6 @@ class TestBooleanFlags:
         assert TAIL_COMPLETION_DATA["export"].flags["--highlighted"] is None
 
 
-
 # ---------------------------------------------------------------------------
 # 3. Value-taking flags map to CompletionSpec instances
 # ---------------------------------------------------------------------------

@@ -684,6 +684,14 @@ class TailLog(Log):
         Overrides parent to parse Rich console markup in log lines,
         enabling colored output for log levels, timestamps, etc.
 
+        Uses the inherited ``_render_line_cache`` (LRU, 1024 slots) so
+        that lines which haven't changed are not re-parsed through
+        ``Text.from_markup()`` on every frame.  The cache is bypassed
+        whenever a text selection is active (selection styling varies
+        per-render) and is cleared automatically by the parent on
+        ``clear()``, ``notify_style_update()``, ``selection_updated()``,
+        and ``_prune_max_lines()``.
+
         Args:
             y: Y offset of line.
             rich_style: Base Rich style for line.
@@ -692,8 +700,8 @@ class TailLog(Log):
             Strip with rendered line content.
         """
         selection = self.text_selection
-        # Skip cache to ensure markup is always parsed
-        # TODO: Re-enable cache after markup rendering confirmed working
+        if selection is None and y in self._render_line_cache:
+            return self._render_line_cache[y]
 
         _line = self._process_line(self._lines[y])
 
@@ -720,4 +728,7 @@ class TailLog(Log):
 
         app: Any = self.app  # type: ignore[assignment]
         line = Strip(line_text.render(app.console), line_text.cell_len)
+
+        if selection is None:
+            self._render_line_cache[y] = line
         return line
