@@ -526,7 +526,7 @@ Features:
 - **Rate limiting**: Max 1 notification per 5 seconds to prevent spam during incidents
 - **Quiet hours**: Suppress notifications during configured time ranges (handles overnight spans like 22:00-08:00)
 - **Multiple triggers**: Combine level-based, pattern-based, and threshold-based rules
-- **Cross-platform**: macOS (osascript), Linux (notify-send), Windows (PowerShell toast)
+- **Cross-platform**: macOS (osascript), Linux (notify-send), Windows (WinRT toast)
 
 Example output:
 ```

@@ -358,6 +358,29 @@ class NotificationConfig:
         return None
 
 
+def _level_to_severity(level: LogLevel | None) -> str:
+    """Map a log level to a notification severity string."""
+    if level is None:
+        return "info"
+    if level in (LogLevel.PANIC, LogLevel.FATAL):
+        return "critical"
+    if level == LogLevel.ERROR:
+        return "error"
+    if level == LogLevel.WARNING:
+        return "warning"
+    return "info"
+
+
+def _make_tag(category: str, entry: LogEntry) -> str:
+    """Generate a toast tag from rule category and entry. Max 16 chars."""
+    if category == "Level Alert" and entry.level:
+        return f"lvl:{entry.level.name}"[:16]
+    if category == "Pattern Match":
+        msg = (entry.message or "")[:10]
+        return f"pat:{msg}"[:16]
+    return category[:16]
+
+
 class NotificationManager:
     """Session-scoped coordinator for notification logic.
 
@@ -501,8 +524,10 @@ class NotificationManager:
         title = f"pgtail: {category}"
         body = self._format_entry_body(entry)
         subtitle = entry.level.name if entry.level else None
+        severity = _level_to_severity(entry.level)
+        tag = _make_tag(category, entry)
 
-        if self._notifier.send(title, body, subtitle):
+        if self._notifier.send(title, body, subtitle, severity=severity, tag=tag):
             self._rate_limiter.record_sent()
             return True
 
@@ -523,7 +548,7 @@ class NotificationManager:
         title = "pgtail: High Error Rate"
         body = f"Error rate: {rate}/min (threshold: {threshold}/min)"
 
-        if self._notifier.send(title, body):
+        if self._notifier.send(title, body, severity="error", tag="rate:err"):
             self._rate_limiter.record_sent()
             self._last_error_rate_notified = datetime.now()
             return True
@@ -551,7 +576,8 @@ class NotificationManager:
             message = message[:97] + "..."
         body += f"\n{message}"
 
-        if self._notifier.send(title, body):
+        severity = _level_to_severity(entry.level)
+        if self._notifier.send(title, body, severity=severity, tag="slow:query"):
             self._rate_limiter.record_sent()
             return True
 
@@ -572,15 +598,18 @@ class NotificationManager:
 
         return "\n".join(parts) if parts else "Log event occurred"
 
-    def send_test(self) -> bool:
+    def send_test(self, severity: str = "info") -> bool:
         """Send a test notification bypassing rate limiting and quiet hours.
+
+        Args:
+            severity: Notification severity (info, warning, error, critical).
 
         Returns:
             True if notification was sent successfully.
         """
-        title = "pgtail: Test"
+        title = f"pgtail: Test ({severity.upper()})"
         body = "Notification system is working correctly"
-        return self._notifier.send(title, body, "pgtail")
+        return self._notifier.send(title, body, "pgtail", severity=severity, tag="test:pgtail")
 
     def set_error_stats(self, error_stats: ErrorStats) -> None:
         """Set the error stats reference for rate checking.

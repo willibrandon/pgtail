@@ -896,8 +896,8 @@ class PgtailCompleter(Completer):
         """
         prefix_lower = prefix.lower()
 
-        # First argument after 'notify'
-        if len(parts) <= 2:
+        # First argument after 'notify' (still typing subcommand)
+        if len(parts) == 1 or (len(parts) == 2 and prefix_lower != ""):
             subcommands = {
                 "on": "Enable notifications (levels, patterns, thresholds)",
                 "off": "Disable all notifications",
@@ -955,6 +955,23 @@ class PgtailCompleter(Completer):
                         level.name,
                         start_position=-len(prefix),
                         display_meta=f"Severity {level.value}",
+                    )
+            return
+
+        # After 'notify test'
+        if len(parts) >= 2 and parts[1].lower() == "test":
+            severities = {
+                "info": "Default toast (short, single chime)",
+                "warning": "Warning toast (short, single chime)",
+                "error": "Error toast (long duration, high priority)",
+                "critical": "Critical toast (alarm, looping sound)",
+            }
+            for name, description in severities.items():
+                if name.startswith(prefix_lower):
+                    yield Completion(
+                        name,
+                        start_position=-len(prefix),
+                        display_meta=description,
                     )
             return
 

@@ -72,8 +72,9 @@ class TestTailAppHelpOverlay:
         # Patch LogTailer to prevent actual file tailing
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -106,8 +107,9 @@ class TestTailAppHelpOverlay:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -138,8 +140,9 @@ class TestTailAppHelpOverlay:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -170,8 +173,9 @@ class TestTailAppHelpOverlay:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -206,8 +210,9 @@ class TestTailAppFocusManagement:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -240,8 +245,9 @@ class TestTailAppFocusManagement:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -279,8 +285,9 @@ class TestTailAppAutoScroll:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test():
@@ -313,8 +320,9 @@ class TestScrollbarBehavior:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -360,8 +368,9 @@ class TestScrollbarBehavior:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -424,8 +433,9 @@ class TestTailLogSqlHighlighting:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -458,8 +468,9 @@ class TestTailLogSqlHighlighting:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:
@@ -502,8 +513,9 @@ class TestTailLogSqlHighlighting:
 
         with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
             mock_tailer = MagicMock()
-            mock_tailer.queue = MagicMock()
-            mock_tailer.queue.get = MagicMock(side_effect=TimeoutError)
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
             async with app.run_test() as pilot:

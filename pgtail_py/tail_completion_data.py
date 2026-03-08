@@ -205,6 +205,24 @@ TAIL_COMPLETION_DATA: dict[str, CompletionSpec] = {
     "theme": CompletionSpec(
         positionals=[CompletionSpec(static_values=BUILTIN_THEME_NAMES)],
     ),
+    # -- Notification commands -----------------------------------------------
+    "notify": CompletionSpec(
+        subcommands={
+            "on": CompletionSpec(
+                positionals=[CompletionSpec(static_values=LEVEL_VALUES)],
+            ),
+            "off": CompletionSpec(no_args=True),
+            "test": CompletionSpec(
+                positionals=[
+                    CompletionSpec(static_values=["info", "warning", "error", "critical"])
+                ],
+            ),
+            "quiet": CompletionSpec(
+                positionals=[CompletionSpec(static_values=["off"])],
+            ),
+            "clear": CompletionSpec(no_args=True),
+        },
+    ),
     # -- Help command -------------------------------------------------------
     "help": CompletionSpec(
         positionals=[CompletionSpec(dynamic_source="help_topics")],

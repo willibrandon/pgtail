@@ -6,53 +6,75 @@ including level-based, pattern-based, and threshold-based alerts.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import HTML
 
 from pgtail_py.config import save_config
-from pgtail_py.filter import LogLevel
+from pgtail_py.filter import LogLevel, parse_levels
 from pgtail_py.notify import NotificationRule
 
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
+    from pgtail_py.tail_log import TailLog
+
+# Type alias for the output callback used throughout this module.
+_WriteFn = Callable[[str], None]
 
 
-def notify_command(state: AppState, args: list[str]) -> None:
+def _make_write(log_widget: TailLog | None) -> _WriteFn:
+    """Return an output function appropriate for the current context."""
+    if log_widget is not None:
+        return log_widget.write_line
+    return print
+
+
+def notify_command(
+    state: AppState,
+    args: list[str],
+    log_widget: TailLog | None = None,
+) -> None:
     """Handle the notify command.
 
     Args:
         state: Current application state.
         args: Command arguments.
+        log_widget: Optional Textual log widget for tail-mode output.
     """
+    out = _make_write(log_widget)
+
     if not args:
         # notify (status)
-        _show_status(state)
+        _show_status(state, out)
         return
 
     subcommand = args[0].lower()
 
     if subcommand == "on":
-        _handle_notify_on(state, args[1:])
+        _handle_notify_on(state, args[1:], out)
     elif subcommand == "off":
-        _handle_notify_off(state)
+        _handle_notify_off(state, out)
     elif subcommand == "test":
-        _handle_notify_test(state)
+        _handle_notify_test(state, args[1:], out)
     elif subcommand == "clear":
-        _handle_notify_clear(state)
+        _handle_notify_clear(state, out)
     elif subcommand == "quiet":
-        _handle_notify_quiet(state, args[1:])
+        _handle_notify_quiet(state, args[1:], out)
     else:
-        print_formatted_text(
-            HTML("<ansiyellow>Usage: notify [on|off|test|clear|quiet]</ansiyellow>")
-        )
+        if log_widget is not None:
+            out("[yellow]Usage: notify [on|off|test|clear|quiet][/yellow]")
+        else:
+            print_formatted_text(
+                HTML("<ansiyellow>Usage: notify [on|off|test|clear|quiet]</ansiyellow>")
+            )
 
 
-def _show_status(state: AppState) -> None:
+def _show_status(state: AppState, out: _WriteFn) -> None:
     """Show current notification settings."""
     if not state.notification_manager:
-        print("Notifications: not initialized")
+        out("Notifications: not initialized")
         return
 
     manager = state.notification_manager
@@ -61,21 +83,21 @@ def _show_status(state: AppState) -> None:
 
     # Check availability
     if not notifier.is_available():
-        print("Notifications: unavailable")
-        print(f"Platform: {notifier.get_platform_info()}")
-        _print_install_hint(notifier.get_platform_info())
+        out("Notifications: unavailable")
+        out(f"Platform: {notifier.get_platform_info()}")
+        _print_install_hint(notifier.get_platform_info(), out)
         return
 
     # Status line
     status = "enabled" if config.enabled else "disabled"
-    print(f"Notifications: {status}")
+    out(f"Notifications: {status}")
 
     if config.enabled:
         # Show level rules
         levels = config.get_level_rules()
         if levels:
             level_names = sorted([level.name for level in levels], key=_level_sort_key)
-            print(f"  Levels: {', '.join(level_names)}")
+            out(f"  Levels: {', '.join(level_names)}")
 
         # Show pattern rules
         patterns = config.get_pattern_rules()
@@ -86,39 +108,39 @@ def _show_status(state: AppState) -> None:
                     pattern_strs.append(f"/{rule.pattern_str}/")
                 else:
                     pattern_strs.append(f"/{rule.pattern_str}/i")
-            print(f"  Patterns: {', '.join(pattern_strs)}")
+            out(f"  Patterns: {', '.join(pattern_strs)}")
 
         # Show error rate threshold
         error_rate = config.get_error_rate_threshold()
         if error_rate:
-            print(f"  Error rate: > {error_rate}/min")
+            out(f"  Error rate: > {error_rate}/min")
 
         # Show slow query threshold
         slow_query = config.get_slow_query_threshold()
         if slow_query:
-            print(f"  Slow queries: > {slow_query}ms")
+            out(f"  Slow queries: > {slow_query}ms")
 
         # Show quiet hours
         if config.quiet_hours:
             quiet_str = str(config.quiet_hours)
             if config.quiet_hours.is_active():
                 quiet_str += " (active)"
-            print(f"  Quiet hours: {quiet_str}")
+            out(f"  Quiet hours: {quiet_str}")
 
     # Platform info
-    print(f"Platform: {notifier.get_platform_info()}")
+    out(f"Platform: {notifier.get_platform_info()}")
 
     # Hint for disabled state
     if not config.enabled:
-        print("Hint: Use 'notify on FATAL PANIC' to enable")
+        out("Hint: Use 'notify on FATAL PANIC' to enable")
 
 
-def _print_install_hint(platform_info: str) -> None:
+def _print_install_hint(platform_info: str, out: _WriteFn) -> None:
     """Print installation hint based on platform."""
     if "notify-send not found" in platform_info:
-        print("Hint: Install libnotify-bin package")
+        out("Hint: Install libnotify-bin package")
     elif "PowerShell" in platform_info and "not found" in platform_info:
-        print("Hint: PowerShell is required for Windows notifications")
+        out("Hint: PowerShell is required for Windows notifications")
 
 
 def _level_sort_key(name: str) -> int:
@@ -130,60 +152,52 @@ def _level_sort_key(name: str) -> int:
         return 100
 
 
-def _handle_notify_on(state: AppState, args: list[str]) -> None:
+def _handle_notify_on(state: AppState, args: list[str], out: _WriteFn) -> None:
     """Handle 'notify on' command."""
     if not state.notification_manager:
-        print("Notification manager not initialized.")
+        out("Notification manager not initialized.")
         return
 
     if not args:
-        print("Usage: notify on <levels> | /<pattern>/ | errors > N/min | slow > Nms")
+        out("Usage: notify on <levels> | /<pattern>/ | errors > N/min | slow > Nms")
         return
 
     first_arg = args[0]
 
     # Check for pattern syntax: /pattern/ or /pattern/i
     if first_arg.startswith("/"):
-        _handle_pattern_rule(state, first_arg)
+        _handle_pattern_rule(state, first_arg, out)
         return
 
     # Check for error rate syntax: errors > N/min
     if first_arg.lower() == "errors":
-        _handle_error_rate_rule(state, args)
+        _handle_error_rate_rule(state, args, out)
         return
 
     # Check for slow query syntax: slow > Nms
     if first_arg.lower() == "slow":
-        _handle_slow_query_rule(state, args)
+        _handle_slow_query_rule(state, args, out)
         return
 
     # Otherwise, treat as log levels
-    _handle_level_rules(state, args)
+    _handle_level_rules(state, args, out)
 
 
-def _handle_level_rules(state: AppState, args: list[str]) -> None:
+def _handle_level_rules(state: AppState, args: list[str], out: _WriteFn) -> None:
     """Parse and add level-based notification rules."""
     if not state.notification_manager:
         return
 
-    valid_levels: set[LogLevel] = set()
-    invalid_names: list[str] = []
-
-    for arg in args:
-        try:
-            level = LogLevel.from_string(arg)
-            valid_levels.add(level)
-        except ValueError:
-            invalid_names.append(arg)
+    valid_levels, invalid_names = parse_levels(args)
 
     if invalid_names:
         for name in invalid_names:
-            print(f"Unknown log level: {name}")
-        print(f"Valid levels: {', '.join(LogLevel.names())}")
+            out(f"Unknown log level: {name}")
+        out(f"Valid levels: {', '.join(LogLevel.names())}")
         return
 
     if not valid_levels:
-        print("Usage: notify on <levels> | /<pattern>/ | errors > N/min | slow > Nms")
+        out("Usage: notify on <levels> | /<pattern>/ | errors > N/min | slow > Nms")
         return
 
     # Add rule to config
@@ -196,10 +210,10 @@ def _handle_level_rules(state: AppState, args: list[str]) -> None:
 
     # Confirm
     level_names = sorted([level.name for level in valid_levels], key=_level_sort_key)
-    print(f"Notifications enabled for: {', '.join(level_names)}")
+    out(f"Notifications enabled for: {', '.join(level_names)}")
 
 
-def _handle_pattern_rule(state: AppState, pattern_arg: str) -> None:
+def _handle_pattern_rule(state: AppState, pattern_arg: str, out: _WriteFn) -> None:
     """Parse and add pattern-based notification rule."""
     if not state.notification_manager:
         return
@@ -214,19 +228,19 @@ def _handle_pattern_rule(state: AppState, pattern_arg: str) -> None:
     elif pattern_str.endswith("/"):
         pattern_str = pattern_str[1:-1]
     else:
-        print(f"Invalid pattern format: {pattern_arg}")
-        print("Use: /pattern/ or /pattern/i")
+        out(f"Invalid pattern format: {pattern_arg}")
+        out("Use: /pattern/ or /pattern/i")
         return
 
     if not pattern_str:
-        print("Pattern cannot be empty")
+        out("Pattern cannot be empty")
         return
 
     # Validate regex
     try:
         rule = NotificationRule.pattern_rule(pattern_str, case_sensitive)
     except Exception as e:
-        print(f"Invalid regex pattern: {e}")
+        out(f"Invalid regex pattern: {e}")
         return
 
     # Add rule
@@ -239,33 +253,33 @@ def _handle_pattern_rule(state: AppState, pattern_arg: str) -> None:
 
     # Confirm
     if case_sensitive:
-        print(f"Notifications enabled for pattern: {pattern_str}")
+        out(f"Notifications enabled for pattern: {pattern_str}")
     else:
-        print(f"Notifications enabled for pattern: {pattern_str} (case-insensitive)")
+        out(f"Notifications enabled for pattern: {pattern_str} (case-insensitive)")
 
 
-def _handle_error_rate_rule(state: AppState, args: list[str]) -> None:
+def _handle_error_rate_rule(state: AppState, args: list[str], out: _WriteFn) -> None:
     """Parse and add error rate threshold rule."""
     if not state.notification_manager:
         return
 
     # Expected format: errors > N/min
     if len(args) < 3 or args[1] != ">":
-        print("Usage: notify on errors > N/min")
+        out("Usage: notify on errors > N/min")
         return
 
     rate_str = args[2]
     if not rate_str.endswith("/min"):
-        print("Usage: notify on errors > N/min")
+        out("Usage: notify on errors > N/min")
         return
 
     try:
         threshold = int(rate_str[:-4])
         if threshold < 1:
-            print("Threshold must be at least 1")
+            out("Threshold must be at least 1")
             return
     except ValueError:
-        print(f"Invalid threshold: {rate_str[:-4]}")
+        out(f"Invalid threshold: {rate_str[:-4]}")
         return
 
     # Add rule
@@ -276,17 +290,17 @@ def _handle_error_rate_rule(state: AppState, args: list[str]) -> None:
     # Persist
     _persist_notification_config(state)
 
-    print(f"Notifications enabled: more than {threshold} errors per minute")
+    out(f"Notifications enabled: more than {threshold} errors per minute")
 
 
-def _handle_slow_query_rule(state: AppState, args: list[str]) -> None:
+def _handle_slow_query_rule(state: AppState, args: list[str], out: _WriteFn) -> None:
     """Parse and add slow query threshold rule."""
     if not state.notification_manager:
         return
 
     # Expected format: slow > Nms or slow > Ns
     if len(args) < 3 or args[1] != ">":
-        print("Usage: notify on slow > Nms")
+        out("Usage: notify on slow > Nms")
         return
 
     duration_str = args[2].lower()
@@ -297,14 +311,14 @@ def _handle_slow_query_rule(state: AppState, args: list[str]) -> None:
         elif duration_str.endswith("s"):
             threshold_ms = int(duration_str[:-1]) * 1000
         else:
-            print("Invalid duration: use Nms or Ns format")
+            out("Invalid duration: use Nms or Ns format")
             return
 
         if threshold_ms < 1:
-            print("Threshold must be at least 1ms")
+            out("Threshold must be at least 1ms")
             return
     except ValueError:
-        print(f"Invalid duration: {args[2]}")
+        out(f"Invalid duration: {args[2]}")
         return
 
     # Add rule
@@ -315,13 +329,13 @@ def _handle_slow_query_rule(state: AppState, args: list[str]) -> None:
     # Persist
     _persist_notification_config(state)
 
-    print(f"Notifications enabled: queries slower than {threshold_ms}ms")
+    out(f"Notifications enabled: queries slower than {threshold_ms}ms")
 
 
-def _handle_notify_off(state: AppState) -> None:
+def _handle_notify_off(state: AppState, out: _WriteFn) -> None:
     """Handle 'notify off' command - disable notifications."""
     if not state.notification_manager:
-        print("Notification manager not initialized.")
+        out("Notification manager not initialized.")
         return
 
     state.notification_manager.config.enabled = False
@@ -329,37 +343,55 @@ def _handle_notify_off(state: AppState) -> None:
     # Persist
     _persist_notification_config(state)
 
-    print("Notifications disabled")
+    out("Notifications disabled")
 
 
-def _handle_notify_test(state: AppState) -> None:
-    """Handle 'notify test' command - send test notification."""
+_VALID_SEVERITIES = ("info", "warning", "error", "critical")
+
+
+def _handle_notify_test(state: AppState, args: list[str], out: _WriteFn) -> None:
+    """Handle 'notify test' command - send test notification.
+
+    Args:
+        state: Current application state.
+        args: Optional severity argument (info, warning, error, critical).
+        out: Output function.
+    """
     if not state.notification_manager:
-        print("Notification manager not initialized.")
+        out("Notification manager not initialized.")
         return
 
     manager = state.notification_manager
     notifier = manager.notifier
 
     if not notifier.is_available():
-        print("Test notification failed")
-        print(f"Platform: {notifier.get_platform_info()}")
-        _print_install_hint(notifier.get_platform_info())
+        out("Test notification failed")
+        out(f"Platform: {notifier.get_platform_info()}")
+        _print_install_hint(notifier.get_platform_info(), out)
         return
 
-    success = manager.send_test()
+    severity = "info"
+    if args:
+        severity = args[0].lower()
+        if severity not in _VALID_SEVERITIES:
+            out(f"Unknown severity: {args[0]}")
+            out(f"Valid severities: {', '.join(_VALID_SEVERITIES)}")
+            return
+
+    success = manager.send_test(severity=severity)
     if success:
-        print("Test notification sent")
-        print(f"Platform: {notifier.get_platform_info()}")
+        label = severity.upper()
+        out(f"Test notification sent ({label})")
+        out(f"Platform: {notifier.get_platform_info()}")
     else:
-        print("Test notification failed")
-        print(f"Platform: {notifier.get_platform_info()}")
+        out("Test notification failed")
+        out(f"Platform: {notifier.get_platform_info()}")
 
 
-def _handle_notify_clear(state: AppState) -> None:
+def _handle_notify_clear(state: AppState, out: _WriteFn) -> None:
     """Handle 'notify clear' command - remove all rules."""
     if not state.notification_manager:
-        print("Notification manager not initialized.")
+        out("Notification manager not initialized.")
         return
 
     state.notification_manager.config.clear_rules()
@@ -367,25 +399,25 @@ def _handle_notify_clear(state: AppState) -> None:
     # Persist
     _persist_notification_config(state)
 
-    print("Notification rules cleared")
+    out("Notification rules cleared")
 
 
-def _handle_notify_quiet(state: AppState, args: list[str]) -> None:
+def _handle_notify_quiet(state: AppState, args: list[str], out: _WriteFn) -> None:
     """Handle 'notify quiet' command - set quiet hours."""
     from pgtail_py.notify import QuietHours
 
     if not state.notification_manager:
-        print("Notification manager not initialized.")
+        out("Notification manager not initialized.")
         return
 
     if not args:
-        print("Usage: notify quiet HH:MM-HH:MM | off")
+        out("Usage: notify quiet HH:MM-HH:MM | off")
         return
 
     if args[0].lower() == "off":
         state.notification_manager.config.quiet_hours = None
         _persist_notification_config(state)
-        print("Quiet hours disabled")
+        out("Quiet hours disabled")
         return
 
     # Parse time range
@@ -393,9 +425,9 @@ def _handle_notify_quiet(state: AppState, args: list[str]) -> None:
         quiet_hours = QuietHours.from_string(args[0])
         state.notification_manager.config.quiet_hours = quiet_hours
         _persist_notification_config(state)
-        print(f"Notifications silenced {quiet_hours}")
+        out(f"Notifications silenced {quiet_hours}")
     except ValueError as e:
-        print(str(e))
+        out(str(e))
 
 
 def _persist_notification_config(state: AppState) -> None:
