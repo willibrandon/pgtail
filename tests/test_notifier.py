@@ -29,7 +29,6 @@ from pgtail_py.notify import (
     _make_tag,
 )
 
-
 # ===================================================================
 # Tier 1: Pure logic tests — all platforms, no COM
 # ===================================================================
@@ -241,7 +240,7 @@ class TestHSTRING:
     def test_empty_string(self):
         from pgtail_py._winrt import hstring
 
-        with hstring("") as hs:
+        with hstring("") as _hs:
             # Empty HSTRING may be None, which is valid
             pass  # Just ensure no exception
 
@@ -543,9 +542,15 @@ class TestNotificationManagerIntegration:
         mock_notifier.is_available.return_value = True
 
         config = NotificationConfig(enabled=True)
-        config.add_rule(NotificationRule.level_rule({
-            LogLevel.ERROR, LogLevel.FATAL, LogLevel.PANIC,
-        }))
+        config.add_rule(
+            NotificationRule.level_rule(
+                {
+                    LogLevel.ERROR,
+                    LogLevel.FATAL,
+                    LogLevel.PANIC,
+                }
+            )
+        )
 
         manager = NotificationManager(notifier=mock_notifier, config=config)
         return manager, mock_notifier
@@ -639,9 +644,7 @@ class TestNoOpNotifier:
 
     def test_send_new_params(self):
         n = NoOpNotifier()
-        result = n.send(
-            "title", "body", severity="error", tag="test", suppress_popup=True
-        )
+        result = n.send("title", "body", severity="error", tag="test", suppress_popup=True)
         assert result is False
 
     def test_dismiss(self):
@@ -691,9 +694,9 @@ def com_recorder():
 @pytest.fixture
 def mock_winrt_notifier(com_recorder):
     """Create a WindowsNotifier with the _winrt module mocked."""
+    import contextlib
     import ctypes
     from contextlib import contextmanager
-    from unittest.mock import MagicMock
 
     recorder = com_recorder
 
@@ -712,7 +715,7 @@ def mock_winrt_notifier(com_recorder):
 
     def fake_qi(ptr, iid):
         result = ctypes.c_void_p(recorder.next_ptr())
-        recorder.calls.append(("qi", ptr.value if hasattr(ptr, 'value') else ptr, repr(iid)))
+        recorder.calls.append(("qi", ptr.value if hasattr(ptr, "value") else ptr, repr(iid)))
         return result
 
     def fake_vcall(ptr, slot, restype, *args_spec):
@@ -721,21 +724,19 @@ def mock_winrt_notifier(com_recorder):
         for i in range(0, len(args_spec), 2):
             val = args_spec[i + 1] if i + 1 < len(args_spec) else None
             # Dereference pointer outputs so the caller gets a valid pointer back
-            if hasattr(val, 'contents') or (hasattr(val, '_type_') and hasattr(val, 'value')):
+            if hasattr(val, "contents") or (hasattr(val, "_type_") and hasattr(val, "value")):
                 pass
             values.append(val)
-        ptr_val = ptr.value if hasattr(ptr, 'value') else ptr
+        ptr_val = ptr.value if hasattr(ptr, "value") else ptr
         recorder.vcalls.append(("vcall", ptr_val, slot, *values))
         # For calls that output a pointer (via ctypes.byref), set a fake value
         for i in range(0, len(args_spec), 2):
             argtype = args_spec[i]
             if i + 1 < len(args_spec):
                 argval = args_spec[i + 1]
-                if hasattr(argtype, '_type_') and argtype._type_ == ctypes.c_void_p:
-                    try:
+                if hasattr(argtype, "_type_") and argtype._type_ == ctypes.c_void_p:
+                    with contextlib.suppress(AttributeError, TypeError):
                         argval.value = recorder.next_ptr()
-                    except (AttributeError, TypeError):
-                        pass
         return 0  # S_OK
 
     def fake_vcall_check(ptr, slot, *args_spec):
@@ -769,9 +770,9 @@ def mock_winrt_notifier(com_recorder):
 
     from pgtail_py.notifier_windows import WindowsNotifier
 
-    with patch.multiple("pgtail_py.notifier_windows", **{
-        k.split(".")[-1]: v for k, v in patches.items()
-    }):
+    with patch.multiple(
+        "pgtail_py.notifier_windows", **{k.split(".")[-1]: v for k, v in patches.items()}
+    ):
         notifier = WindowsNotifier()
         yield notifier, recorder
 
@@ -824,7 +825,9 @@ class TestMockSeamSend:
         qi_calls = [c for c in recorder.calls if c[0] == "qi"]
         iids_queried = [c[2] for c in qi_calls]
         n2_iid = repr(
-            __import__("pgtail_py._winrt", fromlist=["IID_IToastNotification2"]).IID_IToastNotification2
+            __import__(
+                "pgtail_py._winrt", fromlist=["IID_IToastNotification2"]
+            ).IID_IToastNotification2
         )
         assert n2_iid in iids_queried
 
@@ -872,7 +875,9 @@ class TestMockSeamSend:
 
         # No QI to IToastNotification4 for info
         n4_iid = repr(
-            __import__("pgtail_py._winrt", fromlist=["IID_IToastNotification4"]).IID_IToastNotification4
+            __import__(
+                "pgtail_py._winrt", fromlist=["IID_IToastNotification4"]
+            ).IID_IToastNotification4
         )
         qi_calls = [c for c in recorder.calls if c[0] == "qi" and c[2] == n4_iid]
         assert len(qi_calls) == 0
@@ -882,7 +887,9 @@ class TestMockSeamSend:
         notifier.send("Title", "Body", severity="warning")
 
         n4_iid = repr(
-            __import__("pgtail_py._winrt", fromlist=["IID_IToastNotification4"]).IID_IToastNotification4
+            __import__(
+                "pgtail_py._winrt", fromlist=["IID_IToastNotification4"]
+            ).IID_IToastNotification4
         )
         qi_calls = [c for c in recorder.calls if c[0] == "qi" and c[2] == n4_iid]
         assert len(qi_calls) == 0
@@ -909,7 +916,9 @@ class TestMockSeamDismiss:
 
         # QI to IToastNotificationManagerStatics2
         n2_iid = repr(
-            __import__("pgtail_py._winrt", fromlist=["IID_IToastNotificationManagerStatics2"]).IID_IToastNotificationManagerStatics2
+            __import__(
+                "pgtail_py._winrt", fromlist=["IID_IToastNotificationManagerStatics2"]
+            ).IID_IToastNotificationManagerStatics2
         )
         qi_calls = [c for c in recorder.calls if c[0] == "qi" and c[2] == n2_iid]
         assert len(qi_calls) >= 1
@@ -935,8 +944,6 @@ class TestMockSeamFailureTracking:
         notifier, recorder = mock_winrt_notifier
 
         # Make vcall_check raise a transient error for Show()
-        original_vcall_check = notifier.__class__.send
-
         with patch("pgtail_py.notifier_windows.vcall_check", side_effect=OSError("0x80070001")):
             result = notifier.send("Title", "Body")
 

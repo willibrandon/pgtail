@@ -69,7 +69,6 @@ class TestHandleFilterCommand:
         """Plain /pattern/ sets include filter."""
         result = handle_filter_command(
             ["/error/"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -86,7 +85,6 @@ class TestHandleFilterCommand:
         """-/pattern/ adds exclude filter."""
         result = handle_filter_command(
             ["-/noise/"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -104,7 +102,6 @@ class TestHandleFilterCommand:
         # First set an include
         handle_filter_command(
             ["/error/"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -113,7 +110,6 @@ class TestHandleFilterCommand:
         # Then add OR pattern
         result = handle_filter_command(
             ["+/warning/"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -129,7 +125,6 @@ class TestHandleFilterCommand:
         """&/pattern/ adds AND filter."""
         result = handle_filter_command(
             ["&/critical/"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -146,7 +141,6 @@ class TestHandleFilterCommand:
         """/pattern/c enables case-sensitive matching."""
         result = handle_filter_command(
             ["/Error/c"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -165,7 +159,6 @@ class TestHandleFilterCommand:
         """field=value sets field filter."""
         result = handle_filter_command(
             ["app=myapp"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -186,7 +179,6 @@ class TestHandleFilterCommand:
         mock_tailer.format = LogFormat.TEXT
         result = handle_filter_command(
             ["app=myapp"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -210,7 +202,6 @@ class TestHandleFilterCommand:
         mock_state.field_filter.add("app", "test")
         handle_filter_command(
             ["/error/"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -220,7 +211,6 @@ class TestHandleFilterCommand:
         # Now clear
         result = handle_filter_command(
             ["clear"],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -240,7 +230,6 @@ class TestHandleFilterCommand:
         """No args shows current filter status."""
         result = handle_filter_command(
             [],
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -279,7 +268,6 @@ class TestHandleClearCommand:
         assert mock_state.field_filter.is_active() is True
 
         result = handle_clear_command(
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,
@@ -295,7 +283,6 @@ class TestHandleClearCommand:
     ) -> None:
         """handle_clear_command should update tailer's field filter."""
         result = handle_clear_command(
-
             status=mock_status,
             state=mock_state,
             tailer=mock_tailer,

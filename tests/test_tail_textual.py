@@ -891,7 +891,7 @@ class TestAsyncRebuildLog:
             mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
-            async with app.run_test() as pilot:
+            async with app.run_test():
                 log_widget = app.query_one("#log", TailLog)
 
                 # Simulate being mid-rebuild
@@ -1036,7 +1036,7 @@ class TestHighlightFeedbackCorrectness:
             mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
-            async with app.run_test() as pilot:
+            async with app.run_test():
                 log_widget = app.query_one("#log", TailLog)
 
                 rebuild_calls: list[dict] = []
@@ -1091,7 +1091,7 @@ class TestHighlightFeedbackCorrectness:
             mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
-            async with app.run_test() as pilot:
+            async with app.run_test():
                 log_widget = app.query_one("#log", TailLog)
 
                 # First disable a highlighter so we can re-enable it
@@ -1146,7 +1146,7 @@ class TestHighlightFeedbackCorrectness:
             mock_tailer.file_permission_denied = False
             mock_tailer_class.return_value = mock_tailer
 
-            async with app.run_test() as pilot:
+            async with app.run_test():
                 log_widget = app.query_one("#log", TailLog)
 
                 rebuild_calls: list[dict] = []
