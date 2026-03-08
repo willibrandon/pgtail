@@ -214,9 +214,7 @@ TAIL_COMPLETION_DATA: dict[str, CompletionSpec] = {
             "off": CompletionSpec(no_args=True),
             "test": CompletionSpec(
                 positionals=[
-                    CompletionSpec(
-                        static_values=["info", "warning", "error", "critical"]
-                    )
+                    CompletionSpec(static_values=["info", "warning", "error", "critical"])
                 ],
             ),
             "quiet": CompletionSpec(

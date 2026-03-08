@@ -10,9 +10,9 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 
 EXPIRY_SECONDS: dict[str, int | None] = {
-    "info": 120,       # 2 minutes
-    "warning": 600,    # 10 minutes
-    "error": 1800,     # 30 minutes
+    "info": 120,  # 2 minutes
+    "warning": 600,  # 10 minutes
+    "error": 1800,  # 30 minutes
     "critical": None,  # never expires
 }
 
@@ -55,13 +55,15 @@ _TEMPLATES: dict[str, dict] = {
 # XML escaping
 # ---------------------------------------------------------------------------
 
-_XML_ESCAPE_TABLE = str.maketrans({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&apos;",
-})
+_XML_ESCAPE_TABLE = str.maketrans(
+    {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&apos;",
+    }
+)
 
 
 def escape_xml(text: str) -> str:
@@ -102,18 +104,17 @@ def build_toast_xml(
     title_escaped = escape_xml(title)
     body_escaped = escape_xml(body)
 
-    text_elements = f'            <text>{title_escaped}</text>\n'
+    text_elements = f"            <text>{title_escaped}</text>\n"
     if subtitle:
         subtitle_escaped = escape_xml(subtitle)
-        text_elements += f'            <text>{subtitle_escaped}</text>\n'
-    text_elements += f'            <text>{body_escaped}</text>'
+        text_elements += f"            <text>{subtitle_escaped}</text>\n"
+    text_elements += f"            <text>{body_escaped}</text>"
 
     # Attribution text
     attribution = ""
     if tmpl["attribution"]:
         attribution = (
-            f'\n            <text placement="attribution">'
-            f'{escape_xml(tmpl["attribution"])}</text>'
+            f'\n            <text placement="attribution">{escape_xml(tmpl["attribution"])}</text>'
         )
 
     # Audio element
@@ -122,12 +123,12 @@ def build_toast_xml(
         audio_attrs += ' loop="true"'
 
     return (
-        f'<toast{toast_attrs}>\n'
-        f'    <visual>\n'
+        f"<toast{toast_attrs}>\n"
+        f"    <visual>\n"
         f'        <binding template="ToastGeneric">\n'
-        f'{text_elements}{attribution}\n'
-        f'        </binding>\n'
-        f'    </visual>\n'
-        f'    <audio {audio_attrs}/>\n'
-        f'</toast>'
+        f"{text_elements}{attribution}\n"
+        f"        </binding>\n"
+        f"    </visual>\n"
+        f"    <audio {audio_attrs}/>\n"
+        f"</toast>"
     )

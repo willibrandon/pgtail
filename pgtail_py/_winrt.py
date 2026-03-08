@@ -14,8 +14,8 @@ import ctypes
 import ctypes.wintypes
 import logging
 import threading
-from contextlib import contextmanager
 from collections.abc import Generator
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -72,30 +72,14 @@ class GUID(ctypes.Structure):
 # Interface IIDs
 # ---------------------------------------------------------------------------
 
-IID_IToastNotificationManagerStatics = GUID.from_string(
-    "{50AC103F-D235-4598-BBEF-98FE4D1A3AD4}"
-)
-IID_IToastNotificationManagerStatics2 = GUID.from_string(
-    "{7AB93C52-0E48-4750-BA9D-1A4113981847}"
-)
-IID_IToastNotificationFactory = GUID.from_string(
-    "{04124B20-82C6-4229-B109-FD9ED4662B53}"
-)
-IID_IToastNotification2 = GUID.from_string(
-    "{9DFB9FD1-143A-490E-90BF-B9FBA7132DE7}"
-)
-IID_IToastNotification4 = GUID.from_string(
-    "{15154935-28EA-4727-88E9-C58680E2D118}"
-)
-IID_IToastNotificationHistory = GUID.from_string(
-    "{5BC3CBF2-F2C1-4A5B-80E3-07D70AEFB053}"
-)
-IID_IXmlDocumentIO = GUID.from_string(
-    "{6CD0E74E-EE65-4489-9EBF-CA43E87BA637}"
-)
-IID_IPropertyValueStatics = GUID.from_string(
-    "{629BDBC8-D932-4FF4-96B9-8D96C5C1E858}"
-)
+IID_IToastNotificationManagerStatics = GUID.from_string("{50AC103F-D235-4598-BBEF-98FE4D1A3AD4}")
+IID_IToastNotificationManagerStatics2 = GUID.from_string("{7AB93C52-0E48-4750-BA9D-1A4113981847}")
+IID_IToastNotificationFactory = GUID.from_string("{04124B20-82C6-4229-B109-FD9ED4662B53}")
+IID_IToastNotification2 = GUID.from_string("{9DFB9FD1-143A-490E-90BF-B9FBA7132DE7}")
+IID_IToastNotification4 = GUID.from_string("{15154935-28EA-4727-88E9-C58680E2D118}")
+IID_IToastNotificationHistory = GUID.from_string("{5BC3CBF2-F2C1-4A5B-80E3-07D70AEFB053}")
+IID_IXmlDocumentIO = GUID.from_string("{6CD0E74E-EE65-4489-9EBF-CA43E87BA637}")
+IID_IPropertyValueStatics = GUID.from_string("{629BDBC8-D932-4FF4-96B9-8D96C5C1E858}")
 
 # ---------------------------------------------------------------------------
 # DLL bindings
@@ -253,9 +237,7 @@ def get_activation_factory(class_name: str, iid: GUID) -> ctypes.c_void_p:
         factory = ctypes.c_void_p()
         hr = _RoGetActivationFactory(hs, ctypes.byref(iid), ctypes.byref(factory))
         if hr != S_OK:
-            raise OSError(
-                f"RoGetActivationFactory({class_name}) failed: 0x{hr & 0xFFFFFFFF:08X}"
-            )
+            raise OSError(f"RoGetActivationFactory({class_name}) failed: 0x{hr & 0xFFFFFFFF:08X}")
         return factory
 
 
@@ -265,9 +247,7 @@ def activate_instance(class_name: str) -> ctypes.c_void_p:
         instance = ctypes.c_void_p()
         hr = _RoActivateInstance(hs, ctypes.byref(instance))
         if hr != S_OK:
-            raise OSError(
-                f"RoActivateInstance({class_name}) failed: 0x{hr & 0xFFFFFFFF:08X}"
-            )
+            raise OSError(f"RoActivateInstance({class_name}) failed: 0x{hr & 0xFFFFFFFF:08X}")
         return instance
 
 
@@ -300,9 +280,13 @@ def box_datetime(unix_timestamp: float) -> ctypes.c_void_p:
 
     datetime_ref = ctypes.c_void_p()
     hr = vcall(
-        factory, 21, ctypes.HRESULT,
-        ctypes.c_int64, ticks,
-        ctypes.POINTER(ctypes.c_void_p), ctypes.byref(datetime_ref),
+        factory,
+        21,
+        ctypes.HRESULT,
+        ctypes.c_int64,
+        ticks,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.byref(datetime_ref),
     )
     if hr != S_OK:
         raise OSError(f"CreateDateTime failed: 0x{hr & 0xFFFFFFFF:08X}")

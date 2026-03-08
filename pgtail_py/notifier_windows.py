@@ -77,14 +77,16 @@ class WindowsNotifier(Notifier):
             with hstring(AUMID) as hs_aumid:
                 notifier = ctypes.c_void_p()
                 hr = vcall(
-                    self._mgr_factory, 7, ctypes.HRESULT,
-                    HSTRING, hs_aumid,
-                    ctypes.POINTER(ctypes.c_void_p), ctypes.byref(notifier),
+                    self._mgr_factory,
+                    7,
+                    ctypes.HRESULT,
+                    HSTRING,
+                    hs_aumid,
+                    ctypes.POINTER(ctypes.c_void_p),
+                    ctypes.byref(notifier),
                 )
                 if hr != S_OK:
-                    raise OSError(
-                        f"CreateToastNotifierWithId failed: 0x{hr & 0xFFFFFFFF:08X}"
-                    )
+                    raise OSError(f"CreateToastNotifierWithId failed: 0x{hr & 0xFFFFFFFF:08X}")
                 self._toast_notifier = notifier
 
             # Cache ToastNotificationFactory
@@ -149,14 +151,16 @@ class WindowsNotifier(Notifier):
             # Create toast notification
             toast = ctypes.c_void_p()
             hr = vcall(
-                self._toast_factory, 6, ctypes.HRESULT,
-                ctypes.c_void_p, xml_doc,
-                ctypes.POINTER(ctypes.c_void_p), ctypes.byref(toast),
+                self._toast_factory,
+                6,
+                ctypes.HRESULT,
+                ctypes.c_void_p,
+                xml_doc,
+                ctypes.POINTER(ctypes.c_void_p),
+                ctypes.byref(toast),
             )
             if hr != S_OK:
-                raise OSError(
-                    f"CreateToastNotification failed: 0x{hr & 0xFFFFFFFF:08X}"
-                )
+                raise OSError(f"CreateToastNotification failed: 0x{hr & 0xFFFFFFFF:08X}")
 
             # Set ExpirationTime (unless critical — never expires)
             expiry_secs = EXPIRY_SECONDS.get(severity)
@@ -173,7 +177,9 @@ class WindowsNotifier(Notifier):
                 if len(tag) > _MAX_TAG_LEN:
                     logger.warning(
                         "Toast tag truncated from %d to %d chars: %r",
-                        len(tag), _MAX_TAG_LEN, tag,
+                        len(tag),
+                        _MAX_TAG_LEN,
+                        tag,
                     )
                     tag = tag[:_MAX_TAG_LEN]
                 toast2 = qi(toast, IID_IToastNotification2)
@@ -221,9 +227,9 @@ class WindowsNotifier(Notifier):
             if self._consecutive_failures >= _FAILURE_THRESHOLD:
                 self._disabled_until = time.time() + _COOLDOWN_SECONDS
                 logger.warning(
-                    "Toast notification failed %d times consecutively, "
-                    "disabling for %ds",
-                    self._consecutive_failures, _COOLDOWN_SECONDS,
+                    "Toast notification failed %d times consecutively, disabling for %ds",
+                    self._consecutive_failures,
+                    _COOLDOWN_SECONDS,
                 )
             return False
 
@@ -249,8 +255,11 @@ class WindowsNotifier(Notifier):
             # get_History — slot [6] (single custom method)
             history = ctypes.c_void_p()
             hr = vcall(
-                mgr2, 6, ctypes.HRESULT,
-                ctypes.POINTER(ctypes.c_void_p), ctypes.byref(history),
+                mgr2,
+                6,
+                ctypes.HRESULT,
+                ctypes.POINTER(ctypes.c_void_p),
+                ctypes.byref(history),
             )
             if hr != S_OK:
                 raise OSError(f"get_History failed: 0x{hr & 0xFFFFFFFF:08X}")
@@ -292,7 +301,7 @@ def _extract_hresult(e: OSError) -> int:
     msg = str(e)
     if "0x" in msg:
         try:
-            hex_str = msg[msg.rindex("0x"):]
+            hex_str = msg[msg.rindex("0x") :]
             return int(hex_str.split()[0].rstrip("]"), 16)
         except (ValueError, IndexError):
             pass

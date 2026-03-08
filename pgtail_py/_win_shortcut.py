@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 
-from pgtail_py._winrt import GUID, S_OK, vcall_check, vcall
+from pgtail_py._winrt import GUID, S_OK, vcall_check
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +85,7 @@ _CoInitializeEx.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
 
 def _get_shortcut_path() -> str:
     appdata = os.environ.get("APPDATA", "")
-    return os.path.join(
-        appdata, "Microsoft", "Windows", "Start Menu", "Programs", "pgtail.lnk"
-    )
+    return os.path.join(appdata, "Microsoft", "Windows", "Start Menu", "Programs", "pgtail.lnk")
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +139,7 @@ def _create_shortcut(lnk_path: str) -> bool:
 
     # QI -> IPropertyStore
     from pgtail_py._winrt import qi
+
     prop_store = qi(shell_link, IID_IPropertyStore)
 
     # Set PKEY_AppUserModel_ID
@@ -151,9 +150,12 @@ def _create_shortcut(lnk_path: str) -> bool:
 
     # IPropertyStore::SetValue (slot 6)
     vcall_check(
-        prop_store, 6,
-        ctypes.POINTER(PROPERTYKEY), ctypes.byref(pkey),
-        ctypes.POINTER(PROPVARIANT), ctypes.byref(pv),
+        prop_store,
+        6,
+        ctypes.POINTER(PROPERTYKEY),
+        ctypes.byref(pkey),
+        ctypes.POINTER(PROPVARIANT),
+        ctypes.byref(pv),
     )
 
     # IPropertyStore::Commit (slot 7)
