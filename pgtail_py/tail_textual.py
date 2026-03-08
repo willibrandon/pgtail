@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -212,6 +213,13 @@ class TailApp(App[None]):
         # T080: Stdin mode flag and pre-buffered data
         self._stdin_mode: bool = stdin_mode
         self._stdin_data: str | None = stdin_data
+        # Callback for post-rebuild actions (e.g. feedback messages)
+        self._rebuild_on_complete: Callable[[], None] | None = None
+        # Guard: True while the async rebuild worker is replaying entries.
+        # When set, _add_entry buffers new entries instead of writing to TailLog
+        # so that the chronological ordering of the visible log is preserved.
+        self._rebuilding: bool = False
+        self._rebuild_pending: list[LogEntry] = []
         # Command history for Up/Down recall (024: T003, T024)
         self._history = TailCommandHistory(
             max_entries=500,
@@ -765,6 +773,12 @@ class TailApp(App[None]):
         # are handled in _on_raw_entry() which is called for ALL entries before
         # filtering, matching stream mode behavior.
 
+        # During rebuild, buffer new entries instead of writing to TailLog
+        # to preserve chronological ordering of the visible log.
+        if self._rebuilding:
+            self._rebuild_pending.append(entry)
+            return
+
         # Check if entry passes current filters
         if not self._entry_matches_filters(entry):
             return
@@ -848,36 +862,92 @@ class TailApp(App[None]):
         """Set the explicit pause flag."""
         self._paused = paused
 
-    def _rebuild_log(self) -> None:
-        """Rebuild log display from stored entries with current filters.
+    def _rebuild_log(self, on_complete: Callable[[], None] | None = None) -> None:
+        """Trigger an async log rebuild from stored entries.
 
-        Clears the log widget and re-adds all entries that match the
-        current filter settings. Called when filters change.
+        Launches (or restarts) the background rebuild worker so the UI
+        stays responsive while entries are re-filtered and re-formatted.
+
+        Args:
+            on_complete: Optional callback to run after rebuild finishes
+                (e.g. to write feedback messages that shouldn't be erased).
+        """
+        self._rebuild_on_complete = on_complete
+        self._rebuild_log_async()
+
+    # Batch size: number of entries processed between event-loop yields.
+    _REBUILD_BATCH_SIZE: ClassVar[int] = 200
+
+    @work(exclusive=True, name="rebuild_log")
+    async def _rebuild_log_async(self) -> None:
+        """Async worker that rebuilds the log display in batches.
+
+        Uses ``@work(exclusive=True)`` so a new filter change automatically
+        cancels any in-progress rebuild.  Yields to the event loop every
+        ``_REBUILD_BATCH_SIZE`` entries to keep the UI responsive.
         """
         log_widget = self.query_one("#log", TailLog)
 
-        # Clear log and reset status counts
-        log_widget.clear()
-        if self._status:
-            self._status.error_count = 0
-            self._status.warning_count = 0
+        self._rebuilding = True
+        self._rebuild_pending = []
 
-        # Re-add entries that match current filters
-        for entry in self._entries:
-            if self._entry_matches_filters(entry):
-                formatted = format_entry_compact(
-                    entry,
-                    theme=self._state.theme_manager.current_theme,
-                    highlighting_config=self._state.highlighting_config,
-                )
-                log_widget.write_line(formatted)
-                if self._status:
-                    self._status.update_from_entry(entry)
+        try:
+            # Clear log and reset status counts
+            log_widget.clear()
+            if self._status:
+                self._status.error_count = 0
+                self._status.warning_count = 0
 
-        # Update total line count
-        if self._status:
-            self._status.set_total_lines(log_widget.line_count)
-            self._update_status()
+            # Snapshot entries so iteration is safe if new entries arrive
+            entries_snapshot = list(self._entries)
+
+            # Re-add entries that match current filters, yielding periodically
+            for i, entry in enumerate(entries_snapshot):
+                if self._entry_matches_filters(entry):
+                    formatted = format_entry_compact(
+                        entry,
+                        theme=self._state.theme_manager.current_theme,
+                        highlighting_config=self._state.highlighting_config,
+                    )
+                    log_widget.write_line(formatted)
+                    if self._status:
+                        self._status.update_from_entry(entry)
+
+                # Yield to event loop every batch to keep UI responsive
+                if (i + 1) % self._REBUILD_BATCH_SIZE == 0:
+                    await asyncio.sleep(0)
+
+            # Drain entries that arrived while the rebuild was in progress.
+            # No await here, so no new entries can interleave.
+            pending = list(self._rebuild_pending)
+            self._rebuild_pending = []
+            for entry in pending:
+                if self._entry_matches_filters(entry):
+                    if self._paused:
+                        if self._status:
+                            self._status.update_from_entry(entry)
+                            self._status.set_follow_mode(False, self._status.new_since_pause + 1)
+                    else:
+                        formatted = format_entry_compact(
+                            entry,
+                            theme=self._state.theme_manager.current_theme,
+                            highlighting_config=self._state.highlighting_config,
+                        )
+                        log_widget.write_line(formatted)
+                        if self._status:
+                            self._status.update_from_entry(entry)
+
+            # Update total line count
+            if self._status:
+                self._status.set_total_lines(log_widget.line_count)
+                self._update_status()
+
+            # Run post-rebuild callback (e.g. feedback messages)
+            if self._rebuild_on_complete is not None:
+                self._rebuild_on_complete()
+                self._rebuild_on_complete = None
+        finally:
+            self._rebuilding = False
 
     def _reset_to_anchor(self) -> None:
         """Reset filters to the initial anchor state.

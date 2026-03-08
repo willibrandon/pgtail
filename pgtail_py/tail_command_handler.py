@@ -38,7 +38,7 @@ class TailCommandContext:
     entries: list[LogEntry]
     stop_callback: Callable[[], None]
     set_paused: Callable[[bool], None]
-    rebuild_log: Callable[[], None]
+    rebuild_log: Callable[..., None]
     reset_to_anchor: Callable[[], None]
     update_status: Callable[[], None]
     entry_filter: Callable[[LogEntry], bool]
@@ -194,8 +194,7 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
         ctx.set_paused(False)
         ctx.status.set_follow_mode(True, 0)
         # Rebuild log to include entries that arrived while paused
-        ctx.rebuild_log()
-        log_widget.scroll_end()
+        ctx.rebuild_log(on_complete=lambda: log_widget.scroll_end())
         ctx.update_status()
         return
 
@@ -210,9 +209,10 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
         else:
             theme_name = args[0]
             if ctx.state.theme_manager.switch_theme(theme_name):
-                ctx.rebuild_log()
-                log_widget.write_line(
-                    f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]"
+                ctx.rebuild_log(
+                    on_complete=lambda: log_widget.write_line(
+                        f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]"
+                    )
                 )
             else:
                 available = ", ".join(sorted(ctx.state.theme_manager._themes.keys()))
@@ -252,10 +252,23 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
         and not is_help_request
     )
 
-    # For commands that need rebuild, don't pass log_widget
-    # (message would be erased by rebuild). We'll show feedback after.
-    effective_log_widget = (
-        None if (needs_highlight_rebuild or needs_set_highlight_rebuild) else log_widget
+    # Snapshot config state before command execution so we can detect
+    # whether the command actually modified highlighting (avoids reporting
+    # success for commands that were rejected by validation).
+    hl_config = ctx.state.highlighting_config
+    _hl_snapshot = (
+        (
+            hl_config.enabled,
+            dict(hl_config.enabled_highlighters),
+            [(c.name, c.enabled) for c in hl_config.custom_highlighters],
+        )
+        if needs_highlight_rebuild
+        else None
+    )
+    _dur_snapshot = (
+        (hl_config.duration_slow, hl_config.duration_very_slow, hl_config.duration_critical)
+        if needs_set_highlight_rebuild
+        else None
     )
 
     handle_tail_command(
@@ -265,43 +278,62 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
         state=ctx.state,
         tailer=ctx.tailer,
         stop_callback=ctx.stop_callback,
-        log_widget=effective_log_widget,
+        log_widget=log_widget,
     )
 
     # Rebuild log with new filters applied to stored entries
     if needs_rebuild:
         ctx.rebuild_log()
 
-    # Highlight changes need cache reset and rebuild to re-render with new styles
-    if needs_highlight_rebuild:
-        from pgtail_py.tail_rich import reset_highlighter_chain
+    # Highlight changes need cache reset and rebuild to re-render with new styles.
+    # Only rebuild + show success feedback when the config actually changed;
+    # on failure the handler already wrote an error to log_widget.
+    if needs_highlight_rebuild and _hl_snapshot is not None:
+        hl_after = (
+            hl_config.enabled,
+            dict(hl_config.enabled_highlighters),
+            [(c.name, c.enabled) for c in hl_config.custom_highlighters],
+        )
+        if hl_after != _hl_snapshot:
+            from pgtail_py.tail_rich import reset_highlighter_chain
 
-        reset_highlighter_chain()
-        ctx.rebuild_log()
-        # Show feedback after rebuild so it's not erased
-        subcommand = args[0].lower()
-        if subcommand == "add" and len(args) >= 2:
-            log_widget.write_line(f"[green]Added highlighter '{args[1]}'[/green]")
-        elif subcommand == "remove" and len(args) >= 2:
-            log_widget.write_line(f"[green]Removed highlighter '{args[1]}'[/green]")
-        elif subcommand == "enable" and len(args) >= 2:
-            log_widget.write_line(f"[green]Enabled highlighter '{args[1]}'[/green]")
-        elif subcommand == "disable" and len(args) >= 2:
-            log_widget.write_line(f"[green]Disabled highlighter '{args[1]}'[/green]")
-        elif subcommand == "on":
-            log_widget.write_line("[green]Highlighting enabled[/green]")
-        elif subcommand == "off":
-            log_widget.write_line("[yellow]Highlighting disabled[/yellow]")
+            reset_highlighter_chain()
+            # Build feedback message to show after rebuild completes
+            subcommand = args[0].lower()
+            feedback: str | None = None
+            if subcommand == "add" and len(args) >= 2:
+                feedback = f"[green]Added highlighter '{args[1]}'[/green]"
+            elif subcommand == "remove" and len(args) >= 2:
+                feedback = f"[green]Removed highlighter '{args[1]}'[/green]"
+            elif subcommand == "enable" and len(args) >= 2:
+                feedback = f"[green]Enabled highlighter '{args[1]}'[/green]"
+            elif subcommand == "disable" and len(args) >= 2:
+                feedback = f"[green]Disabled highlighter '{args[1]}'[/green]"
+            elif subcommand == "on":
+                feedback = "[green]Highlighting enabled[/green]"
+            elif subcommand == "off":
+                feedback = "[yellow]Highlighting disabled[/yellow]"
+            if feedback:
+                msg = feedback  # capture for closure
+                ctx.rebuild_log(on_complete=lambda: log_widget.write_line(msg))
+            else:
+                ctx.rebuild_log()
 
-    # Set highlighting.duration.* changes need cache reset and rebuild
-    if needs_set_highlight_rebuild:
-        from pgtail_py.tail_rich import reset_highlighter_chain
+    # Set highlighting.duration.* changes need cache reset and rebuild.
+    # Only rebuild when the thresholds actually changed.
+    if needs_set_highlight_rebuild and _dur_snapshot is not None:
+        dur_after = (
+            hl_config.duration_slow,
+            hl_config.duration_very_slow,
+            hl_config.duration_critical,
+        )
+        if dur_after != _dur_snapshot:
+            from pgtail_py.tail_rich import reset_highlighter_chain
 
-        reset_highlighter_chain()
-        ctx.rebuild_log()
-        # Show feedback after rebuild so it's not erased
-        key = args[0]
-        value = args[1] if len(args) > 1 else ""
-        log_widget.write_line(f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{value}[/magenta]")
+            reset_highlighter_chain()
+            key = args[0]
+            value = args[1] if len(args) > 1 else ""
+            msg = f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{value}[/magenta]"
+            ctx.rebuild_log(on_complete=lambda: log_widget.write_line(msg))
 
     ctx.update_status()

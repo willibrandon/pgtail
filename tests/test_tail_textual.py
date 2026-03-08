@@ -8,7 +8,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pgtail_py.filter import LogLevel
 from pgtail_py.instance import DetectionSource, Instance
+from pgtail_py.parser import LogEntry
 from pgtail_py.tail_help import HelpScreen
 from pgtail_py.tail_log import TailLog
 from pgtail_py.tail_textual import TailApp
@@ -541,8 +543,6 @@ class TestTailAppNotifications:
 
         This verifies the fix for notifications not firing in Textual mode.
         """
-        from pgtail_py.filter import LogLevel
-        from pgtail_py.parser import LogEntry
 
         log_file = tmp_path / "postgresql.log"
         log_file.write_text("")
@@ -576,8 +576,6 @@ class TestTailAppNotifications:
         self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
     ) -> None:
         """Test that _on_raw_entry calls error_stats.add()."""
-        from pgtail_py.filter import LogLevel
-        from pgtail_py.parser import LogEntry
 
         log_file = tmp_path / "postgresql.log"
         log_file.write_text("")
@@ -604,8 +602,6 @@ class TestTailAppNotifications:
         self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
     ) -> None:
         """Test that _on_raw_entry calls connection_stats.add()."""
-        from pgtail_py.filter import LogLevel
-        from pgtail_py.parser import LogEntry
 
         log_file = tmp_path / "postgresql.log"
         log_file.write_text("")
@@ -627,3 +623,556 @@ class TestTailAppNotifications:
         app._on_raw_entry(entry)
 
         mock_state.connection_stats.add.assert_called_once_with(entry)
+
+
+class TestAsyncRebuildLog:
+    """Tests for async log rebuild (non-blocking UI during filter changes)."""
+
+    @pytest.fixture
+    def rebuild_state(self, mock_state: MagicMock) -> MagicMock:
+        """Mock state with real theme/highlighting for format_entry_compact."""
+        from pgtail_py.highlighting_config import HighlightingConfig
+        from pgtail_py.theme import ThemeManager
+
+        mock_state.theme_manager = ThemeManager()
+        mock_state.highlighting_config = HighlightingConfig()
+        return mock_state
+
+    @pytest.mark.asyncio
+    async def test_rebuild_log_repopulates_from_entries(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _rebuild_log re-renders stored entries."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Seed entries directly into the buffer
+                for i in range(10):
+                    entry = LogEntry(
+                        raw=f"line {i}",
+                        timestamp=None,
+                        pid=1000 + i,
+                        level=LogLevel.LOG,
+                        message=f"test message {i}",
+                    )
+                    app._entries.append(entry)
+
+                assert log_widget.line_count == 0
+
+                # Trigger rebuild and wait for async worker
+                app._rebuild_log()
+                await pilot.pause()
+
+                # All 10 entries should be rendered
+                assert log_widget.line_count == 10
+
+    @pytest.mark.asyncio
+    async def test_rebuild_log_applies_filters(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that rebuild only shows entries matching current filters."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        # Set level filter to ERROR only
+        rebuild_state.active_levels = {LogLevel.ERROR}
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Add mix of ERROR and LOG entries
+                for i in range(5):
+                    app._entries.append(
+                        LogEntry(
+                            raw=f"error {i}",
+                            timestamp=None,
+                            pid=1000,
+                            level=LogLevel.ERROR,
+                            message=f"error message {i}",
+                        )
+                    )
+                    app._entries.append(
+                        LogEntry(
+                            raw=f"log {i}",
+                            timestamp=None,
+                            pid=1000,
+                            level=LogLevel.LOG,
+                            message=f"log message {i}",
+                        )
+                    )
+
+                app._rebuild_log()
+                await pilot.pause()
+
+                # Only ERROR entries should be shown
+                assert log_widget.line_count == 5
+
+    @pytest.mark.asyncio
+    async def test_rebuild_log_on_complete_callback(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that on_complete callback fires after rebuild."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                # Add some entries
+                for i in range(3):
+                    app._entries.append(
+                        LogEntry(
+                            raw=f"line {i}",
+                            timestamp=None,
+                            pid=1000,
+                            level=LogLevel.LOG,
+                            message=f"msg {i}",
+                        )
+                    )
+
+                callback_called = []
+                app._rebuild_log(on_complete=lambda: callback_called.append(True))
+                await pilot.pause()
+
+                assert len(callback_called) == 1
+
+    @pytest.mark.asyncio
+    async def test_rebuild_log_exclusive_cancels_previous(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that a second rebuild cancels the first (exclusive worker)."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Seed entries
+                for i in range(5):
+                    app._entries.append(
+                        LogEntry(
+                            raw=f"line {i}",
+                            timestamp=None,
+                            pid=1000,
+                            level=LogLevel.LOG,
+                            message=f"msg {i}",
+                        )
+                    )
+
+                # Fire two rebuilds in quick succession
+                first_callback = []
+                second_callback = []
+                app._rebuild_log(on_complete=lambda: first_callback.append(True))
+                app._rebuild_log(on_complete=lambda: second_callback.append(True))
+                await pilot.pause()
+
+                # Second rebuild should complete; first may have been cancelled
+                assert len(second_callback) == 1
+                # Final state should have all 5 entries
+                assert log_widget.line_count == 5
+
+    @pytest.mark.asyncio
+    async def test_rebuild_log_yields_during_large_batch(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that rebuild yields to event loop during large entry sets."""
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Add more entries than batch size (200)
+                for i in range(500):
+                    app._entries.append(
+                        LogEntry(
+                            raw=f"line {i}",
+                            timestamp=None,
+                            pid=1000,
+                            level=LogLevel.LOG,
+                            message=f"msg {i}",
+                        )
+                    )
+
+                app._rebuild_log()
+                await pilot.pause()
+
+                # All entries should eventually be rendered
+                assert log_widget.line_count == 500
+
+    @pytest.mark.asyncio
+    async def test_add_entry_buffers_during_rebuild(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """_add_entry buffers entries when _rebuilding is True.
+
+        When the rebuild flag is set, new entries must go into
+        _rebuild_pending instead of being written to TailLog directly.
+        """
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Simulate being mid-rebuild
+                app._rebuilding = True
+                app._rebuild_pending = []
+
+                entry = LogEntry(
+                    raw="new during rebuild",
+                    timestamp=None,
+                    pid=2000,
+                    level=LogLevel.LOG,
+                    message="new during rebuild",
+                )
+                app._add_entry(entry)
+
+                # Entry should be in _entries and _rebuild_pending
+                assert entry in app._entries
+                assert entry in app._rebuild_pending
+                # But NOT written to the log widget
+                assert log_widget.line_count == 0
+
+                app._rebuilding = False
+
+    @pytest.mark.asyncio
+    async def test_rebuild_drains_pending_entries(
+        self, mock_instance: Instance, rebuild_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """Entries arriving via _add_entry during rebuild are drained after snapshot.
+
+        The worker resets _rebuild_pending at start, so we inject an entry
+        mid-rebuild via a format_entry_compact side-effect to exercise the
+        real _add_entry → _rebuild_pending → drain path.
+        """
+        from pgtail_py.tail_rich import format_entry_compact as real_format
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=rebuild_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # Seed 5 existing entries (all in the snapshot)
+                for i in range(5):
+                    app._entries.append(
+                        LogEntry(
+                            raw=f"existing {i}",
+                            timestamp=None,
+                            pid=1000,
+                            level=LogLevel.LOG,
+                            message=f"existing {i}",
+                        )
+                    )
+
+                # Entry that will be injected mid-rebuild via _add_entry.
+                # It is NOT in _entries yet, so it cannot appear via the
+                # snapshot — it can only appear if the drain code works.
+                late_entry = LogEntry(
+                    raw="late arrival",
+                    timestamp=None,
+                    pid=9999,
+                    level=LogLevel.LOG,
+                    message="late arrival",
+                )
+
+                injected = False
+
+                def format_and_inject(*args, **kwargs):
+                    nonlocal injected
+                    if not injected:
+                        injected = True
+                        # _rebuilding is True here, so _add_entry buffers
+                        app._add_entry(late_entry)
+                    return real_format(*args, **kwargs)
+
+                with patch(
+                    "pgtail_py.tail_textual.format_entry_compact",
+                    side_effect=format_and_inject,
+                ):
+                    app._rebuild_log()
+                    await pilot.pause()
+
+                # 5 snapshot entries + 1 late arrival = 6
+                assert log_widget.line_count == 6
+                assert app._rebuilding is False
+                assert len(app._rebuild_pending) == 0
+
+                # Late arrival must be the last line (chronological order)
+                last_line = log_widget._lines[-1]
+                assert "late arrival" in last_line
+
+
+class TestHighlightFeedbackCorrectness:
+    """Tests that highlight/set commands only report success when config changes."""
+
+    @pytest.fixture
+    def _cmd_state(self) -> MagicMock:
+        """Minimal AppState with real highlighting/theme config."""
+        from pgtail_py.highlighting_config import HighlightingConfig
+        from pgtail_py.theme import ThemeManager
+
+        state = MagicMock()
+        state.theme_manager = ThemeManager()
+        state.highlighting_config = HighlightingConfig()
+        state.active_levels = None
+        state.regex_filter = None
+        state.time_filter = None
+        return state
+
+    @pytest.mark.asyncio
+    async def test_highlight_enable_nonexistent_no_rebuild(
+        self, mock_instance: Instance, _cmd_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """highlight enable <invalid> should not trigger rebuild or success msg."""
+        from pgtail_py.tail_command_handler import TailCommandContext, handle_command
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=_cmd_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                rebuild_calls: list[dict] = []
+
+                def mock_rebuild(**kwargs):
+                    rebuild_calls.append(kwargs)
+
+                ctx = TailCommandContext(
+                    status=app._status,
+                    state=_cmd_state,
+                    tailer=mock_tailer,
+                    log_widget=log_widget,
+                    entries=app._entries,
+                    stop_callback=lambda: None,
+                    set_paused=lambda p: None,
+                    rebuild_log=mock_rebuild,
+                    reset_to_anchor=lambda: None,
+                    update_status=lambda: None,
+                    entry_filter=app._entry_matches_filters,
+                )
+
+                handle_command("highlight enable nonexistent_hl", ctx)
+
+                # rebuild_log should NOT have been called
+                assert len(rebuild_calls) == 0
+
+                # The error message from handle_highlight_command should
+                # be visible on the log widget (not swallowed)
+                output = "\n".join(log_widget._lines)
+                assert "nonexistent_hl" in output
+
+    @pytest.mark.asyncio
+    async def test_highlight_enable_valid_triggers_rebuild(
+        self, mock_instance: Instance, _cmd_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """highlight enable <valid> should trigger rebuild with success feedback."""
+        from pgtail_py.tail_command_handler import TailCommandContext, handle_command
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=_cmd_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                # First disable a highlighter so we can re-enable it
+                _cmd_state.highlighting_config.disable_highlighter("timestamp")
+
+                rebuild_calls: list[dict] = []
+
+                def mock_rebuild(**kwargs):
+                    rebuild_calls.append(kwargs)
+
+                ctx = TailCommandContext(
+                    status=app._status,
+                    state=_cmd_state,
+                    tailer=mock_tailer,
+                    log_widget=log_widget,
+                    entries=app._entries,
+                    stop_callback=lambda: None,
+                    set_paused=lambda p: None,
+                    rebuild_log=mock_rebuild,
+                    reset_to_anchor=lambda: None,
+                    update_status=lambda: None,
+                    entry_filter=app._entry_matches_filters,
+                )
+
+                with patch("pgtail_py.cli_highlight.save_highlighter_state"):
+                    handle_command("highlight enable timestamp", ctx)
+
+                # rebuild_log SHOULD have been called with an on_complete callback
+                assert len(rebuild_calls) == 1
+                assert "on_complete" in rebuild_calls[0]
+
+    @pytest.mark.asyncio
+    async def test_set_highlighting_invalid_value_no_rebuild(
+        self, mock_instance: Instance, _cmd_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """set highlighting.duration.slow <bad> should not trigger rebuild."""
+        from pgtail_py.tail_command_handler import TailCommandContext, handle_command
+
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(
+            state=_cmd_state,
+            instance=mock_instance,
+            log_path=log_file,
+        )
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test() as pilot:
+                log_widget = app.query_one("#log", TailLog)
+
+                rebuild_calls: list[dict] = []
+
+                def mock_rebuild(**kwargs):
+                    rebuild_calls.append(kwargs)
+
+                ctx = TailCommandContext(
+                    status=app._status,
+                    state=_cmd_state,
+                    tailer=mock_tailer,
+                    log_widget=log_widget,
+                    entries=app._entries,
+                    stop_callback=lambda: None,
+                    set_paused=lambda p: None,
+                    rebuild_log=mock_rebuild,
+                    reset_to_anchor=lambda: None,
+                    update_status=lambda: None,
+                    entry_filter=app._entry_matches_filters,
+                )
+
+                handle_command("set highlighting.duration.slow notanumber", ctx)
+
+                # rebuild_log should NOT have been called
+                assert len(rebuild_calls) == 0
+
+                # The error message should be visible
+                output = "\n".join(log_widget._lines)
+                assert "Invalid" in output or "invalid" in output
