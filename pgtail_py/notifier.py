@@ -18,17 +18,39 @@ class Notifier(ABC):
     """
 
     @abstractmethod
-    def send(self, title: str, body: str, subtitle: str | None = None) -> bool:
+    def send(
+        self,
+        title: str,
+        body: str,
+        subtitle: str | None = None,
+        severity: str = "info",
+        tag: str | None = None,
+        suppress_popup: bool = False,
+    ) -> bool:
         """Send a desktop notification.
 
         Args:
             title: Notification title.
             body: Notification body text.
             subtitle: Optional subtitle (may not be supported on all platforms).
+            severity: One of "info", "warning", "error", "critical".
+            tag: Optional tag for notification replacement.
+            suppress_popup: If True, send silently to Action Center only.
 
         Returns:
             True if notification was sent successfully.
         """
+
+    def dismiss(self, tag: str) -> bool:
+        """Dismiss a notification by tag.
+
+        Args:
+            tag: Tag of the notification to dismiss.
+
+        Returns:
+            True if dismissal succeeded, False if unsupported or failed.
+        """
+        return False
 
     @abstractmethod
     def is_available(self) -> bool:
@@ -62,17 +84,16 @@ class NoOpNotifier(Notifier):
         """
         self._reason = reason
 
-    def send(self, title: str, body: str, subtitle: str | None = None) -> bool:
-        """No-op send - always returns False.
-
-        Args:
-            title: Ignored.
-            body: Ignored.
-            subtitle: Ignored.
-
-        Returns:
-            False (notification not sent).
-        """
+    def send(
+        self,
+        title: str,
+        body: str,
+        subtitle: str | None = None,
+        severity: str = "info",
+        tag: str | None = None,
+        suppress_popup: bool = False,
+    ) -> bool:
+        """No-op send - always returns False."""
         return False
 
     def is_available(self) -> bool:
@@ -113,7 +134,7 @@ def create_notifier() -> Notifier:
         notifier = WindowsNotifier()
         if notifier.is_available():
             return notifier
-        return NoOpNotifier("Windows (PowerShell unavailable)")
+        return NoOpNotifier("Windows (WinRT unavailable)")
 
     elif sys.platform.startswith("linux") or sys.platform.startswith("freebsd"):
         from pgtail_py.notifier_unix import LinuxNotifier

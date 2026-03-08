@@ -47,6 +47,8 @@ TAIL_MODE_COMMANDS: list[str] = [
     "errors",  # show error summary
     "connections",  # show connection summary
     "highlight",  # highlight list/enable/disable
+    # Notification commands
+    "notify",  # configure notifications
     # Config commands
     "set",  # set config values
     # Export commands
@@ -157,6 +159,13 @@ def handle_tail_command(
         from pgtail_py.cli_tail_display import handle_highlight_command
 
         return handle_highlight_command(args, status, state, log_widget)
+
+    # Notification commands
+    if cmd == "notify":
+        from pgtail_py.cli_notify import notify_command
+
+        notify_command(state, args, log_widget=log_widget)
+        return True
 
     # Config commands - import handlers from cli_tail_display
     if cmd == "set":

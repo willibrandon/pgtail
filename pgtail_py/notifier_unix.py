@@ -25,13 +25,24 @@ class MacOSNotifier(Notifier):
         """Initialize and check osascript availability."""
         self._osascript_path = shutil.which("osascript")
 
-    def send(self, title: str, body: str, subtitle: str | None = None) -> bool:
+    def send(
+        self,
+        title: str,
+        body: str,
+        subtitle: str | None = None,
+        severity: str = "info",
+        tag: str | None = None,
+        suppress_popup: bool = False,
+    ) -> bool:
         """Send notification via osascript.
 
         Args:
             title: Notification title.
             body: Notification body text.
             subtitle: Optional subtitle.
+            severity: Ignored (not supported on macOS osascript).
+            tag: Ignored (not supported on macOS osascript).
+            suppress_popup: Ignored (not supported on macOS osascript).
 
         Returns:
             True if notification was sent successfully.
@@ -101,13 +112,24 @@ class LinuxNotifier(Notifier):
         """Initialize and check notify-send availability."""
         self._notify_send_path = shutil.which("notify-send")
 
-    def send(self, title: str, body: str, subtitle: str | None = None) -> bool:
+    def send(
+        self,
+        title: str,
+        body: str,
+        subtitle: str | None = None,
+        severity: str = "info",
+        tag: str | None = None,
+        suppress_popup: bool = False,
+    ) -> bool:
         """Send notification via notify-send.
 
         Args:
             title: Notification title.
             body: Notification body text.
             subtitle: Optional subtitle (prepended to body on Linux).
+            severity: Ignored (not supported on Linux notify-send).
+            tag: Ignored (not supported on Linux notify-send).
+            suppress_popup: Ignored (not supported on Linux notify-send).
 
         Returns:
             True if notification was sent successfully.

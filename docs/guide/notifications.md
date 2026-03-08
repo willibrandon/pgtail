@@ -8,7 +8,7 @@ pgtail can send desktop notifications for important log events.
 |----------|--------|
 | macOS | `osascript` (built-in) |
 | Linux | `notify-send` (libnotify) |
-| Windows | PowerShell toast |
+| Windows | WinRT toast |
 
 ## Enabling Notifications
 
