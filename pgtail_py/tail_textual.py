@@ -926,9 +926,7 @@ class TailApp(App[None]):
                     if self._paused:
                         if self._status:
                             self._status.update_from_entry(entry)
-                            self._status.set_follow_mode(
-                                False, self._status.new_since_pause + 1
-                            )
+                            self._status.set_follow_mode(False, self._status.new_since_pause + 1)
                     else:
                         formatted = format_entry_compact(
                             entry,
