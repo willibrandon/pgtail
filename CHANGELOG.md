@@ -5,6 +5,27 @@ All notable changes to pgtail are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-03-20
+
+### Added
+- **Command history** in tail mode with Up/Down arrow navigation, persisted across sessions (up to 500 entries)
+- **Ghost text autocomplete** in tail command input with context-aware suggestions for commands, flags, values, and history fallback
+- **WinRT COM toast notifications** on Windows, replacing PowerShell-based notifications for faster, more reliable desktop alerts
+
+### Changed
+- Removed deprecated prompt_toolkit tail modules (`tail_app.py`, `tail_buffer.py`, `tail_layout.py`) and ~2,100 lines of dead code paths
+- Removed specs, speckit, and claude agent scaffolding (~45,000 lines)
+
+### Performance
+- Converted highlighter `Match` from frozen dataclass to `NamedTuple` for 75% faster highlighting throughput (4,100 → 7,200 lines/sec)
+- Re-enabled LRU render cache in tail log display
+- Fast-path append in `OccupancyTracker.mark_occupied` and cached property lookups in hot loops
+
+### Fixed
+- Non-blocking rebuild in tail mode with correct status feedback
+- Makefile UV path using backslashes that MSYS bash can't parse
+- Build script missing `--extra dev` flag for nuitka dependency
+
 ## [0.5.1] - 2026-03-01
 
 ### Fixed
@@ -133,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.6.0]: https://github.com/willibrandon/pgtail/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/willibrandon/pgtail/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/willibrandon/pgtail/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/willibrandon/pgtail/compare/v0.4.0...v0.4.1
