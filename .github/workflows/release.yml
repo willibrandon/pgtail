@@ -33,15 +33,15 @@ jobs:
             arch: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -90,7 +90,7 @@ jobs:
           tar -czvf pgtail-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz pgtail-${{ matrix.platform }}-${{ matrix.arch }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pgtail-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist/pgtail-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
@@ -102,15 +102,15 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -310,14 +310,14 @@ jobs:
           Start-Process msiexec.exe -ArgumentList "/x", "dist\pgtail-windows-x86_64.msi", "/qn" -Wait -NoNewWindow
 
       - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pgtail-windows-x86_64
           path: dist/pgtail-windows-x86_64.zip
           retention-days: 1
 
       - name: Upload MSI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pgtail-windows-x86_64-msi
           path: dist/pgtail-windows-x86_64.msi
@@ -342,7 +342,7 @@ jobs:
         run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
 
@@ -619,7 +619,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create failure issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { owner, repo } = context.repo;
