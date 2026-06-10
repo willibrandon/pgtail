@@ -81,7 +81,7 @@ winget install willibrandon.pgtail
 ### Scoop (Windows)
 
 ```powershell
-scoop bucket add dotsider https://github.com/willibrandon/scoop-bucket
+scoop bucket add willibrandon https://github.com/willibrandon/scoop-bucket
 scoop install pgtail
 ```
 
