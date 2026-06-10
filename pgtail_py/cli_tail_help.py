@@ -234,23 +234,23 @@ def show_command_help(
     see_also = help_info.get("see_also", "")
 
     if log_widget is not None:
-        log_widget.write_line(f"[bold cyan]{cmd_lower.upper()}[/bold cyan]")
-        log_widget.write_line(f"  [dim]{short}[/dim]")
-        log_widget.write_line("")
-        log_widget.write_line(f"[bold]Usage:[/bold] [green]{usage}[/green]")
-        log_widget.write_line("")
+        log_widget.write_markup_line(f"[bold cyan]{cmd_lower.upper()}[/bold cyan]")
+        log_widget.write_markup_line(f"  [dim]{short}[/dim]")
+        log_widget.write_markup_line("")
+        log_widget.write_markup_line(f"[bold]Usage:[/bold] [green]{usage}[/green]")
+        log_widget.write_markup_line("")
         if description:
-            log_widget.write_line(f"  {description}")
-            log_widget.write_line("")
+            log_widget.write_markup_line(f"  {description}")
+            log_widget.write_markup_line("")
         if examples:
-            log_widget.write_line("[bold]Examples:[/bold]")
+            log_widget.write_markup_line("[bold]Examples:[/bold]")
             for ex in examples:
-                log_widget.write_line(f"  [yellow]{ex}[/yellow]")
-            log_widget.write_line("")
+                log_widget.write_markup_line(f"  [yellow]{ex}[/yellow]")
+            log_widget.write_markup_line("")
         if aliases:
-            log_widget.write_line(f"[bold]Aliases:[/bold] [dim]{aliases}[/dim]")
+            log_widget.write_markup_line(f"[bold]Aliases:[/bold] [dim]{aliases}[/dim]")
         if see_also:
-            log_widget.write_line(f"[bold]See also:[/bold] [dim]{see_also}[/dim]")
+            log_widget.write_markup_line(f"[bold]See also:[/bold] [dim]{see_also}[/dim]")
 
     return True
 
@@ -290,22 +290,22 @@ def handle_help_command(
             ("Home", "Go to top"),
             ("End", "Go to bottom (resume FOLLOW mode)"),
         ]
-        log_widget.write_line("[bold cyan]Navigation[/bold cyan]")
+        log_widget.write_markup_line("[bold cyan]Navigation[/bold cyan]")
         for key, desc in nav_keys:
-            log_widget.write_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
+            log_widget.write_markup_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
 
-        log_widget.write_line("")
+        log_widget.write_markup_line("")
 
         utility_keys = [
             ("Ctrl+L", "Redraw screen"),
             ("F12", "Toggle debug overlay"),
             ("Ctrl+C", "Exit tail mode"),
         ]
-        log_widget.write_line("[bold cyan]Utility Keys[/bold cyan]")
+        log_widget.write_markup_line("[bold cyan]Utility Keys[/bold cyan]")
         for key, desc in utility_keys:
-            log_widget.write_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
+            log_widget.write_markup_line(f"  [green]{key:<12}[/green] [dim]{desc}[/dim]")
 
-        log_widget.write_line("")
+        log_widget.write_markup_line("")
 
         # Commands section
         commands = [
@@ -328,9 +328,9 @@ def handle_help_command(
             ("export <path>", "Export entries to file"),
             ("stop/exit/q", "Exit tail mode"),
         ]
-        log_widget.write_line("[bold cyan]Commands[/bold cyan]")
+        log_widget.write_markup_line("[bold cyan]Commands[/bold cyan]")
         for cmd, desc in commands:
-            log_widget.write_line(f"  [yellow]{cmd:<12}[/yellow] [dim]{desc}[/dim]")
+            log_widget.write_markup_line(f"  [yellow]{cmd:<12}[/yellow] [dim]{desc}[/dim]")
 
     return True
 
@@ -348,7 +348,7 @@ def handle_help_keys_command(log_widget: TailLog | None = None) -> bool:
 
     if log_widget is not None:
         for category, bindings in KEYBINDINGS.items():
-            log_widget.write_line(f"[bold cyan]{category}[/bold cyan]")
+            log_widget.write_markup_line(f"[bold cyan]{category}[/bold cyan]")
             for key, desc in bindings:
-                log_widget.write_line(f"  [green]{key:<16}[/green] [dim]{desc}[/dim]")
+                log_widget.write_markup_line(f"  [green]{key:<16}[/green] [dim]{desc}[/dim]")
     return True

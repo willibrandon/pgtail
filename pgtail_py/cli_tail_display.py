@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from rich.text import Text
+
 if TYPE_CHECKING:
     from pgtail_py.cli import AppState
     from pgtail_py.tail_log import TailLog
@@ -36,11 +38,11 @@ def handle_errors_command(
     by_code = error_stats.get_by_code()
 
     if log_widget is not None:
-        log_widget.write_line(
+        log_widget.write_markup_line(
             f"[bold cyan]Error Statistics[/bold cyan]  Total: [magenta]{total}[/magenta]"
         )
         if by_level:
-            log_widget.write_line("[dim]  By Level:[/dim]")
+            log_widget.write_markup_line("[dim]  By Level:[/dim]")
             for level, count in sorted(by_level.items(), key=lambda x: x[1], reverse=True):
                 color = {
                     "PANIC": "bold red",
@@ -48,13 +50,13 @@ def handle_errors_command(
                     "ERROR": "yellow",
                     "WARNING": "cyan",
                 }.get(level.name, "white")
-                log_widget.write_line(
+                log_widget.write_markup_line(
                     f"    [{color}]{level.name}[/{color}]: [magenta]{count}[/magenta]"
                 )
         if by_code:
-            log_widget.write_line("[dim]  By SQLSTATE:[/dim]")
+            log_widget.write_markup_line("[dim]  By SQLSTATE:[/dim]")
             for code, count in sorted(by_code.items(), key=lambda x: x[1], reverse=True)[:10]:
-                log_widget.write_line(f"    [cyan]{code}[/cyan]: [magenta]{count}[/magenta]")
+                log_widget.write_markup_line(f"    [cyan]{code}[/cyan]: [magenta]{count}[/magenta]")
     return True
 
 
@@ -79,20 +81,20 @@ def handle_connections_command(
     by_user = conn_stats.get_by_user()
 
     if log_widget is not None:
-        log_widget.write_line("[bold cyan]Connection Statistics[/bold cyan]")
-        log_widget.write_line(
+        log_widget.write_markup_line("[bold cyan]Connection Statistics[/bold cyan]")
+        log_widget.write_markup_line(
             f"  Active: [magenta]{conn_stats.active_count()}[/magenta]  "
             f"Connects: [green]{conn_stats.connect_count}[/green]  "
             f"Disconnects: [red]{conn_stats.disconnect_count}[/red]"
         )
         if by_db:
-            log_widget.write_line("[dim]  By Database:[/dim]")
+            log_widget.write_markup_line("[dim]  By Database:[/dim]")
             for db, count in sorted(by_db.items(), key=lambda x: x[1], reverse=True)[:5]:
-                log_widget.write_line(f"    [cyan]{db}[/cyan]: [magenta]{count}[/magenta]")
+                log_widget.write_markup_line(f"    [cyan]{db}[/cyan]: [magenta]{count}[/magenta]")
         if by_user:
-            log_widget.write_line("[dim]  By User:[/dim]")
+            log_widget.write_markup_line("[dim]  By User:[/dim]")
             for user, count in sorted(by_user.items(), key=lambda x: x[1], reverse=True)[:5]:
-                log_widget.write_line(f"    [cyan]{user}[/cyan]: [magenta]{count}[/magenta]")
+                log_widget.write_markup_line(f"    [cyan]{user}[/cyan]: [magenta]{count}[/magenta]")
     return True
 
 
@@ -139,9 +141,7 @@ def handle_highlight_command(
     if not args or (args and args[0].lower() == "list"):
         if log_widget is not None:
             output = format_highlight_list_rich(config)
-            for line in output.split("\n"):
-                if line:  # Skip empty lines
-                    log_widget.write_line(line)
+            log_widget.write_text_lines(output.split("\n"))
         return True
 
     subcommand = args[0].lower()
@@ -152,7 +152,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'off' subcommand - disable all highlighting globally
@@ -161,7 +161,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "yellow" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'enable' subcommand
@@ -169,7 +169,7 @@ def handle_highlight_command(
         if len(args) < 2:
             msg = "Usage: highlight enable <name>"
             if log_widget is not None:
-                log_widget.write_line(f"[red]{msg}[/red]")
+                log_widget.write_text_line(Text(msg, style="red"))
             return True
 
         name = args[1]
@@ -177,7 +177,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'disable' subcommand
@@ -185,7 +185,7 @@ def handle_highlight_command(
         if len(args) < 2:
             msg = "Usage: highlight disable <name>"
             if log_widget is not None:
-                log_widget.write_line(f"[red]{msg}[/red]")
+                log_widget.write_text_line(Text(msg, style="red"))
             return True
 
         name = args[1]
@@ -193,7 +193,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'add' subcommand
@@ -202,7 +202,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'remove' subcommand
@@ -210,7 +210,7 @@ def handle_highlight_command(
         if len(args) < 2:
             msg = "Usage: highlight remove <name>"
             if log_widget is not None:
-                log_widget.write_line(f"[red]{msg}[/red]")
+                log_widget.write_text_line(Text(msg, style="red"))
             return True
 
         name = args[1]
@@ -218,7 +218,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'export' subcommand
@@ -231,12 +231,12 @@ def handle_highlight_command(
                 if message.startswith("#") or message.startswith("["):
                     # TOML output - show in dim
                     for line in message.split("\n"):
-                        log_widget.write_line(f"[dim]{line}[/dim]")
+                        log_widget.write_text_line(Text(line, style="dim"))
                 else:
                     # File export confirmation - show in green
-                    log_widget.write_line(f"[green]{message}[/green]")
+                    log_widget.write_text_line(Text(message, style="green"))
             else:
-                log_widget.write_line(f"[red]{message}[/red]")
+                log_widget.write_text_line(Text(message, style="red"))
         return True
 
     # Handle 'import' subcommand
@@ -245,7 +245,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Handle 'preview' subcommand
@@ -254,9 +254,7 @@ def handle_highlight_command(
 
         if log_widget is not None:
             success, output = handle_highlight_preview(config, use_rich=True)
-            # output is a Rich markup string
-            for line in str(output).split("\n"):
-                log_widget.write_line(line)
+            log_widget.write_text_lines(output.split("\n"))
         return True
 
     # Handle 'reset' subcommand
@@ -267,13 +265,13 @@ def handle_highlight_command(
 
         if log_widget is not None:
             color = "green" if success else "red"
-            log_widget.write_line(f"[{color}]{message}[/{color}]")
+            log_widget.write_text_line(Text(message, style=color))
         return True
 
     # Unknown subcommand
     msg = f"Unknown subcommand: {subcommand}. Use: list, on, off, enable, disable, add, remove, export, import, preview, reset"
     if log_widget is not None:
-        log_widget.write_line(f"[red]{msg}[/red]")
+        log_widget.write_text_line(Text(msg, style="red"))
     return True
 
 
@@ -305,11 +303,11 @@ def handle_set_command(
     # No args - show usage and available settings
     if not args:
         if log_widget is not None:
-            log_widget.write_line("[dim]Usage: set <key> [value][/dim]")
-            log_widget.write_line("")
-            log_widget.write_line("[bold]Available settings:[/bold]")
+            log_widget.write_markup_line("[dim]Usage: set <key> [value][/dim]")
+            log_widget.write_markup_line("")
+            log_widget.write_markup_line("[bold]Available settings:[/bold]")
             for key in SETTINGS_SCHEMA:
-                log_widget.write_line(f"  [cyan]{key}[/cyan]")
+                log_widget.write_markup_line(f"  [cyan]{key}[/cyan]")
         return True
 
     key = args[0]
@@ -318,7 +316,7 @@ def handle_set_command(
     if not validate_key(key):
         msg = f"Unknown setting: {key}"
         if log_widget is not None:
-            log_widget.write_line(f"[red]{msg}[/red]")
+            log_widget.write_markup_line(f"[red]{msg}[/red]")
         return True
 
     # No value - display current value
@@ -329,7 +327,7 @@ def handle_set_command(
             msg = f"[cyan]{key}[/cyan] = [magenta]{current!r}[/magenta]"
             if current != default:
                 msg += f" [dim](default: {default!r})[/dim]"
-            log_widget.write_line(msg)
+            log_widget.write_markup_line(msg)
         return True
 
     # Parse and validate value
@@ -339,7 +337,7 @@ def handle_set_command(
     except ValueError as e:
         msg = f"Invalid value for {key}: {e}"
         if log_widget is not None:
-            log_widget.write_line(f"[red]{msg}[/red]")
+            log_widget.write_markup_line(f"[red]{msg}[/red]")
         return True
 
     # Validate the value using schema validator
@@ -349,14 +347,14 @@ def handle_set_command(
     except ValueError as e:
         msg = f"Invalid value for {key}: {e}"
         if log_widget is not None:
-            log_widget.write_line(f"[red]{msg}[/red]")
+            log_widget.write_markup_line(f"[red]{msg}[/red]")
         return True
 
     # Save to config file
     if not save_config(key, validated, warn_func=warn):
         msg = "Failed to save configuration"
         if log_widget is not None:
-            log_widget.write_line(f"[red]{msg}[/red]")
+            log_widget.write_markup_line(f"[red]{msg}[/red]")
         return True
 
     # Update in-memory config
@@ -367,7 +365,7 @@ def handle_set_command(
 
     # Provide feedback
     if log_widget is not None:
-        log_widget.write_line(
+        log_widget.write_markup_line(
             f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{validated!r}[/magenta]"
         )
 

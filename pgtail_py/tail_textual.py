@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, ClassVar
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
+from textual.css.query import NoMatches
 from textual.widgets import Input, Rule, Static
 
 from pgtail_py.cli_tail_help import COMMAND_HELP
@@ -470,15 +471,15 @@ class TailApp(App[None]):
         except PermissionError:
             # File exists but we can't read it - show helpful message
             log_widget = self.query_one("#log", TailLog)
-            log_widget.write_line(
+            log_widget.write_markup_line(
                 "[bold yellow]Warning:[/] Cannot read log file due to permissions"
             )
-            log_widget.write_line(f"[dim]File:[/] {self._log_path}")
-            log_widget.write_line("")
+            log_widget.write_markup_line(f"[dim]File:[/] {self._log_path}")
+            log_widget.write_markup_line("")
 
             # Platform-specific fix suggestions
             for line in get_log_permission_advice(rich_markup=True):
-                log_widget.write_line(line)
+                log_widget.write_markup_line(line)
 
             # Mark file as permission denied and unavailable in status
             self._status.set_file_permission_denied(True)
@@ -584,7 +585,7 @@ class TailApp(App[None]):
         # Show completion message in log
         log_widget = self.query_one("#log", TailLog)
         lines_read = self._stdin_reader.lines_read if self._stdin_reader else 0
-        log_widget.write_line(
+        log_widget.write_markup_line(
             f"[dim]--- stdin complete ({lines_read} lines loaded) - press 'q' to quit ---[/]"
         )
 
@@ -804,7 +805,7 @@ class TailApp(App[None]):
         was_at_end = log_widget.is_vertical_scroll_end
 
         # Add to log
-        log_widget.write_line(formatted)
+        log_widget.write_text_line(formatted)
 
         # Update status counts (only for displayed entries)
         if self._status:
@@ -909,7 +910,7 @@ class TailApp(App[None]):
                         theme=self._state.theme_manager.current_theme,
                         highlighting_config=self._state.highlighting_config,
                     )
-                    log_widget.write_line(formatted)
+                    log_widget.write_text_line(formatted)
                     if self._status:
                         self._status.update_from_entry(entry)
 
@@ -933,7 +934,7 @@ class TailApp(App[None]):
                             theme=self._state.theme_manager.current_theme,
                             highlighting_config=self._state.highlighting_config,
                         )
-                        log_widget.write_line(formatted)
+                        log_widget.write_text_line(formatted)
                         if self._status:
                             self._status.update_from_entry(entry)
 
@@ -993,14 +994,23 @@ class TailApp(App[None]):
 
     def _update_status(self) -> None:
         """Update the header and status bar displays with styled Rich text."""
-        if self._status:
-            # Update header with keybinding hints
-            header_widget = self.query_one("#header", Static)
-            header_widget.update(self._status.format_header())
+        if not self._status:
+            return
 
-            # Update status bar with mode, counts, filters
+        try:
+            header_widget = self.query_one("#header", Static)
             status_widget = self.query_one("#status", Static)
-            status_widget.update(self._status.format_rich())
+        except NoMatches:
+            # Background workers and timers (the consumer loop, rebuilds) can
+            # reach here while the widgets aren't in the DOM -- before compose
+            # finishes on startup, or after they're torn down on shutdown.
+            # There is nothing to update in that window.
+            return
+
+        # Update header with keybinding hints
+        header_widget.update(self._status.format_header())
+        # Update status bar with mode, counts, filters
+        status_widget.update(self._status.format_rich())
 
     def _handle_command(self, command_text: str) -> None:
         """Handle a command entered in the input line.

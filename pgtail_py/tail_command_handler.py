@@ -59,7 +59,7 @@ def handle_export_command(
     from pgtail_py.export import ExportFormat, export_to_file
 
     if not args:
-        ctx.log_widget.write_line(
+        ctx.log_widget.write_markup_line(
             "[bold red]✗[/] Usage: export <path> [--format text|json|csv] [--highlighted]"
         )
         return
@@ -76,7 +76,7 @@ def handle_export_command(
             try:
                 fmt = ExportFormat.from_string(args[i + 1])
             except ValueError as e:
-                ctx.log_widget.write_line(f"[bold red]✗[/] {e}")
+                ctx.log_widget.write_markup_line(f"[bold red]✗[/] {e}")
                 return
             i += 2
         elif arg == "--highlighted":
@@ -86,11 +86,11 @@ def handle_export_command(
             path_str = arg
             i += 1
         else:
-            ctx.log_widget.write_line(f"[bold red]✗[/] Unknown option: {arg}")
+            ctx.log_widget.write_markup_line(f"[bold red]✗[/] Unknown option: {arg}")
             return
 
     if not path_str:
-        ctx.log_widget.write_line("[bold red]✗[/] No output path specified")
+        ctx.log_widget.write_markup_line("[bold red]✗[/] No output path specified")
         return
 
     # Expand ~ and resolve path
@@ -100,7 +100,7 @@ def handle_export_command(
     filtered_entries = [e for e in ctx.entries if ctx.entry_filter(e)]
 
     if not filtered_entries:
-        ctx.log_widget.write_line(
+        ctx.log_widget.write_markup_line(
             "[yellow]⚠[/] No entries to export (buffer empty or all filtered)"
         )
         return
@@ -120,7 +120,7 @@ def handle_export_command(
                         theme=ctx.state.theme_manager.current_theme,
                         highlighting_config=ctx.state.highlighting_config,
                     )
-                    f.write(formatted + "\n")
+                    f.write(formatted.markup + "\n")
                     count += 1
         else:
             # Standard export (strips markup for clean text/JSON/CSV)
@@ -131,9 +131,11 @@ def handle_export_command(
                 append=False,
                 preserve_markup=False,
             )
-        ctx.log_widget.write_line(f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]")
+        ctx.log_widget.write_markup_line(
+            f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]"
+        )
     except OSError as e:
-        ctx.log_widget.write_line(f"[bold red]✗[/] Export failed: {e}")
+        ctx.log_widget.write_markup_line(f"[bold red]✗[/] Export failed: {e}")
 
 
 def handle_command(command_text: str, ctx: TailCommandContext) -> None:
@@ -203,20 +205,20 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
         if not args:
             current = ctx.state.theme_manager.current_theme
             if current:
-                log_widget.write_line(f"[dim]Current theme:[/] [bold cyan]{current.name}[/]")
+                log_widget.write_markup_line(f"[dim]Current theme:[/] [bold cyan]{current.name}[/]")
             else:
-                log_widget.write_line("[dim]No theme set[/]")
+                log_widget.write_markup_line("[dim]No theme set[/]")
         else:
             theme_name = args[0]
             if ctx.state.theme_manager.switch_theme(theme_name):
                 ctx.rebuild_log(
-                    on_complete=lambda: log_widget.write_line(
+                    on_complete=lambda: log_widget.write_markup_line(
                         f"[bold green]✓[/] Switched to theme [bold cyan]{theme_name}[/]"
                     )
                 )
             else:
                 available = ", ".join(sorted(ctx.state.theme_manager._themes.keys()))
-                log_widget.write_line(
+                log_widget.write_markup_line(
                     f"[bold red]✗[/] Unknown theme [bold yellow]{theme_name}[/]. "
                     f"Available: {available}"
                 )
@@ -315,7 +317,7 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
                 feedback = "[yellow]Highlighting disabled[/yellow]"
             if feedback:
                 msg = feedback  # capture for closure
-                ctx.rebuild_log(on_complete=lambda: log_widget.write_line(msg))
+                ctx.rebuild_log(on_complete=lambda: log_widget.write_markup_line(msg))
             else:
                 ctx.rebuild_log()
 
@@ -334,6 +336,6 @@ def handle_command(command_text: str, ctx: TailCommandContext) -> None:
             key = args[0]
             value = args[1] if len(args) > 1 else ""
             msg = f"[green]Set[/green] [cyan]{key}[/cyan] = [magenta]{value}[/magenta]"
-            ctx.rebuild_log(on_complete=lambda: log_widget.write_line(msg))
+            ctx.rebuild_log(on_complete=lambda: log_widget.write_markup_line(msg))
 
     ctx.update_status()

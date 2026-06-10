@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from prompt_toolkit.formatted_text import FormattedText
+from rich.text import Text
 
 from pgtail_py.cli_highlight import (
     format_highlight_list,
@@ -162,13 +163,13 @@ class TestHighlightList:
     def test_format_list_rich_output(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
     ) -> None:
-        """Rich format produces valid markup."""
+        """Rich format produces Text output."""
         result = format_highlight_list_rich(highlighting_config)
 
-        assert isinstance(result, str)
+        assert isinstance(result, Text)
         assert "Semantic Highlighting:" in result
         assert "timestamp" in result
-        assert "[green]" in result or "[red]" in result  # Status colors
+        assert result.spans
 
     def test_format_list_with_global_disabled(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
@@ -1475,16 +1476,16 @@ class TestHighlightPreviewCommand:
         assert success is True
         assert isinstance(output, FormattedText)
 
-    def test_preview_returns_rich_string(
+    def test_preview_returns_rich_text(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
     ) -> None:
-        """Preview returns Rich markup string for Textual mode."""
+        """Preview returns Rich Text for Textual mode."""
         from pgtail_py.cli_highlight import handle_highlight_preview
 
         success, output = handle_highlight_preview(highlighting_config, use_rich=True)
 
         assert success is True
-        assert isinstance(output, str)
+        assert isinstance(output, Text)
 
     def test_preview_shows_enabled_status(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
@@ -1638,21 +1639,42 @@ class TestHighlightPreviewCommand:
 
 
 class TestPreviewRichFormatting:
-    """Tests for Rich markup formatting in preview."""
+    """Tests for Rich Text formatting in preview."""
 
     def test_format_preview_rich_escapes_brackets(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
     ) -> None:
-        """Rich preview escapes brackets in sample content."""
+        """Rich preview preserves bracketed sample content literally."""
         from pgtail_py.cli_highlight import format_preview_rich
 
         highlighting_config.enabled = False  # Disable to get raw content
         output = format_preview_rich(highlighting_config)
 
-        # Brackets in log content should be escaped
-        # The output should be valid Rich markup
         assert output is not None
-        # Should not crash when parsed
+
+    def test_custom_pattern_ending_in_backslash_renders_intact(
+        self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
+    ) -> None:
+        """A custom regex ending in a backslash must remain literal.
+
+        Regex patterns are full of backslashes. They should be displayed as
+        literal Text, never parsed as markup.
+        """
+        from pgtail_py.cli_highlight import format_highlight_list_rich, format_preview_rich
+        from pgtail_py.highlighting_config import CustomHighlighter
+
+        highlighting_config.add_custom(
+            CustomHighlighter(name="winpath", pattern="c:\\users\\", style="cyan")
+        )
+
+        for output in (
+            format_highlight_list_rich(highlighting_config),
+            format_preview_rich(highlighting_config),
+        ):
+            plain = output.plain
+            # The pattern survives verbatim and no closing tag leaks into the text.
+            assert "c:\\users\\" in plain
+            assert "[/]" not in plain
 
     def test_format_preview_rich_shows_category_bold(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
@@ -1662,9 +1684,9 @@ class TestPreviewRichFormatting:
 
         output = format_preview_rich(highlighting_config)
 
-        # Categories should be bold
-        assert "[bold]Structural[/]" in output
-        assert "[bold]Performance[/]" in output
+        assert "Structural" in output
+        assert "Performance" in output
+        assert any(str(span.style) == "bold" for span in output.spans)
 
     def test_format_preview_rich_uses_dim_for_descriptions(
         self, mock_registry: MagicMock, highlighting_config: HighlightingConfig
@@ -1675,7 +1697,7 @@ class TestPreviewRichFormatting:
         output = format_preview_rich(highlighting_config)
 
         # Descriptions should be dim
-        assert "[dim]" in output
+        assert any(str(span.style) == "dim" for span in output.spans)
 
 
 class TestPreviewFormattedTextFormatting:

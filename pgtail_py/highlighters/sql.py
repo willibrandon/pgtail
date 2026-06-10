@@ -10,7 +10,7 @@ Highlighters in this module:
 
 Also provides legacy compatibility exports:
 - SQLTokenType, SQLToken, SQLTokenizer (from sql_tokenizer.py)
-- SQLHighlighter, highlight_sql, highlight_sql_rich (from sql_highlighter.py)
+- SQLHighlighter, highlight_sql, highlight_sql_text (from sql_highlighter.py)
 - SQLDetectionResult, detect_sql_content (from sql_detector.py)
 
 Migrated from sql_tokenizer.py, sql_highlighter.py, and sql_detector.py.
@@ -24,6 +24,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, NamedTuple
 
 from prompt_toolkit.formatted_text import FormattedText
+from rich.text import Text
 
 from pgtail_py.highlighter import KeywordHighlighter, RegexHighlighter
 from pgtail_py.theme import ColorStyle, Theme
@@ -1049,34 +1050,32 @@ def _color_style_to_rich_markup(style: ColorStyle) -> str:
     return " ".join(parts)
 
 
-def highlight_sql_rich(sql: str, theme: Theme | None = None) -> str:
-    """Convert SQL text to Rich console markup string.
+def highlight_sql_text(sql: str, theme: Theme | None = None) -> Text:
+    """Convert SQL text to styled Rich Text.
 
-    Tokenizes SQL and wraps each token in Rich markup tags using
-    colors from the active theme. Brackets in SQL text are escaped
-    to prevent Rich parsing errors.
+    Tokenizes SQL and appends each token as literal text with Rich style
+    spans from the active theme.
 
     Args:
         sql: SQL text to highlight.
         theme: Theme for color lookup. If None, uses global ThemeManager.
 
     Returns:
-        Rich markup string with styled tokens.
-        If NO_COLOR is set, returns SQL with only bracket escaping.
+        Rich Text with styled tokens. If NO_COLOR is set, returns unstyled Text.
 
     Examples:
-        >>> highlight_sql_rich("SELECT id FROM users")
-        "[bold blue]SELECT[/] [cyan]id[/] [bold blue]FROM[/] [cyan]users[/]"
-        >>> highlight_sql_rich("SELECT arr[1]")
-        "[bold blue]SELECT[/] [cyan]arr[/]\\[1]"
+        >>> highlight_sql_text("SELECT id FROM users").plain
+        "SELECT id FROM users"
+        >>> highlight_sql_text("SELECT arr[1]").plain
+        "SELECT arr[1]"
     """
     # Empty SQL returns empty string
     if not sql:
-        return ""
+        return Text()
 
     # Respect NO_COLOR environment variable
     if is_color_disabled():
-        return sql.replace("[", "\\[")
+        return Text(sql)
 
     # Get theme for color lookup
     if theme is None:
@@ -1085,12 +1084,9 @@ def highlight_sql_rich(sql: str, theme: Theme | None = None) -> str:
     # Tokenize SQL
     tokens = SQLTokenizer().tokenize(sql)
 
-    # Build Rich markup string
-    parts: list[str] = []
+    # Build Rich Text
+    text = Text()
     for token in tokens:
-        # Escape brackets in token text to prevent Rich parsing errors
-        escaped_text = token.text.replace("[", "\\[")
-
         # Get theme key for this token type
         theme_key = TOKEN_TYPE_TO_THEME_KEY.get(token.type, "")
 
@@ -1100,13 +1096,13 @@ def highlight_sql_rich(sql: str, theme: Theme | None = None) -> str:
             markup = _color_style_to_rich_markup(style)
 
             if markup:
-                parts.append(f"[{markup}]{escaped_text}[/]")
+                text.append(token.text, style=markup)
             else:
-                parts.append(escaped_text)
+                text.append(token.text)
         else:
-            parts.append(escaped_text)
+            text.append(token.text)
 
-    return "".join(parts)
+    return text
 
 
 class SQLHighlighter:
@@ -1235,7 +1231,7 @@ __all__ = [
     # SQL Highlighter compatibility (from sql_highlighter.py)
     "SQLHighlighter",
     "highlight_sql",
-    "highlight_sql_rich",
+    "highlight_sql_text",
     "TOKEN_TO_STYLE",
     "TOKEN_TYPE_TO_THEME_KEY",
     "_get_theme_manager",  # Internal but used by tests

@@ -124,20 +124,22 @@ def handle_filter_command(
 
         if log_widget is not None:
             if not has_regex and not has_field:
-                log_widget.write_line("[dim]No filters active[/]")
+                log_widget.write_markup_line("[dim]No filters active[/]")
             else:
                 if has_regex:
                     for f in state.regex_state.includes:
                         cs = "c" if f.case_sensitive else ""
-                        log_widget.write_line(f"[dim]include:[/] [cyan]/{f.pattern}/{cs}[/]")
+                        log_widget.write_markup_line(f"[dim]include:[/] [cyan]/{f.pattern}/{cs}[/]")
                     for f in state.regex_state.excludes:
                         cs = "c" if f.case_sensitive else ""
-                        log_widget.write_line(f"[dim]exclude:[/] [yellow]-/{f.pattern}/{cs}[/]")
+                        log_widget.write_markup_line(
+                            f"[dim]exclude:[/] [yellow]-/{f.pattern}/{cs}[/]"
+                        )
                     for f in state.regex_state.ands:
                         cs = "c" if f.case_sensitive else ""
-                        log_widget.write_line(f"[dim]and:[/] [green]&/{f.pattern}/{cs}[/]")
+                        log_widget.write_markup_line(f"[dim]and:[/] [green]&/{f.pattern}/{cs}[/]")
                 if has_field:
-                    log_widget.write_line(f"[dim]{state.field_filter.format_status()}[/]")
+                    log_widget.write_markup_line(f"[dim]{state.field_filter.format_status()}[/]")
         return True
 
     arg = args[0]
@@ -150,14 +152,14 @@ def handle_filter_command(
         tailer.update_field_filter(state.field_filter)
         status.set_regex_filter(None)
         if log_widget is not None:
-            log_widget.write_line("[bold green]✓[/] All filters cleared")
+            log_widget.write_markup_line("[bold green]✓[/] All filters cleared")
         return True
 
     # Check if this is a field filter (field=value syntax)
     if _is_field_filter_arg(arg):
         # Warn about text format
         if tailer.format == LogFormat.TEXT and log_widget is not None:
-            log_widget.write_line(
+            log_widget.write_markup_line(
                 "[yellow]Warning:[/] Field filtering only works for CSV/JSON logs"
             )
 
@@ -172,12 +174,12 @@ def handle_filter_command(
                     tailer.update_field_filter(state.field_filter)
                     resolved = resolve_field_name(field_name)
                     if log_widget is not None:
-                        log_widget.write_line(
+                        log_widget.write_markup_line(
                             f"[bold green]✓[/] Field filter: [cyan]{resolved}={value}[/]"
                         )
                 except ValueError as e:
                     if log_widget is not None:
-                        log_widget.write_line(f"[bold red]✗[/] Error: {e}")
+                        log_widget.write_markup_line(f"[bold red]✗[/] Error: {e}")
         return True
 
     # Determine filter type based on prefix
@@ -195,8 +197,8 @@ def handle_filter_command(
         pattern_arg = arg
     else:
         if log_widget is not None:
-            log_widget.write_line(f"[bold red]✗[/] Invalid filter syntax: {arg}")
-            log_widget.write_line(
+            log_widget.write_markup_line(f"[bold red]✗[/] Invalid filter syntax: {arg}")
+            log_widget.write_markup_line(
                 "[dim]Use /pattern/, -/pattern/, +/pattern/, &/pattern/, or field=value[/]"
             )
         return True
@@ -206,7 +208,7 @@ def handle_filter_command(
         pattern, case_sensitive = parse_filter_arg(pattern_arg)
     except ValueError as e:
         if log_widget is not None:
-            log_widget.write_line(f"[bold red]✗[/] Error: {e}")
+            log_widget.write_markup_line(f"[bold red]✗[/] Error: {e}")
         return True
 
     # Create and apply the filter
@@ -244,13 +246,15 @@ def handle_filter_command(
                 FilterType.AND: "and",
             }.get(filter_type, "filter")
             cs = "c" if case_sensitive else ""
-            log_widget.write_line(f"[bold green]✓[/] Filter {type_str}: [cyan]/{pattern}/{cs}[/]")
+            log_widget.write_markup_line(
+                f"[bold green]✓[/] Filter {type_str}: [cyan]/{pattern}/{cs}[/]"
+            )
 
         # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
     except Exception as e:
         if log_widget is not None:
-            log_widget.write_line(f"[bold red]✗[/] Invalid pattern: {e}")
+            log_widget.write_markup_line(f"[bold red]✗[/] Invalid pattern: {e}")
 
     return True
 
