@@ -428,6 +428,115 @@ jobs:
             echo "Release job completed within target time."
           fi
 
+  # Update Scoop bucket manifest with new version and checksum
+  update-scoop:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Updating Scoop manifest to version $VERSION"
+
+      - name: Clone scoop-bucket repository
+        run: |
+          git clone https://x-access-token:${{ secrets.SCOOP_BUCKET_TOKEN }}@github.com/willibrandon/scoop-bucket.git
+          cd scoop-bucket
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update pgtail manifest
+        run: |
+          cd scoop-bucket
+          mkdir -p bucket
+
+          python3 << 'EOF'
+          import json
+
+          version = "${{ steps.version.outputs.version }}"
+          sha_windows_x86_64 = "${{ needs.release.outputs.sha256_windows_x86_64 }}"
+
+          manifest = {
+              "version": version,
+              "description": "PostgreSQL log tailer with auto-detection and color output",
+              "homepage": "https://github.com/willibrandon/pgtail",
+              "license": "MIT",
+              "architecture": {
+                  "64bit": {
+                      "url": f"https://github.com/willibrandon/pgtail/releases/download/v{version}/pgtail-windows-x86_64.zip",
+                      "hash": sha_windows_x86_64,
+                      "extract_dir": "pgtail-windows-x86_64",
+                  }
+              },
+              "bin": "pgtail.exe",
+              "checkver": "github",
+              "autoupdate": {
+                  "architecture": {
+                      "64bit": {
+                          "url": "https://github.com/willibrandon/pgtail/releases/download/v$version/pgtail-windows-x86_64.zip"
+                      }
+                  },
+                  "hash": {
+                      "url": "$url.sha256"
+                  },
+              },
+          }
+
+          with open("bucket/pgtail.json", "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=4)
+              f.write("\n")
+          EOF
+
+          python3 -m json.tool bucket/pgtail.json >/dev/null
+
+          echo "Updated bucket/pgtail.json:"
+          cat bucket/pgtail.json
+
+      - name: Ensure README lists pgtail
+        run: |
+          cd scoop-bucket
+
+          python3 << 'EOF'
+          from pathlib import Path
+
+          path = Path("README.md")
+          text = path.read_text(encoding="utf-8")
+
+          if "scoop install pgtail" not in text:
+              text = text.replace(
+                  "scoop install scout\n",
+                  "scoop install scout\nscoop install pgtail\n",
+              )
+
+          if "scoop update pgtail" not in text:
+              text = text.replace(
+                  "scoop update scout\n",
+                  "scoop update scout\nscoop update pgtail\n",
+              )
+
+          row = "| [pgtail](https://github.com/willibrandon/pgtail) | PostgreSQL log tailer with auto-detection and color output |"
+          if row not in text:
+              scout_row = "| [scout](https://github.com/willibrandon/scout) | Feature-complete port of ripgrep to .NET Native AOT |"
+              text = text.replace(f"{scout_row}\n", f"{scout_row}\n{row}\n")
+
+          path.write_text(text, encoding="utf-8")
+          EOF
+
+          echo "Updated README.md:"
+          cat README.md
+
+      - name: Commit and push changes
+        run: |
+          cd scoop-bucket
+          VERSION="${{ steps.version.outputs.version }}"
+
+          git add bucket/pgtail.json README.md
+          git diff --staged --quiet || git commit -m "Update pgtail to $VERSION"
+          git push origin main
+
   # Update Homebrew formula with new version and checksums
   update-homebrew:
     needs: release
@@ -614,7 +723,7 @@ jobs:
 
   # Notify on failure
   notify-failure:
-    needs: [build-unix, build-windows, release, update-homebrew, update-winget]
+    needs: [build-unix, build-windows, release, update-scoop, update-homebrew, update-winget]
     if: failure()
     runs-on: ubuntu-latest
     steps:

@@ -78,6 +78,13 @@ brew install pgtail
 winget install willibrandon.pgtail
 ```
 
+### Scoop (Windows)
+
+```powershell
+scoop bucket add dotsider https://github.com/willibrandon/scoop-bucket
+scoop install pgtail
+```
+
 ### Binary Download
 
 Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest).
@@ -152,6 +159,7 @@ make build
 | pip / pipx / uv | All | Yes (3.10+) | Manual | |
 | Homebrew | macOS, Linux | No | `brew upgrade` | |
 | winget | Windows | No | `winget upgrade` | |
+| Scoop | Windows | No | `scoop update` | Portable install |
 | MSI | Windows | No | Manual | Admin required, adds to PATH |
 | ZIP/tar.gz | All | No | Manual | Portable, extract and run |
 
@@ -171,6 +179,7 @@ Upgrade commands by installation method:
 | uv | `uv tool upgrade pgtail` |
 | Homebrew | `brew upgrade pgtail` |
 | winget | `winget upgrade willibrandon.pgtail` |
+| Scoop | `scoop update pgtail` |
 | Binary | Re-download from [releases](https://github.com/willibrandon/pgtail/releases/latest) |
 
 pgtail checks for updates automatically on startup (once per 24 hours). Disable with:
