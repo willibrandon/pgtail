@@ -186,7 +186,7 @@ class TestHandleFilterCommand:
         )
         assert result is True
         # Should have written warning
-        mock_log_widget.write_line.assert_any_call(
+        mock_log_widget.write_markup_line.assert_any_call(
             "[yellow]Warning:[/] Field filtering only works for CSV/JSON logs"
         )
 
@@ -236,7 +236,7 @@ class TestHandleFilterCommand:
             log_widget=mock_log_widget,
         )
         assert result is True
-        mock_log_widget.write_line.assert_called()
+        mock_log_widget.write_markup_line.assert_called()
 
 
 class TestHandleClearCommand:

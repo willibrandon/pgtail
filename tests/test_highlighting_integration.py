@@ -19,7 +19,6 @@ from pgtail_py.filter import LogLevel
 from pgtail_py.highlighter import (
     HighlighterChain,
     OccupancyTracker,
-    escape_brackets,
     is_color_disabled,
 )
 from pgtail_py.highlighter_registry import get_registry, reset_registry
@@ -32,6 +31,17 @@ from pgtail_py.tail_rich import (
     reset_highlighter_chain,
 )
 from pgtail_py.theme import ColorStyle, Theme
+
+
+def _has_style(text: object, style: str) -> bool:
+    """Return True if a Rich Text object has a span with this style."""
+    return any(str(span.style) == style for span in getattr(text, "spans", []))
+
+
+def _spans_do_not_overlap(text: object) -> bool:
+    """Return True if Rich Text spans do not overlap."""
+    spans = sorted(getattr(text, "spans", []), key=lambda span: (span.start, span.end))
+    return all(left.end <= right.start for left, right in zip(spans, spans[1:], strict=False))
 
 # =============================================================================
 # Fixtures
@@ -169,7 +179,7 @@ class TestTailModeIntegration:
         )
 
         # Should contain Rich markup (style tags)
-        assert "[" in result
+        assert result.spans
         # Should contain the message content
         assert "duration" in result
         assert "SELECT" in result
@@ -182,10 +192,9 @@ class TestTailModeIntegration:
             sample_log_entry, theme=test_theme, use_semantic_highlighting=False
         )
 
-        # Should still escape brackets but not apply semantic styles
+        # Should preserve literal content without semantic chain styling.
         assert "duration" in result
-        # Brackets should be escaped
-        assert "\\[12345]" in result
+        assert "[12345]" in result.plain
 
     def test_format_entry_without_theme(self, sample_log_entry: LogEntry) -> None:
         """format_entry_compact without theme should use SQL-only highlighting."""
@@ -252,10 +261,10 @@ class TestThemeSwitching:
         chain = get_highlighter_chain()
         text = "duration: 150 ms"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Should have styling from theme
-        assert "[" in result
+        assert result.spans
         assert "150 ms" in result
 
     def test_theme_switch_changes_colors(self) -> None:
@@ -279,16 +288,16 @@ class TestThemeSwitching:
             ui={"hl_duration_slow": ColorStyle(fg="red")},
         )
 
-        result1 = chain.apply_rich(text, theme1)
-        result2 = chain.apply_rich(text, theme2)
+        result1 = chain.apply_rich_text(text, theme1)
+        result2 = chain.apply_rich_text(text, theme2)
 
         # Results should be different (different colors)
         # Both should contain the text but with different styles
         assert "150 ms" in result1
         assert "150 ms" in result2
         # Check style differences
-        if "green" in result1:
-            assert "red" in result2
+        assert _has_style(result1, "green")
+        assert _has_style(result2, "red")
 
     def test_theme_get_style_fallback(self, minimal_theme: Theme) -> None:
         """Theme should return None for missing hl_* keys."""
@@ -307,13 +316,13 @@ class TestThemeSwitching:
         text = "2024-01-15 14:30:45 duration: 50 ms"
 
         # Should not raise even with missing keys
-        result = chain.apply_rich(text, minimal_theme)
+        result = chain.apply_rich_text(text, minimal_theme)
 
         # Should still contain the text
         assert "2024-01-15" in result
         assert "50 ms" in result
         # Duration styling should be present (key exists)
-        assert "[green]" in result or "green" in result
+        assert _has_style(result, "green")
 
 
 # =============================================================================
@@ -361,10 +370,11 @@ class TestNoColor:
         try:
             os.environ["NO_COLOR"] = "1"
 
-            result = chain.apply_rich(text, test_theme)
+            result = chain.apply_rich_text(text, test_theme)
 
-            # Should be escaped but no color tags
-            assert "[" not in result or result.startswith("\\[")
+            # Should be plain text with no style spans.
+            assert result.plain == text
+            assert not result.spans
             assert "duration" in result
         finally:
             if old_value is None:
@@ -426,14 +436,10 @@ class TestNonOverlapping:
         # "123.456" could match duration and number patterns
         text = "duration: 123.456 ms table users"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
-        # Should contain only one style per character (no nesting)
-        # Count open/close brackets should be balanced
-        open_count = result.count("[") - result.count("\\[")
-        close_count = result.count("[/]")
-        # Each styled region has one open and one close
-        assert open_count >= close_count
+        # Should contain only one style per character.
+        assert _spans_do_not_overlap(result)
 
     def test_priority_based_conflict_resolution(self, test_theme: Theme) -> None:
         """Lower priority highlighters should win on conflict."""
@@ -459,10 +465,10 @@ class TestNonOverlapping:
         chain = HighlighterChain([h1, h2])
         text = "test"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Should have style from h1 (lower priority number)
-        assert "gray" in result  # hl_timestamp_date is gray in test_theme
+        assert _has_style(result, "gray")  # hl_timestamp_date is gray in test_theme
 
     def test_nested_pattern_handling(self, test_theme: Theme) -> None:
         """Should handle nested patterns (schema.table within relation)."""
@@ -471,7 +477,7 @@ class TestNonOverlapping:
         # Schema-qualified name
         text = "relation public.users"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Should highlight without errors
         assert "public.users" in result or "public" in result
@@ -483,7 +489,7 @@ class TestNonOverlapping:
         # Line with multiple pattern types
         text = "2024-01-15 [12345] duration: 150 ms relation users"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # All parts should be in result (checking for text content, may include markup)
         assert "2024" in result and "01" in result and "15" in result
@@ -506,7 +512,7 @@ class TestMissingThemeKeys:
         # Timestamp - key doesn't exist in minimal theme
         text = "2024-01-15 14:30:45"
 
-        result = chain.apply_rich(text, minimal_theme)
+        result = chain.apply_rich_text(text, minimal_theme)
 
         # Should still contain the text
         assert "2024-01-15" in result
@@ -520,16 +526,16 @@ class TestMissingThemeKeys:
         # Duration (key exists) and timestamp (key missing)
         text = "2024-01-15 duration: 50 ms"
 
-        result = chain.apply_rich(text, minimal_theme)
+        result = chain.apply_rich_text(text, minimal_theme)
 
         # Duration should be styled (green)
-        assert "green" in result
+        assert _has_style(result, "green")
         # Both parts should be present
         assert "2024-01-15" in result
         assert "50 ms" in result
 
-    def test_all_keys_missing_returns_escaped_text(self) -> None:
-        """Theme with no hl_* keys should return escaped text."""
+    def test_all_keys_missing_preserves_text(self) -> None:
+        """Theme with no hl_* keys should preserve literal text."""
         empty_theme = Theme(
             name="empty",
             description="Empty theme",
@@ -540,12 +546,9 @@ class TestMissingThemeKeys:
         chain = get_highlighter_chain()
         text = "2024-01-15 [12345] LOG: test"
 
-        result = chain.apply_rich(text, empty_theme)
+        result = chain.apply_rich_text(text, empty_theme)
 
-        # Should have escaped brackets
-        assert "\\[12345]" in result
-        # Content should be present
-        assert "test" in result
+        assert result.plain == text
 
 
 # =============================================================================
@@ -559,14 +562,14 @@ class TestEdgeCases:
     def test_empty_text(self, test_theme: Theme) -> None:
         """Empty text should return empty string."""
         chain = get_highlighter_chain()
-        result = chain.apply_rich("", test_theme)
-        assert result == ""
+        result = chain.apply_rich_text("", test_theme)
+        assert result.plain == ""
 
     def test_no_matches(self, test_theme: Theme) -> None:
         """Text with no matches should return escaped text."""
         chain = get_highlighter_chain()
         text = "plain text without patterns"
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
         # Should be escaped (in case there are brackets)
         assert "plain text" in result
 
@@ -582,7 +585,7 @@ class TestEdgeCases:
         # Create text longer than max_length
         text = "duration: 150 ms " * 100  # Much longer than 100 chars
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Should still work without error
         assert "duration" in result
@@ -590,21 +593,44 @@ class TestEdgeCases:
         assert len(result) > 0
 
     def test_rich_markup_like_content(self, test_theme: Theme) -> None:
-        """Content that looks like Rich markup should be escaped."""
+        """Content that looks like Rich markup should remain literal."""
         chain = get_highlighter_chain()
         text = "[bold]not markup[/bold] just text"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
-        # The literal [bold] should be escaped
-        assert "\\[bold]" in result
+        assert result.plain == text
 
-    def test_escape_brackets_utility(self) -> None:
-        """escape_brackets should escape all open brackets."""
-        assert escape_brackets("[test]") == "\\[test]"
-        assert escape_brackets("[[nested]]") == "\\[\\[nested]]"
-        assert escape_brackets("no brackets") == "no brackets"
-        assert escape_brackets("") == ""
+    @pytest.mark.parametrize(
+        "text",
+        [
+            r"c:\users\alexj\\",
+            "x" + "\\" * 2,
+            "x" + "\\" * 3,
+            r"\[",
+            r"\[123]",
+            r"\[abc]",
+            r"[bold]not markup[/bold]",
+        ],
+    )
+    def test_rich_text_preserves_backslash_bracket_cases(
+        self, text: str, test_theme: Theme
+    ) -> None:
+        """Literal log text is preserved without markup escaping."""
+        chain = get_highlighter_chain()
+        assert chain.apply_rich_text(text, test_theme).plain == text
+
+    def test_windows_path_before_styled_token_renders(self) -> None:
+        """A Windows path ending in a backslash is literal before styled text."""
+
+        from pgtail_py.theme import ThemeManager
+
+        theme = ThemeManager().current_theme
+        chain = get_highlighter_chain()
+        text = "to 'c:\\users\\alexj\\sequence_output.txt';"
+
+        rendered = chain.apply_rich_text(text, theme)
+        assert rendered.plain == text
 
     def test_extremely_long_lines_over_10kb(self, test_theme: Theme) -> None:
         """Extremely long lines (>10KB) should be handled with depth limiting (T163).
@@ -624,7 +650,7 @@ class TestEdgeCases:
 
         assert len(text) > 10240  # Verify > 10KB
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Result should contain all the text (escaped)
         assert len(result) >= len(text) - 100  # Allow for markup overhead
@@ -647,7 +673,7 @@ class TestEdgeCases:
         huge_line = "duration: 150 ms " * 6000
 
         start = time.perf_counter()
-        result = chain.apply_rich(huge_line, test_theme)
+        result = chain.apply_rich_text(huge_line, test_theme)
         elapsed = time.perf_counter() - start
 
         # Should complete quickly (< 100ms) due to depth limiting
@@ -677,7 +703,7 @@ class TestSQLContextAwareness:
         # Regular log message with words that are also SQL keywords
         text = "background worker exited with exit code 0"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # "with" should NOT be styled as SQL keyword (no blue)
         # The word should appear but without sql_keyword styling
@@ -698,7 +724,7 @@ class TestSQLContextAwareness:
         ]
 
         for text in messages:
-            result = chain.apply_rich(text, test_theme)
+            result = chain.apply_rich_text(text, test_theme)
             # These common English words should not have SQL keyword styling
             # sql_keyword uses "bold blue" in test_theme
             # The words should be present but not SQL-styled
@@ -711,7 +737,7 @@ class TestSQLContextAwareness:
         # Log message with actual SQL
         text = "statement: SELECT id, name FROM users WHERE id = 1"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # SQL keywords should be styled
         # SELECT, FROM, WHERE should have SQL styling
@@ -725,7 +751,7 @@ class TestSQLContextAwareness:
 
         text = "duration: 5.123 ms statement: SELECT * FROM users"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # SQL keywords should be present (styling may vary by theme)
         assert "SELECT" in result
@@ -737,7 +763,7 @@ class TestSQLContextAwareness:
 
         text = "execute stmt_1: SELECT id FROM accounts WHERE active = true"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # SQL keywords should be present
         assert "SELECT" in result
@@ -751,7 +777,7 @@ class TestSQLContextAwareness:
         # Log message with checkpoint keywords (not SQL)
         text = "checkpoint starting: time"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Checkpoint keywords should still be highlighted
         # They're not SQL highlighters, so they apply everywhere
@@ -765,7 +791,7 @@ class TestSQLContextAwareness:
         # Duration highlighting (non-SQL) + SQL statement
         text = "duration: 150 ms statement: SELECT * FROM users"
 
-        result = chain.apply_rich(text, test_theme)
+        result = chain.apply_rich_text(text, test_theme)
 
         # Duration should be highlighted (performance highlighter)
         assert "150 ms" in result or "150" in result
@@ -818,7 +844,7 @@ class TestPerformanceThroughput:
         start_time = time.perf_counter()
 
         for line in lines_to_process:
-            chain.apply_rich(line, test_theme)
+            chain.apply_rich_text(line, test_theme)
 
         elapsed_time = time.perf_counter() - start_time
 
@@ -849,7 +875,7 @@ class TestPerformanceThroughput:
         start_time = time.perf_counter()
 
         for _ in range(num_iterations):
-            chain.apply_rich(long_line, test_theme)
+            chain.apply_rich_text(long_line, test_theme)
 
         elapsed_time = time.perf_counter() - start_time
 
@@ -906,10 +932,10 @@ class TestCSVJSONLogFormatHighlighting:
         # Message field from a parsed CSV/JSON log entry
         message = "duration: 150.234 ms  statement: SELECT * FROM users"
 
-        result = chain.apply_rich(message, test_theme)
+        result = chain.apply_rich_text(message, test_theme)
 
-        # Should have Rich markup for duration
-        assert "[" in result  # Has markup tags
+        # Should have Rich spans for duration / SQL content.
+        assert result.spans
         assert "150" in result  # Has the duration value
         assert "SELECT" in result  # SQL content preserved
 
@@ -920,7 +946,7 @@ class TestCSVJSONLogFormatHighlighting:
         # Detail field often contains SQL-related info
         detail = "Key (id)=(42) already exists."
 
-        result = chain.apply_rich(detail, test_theme)
+        result = chain.apply_rich_text(detail, test_theme)
 
         # Content should be preserved
         assert "id" in result
@@ -933,7 +959,7 @@ class TestCSVJSONLogFormatHighlighting:
         # Hint field may contain SQL keywords
         hint = "Use UPSERT or ON CONFLICT to handle duplicates."
 
-        result = chain.apply_rich(hint, test_theme)
+        result = chain.apply_rich_text(hint, test_theme)
 
         # Content should be preserved
         assert "UPSERT" in result
@@ -955,7 +981,7 @@ class TestCSVJSONLogFormatHighlighting:
         result = format_entry_compact(entry, theme=test_theme, use_semantic_highlighting=True)
 
         # Should contain styled output
-        assert "[" in result  # Rich markup present
+        assert result.spans  # Rich spans present
         assert "250" in result  # Duration value
         assert "SELECT" in result  # SQL content
 
@@ -1024,7 +1050,7 @@ class TestCSVJSONLogFormatHighlighting:
             "WHERE u.status = 'active' AND u.created_at > $1"
         )
 
-        result = chain.apply_rich(message, test_theme)
+        result = chain.apply_rich_text(message, test_theme)
 
         # All content should be present
         assert "1234.567 ms" in result or ("1234" in result and "567" in result and "ms" in result)

@@ -19,6 +19,7 @@ from difflib import get_close_matches
 from typing import TYPE_CHECKING, Any, cast
 
 from prompt_toolkit.formatted_text import FormattedText
+from rich.text import Text
 
 from pgtail_py.highlighter_registry import get_registry
 from pgtail_py.highlighting_config import (
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
 # Cache for highlighted preview samples
 # Key: (theme_name, highlighting_enabled, disabled_highlighters_tuple)
 # Value: dict mapping sample index to highlighted output
-_preview_sample_cache: dict[tuple[str, bool, tuple[str, ...]], dict[int, str]] = {}
+_preview_sample_cache: dict[tuple[str, bool, tuple[str, ...]], dict[int, Text]] = {}
 
 
 # =============================================================================
@@ -231,21 +232,27 @@ def format_highlight_list(config: HighlightingConfig) -> FormattedText:
     return FormattedText(result)
 
 
-def format_highlight_list_rich(config: HighlightingConfig) -> str:
+def format_highlight_list_rich(config: HighlightingConfig) -> Text:
     """Format the list of all highlighters with their status for Rich/Textual.
 
     Args:
         config: Current highlighting configuration.
 
     Returns:
-        Rich markup string for display.
+        Rich Text for display.
     """
-    lines: list[str] = []
+    result = Text()
+
+    def append_line(text: str = "", style: str | None = None) -> None:
+        result.append(text, style=style)
+        result.append("\n")
 
     # Show global status
     global_status = "enabled" if config.enabled else "disabled"
-    global_color = "green" if config.enabled else "red"
-    lines.append(f"Semantic Highlighting: [{global_color}]{global_status}[/]\n")
+    global_style = "green" if config.enabled else "red"
+    result.append("Semantic Highlighting: ")
+    result.append(global_status, style=global_style)
+    result.append("\n\n")
 
     # Group highlighters by category
     categories: dict[str, list[str]] = {}
@@ -275,38 +282,40 @@ def format_highlight_list_rich(config: HighlightingConfig) -> str:
         names = sorted(categories[category])
 
         # Category header
-        lines.append(f"[bold]{category.title()}[/]")
+        append_line(category.title(), style="bold")
 
         for name in names:
             _, description = HIGHLIGHTER_METADATA[name]
             enabled = config.is_highlighter_enabled(name)
             status_text = "on" if enabled else "off"
-            status_color = "green" if enabled else "red"
+            status_style = "green" if enabled else "red"
 
-            # Escape brackets in description
-            desc = description.replace("[", "\\[")
-            lines.append(
-                f"  \\[[{status_color}]{status_text:3}[/]\\] [cyan]{name:20}[/] [dim]{desc}[/]"
-            )
+            result.append("  [")
+            result.append(f"{status_text:3}", style=status_style)
+            result.append("] ")
+            result.append(f"{name:20}", style="cyan")
+            result.append(f" {description}", style="dim")
+            result.append("\n")
 
-        lines.append("")
+        result.append("\n")
 
     # Show custom highlighters if any
     if config.custom_highlighters:
-        lines.append("[bold]Custom[/]")
+        append_line("Custom", style="bold")
         for custom in config.custom_highlighters:
             enabled = custom.enabled
             status_text = "on" if enabled else "off"
-            status_color = "green" if enabled else "red"
-            pattern = custom.pattern.replace("[", "\\[")
+            status_style = "green" if enabled else "red"
 
-            lines.append(
-                f"  \\[[{status_color}]{status_text:3}[/]\\] "
-                f"[cyan]{custom.name:20}[/] [dim]Pattern: {pattern}[/]"
-            )
-        lines.append("")
+            result.append("  [")
+            result.append(f"{status_text:3}", style=status_style)
+            result.append("] ")
+            result.append(f"{custom.name:20}", style="cyan")
+            result.append(f" Pattern: {custom.pattern}", style="dim")
+            result.append("\n")
+        result.append("\n")
 
-    return "\n".join(lines)
+    return result
 
 
 # =============================================================================
@@ -1128,7 +1137,7 @@ def _get_cached_preview_sample(
     chain: object,
     theme: Theme,
     highlighting_enabled: bool,
-) -> str:
+) -> Text:
     """Get a highlighted preview sample, using cache if available.
 
     Args:
@@ -1140,7 +1149,7 @@ def _get_cached_preview_sample(
         highlighting_enabled: Whether highlighting is enabled.
 
     Returns:
-        Highlighted or escaped sample string.
+        Highlighted sample Text.
     """
     global _preview_sample_cache
 
@@ -1148,20 +1157,18 @@ def _get_cached_preview_sample(
     if cache_key in _preview_sample_cache:
         cached_samples = _preview_sample_cache[cache_key]
         if sample_index in cached_samples:
-            return cached_samples[sample_index]
+            return cached_samples[sample_index].copy()
 
     # Not in cache - compute highlighted result
-    highlighted: str
     if highlighting_enabled:
-        highlighted = cast(str, chain.apply_rich(sample, theme))  # type: ignore[union-attr]
+        highlighted = chain.apply_rich_text(sample, theme)  # type: ignore[union-attr]
     else:
-        # Escape brackets for display but no highlighting
-        highlighted = sample.replace("[", "\\[")
+        highlighted = Text(sample)
 
     # Store in cache
     if cache_key not in _preview_sample_cache:
         _preview_sample_cache[cache_key] = {}
-    _preview_sample_cache[cache_key][sample_index] = highlighted
+    _preview_sample_cache[cache_key][sample_index] = highlighted.copy()
 
     return highlighted
 
@@ -1178,7 +1185,7 @@ def clear_preview_cache() -> None:
 def format_preview_rich(
     config: HighlightingConfig,
     theme: Theme | None = None,
-) -> str:
+) -> Text:
     """Format preview output with highlighted samples for Rich/Textual.
 
     Uses a cache for highlighted samples to improve performance (FR-161).
@@ -1189,7 +1196,7 @@ def format_preview_rich(
         theme: Current theme for style lookups. If None, uses default dark theme.
 
     Returns:
-        Rich markup string for display.
+        Rich Text for display.
     """
     from pgtail_py.tail_rich import get_highlighter_chain
     from pgtail_py.theme import ThemeManager
@@ -1202,17 +1209,23 @@ def format_preview_rich(
     # Ensure theme is available (should always succeed with ThemeManager)
     assert theme is not None, "No theme available"
 
-    lines: list[str] = []
+    result = Text()
+
+    def append_line(text: str = "", style: str | None = None) -> None:
+        result.append(text, style=style)
+        result.append("\n")
 
     # Header
     global_status = "enabled" if config.enabled else "disabled"
-    global_color = "green" if config.enabled else "red"
-    lines.append(f"[bold cyan]Highlight Preview[/] ([{global_color}]{global_status}[/])")
-    lines.append("")
+    global_style = "green" if config.enabled else "red"
+    result.append("Highlight Preview", style="bold cyan")
+    result.append(" (")
+    result.append(global_status, style=global_style)
+    result.append(")\n\n")
 
     if not config.enabled:
-        lines.append("[dim]Highlighting is disabled. Run 'highlight on' to enable.[/]")
-        lines.append("")
+        append_line("Highlighting is disabled. Run 'highlight on' to enable.", style="dim")
+        result.append("\n")
 
     # Get the highlighter chain (ensures highlighters are registered)
     chain = get_highlighter_chain(config)
@@ -1298,7 +1311,7 @@ def format_preview_rich(
         if not samples:
             continue
 
-        lines.append(f"[bold]{category}[/]")
+        append_line(category, style="bold")
 
         for idx, highlighter_names, sample, desc in samples:
             # Check if any of the relevant highlighters are disabled
@@ -1312,33 +1325,37 @@ def format_preview_rich(
             )
 
             # Show the sample with description
-            lines.append(f"  [dim]{desc}[/]")
+            result.append("  ")
+            append_line(desc, style="dim")
             if disabled_for_sample:
                 disabled_list = ", ".join(disabled_for_sample)
-                lines.append(f"  [yellow]⚠ Disabled:[/] [dim]{disabled_list}[/]")
-            lines.append(f"  {highlighted}")
-            lines.append("")
+                result.append("  ")
+                result.append("Disabled: ", style="yellow")
+                append_line(disabled_list, style="dim")
+            result.append("  ")
+            result.append(highlighted)
+            result.append("\n\n")
 
     # Show disabled highlighters summary
     if disabled_highlighters:
-        lines.append("[bold yellow]Disabled Highlighters[/]")
+        append_line("Disabled Highlighters", style="bold yellow")
         for name in sorted(disabled_highlighters):
-            lines.append(f"  [dim]• {name}[/]")
-        lines.append("")
-        lines.append("[dim]Use 'highlight enable <name>' to enable disabled highlighters.[/]")
+            append_line(f"  - {name}", style="dim")
+        result.append("\n")
+        append_line("Use 'highlight enable <name>' to enable disabled highlighters.", style="dim")
 
     # Show custom highlighters
     if config.custom_highlighters:
-        lines.append("")
-        lines.append("[bold]Custom Highlighters[/]")
+        result.append("\n")
+        append_line("Custom Highlighters", style="bold")
         for custom in config.custom_highlighters:
-            status_color = "green" if custom.enabled else "red"
-            pattern = custom.pattern.replace("[", "\\[")
-            lines.append(
-                f"  [{status_color}]{custom.name}[/]: {pattern} [dim](style: {custom.style})[/]"
-            )
+            status_style = "green" if custom.enabled else "red"
+            result.append("  ")
+            result.append(custom.name, style=status_style)
+            result.append(f": {custom.pattern} ")
+            append_line(f"(style: {custom.style})", style="dim")
 
-    return "\n".join(lines)
+    return result
 
 
 def format_preview_text(
@@ -1516,7 +1533,7 @@ def handle_highlight_preview(
     config: HighlightingConfig,
     theme: Theme | None = None,
     use_rich: bool = False,
-) -> tuple[bool, str | FormattedText]:
+) -> tuple[bool, Text | FormattedText]:
     """Handle 'highlight preview' command.
 
     Shows sample log lines with current highlighting settings applied.
@@ -1525,7 +1542,7 @@ def handle_highlight_preview(
     Args:
         config: Current highlighting configuration.
         theme: Current theme for style lookups. If None, uses default theme.
-        use_rich: If True, return Rich markup string; if False, return FormattedText.
+        use_rich: If True, return Rich Text; if False, return FormattedText.
 
     Returns:
         Tuple of (success, formatted_output).

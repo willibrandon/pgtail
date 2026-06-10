@@ -54,6 +54,41 @@ def mock_state() -> MagicMock:
     return state
 
 
+class TestUpdateStatusResilience:
+    """Regression tests for _update_status widget-query safety."""
+
+    @pytest.mark.asyncio
+    async def test_update_status_safe_when_widgets_unmounted(
+        self, mock_instance: Instance, mock_state: MagicMock, tmp_path: Path
+    ) -> None:
+        """_update_status must no-op when #header/#status aren't in the DOM.
+
+        The consumer worker and rebuilds call _update_status from outside the
+        mounted window -- before compose finishes on startup, or after the
+        widgets are torn down on shutdown. It must not raise NoMatches (which
+        would surface as WorkerFailed and crash the app).
+        """
+        log_file = tmp_path / "postgresql.log"
+        log_file.write_text("")
+
+        app = TailApp(state=mock_state, instance=mock_instance, log_path=log_file)
+
+        with patch("pgtail_py.tail_textual.LogTailer") as mock_tailer_class:
+            mock_tailer = MagicMock()
+            mock_tailer.get_entry = MagicMock(return_value=None)
+            mock_tailer.file_unavailable = False
+            mock_tailer.file_permission_denied = False
+            mock_tailer_class.return_value = mock_tailer
+
+            async with app.run_test():
+                # Reproduce the teardown window: remove the display widgets.
+                await app.query_one("#header").remove()
+                await app.query_one("#status").remove()
+
+                # Must return cleanly rather than raising NoMatches.
+                app._update_status()
+
+
 class TestTailAppHelpOverlay:
     """Tests for help overlay functionality."""
 

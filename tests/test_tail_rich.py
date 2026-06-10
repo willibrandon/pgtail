@@ -148,16 +148,16 @@ class TestFormatEntryAsRich:
 class TestFormatEntryCompact:
     """Tests for format_entry_compact function."""
 
-    def test_returns_string(self, sample_entry: LogEntry) -> None:
-        """Test that function returns a string."""
+    def test_returns_text(self, sample_entry: LogEntry) -> None:
+        """Test that function returns Rich Text."""
         result = format_entry_compact(sample_entry)
-        assert isinstance(result, str)
+        assert isinstance(result, Text)
 
     def test_single_line(self, sample_entry: LogEntry) -> None:
         """Test that compact format is single line (no newlines in main content)."""
         result = format_entry_compact(sample_entry)
         # Main message should be on one line
-        lines = result.split("\n")
+        lines = result.plain.split("\n")
         assert len(lines) >= 1
         assert "duplicate key value" in lines[0]
 
@@ -178,7 +178,7 @@ class TestFormatEntryCompactSqlHighlighting:
     """Tests for SQL highlighting in format_entry_compact() - T014."""
 
     def test_sql_statement_highlighted(self) -> None:
-        """SQL statement in message should be highlighted with Rich markup."""
+        """SQL statement in message should be highlighted with Rich spans."""
         entry = LogEntry(
             raw="2024-01-15 10:00:00.000 UTC LOG: statement: SELECT * FROM users",
             timestamp=datetime(2024, 1, 15, 10, 0, 0),
@@ -188,8 +188,7 @@ class TestFormatEntryCompactSqlHighlighting:
             sql_state=None,
         )
         result = format_entry_compact(entry)
-        # Should have Rich markup tags
-        assert "[" in result
+        assert result.spans
         # Should contain the SQL keywords
         assert "SELECT" in result
         assert "FROM" in result
@@ -208,7 +207,7 @@ class TestFormatEntryCompactSqlHighlighting:
         assert "connection received" in result
 
     def test_sql_with_brackets_escaped(self) -> None:
-        """SQL with array brackets should escape brackets properly."""
+        """SQL array subscripts render back intact within a full log line."""
         entry = LogEntry(
             raw="2024-01-15 10:00:00.000 UTC LOG: statement: SELECT arr[1] FROM t",
             timestamp=datetime(2024, 1, 15, 10, 0, 0),
@@ -218,8 +217,7 @@ class TestFormatEntryCompactSqlHighlighting:
             sql_state=None,
         )
         result = format_entry_compact(entry)
-        # Bracket should be escaped to prevent Rich parsing errors
-        assert "\\[" in result
+        assert "SELECT arr[1] FROM t" in result.plain
 
     def test_execute_statement_detected(self) -> None:
         """Execute statement pattern should be detected and highlighted."""
@@ -234,11 +232,10 @@ class TestFormatEntryCompactSqlHighlighting:
         result = format_entry_compact(entry)
         assert "SELECT" in result
         assert "FROM" in result
-        # Should have Rich markup
-        assert "[" in result
+        assert result.spans
 
     def test_message_with_brackets_no_sql_escaped(self) -> None:
-        """Non-SQL message with brackets should be escaped."""
+        """Non-SQL message with brackets stays markup-safe and intact."""
         entry = LogEntry(
             raw="LOG: array value [1, 2, 3] received",
             timestamp=None,
@@ -248,8 +245,7 @@ class TestFormatEntryCompactSqlHighlighting:
             sql_state=None,
         )
         result = format_entry_compact(entry)
-        # Brackets should be escaped
-        assert "\\[" in result
+        assert "array value [1, 2, 3] received" in result.plain
 
 
 class TestFormatEntryCompactThemeSwitch:
@@ -257,7 +253,7 @@ class TestFormatEntryCompactThemeSwitch:
 
     def test_theme_switch_updates_sql_colors(self) -> None:
         """Simulating theme switch should update SQL colors in output (T040)."""
-        from pgtail_py.highlighters.sql import _get_theme_manager, highlight_sql_rich
+        from pgtail_py.highlighters.sql import _get_theme_manager, highlight_sql_text
         from pgtail_py.themes import BUILTIN_THEMES
 
         # Get the theme manager
@@ -265,15 +261,15 @@ class TestFormatEntryCompactThemeSwitch:
 
         # Switch to dark theme
         tm._current_theme = BUILTIN_THEMES["dark"]
-        result_dark = highlight_sql_rich("SELECT id FROM users")
+        result_dark = highlight_sql_text("SELECT id FROM users")
 
         # Switch to monokai theme
         tm._current_theme = BUILTIN_THEMES["monokai"]
-        result_monokai = highlight_sql_rich("SELECT id FROM users")
+        result_monokai = highlight_sql_text("SELECT id FROM users")
 
-        # Both should have markup
-        assert "[" in result_dark
-        assert "[" in result_monokai
+        # Both should have spans
+        assert result_dark.spans
+        assert result_monokai.spans
 
         # The colors should be different (dark uses ansiblue, monokai uses #f92672)
         # We just verify the outputs are different

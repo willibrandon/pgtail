@@ -4,7 +4,7 @@ Tests cover:
 - Match dataclass validation (T028)
 - OccupancyTracker functionality (T029)
 - HighlighterChain overlap prevention (T030)
-- escape_brackets utility (T031)
+- Rich Text rendering round-trip behavior
 - RegexHighlighter base class
 - GroupedRegexHighlighter base class
 - KeywordHighlighter base class
@@ -23,7 +23,6 @@ from pgtail_py.highlighter import (
     Match,
     OccupancyTracker,
     RegexHighlighter,
-    escape_brackets,
     is_color_disabled,
 )
 from pgtail_py.theme import ColorStyle, Theme
@@ -179,8 +178,8 @@ class TestHighlighterChain:
     def test_empty_chain(self, mock_theme: Theme) -> None:
         """Empty chain should return original text."""
         chain = HighlighterChain()
-        result = chain.apply_rich("hello world", mock_theme)
-        assert result == "hello world"
+        result = chain.apply_rich_text("hello world", mock_theme)
+        assert result.plain == "hello world"
 
     def test_single_highlighter(self, mock_theme: Theme) -> None:
         """Single highlighter should apply correctly."""
@@ -194,8 +193,9 @@ class TestHighlighterChain:
             )
         )
 
-        result = chain.apply_rich("value: 123", mock_theme)
-        assert "[blue bold]123[/]" in result
+        result = chain.apply_rich_text("value: 123", mock_theme)
+        assert result.plain == "value: 123"
+        assert "[blue bold]123" in result.markup
 
     def test_overlap_prevention_priority(self, mock_theme: Theme) -> None:
         """Higher priority (lower number) should win on overlap."""
@@ -221,10 +221,11 @@ class TestHighlighterChain:
             )
         )
 
-        result = chain.apply_rich("hello world today", mock_theme)
+        result = chain.apply_rich_text("hello world today", mock_theme)
         # "hello world" should be blue bold (hl_test), not green (hl_test2)
-        assert "[blue bold]hello world[/]" in result
-        assert "green" not in result or "world" not in result.split("green")[0]
+        assert result.plain == "hello world today"
+        assert "[blue bold]hello world" in result.markup
+        assert "[green]world" not in result.markup
 
     def test_non_overlapping_matches(self, mock_theme: Theme) -> None:
         """Non-overlapping matches should both apply."""
@@ -248,9 +249,10 @@ class TestHighlighterChain:
             )
         )
 
-        result = chain.apply_rich("abc 123", mock_theme)
-        assert "[green]abc[/]" in result
-        assert "[blue bold]123[/]" in result
+        result = chain.apply_rich_text("abc 123", mock_theme)
+        assert result.plain == "abc 123"
+        assert "[green]abc" in result.markup
+        assert "[blue bold]123" in result.markup
 
     def test_depth_limiting(self, mock_theme: Theme) -> None:
         """Max length should truncate highlighting."""
@@ -267,12 +269,12 @@ class TestHighlighterChain:
 
         # 15 chars, but only first 10 should be highlighted
         text = "abc 123 xyz 456"
-        result = chain.apply_rich(text, mock_theme)
+        result = chain.apply_rich_text(text, mock_theme)
 
         # "123" is within first 10 chars, "456" is beyond
-        assert "[blue bold]123[/]" in result
+        assert "[blue bold]123" in result.markup
         # The "456" should appear but not be highlighted
-        assert "456" in result
+        assert "456" in result.plain
 
     def test_register_duplicate_name(self) -> None:
         """Registering duplicate name should raise."""
@@ -293,34 +295,31 @@ class TestHighlighterChain:
 
 
 # =============================================================================
-# Test escape_brackets (T031)
+# Test Rich Text round-trips
 # =============================================================================
 
 
-class TestEscapeBrackets:
-    """Tests for escape_brackets utility."""
+class TestRichTextRoundTrip:
+    """Tests for literal content in Rich Text output."""
 
-    def test_no_brackets(self) -> None:
-        """Text without brackets should be unchanged."""
-        assert escape_brackets("hello world") == "hello world"
-
-    def test_single_bracket(self) -> None:
-        """Single bracket should be escaped."""
-        assert escape_brackets("[bold]") == "\\[bold]"
-
-    def test_multiple_brackets(self) -> None:
-        """Multiple brackets should all be escaped."""
-        assert escape_brackets("[a][b][c]") == "\\[a]\\[b]\\[c]"
-
-    def test_nested_brackets(self) -> None:
-        """Nested brackets in log output."""
-        text = "[12345] ERROR: connection [local]"
-        expected = "\\[12345] ERROR: connection \\[local]"
-        assert escape_brackets(text) == expected
-
-    def test_empty_string(self) -> None:
-        """Empty string should return empty string."""
-        assert escape_brackets("") == ""
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "hello world",
+            "[bold]",
+            "[a][b][c]",
+            "[12345] ERROR: connection [local]",
+            r"c:\tmp\\",
+            r"\[123]",
+            r"\[abc]",
+            "",
+        ],
+    )
+    def test_literal_text_is_preserved(self, text: str, mock_theme: Theme) -> None:
+        """Rich Text output preserves arbitrary log text literally."""
+        chain = HighlighterChain()
+        result = chain.apply_rich_text(text, mock_theme)
+        assert result.plain == text
 
 
 # =============================================================================
@@ -594,10 +593,9 @@ class TestZeroAllocationEarlyReturn:
 
         # Text with no matching patterns
         text = "plain text with no special patterns"
-        result = chain.apply_rich(text, mock_theme)
+        result = chain.apply_rich_text(text, mock_theme)
 
-        # Should be escaped text (brackets escaped)
-        assert result == text.replace("[", "\\[")
+        assert result.plain == text
 
     def test_chain_empty_text_returns_immediately(self, mock_theme: Theme) -> None:
         """HighlighterChain should return empty string immediately for empty input."""
@@ -610,18 +608,17 @@ class TestZeroAllocationEarlyReturn:
 
         chain = HighlighterChain([highlighter])
 
-        result = chain.apply_rich("", mock_theme)
-        assert result == ""
+        result = chain.apply_rich_text("", mock_theme)
+        assert result.plain == ""
 
     def test_chain_no_highlighters_returns_escaped(self, mock_theme: Theme) -> None:
         """HighlighterChain with no highlighters should return escaped text."""
         chain = HighlighterChain([])
 
         text = "some [text] with brackets"
-        result = chain.apply_rich(text, mock_theme)
+        result = chain.apply_rich_text(text, mock_theme)
 
-        # Should escape brackets
-        assert result == "some \\[text] with brackets"
+        assert result.plain == text
 
     def test_chain_color_disabled_returns_escaped(self, mock_theme: Theme) -> None:
         """HighlighterChain should return escaped text when color is disabled."""
@@ -645,10 +642,9 @@ class TestZeroAllocationEarlyReturn:
 
             utils._color_disabled = None
 
-            result = chain.apply_rich(text, mock_theme)
+            result = chain.apply_rich_text(text, mock_theme)
 
-            # Should be escaped, no highlighting
-            assert result == "test 123 \\[456]"
+            assert result.plain == text
         finally:
             os.environ.pop("NO_COLOR", None)
             from pgtail_py import utils

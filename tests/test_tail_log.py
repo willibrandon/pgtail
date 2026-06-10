@@ -101,7 +101,7 @@ class TestTailLogStripMarkup:
     def test_strip_markup_full_sql_flow(self) -> None:
         """Full SQL yank flow: Rich markup → _strip_markup() → clean SQL (T027)."""
         widget = TailLog()
-        # Simulated Rich markup output from highlight_sql_rich
+        # Simulated Rich markup output from highlight_sql_text
         markup = "[bold blue]SELECT[/] [cyan]arr[/]\\[1] [bold blue]FROM[/] [cyan]users[/]"
         result = widget._strip_markup(markup)
         # Should be plain SQL with proper brackets

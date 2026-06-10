@@ -7,7 +7,7 @@ and secondary field formatting (DETAIL, HINT, CONTEXT, STATEMENT).
 
 Functions:
     format_entry_as_rich: Convert LogEntry to styled Rich Text object.
-    format_entry_compact: Convert LogEntry to plain string for Log widget.
+    format_entry_compact: Convert LogEntry to styled Rich Text for TailLog.
     get_highlighter_chain: Get (or create) the cached HighlighterChain.
     register_all_highlighters: Register all built-in highlighters with registry.
 """
@@ -21,7 +21,7 @@ from rich.text import Text
 from pgtail_py.filter import LogLevel
 from pgtail_py.highlighter import HighlighterChain
 from pgtail_py.highlighter_registry import get_registry
-from pgtail_py.highlighters.sql import detect_sql_content, highlight_sql_rich
+from pgtail_py.highlighters.sql import detect_sql_content, highlight_sql_text
 from pgtail_py.highlighting_config import HighlightingConfig
 
 if TYPE_CHECKING:
@@ -234,11 +234,11 @@ def format_entry_compact(
     theme: Theme | None = None,
     use_semantic_highlighting: bool = True,
     highlighting_config: HighlightingConfig | None = None,
-) -> str:
-    """Convert LogEntry to Rich markup string for Textual Log widget.
+) -> Text:
+    """Convert LogEntry to styled Rich Text for Textual tail mode.
 
-    Formats a log entry as a single-line Rich markup string suitable for
-    the Textual Log widget's write_line() method. Uses a compact
+    Formats a log entry as a single-line Rich Text object suitable for
+    TailLog.write_text_line(). Uses a compact
     format: [source_file] timestamp [pid] LEVEL sql_state: message
 
     When source_file is set (multi-file mode), shows the filename in
@@ -256,24 +256,32 @@ def format_entry_compact(
             If None, uses default config (no custom highlighters).
 
     Returns:
-        Rich markup string representation of the entry.
+        Rich Text representation of the entry.
     """
-    parts: list[str] = []
+    result = Text()
+
+    def append_part(part: str | Text, style: str | None = None) -> None:
+        if result.plain:
+            result.append(" ")
+        if isinstance(part, Text):
+            result.append(part)
+        else:
+            result.append(part, style=style)
 
     # T076: Source file indicator for multi-file mode (before timestamp)
     if entry.source_file:
         # Use magenta for source file to stand out
-        parts.append(f"[magenta]\\[{entry.source_file}][/magenta]")
+        append_part(f"[{entry.source_file}]", style="magenta")
 
     # Timestamp (dim)
     if entry.timestamp:
         ts_str = entry.timestamp.strftime("%H:%M:%S.%f")[:-3]  # HH:MM:SS.mmm
-        parts.append(f"[dim]{ts_str}[/dim]")
+        append_part(ts_str, style="dim")
 
     # PID (dim) - escape brackets, pad to 5 digits for alignment
     if entry.pid:
         pid_str = str(entry.pid).ljust(5)  # Left-pad to 5 digits
-        parts.append(f"[dim]\\[{pid_str}][/dim]")
+        append_part(f"[{pid_str}]", style="dim")
 
     # Level name with color (padded for alignment) + colon
     # Combined into one part so " ".join() doesn't add space between level and colon
@@ -282,40 +290,39 @@ def format_entry_compact(
 
     if entry.sql_state:
         # Level + SQL state + colon
-        if level_style:
-            parts.append(f"[{level_style}]{level_name}[/][cyan]{entry.sql_state}[/]:")
-        else:
-            parts.append(f"{level_name}[cyan]{entry.sql_state}[/]:")
+        level_part = Text()
+        level_part.append(level_name, style=level_style)
+        level_part.append(entry.sql_state, style="cyan")
+        level_part.append(":")
+        append_part(level_part)
     else:
         # Level + colon
-        if level_style:
-            parts.append(f"[{level_style}]{level_name}[/]:")
-        else:
-            parts.append(f"{level_name}:")
+        level_part = Text()
+        level_part.append(level_name, style=level_style)
+        level_part.append(":")
+        append_part(level_part)
 
     # Message - apply highlighting
     if use_semantic_highlighting and theme is not None:
         # Apply semantic highlighting via highlighter chain
         highlighted_message = _highlight_message(entry.message, theme, highlighting_config)
-        parts.append(highlighted_message)
+        append_part(highlighted_message)
     else:
         # Fallback: detect and highlight SQL content only
         detection = detect_sql_content(entry.message)
         if detection:
-            # SQL detected: escape prefix, highlight SQL, escape suffix
-            prefix = detection.prefix.replace("[", "\\[")
-            highlighted_sql = highlight_sql_rich(detection.sql, theme=theme)
-            suffix = detection.suffix.replace("[", "\\[")
-            parts.append(f"{prefix}{highlighted_sql}{suffix}")
+            # SQL detected: append prefix/suffix literally and SQL with spans.
+            message = Text(detection.prefix)
+            message.append(highlight_sql_text(detection.sql, theme=theme))
+            message.append(detection.suffix)
+            append_part(message)
         else:
-            # No SQL: just escape brackets to prevent Rich markup parsing
-            safe_message = entry.message.replace("[", "\\[")
-            parts.append(safe_message)
+            append_part(entry.message)
 
-    return " ".join(parts)
+    return result
 
 
-def _highlight_message(message: str, theme: Theme, config: HighlightingConfig | None = None) -> str:
+def _highlight_message(message: str, theme: Theme, config: HighlightingConfig | None = None) -> Text:
     """Apply semantic highlighting to a log message.
 
     Uses the highlighter chain for pattern-based highlighting. SQL content
@@ -328,10 +335,10 @@ def _highlight_message(message: str, theme: Theme, config: HighlightingConfig | 
         config: Highlighting configuration with custom highlighters.
 
     Returns:
-        Rich markup string with highlighting.
+        Rich Text with highlighting.
     """
     # Get highlighter chain (with custom highlighters from config)
     chain = get_highlighter_chain(config)
 
     # Apply semantic highlighting
-    return chain.apply_rich(message, theme)
+    return chain.apply_rich_text(message, theme)

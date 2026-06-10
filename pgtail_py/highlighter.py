@@ -8,7 +8,7 @@ This module provides:
 - GroupedRegexHighlighter: Base class for regex with named groups
 - KeywordHighlighter: Base class for Aho-Corasick keyword matching
 - HighlighterChain: Compositor that applies multiple highlighters
-- escape_brackets: Utility to escape Rich markup in text
+- Rich Text builders for Textual rendering
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, runtime_checkable
 
 import ahocorasick  # type: ignore[import-untyped]
 from prompt_toolkit.formatted_text import FormattedText
+from rich.text import Text
 
 if TYPE_CHECKING:
     from pgtail_py.theme import Theme
@@ -252,7 +253,7 @@ class Highlighter(Protocol):
         """
         ...
 
-    def apply_rich(self, text: str, theme: Theme) -> str:
+    def apply_rich_text(self, text: str, theme: Theme) -> Text:
         """Apply highlighting for Textual/Rich (tail mode).
 
         Args:
@@ -260,32 +261,9 @@ class Highlighter(Protocol):
             theme: Current theme for style lookups.
 
         Returns:
-            Rich markup string with [style]text[/] tags.
+            Rich Text with literal content and style spans.
         """
         ...
-
-
-# =============================================================================
-# Escape Brackets Utility
-# =============================================================================
-
-
-def escape_brackets(text: str) -> str:
-    """Escape brackets that could be interpreted as Rich markup.
-
-    Rich uses [style]...[/] syntax for markup. Any literal brackets
-    in log content (like [bold] or [123]) must be escaped.
-
-    Args:
-        text: Text that may contain brackets.
-
-    Returns:
-        Text with [ escaped as \\[
-    """
-    # Fast path: skip replace if no brackets present
-    if "[" not in text:
-        return text
-    return text.replace("[", "\\[")
 
 
 # =============================================================================
@@ -403,7 +381,7 @@ class RegexHighlighter:
 
         return _build_formatted_text(text, matches, theme)
 
-    def apply_rich(self, text: str, theme: Theme) -> str:
+    def apply_rich_text(self, text: str, theme: Theme) -> Text:
         """Apply highlighting for Rich/Textual.
 
         Args:
@@ -411,16 +389,16 @@ class RegexHighlighter:
             theme: Current theme for style lookups.
 
         Returns:
-            Rich markup string.
+            Rich Text with literal content and style spans.
         """
         if is_color_disabled() or not text:
-            return escape_brackets(text)
+            return Text(text)
 
         matches = self.find_matches(text, theme)
         if not matches:
-            return escape_brackets(text)
+            return Text(text)
 
-        return _build_rich_markup(text, matches, theme)
+        return _build_rich_text(text, matches, theme)
 
 
 # =============================================================================
@@ -530,7 +508,7 @@ class GroupedRegexHighlighter:
 
         return _build_formatted_text(text, matches, theme)
 
-    def apply_rich(self, text: str, theme: Theme) -> str:
+    def apply_rich_text(self, text: str, theme: Theme) -> Text:
         """Apply highlighting for Rich/Textual.
 
         Args:
@@ -538,16 +516,16 @@ class GroupedRegexHighlighter:
             theme: Current theme for style lookups.
 
         Returns:
-            Rich markup string.
+            Rich Text with literal content and style spans.
         """
         if is_color_disabled() or not text:
-            return escape_brackets(text)
+            return Text(text)
 
         matches = self.find_matches(text, theme)
         if not matches:
-            return escape_brackets(text)
+            return Text(text)
 
-        return _build_rich_markup(text, matches, theme)
+        return _build_rich_text(text, matches, theme)
 
 
 # =============================================================================
@@ -672,7 +650,7 @@ class KeywordHighlighter:
 
         return _build_formatted_text(text, matches, theme)
 
-    def apply_rich(self, text: str, theme: Theme) -> str:
+    def apply_rich_text(self, text: str, theme: Theme) -> Text:
         """Apply highlighting for Rich/Textual.
 
         Args:
@@ -680,16 +658,16 @@ class KeywordHighlighter:
             theme: Current theme for style lookups.
 
         Returns:
-            Rich markup string.
+            Rich Text with literal content and style spans.
         """
         if is_color_disabled() or not text:
-            return escape_brackets(text)
+            return Text(text)
 
         matches = self.find_matches(text, theme)
         if not matches:
-            return escape_brackets(text)
+            return Text(text)
 
-        return _build_rich_markup(text, matches, theme)
+        return _build_rich_text(text, matches, theme)
 
 
 # =============================================================================
@@ -823,7 +801,7 @@ class HighlighterChain:
 
         return result
 
-    def apply_rich(self, text: str, theme: Theme) -> str:
+    def apply_rich_text(self, text: str, theme: Theme) -> Text:
         """Apply all highlighters for Rich/Textual.
 
         Args:
@@ -831,10 +809,10 @@ class HighlighterChain:
             theme: Current theme for style lookups.
 
         Returns:
-            Rich markup string.
+            Rich Text with literal content and style spans.
         """
         if is_color_disabled() or not text or not self._highlighters:
-            return escape_brackets(text)
+            return Text(text)
 
         # Apply depth limiting (FR-006, FR-012)
         truncated = False
@@ -847,16 +825,14 @@ class HighlighterChain:
         # Collect all matches from all highlighters
         all_matches = self._collect_matches(process_text, theme)
         if not all_matches:
-            if truncated:
-                return escape_brackets(process_text) + escape_brackets(text[self._max_length :])
-            return escape_brackets(text)
+            return Text(text)
 
         # Apply overlap prevention and build output
-        result = _build_rich_markup_with_tracker(process_text, all_matches, theme)
+        result = _build_rich_text_with_tracker(process_text, all_matches, theme)
 
         # Append truncated portion if needed
         if truncated:
-            result = result + escape_brackets(text[self._max_length :])
+            result.append(text[self._max_length :])
 
         return result
 
@@ -1081,8 +1057,8 @@ def _build_formatted_text(text: str, matches: list[Match], theme: Theme) -> Form
     return FormattedText(result)
 
 
-def _build_rich_markup(text: str, matches: list[Match], theme: Theme) -> str:
-    """Build Rich markup from matches (no overlap prevention).
+def _build_rich_text(text: str, matches: list[Match], theme: Theme) -> Text:
+    """Build Rich Text from matches (no overlap prevention).
 
     Used by individual highlighters that produce non-overlapping matches.
 
@@ -1092,15 +1068,15 @@ def _build_rich_markup(text: str, matches: list[Match], theme: Theme) -> str:
         theme: Current theme.
 
     Returns:
-        Rich markup string.
+        Rich Text with literal content and style spans.
     """
     if not matches:
-        return escape_brackets(text)
+        return Text(text)
 
     # Sort by start position
     sorted_matches = sorted(matches, key=lambda m: m.start)
 
-    result: list[str] = []
+    result = Text()
     pos = 0
 
     for m in sorted_matches:
@@ -1110,21 +1086,21 @@ def _build_rich_markup(text: str, matches: list[Match], theme: Theme) -> str:
 
         # Add unstyled text before this match
         if pos < m.start:
-            result.append(escape_brackets(text[pos : m.start]))
+            result.append(text[pos : m.start])
 
         # Add styled match
         style = _get_rich_style(theme, m.style)
         if style:
-            result.append(f"[{style}]{escape_brackets(text[m.start : m.end])}[/]")
+            result.append(text[m.start : m.end], style=style)
         else:
-            result.append(escape_brackets(text[m.start : m.end]))
+            result.append(text[m.start : m.end])
         pos = m.end
 
     # Add remaining unstyled text
     if pos < len(text):
-        result.append(escape_brackets(text[pos:]))
+        result.append(text[pos:])
 
-    return "".join(result)
+    return result
 
 
 def _build_formatted_text_with_tracker(
@@ -1173,12 +1149,12 @@ def _build_formatted_text_with_tracker(
     return FormattedText(result)
 
 
-def _build_rich_markup_with_tracker(
+def _build_rich_text_with_tracker(
     text: str,
     matches: list[tuple[int, int, str, int]],
     theme: Theme,
-) -> str:
-    """Build Rich markup with OccupancyTracker for overlap prevention.
+) -> Text:
+    """Build Rich Text with OccupancyTracker for overlap prevention.
 
     Args:
         text: Original text.
@@ -1186,10 +1162,10 @@ def _build_rich_markup_with_tracker(
         theme: Current theme.
 
     Returns:
-        Rich markup string.
+        Rich Text with literal content and style spans.
     """
     if not matches:
-        return escape_brackets(text)
+        return Text(text)
 
     # Sort by start position, then by priority (lower priority wins on tie)
     # Use in-place sort for performance
@@ -1202,7 +1178,7 @@ def _build_rich_markup_with_tracker(
     tracker = OccupancyTracker(text_len)
     is_available = tracker.is_available  # Avoid attribute lookup in loop
     mark_occupied = tracker.mark_occupied
-    result: list[str] = []
+    result = Text()
     append = result.append
     pos = 0
 
@@ -1211,19 +1187,19 @@ def _build_rich_markup_with_tracker(
             mark_occupied(start, end)
             # Output unhighlighted text before this match
             if pos < start:
-                append(escape_brackets(text[pos:start]))
+                append(text[pos:start])
             # Output highlighted match
             rich_style = _get_rich_style(theme, style)
             if rich_style:
-                append(f"[{rich_style}]{escape_brackets(text[start:end])}[/]")
+                append(text[start:end], style=rich_style)
             else:
-                append(escape_brackets(text[start:end]))
+                append(text[start:end])
             pos = end
 
     if pos < text_len:
-        append(escape_brackets(text[pos:]))
+        append(text[pos:])
 
-    return "".join(result)
+    return result
 
 
 # =============================================================================

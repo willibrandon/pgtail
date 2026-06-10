@@ -15,14 +15,15 @@ Classes:
 from __future__ import annotations
 
 import sys
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
-from rich.errors import MarkupError
+from rich.cells import cell_len
 from rich.style import Style
 from rich.text import Text
 from textual import events
 from textual.binding import Binding, BindingType
-from textual.geometry import Offset
+from textual.geometry import Offset, Size
 from textual.message import Message
 from textual.selection import Selection
 from textual.strip import Strip
@@ -161,6 +162,130 @@ class TailLog(Log):
         self._cursor_col: int = 0
         # Track mouse down position to detect drag vs click
         self._mouse_down_pos: tuple[int, int] | None = None
+        # Rich renderables parallel Textual Log._lines. _lines stores plain text
+        # for sizing, navigation, and copying; _rich_lines stores style spans.
+        self._rich_lines: list[Text] = []
+
+    def write_text_line(
+        self,
+        line: Text,
+        scroll_end: bool | None = None,
+    ) -> TailLog:
+        """Write a styled Rich Text line.
+
+        Args:
+            line: Rich Text to append. Literal content is never parsed as markup.
+            scroll_end: Scroll to the end after writing, or ``None`` to use auto-scroll.
+
+        Returns:
+            This widget.
+        """
+        self.write_text_lines([line], scroll_end)
+        return self
+
+    def write_text_lines(
+        self,
+        lines: Iterable[Text],
+        scroll_end: bool | None = None,
+    ) -> TailLog:
+        """Write styled Rich Text lines.
+
+        This mirrors Textual Log.write_lines(), but stores a parallel rich-text
+        representation so rendering can avoid Rich markup parsing.
+        """
+        is_vertical_scroll_end = self.is_vertical_scroll_end
+        auto_scroll = self.auto_scroll if scroll_end is None else scroll_end
+
+        new_rich_lines: list[Text] = []
+        for line in lines:
+            if not line.plain:
+                continue
+            new_rich_lines.extend(line.split("\n"))
+
+        if not new_rich_lines:
+            return self
+
+        start_line = len(self._lines)
+        new_plain_lines = [line.plain for line in new_rich_lines]
+        self._lines.extend(new_plain_lines)
+        self._rich_lines.extend(new_rich_lines)
+
+        if self.max_lines is not None and len(self._lines) > self.max_lines:
+            self._prune_max_lines()
+
+        self.virtual_size = Size(self._width, len(self._lines))
+        self._update_size(self._updates, new_plain_lines)
+        self.refresh_lines(start_line, len(new_plain_lines))
+        if (
+            auto_scroll
+            and not self.is_vertical_scrollbar_grabbed
+            and is_vertical_scroll_end
+        ):
+            self.scroll_end(animate=False, immediate=True, x_axis=False)
+        else:
+            self.refresh()
+        return self
+
+    def write_line(
+        self,
+        line: str,
+        scroll_end: bool | None = None,
+    ) -> TailLog:
+        """Write a plain text line.
+
+        Markup is intentionally not parsed here. Use ``write_markup_line`` for
+        trusted UI markup or ``write_text_line`` for structured styled output.
+        """
+        self.write_text_line(Text(line), scroll_end)
+        return self
+
+    def write_lines(
+        self,
+        lines: Iterable[str],
+        scroll_end: bool | None = None,
+    ) -> TailLog:
+        """Write plain text lines."""
+        self.write_text_lines((Text(line) for line in lines), scroll_end)
+        return self
+
+    def write_markup_line(
+        self,
+        line: str,
+        scroll_end: bool | None = None,
+    ) -> TailLog:
+        """Write trusted Rich markup as a styled line.
+
+        This is for static application UI strings only. Log content and user
+        patterns should be passed as literal Text through ``write_text_line``.
+        """
+        self.write_text_line(Text.from_markup(line), scroll_end)
+        return self
+
+    def clear(self) -> TailLog:
+        """Clear stored plain and styled lines."""
+        super().clear()
+        self._rich_lines.clear()
+        return self
+
+    def _prune_max_lines(self) -> None:
+        """Prune plain and styled line stores together."""
+        if self.max_lines is None:
+            return
+        remove_lines = len(self._lines) - self.max_lines
+        if remove_lines > 0:
+            del self._rich_lines[:remove_lines]
+        super()._prune_max_lines()
+
+    def _update_size(self, updates: int, lines: list[str]) -> None:
+        """Update width synchronously from plain lines.
+
+        Textual's base implementation runs this in a worker thread. Keeping the
+        width update local avoids touching Rich Text objects across threads.
+        """
+        if lines:
+            _process_line = self._process_line
+            max_length = max(cell_len(_process_line(line)) for line in lines)
+            self._update_maximum_width(updates, max_length)
 
     @property
     def cursor_line(self) -> int:
@@ -283,12 +408,10 @@ class TailLog(Log):
     # Column navigation actions (for character-wise visual mode)
 
     def _get_line_length(self, line_idx: int) -> int:
-        """Get the plain text length of a line (without markup)."""
+        """Get the plain text length of a line."""
         if line_idx < 0 or line_idx >= len(self._lines):
             return 0
-        line = self._lines[line_idx]
-        plain_line = self._strip_markup(line)
-        return len(plain_line)
+        return len(self._lines[line_idx])
 
     def action_cursor_left(self) -> None:
         """Move cursor left one character (h key), wrapping to previous line."""
@@ -580,17 +703,7 @@ class TailLog(Log):
             start_line, end_line = end_line, start_line
             start_col, end_col = end_col, start_col
 
-        # Get plain text lines using Rich's parser for accurate column slicing
-        # (matches how lines are rendered)
-        plain_lines: list[str] = []
-        for i in range(start_line, end_line + 1):
-            try:
-                rich_text = Text.from_markup(self._lines[i])
-                plain_lines.append(rich_text.plain)
-            except MarkupError:
-                # Fall back to stripping markup manually if parsing fails
-                # Uses smart stripping that preserves PIDs like [12345]
-                plain_lines.append(self._strip_markup(self._lines[i]))
+        plain_lines = self._lines[start_line : end_line + 1]
 
         if not plain_lines:
             return ""
@@ -676,19 +789,19 @@ class TailLog(Log):
 
         return success
 
-    # Rendering override for Rich markup support
+    # Rendering override for structured Rich Text support
 
     def _render_line_strip(self, y: int, rich_style: Style) -> Strip:
-        """Render a line with Rich markup support.
+        """Render a line with Rich Text support.
 
-        Overrides parent to parse Rich console markup in log lines,
-        enabling colored output for log levels, timestamps, etc.
+        Overrides parent to render stored Rich Text objects, enabling colored
+        output for log levels, timestamps, etc. without parsing log content as
+        Rich markup.
 
         Uses the inherited ``_render_line_cache`` (LRU, 1024 slots) so
-        that lines which haven't changed are not re-parsed through
-        ``Text.from_markup()`` on every frame.  The cache is bypassed
-        whenever a text selection is active (selection styling varies
-        per-render) and is cleared automatically by the parent on
+        that lines which haven't changed are not re-rendered on every frame.
+        The cache is bypassed whenever a text selection is active (selection
+        styling varies per-render) and is cleared automatically by the parent on
         ``clear()``, ``notify_style_update()``, ``selection_updated()``,
         and ``_prune_max_lines()``.
 
@@ -703,10 +816,11 @@ class TailLog(Log):
         if selection is None and y in self._render_line_cache:
             return self._render_line_cache[y]
 
-        _line = self._process_line(self._lines[y])
-
-        # Parse Rich markup instead of plain text
-        line_text = Text.from_markup(_line)
+        if y < len(self._rich_lines):
+            line_text = self._rich_lines[y].copy()
+        else:
+            line_text = Text(self._lines[y])
+        line_text.expand_tabs()
         line_text.no_wrap = True
 
         # Apply ONLY background from rich_style to entire line for consistent bg

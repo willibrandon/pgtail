@@ -17,6 +17,8 @@ from prompt_toolkit.formatted_text import FormattedText, OneStyleAndTextTuple
 from pgtail_py.highlighters.sql import detect_sql_content, highlight_sql
 
 if TYPE_CHECKING:
+    from rich.text import Text
+
     from pgtail_py.parser import LogEntry
     from pgtail_py.theme import Theme
 
@@ -528,11 +530,11 @@ def format_entry(
     return format_entry_compact(entry, theme, use_semantic_highlighting)
 
 
-def format_entry_as_rich(entry: LogEntry) -> str:
-    """Format entry as Rich Text markup string for Textual widgets.
+def format_entry_as_rich(entry: LogEntry) -> Text:
+    """Format entry as Rich Text for Textual widgets.
 
-    Delegates to tail_rich.format_entry_compact() which returns a Rich
-    console markup string with styled log levels, timestamps, and messages.
+    Delegates to tail_rich.format_entry_compact() which returns Rich Text with
+    styled log levels, timestamps, and messages.
 
     This function provides integration between the display module and the
     Textual-based tail mode, allowing consistent formatting across both
@@ -542,7 +544,7 @@ def format_entry_as_rich(entry: LogEntry) -> str:
         entry: Log entry to format.
 
     Returns:
-        Rich console markup string with styled content.
+        Rich Text with styled content.
     """
     from pgtail_py.tail_rich import format_entry_compact as format_rich
 
