@@ -5,6 +5,14 @@ All notable changes to pgtail are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-06-10
+
+### Changed
+- Minimum Python is now 3.11 (dropped 3.10); CI tests 3.11, 3.12, and 3.13
+
+### Fixed
+- Tail view crash on log lines with a backslash directly before highlighted text, such as Windows paths in `COPY ... TO 'c:\...'` or regex character classes in logged SQL; log content is now rendered as Rich Text rather than parsed as Rich markup
+
 ## [0.6.0] - 2026-03-20
 
 ### Added
