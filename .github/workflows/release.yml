@@ -98,7 +98,7 @@ jobs:
 
   # Build binary for Windows (separate job due to different shell syntax)
   build-windows:
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     timeout-minutes: 30
 
     steps:
@@ -497,7 +497,7 @@ jobs:
   # Update winget manifest and submit PR
   update-winget:
     needs: release
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     timeout-minutes: 30
     steps:
       - name: Extract version from tag
