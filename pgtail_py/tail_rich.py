@@ -322,7 +322,9 @@ def format_entry_compact(
     return result
 
 
-def _highlight_message(message: str, theme: Theme, config: HighlightingConfig | None = None) -> Text:
+def _highlight_message(
+    message: str, theme: Theme, config: HighlightingConfig | None = None
+) -> Text:
     """Apply semantic highlighting to a log message.
 
     Uses the highlighter chain for pattern-based highlighting. SQL content

@@ -131,7 +131,9 @@ def handle_export_command(
                 append=False,
                 preserve_markup=False,
             )
-        ctx.log_widget.write_markup_line(f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]")
+        ctx.log_widget.write_markup_line(
+            f"[bold green]✓[/] Exported {count} entries to [cyan]{path}[/]"
+        )
     except OSError as e:
         ctx.log_widget.write_markup_line(f"[bold red]✗[/] Export failed: {e}")
 

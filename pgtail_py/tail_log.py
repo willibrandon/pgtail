@@ -216,11 +216,7 @@ class TailLog(Log):
         self.virtual_size = Size(self._width, len(self._lines))
         self._update_size(self._updates, new_plain_lines)
         self.refresh_lines(start_line, len(new_plain_lines))
-        if (
-            auto_scroll
-            and not self.is_vertical_scrollbar_grabbed
-            and is_vertical_scroll_end
-        ):
+        if auto_scroll and not self.is_vertical_scrollbar_grabbed and is_vertical_scroll_end:
             self.scroll_end(animate=False, immediate=True, x_axis=False)
         else:
             self.refresh()

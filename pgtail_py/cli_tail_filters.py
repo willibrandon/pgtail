@@ -132,7 +132,9 @@ def handle_filter_command(
                         log_widget.write_markup_line(f"[dim]include:[/] [cyan]/{f.pattern}/{cs}[/]")
                     for f in state.regex_state.excludes:
                         cs = "c" if f.case_sensitive else ""
-                        log_widget.write_markup_line(f"[dim]exclude:[/] [yellow]-/{f.pattern}/{cs}[/]")
+                        log_widget.write_markup_line(
+                            f"[dim]exclude:[/] [yellow]-/{f.pattern}/{cs}[/]"
+                        )
                     for f in state.regex_state.ands:
                         cs = "c" if f.case_sensitive else ""
                         log_widget.write_markup_line(f"[dim]and:[/] [green]&/{f.pattern}/{cs}[/]")
@@ -244,7 +246,9 @@ def handle_filter_command(
                 FilterType.AND: "and",
             }.get(filter_type, "filter")
             cs = "c" if case_sensitive else ""
-            log_widget.write_markup_line(f"[bold green]✓[/] Filter {type_str}: [cyan]/{pattern}/{cs}[/]")
+            log_widget.write_markup_line(
+                f"[bold green]✓[/] Filter {type_str}: [cyan]/{pattern}/{cs}[/]"
+            )
 
         # Note: Textual mode rebuilds log in TailApp._handle_command() after this returns
 
