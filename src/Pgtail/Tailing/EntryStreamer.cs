@@ -9,7 +9,7 @@ namespace Pgtail.Tailing;
 /// </summary>
 /// <param name="session">The session, for filters, formatting, and statistics.</param>
 /// <param name="output">Where entries are written.</param>
-/// <param name="styled">True to write colors and attributes, false for plain text.</param>
+/// <param name="styled">True when writing to a terminal: colors, attributes, and status lines; false for plain entries.</param>
 internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bool styled)
 {
     /// <summary>
@@ -17,7 +17,8 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
     /// </summary>
     /// <remarks>
     /// Every entry is counted in the statistics, checked against notification rules, and kept in the session buffer;
-    /// only entries that pass the filters are written. Format detection and file switches are announced.
+    /// only entries that pass the filters are written. On a terminal, format detection and file switches are announced;
+    /// in a pipe only entries are written, so the output stays one entry per line for tools such as <c>jq</c>.
     /// </remarks>
     /// <param name="source">The started source.</param>
     /// <param name="cancellationToken">Stops streaming.</param>
@@ -62,9 +63,13 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
                 break;
             case LogSourceEventKind.FormatDetected when item.Format is { } format:
                 session.DetectedFormat = format;
-                output.WriteLine($"Detected format: {format.ToDestinationName()}");
+                if (styled)
+                {
+                    output.WriteLine($"Detected format: {format.ToDestinationName()}");
+                }
+
                 break;
-            case LogSourceEventKind.FileSwitched when item.Path is { } path:
+            case LogSourceEventKind.FileSwitched when item.Path is { } path && styled:
                 output.WriteLine();
                 output.WriteLine($"Switched to: {Path.GetFileName(path)}");
                 break;

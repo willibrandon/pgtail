@@ -368,9 +368,15 @@ output text         Colored terminal output (default)
 output json         JSON Lines format (one object per line)
 ```
 
-JSON output can be piped to `jq`:
+To process entries as JSON with `jq`, pipe them from the REPL:
+```
+pipe --format json jq '.message'
+```
+
+`pgtail tail ... --stream` writes one entry per line with no status lines when its output is piped, so it also works
+with `grep` and friends:
 ```bash
-pgtail tail 0 --stream | jq '.message'
+pgtail tail 0 --stream | grep deadlock
 ```
 
 ### Filtering
