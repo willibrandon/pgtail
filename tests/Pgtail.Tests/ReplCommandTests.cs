@@ -468,4 +468,137 @@ public sealed class ReplCommandTests
             snapshot => snapshot.ContainsText("timestamp") && snapshot.ContainsText("sqlstate") && snapshot.ContainsText("duration"),
             description: "built-in highlighters");
     }
+
+    /// <summary>
+    /// Include, exclude, AND, and OR filters are confirmed and listed, and the toolbar counts the extra ones.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Filter_EveryKind_IsListed()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
+        await repl.RunAsync("filter /error/", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Filter set: /error/");
+        await repl.RunAsync("filter -/debug/", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Filter added (exclude): /debug/");
+        await repl.RunAsync("filter &/users/", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Filter added (and): /users/");
+        await repl.RunAsync("filter +/fatal/", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Filter added (include): /fatal/");
+        await repl.RunAsync("filter", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("Active regex filters:")
+                && snapshot.ContainsText("exclude: /debug/")
+                && snapshot.ContainsText("and: /users/")
+                && ReplHarness.Toolbar(snapshot).Contains("filter:/error/i +3 more", StringComparison.Ordinal),
+            description: "every filter listed and counted in the toolbar");
+    }
+
+    /// <summary>
+    /// until and between confirm their range, and since clear removes the time filter.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TimeFilters_UntilBetweenClear()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("until 23:59", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("Showing logs until 23:59:00 today")
+                && snapshot.ContainsText("Note: Live tailing disabled (until sets an upper bound)"),
+            description: "until confirmed");
+        await repl.RunAsync("between 00:00 and 00:30", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Showing logs between 00:00:00 and 00:30:00");
+        await repl.RunAsync("since clear", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("Time filter cleared")
+                && !ReplHarness.Toolbar(snapshot).Contains("between", StringComparison.Ordinal),
+            description: "time filter cleared");
+    }
+
+    /// <summary>
+    /// display and output switch modes, and JSON output notes what it turns off.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task DisplayAndOutput_SwitchModes()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
+        await repl.RunAsync("display full", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Display mode: full");
+        await repl.RunAsync("display fields timestamp,level,message", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Display mode: custom (3 fields)");
+        await repl.RunAsync("output json", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("Output format: json")
+                && snapshot.ContainsText("Note: Slow query highlighting and regex highlights disabled in JSON mode"),
+            description: "JSON output confirmed");
+        await repl.RunAsync("display", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Display: custom(timestamp,level,message), Output: json");
+    }
+
+    /// <summary>
+    /// ls lists instances like list, and refresh scans again.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LsAndRefresh_ListAndRescan()
+    {
+        using var environment = new TestEnvironment();
+        var (data, _) = DataDirectories.Create(environment.Root, "15", 5497);
+        environment.Set("PGDATA", data);
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
+        await repl.RunAsync("ls", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("DATA DIRECTORY") && snapshot.ContainsText("5497"),
+            description: "the instance table");
+        await repl.RunAsync("refresh", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("Scanning for PostgreSQL instances...") && snapshot.ContainsText("PostgreSQL instance"),
+            description: "a rescan");
+    }
+
+    /// <summary>
+    /// unset puts a setting back to its default.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Unset_AfterSet_RestoresDefault()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("set slow.warn 250", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("slow.warn = 250");
+        await repl.RunAsync("unset slow.warn", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("slow.warn reset to default: 100");
+        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        Assert.DoesNotContain("warn = 250", text);
+    }
+
+    /// <summary>
+    /// After tailing, export writes the entries to a quoted path with a space in it.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Export_AfterTail_WritesQuotedPath()
+    {
+        using var environment = new TestEnvironment();
+        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-2), 700, "ERROR", "exported error line"));
+        var output = Path.Combine(environment.Root, "with space", "out.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 200);
+        await repl.RunAsync($"tail --file {log} --since 1h", TestContext.CancellationToken);
+        var screen = await repl.WaitForScreenAsync();
+        await screen.WaitUntilTextAsync("exported error line");
+        await screen.TabAsync(TestContext.CancellationToken);
+        await screen.TypeAsync("q", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.PromptLine(snapshot) == "pgtail>", description: "back at the prompt");
+        await repl.RunAsync($"export \"{output}\"", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Exported 1 entries");
+        Assert.Contains("exported error line", await File.ReadAllTextAsync(output, TestContext.CancellationToken));
+    }
 }
