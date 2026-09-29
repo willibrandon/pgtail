@@ -41,3 +41,11 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
 - Wrote our own TOML 1.0 reader and comment-preserving editor (`src/Pgtail.Core/Toml`). It passes all 709 cases of the
   official toml-test 1.0 corpus (checked with a scratch harness outside the repository).
 - Program.cs uses top-level statements. System.CommandLine is dropped in favor of our own argument parsing.
+- Ported styling: palette-preserving terminal colors, a style parser that reads Rich and prompt_toolkit style strings,
+  markup, the six built-in themes (generated from the Python definitions), custom TOML themes, and the theme manager.
+- Ported semantic highlighting: our own Aho-Corasick keyword matcher, the occupancy tracker, the highlighter chain
+  with SQL-region detection, all 30 built-in highlighters on source-generated regular expressions, custom highlighters,
+  and the highlighting configuration with comment-preserving saves. The SQL tokenizer is not ported: Python used it
+  only on paths that rendered without a theme, and every path now renders through the themed chain.
+- Design: the REPL runs as a Hex1b Flow (inline, scrollback-preserving, like the prompt_toolkit REPL), tail mode is a
+  full-screen Flow step, and the tail log is a read-only Hex1b editor with decoration providers (the dotsider approach).
