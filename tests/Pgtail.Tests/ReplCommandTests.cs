@@ -601,4 +601,22 @@ public sealed class ReplCommandTests
         await repl.Automator.WaitUntilTextAsync("Exported 1 entries");
         Assert.Contains("exported error line", await File.ReadAllTextAsync(output, TestContext.CancellationToken));
     }
+
+    /// <summary>
+    /// A command longer than the terminal is wide stays whole in the scrollback after it runs.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LongCommand_AfterRunning_KeepsEveryCharacter()
+    {
+        using var environment = new TestEnvironment();
+        var pattern = string.Concat(Enumerable.Range(0, 8).Select(i => "abcdefghij"));
+        var command = $"filter /{pattern}/";
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 60);
+        await repl.RunAsync(command, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Filter set:");
+        var rows = repl.Screen();
+        var first = rows.ToList().FindIndex(row => row.StartsWith("pgtail> filter", StringComparison.Ordinal));
+        Assert.AreEqual("pgtail> " + command, rows[first] + rows[first + 1]);
+    }
 }

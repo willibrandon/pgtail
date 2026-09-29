@@ -244,7 +244,7 @@ internal sealed partial class ReplHost : IReplHost
         }
 
         // A row that fills the last column would lose that column when the line is erased to its end.
-        var width = Math.Max(1, flow.TerminalWidth - 1);
+        var width = FrozenWidth(flow);
         var rows = StyledBlock.Fold(Output.Take(), width);
         var chunk = Math.Max(1, flow.TerminalHeight - 1);
         for (var start = 0; start < rows.Count; start += chunk)
@@ -281,7 +281,7 @@ internal sealed partial class ReplHost : IReplHost
         var flow = Flow;
         var answer = new TextBoxState();
         var label = new StyledText(question);
-        var width = Math.Max(1, flow.TerminalWidth);
+        var width = FrozenWidth(flow);
         var step = flow.Step(ctx => ctx.HStack(h =>
             [
                 StyledBlock.Build(h, [label], Math.Max(1, DisplayWidth.GetStringWidth(question)), Session.ColorEnabled),
@@ -303,7 +303,7 @@ internal sealed partial class ReplHost : IReplHost
         ArgumentNullException.ThrowIfNull(render);
         await FlushAsync();
         var flow = Flow;
-        var width = Math.Max(1, flow.TerminalWidth);
+        var width = FrozenWidth(flow);
         var height = Math.Max(1, flow.TerminalHeight - 1);
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var step = flow.Step(ctx => StyledBlock.BuildRows(ctx, Rows(), width, Session.ColorEnabled)
@@ -331,6 +331,16 @@ internal sealed partial class ReplHost : IReplHost
     }
 
     private Hex1bFlowContext Flow => _flow ?? throw new InvalidOperationException("The REPL flow is not running.");
+
+    /// <summary>
+    /// The width that lines left in the scrollback are folded to.
+    /// </summary>
+    /// <remarks>
+    /// One column short of the terminal, since erasing to the end of a full row can drop its last character.
+    /// </remarks>
+    /// <param name="flow">The flow.</param>
+    /// <returns>The width.</returns>
+    private static int FrozenWidth(Hex1bFlowContext flow) => Math.Max(1, flow.TerminalWidth - 1);
 
     private void ShowBanner()
     {
@@ -381,7 +391,7 @@ internal sealed partial class ReplHost : IReplHost
                 controller.Ended = result =>
                 {
                     var tombstone = PromptLabel(result.Shell).Append(result.Text);
-                    ctx.Step.Complete(y => StyledBlock.Build(y, [tombstone], width, Session.ColorEnabled));
+                    ctx.Step.Complete(y => StyledBlock.Build(y, [tombstone], FrozenWidth(flow), Session.ColorEnabled));
                     _ = completed.TrySetResult(result);
                 };
 
