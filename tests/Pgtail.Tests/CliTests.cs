@@ -281,4 +281,36 @@ public sealed class CliTests
             screen => !screen.InAlternateScreen && ReplHarness.PromptLine(screen) == "pgtail>",
             description: "the prompt again");
     }
+
+    /// <summary>
+    /// connections --watch streams events on the real terminal until Ctrl+C, then sums up and gives the prompt back.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_ConnectionsWatch_StreamsUntilCtrlC()
+    {
+        using var environment = new TestEnvironment();
+        var (data, log) = DataDirectories.Create(environment.Root, "17", 5496);
+        environment.Set("PGDATA", data);
+        await using var pgtail = PgtailProcess.Start(environment, 200, 30, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+
+        // Tailing the instance by its data directory makes it the one watched, whatever else runs on the machine.
+        await pgtail.Automator.TypeAsync($"tail {data} --stream", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Press Ctrl+C to stop");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Paused. Use 'stop' to stop tailing.");
+        await pgtail.Automator.TypeAsync("connections --watch", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("[+] connect  [-] disconnect  [!] failed");
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 900, "LOG",
+            "connection authorized: user=alice database=orders application_name=psql"));
+        await pgtail.Automator.WaitUntilTextAsync("alice@orders (psql)");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("Exited watch mode. 1 events seen.")
+                && ReplHarness.PromptLine(screen).StartsWith("paused [", StringComparison.Ordinal),
+            description: "the summary and the prompt again");
+    }
 }

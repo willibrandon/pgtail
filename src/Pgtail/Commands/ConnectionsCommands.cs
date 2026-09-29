@@ -313,26 +313,26 @@ internal static class ConnectionsCommands
             return;
         }
 
+        // The log is opened before the header shows, so every event written after it is seen.
+        var source = new LogTailer(path, fromStart: false, instance.DataDirectory, instance.LogDirectory, LogSources.PollInterval);
+        source.Start();
         var filterText = filter.IsEmpty ? "" : $" (filter: {Describe(filter)})";
         output.Line(new StyledText($"Watching connections{filterText}", Bold).Append($" - {Path.GetFileName(path)} (Ctrl+C to exit)"));
         output.Line(new StyledText().Append("[+]", Green).Append(" connect  ").Append("[-]", Yellow).Append(" disconnect  ")
             .Append("[!]", Red).Append(" failed"));
         output.Line();
-        await CoreCommands.Repl(invocation).WatchAsync(cancellationToken => Events(session, instance, path, filter, cancellationToken));
+        await CoreCommands.Repl(invocation).WatchAsync(cancellationToken => Events(session, source, filter, cancellationToken));
     }
 
     private static async IAsyncEnumerable<StyledText> Events(
         PgtailSession session,
-        Detection.PostgresInstance instance,
-        string path,
+        LogTailer source,
         ConnectionFilter filter,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var seen = 0;
-        var source = new LogTailer(path, fromStart: false, instance.DataDirectory, instance.LogDirectory, LogSources.PollInterval);
         await using (source)
         {
-            source.Start();
             while (!cancellationToken.IsCancellationRequested)
             {
                 try

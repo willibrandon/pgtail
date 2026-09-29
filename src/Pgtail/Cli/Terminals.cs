@@ -42,4 +42,19 @@ internal static class Terminals
     /// </remarks>
     /// <returns>A task that completes when the console is free.</returns>
     public static Task ReleaseConsoleAsync() => Task.Delay(TimeSpan.FromMilliseconds(150));
+
+    /// <summary>
+    /// Makes the next cursor position query ask the terminal.
+    /// </summary>
+    /// <remarks>
+    /// .NET caches the cursor position and moves it along with the text written through <see cref="Console"/>, but Hex1b
+    /// writes to the terminal directly, so after a terminal has run the cached row is stale and the next prompt would
+    /// start above the output. Writing an escape sequence through <see cref="Console"/> makes .NET drop the cache; the
+    /// sequence written resets text attributes and changes nothing on the screen.
+    /// </remarks>
+    public static void ForgetCursorPosition()
+    {
+        Console.Out.Write("\e[0m");
+        Console.Out.Flush();
+    }
 }

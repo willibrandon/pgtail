@@ -118,4 +118,9 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   UTC but text times as written, so the same server's logs disagreed by the zone offset. Entries now keep the instant
   (UTC, used for every comparison) and the offset they were written with, text lines in a known zone such as `PDT`
   included, and JSON and CSV export write that offset (`-07:00`).
+- .NET caches the cursor position and moves it along with text written through `Console`, but Hex1b writes to the
+  terminal directly, so after a stream or a shell command the next prompt started above the output. The REPL writes an
+  attribute reset through `Console` before each prompt that asks where the cursor is, which makes .NET ask the terminal.
+- Lines printed just before a stream (`Press Ctrl+C to stop`) are written by the stream once Ctrl+C stops it, and the
+  REPL ignores Ctrl+C between terminals instead of letting the signal end the process.
 

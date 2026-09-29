@@ -42,12 +42,33 @@ internal static class ReplRunner
             _ = CheckForUpdateAsync(session, updates, host);
         }
 
+        // Between terminals the console is not in raw mode, so Ctrl+C there is a signal that would end the process;
+        // the REPL keeps running and a stream, when one runs, stops.
+        ConsoleCancelEventHandler keepRunning = (_, e) => e.Cancel = true;
+        Console.CancelKeyPress += keepRunning;
+        try
+        {
+            return await LoopAsync(host);
+        }
+        finally
+        {
+            Console.CancelKeyPress -= keepRunning;
+        }
+    }
+
+    private static async Task<int> LoopAsync(ReplHost host)
+    {
         int? resumeRow = null;
         while (true)
         {
             ReplRequest? request = null;
             var startRow = resumeRow;
             resumeRow = null;
+            if (startRow is null)
+            {
+                Terminals.ForgetCursorPosition();
+            }
+
             await using (var terminal = Terminals.Builder()
                 .WithHex1bFlow(async flow => request = await host.RunAsync(flow), options =>
                 {

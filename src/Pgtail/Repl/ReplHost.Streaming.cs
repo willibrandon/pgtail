@@ -60,15 +60,12 @@ internal sealed partial class ReplHost
         var source = LogSources.Create(request, Session, CurrentDirectory, StandardInput);
         source.Start();
         _stream = new PausedStream(source, request.Source.DisplayName);
-        _pending = new ReplRequest(ReplRequestKind.Stream)
+        _pending = StreamRequest(async (writer, cancellationToken) =>
         {
-            Stream = async (writer, cancellationToken) =>
-            {
-                await new EntryStreamer(Session, writer, styled: true).RunAsync(source, cancellationToken);
-                await writer.WriteLineAsync();
-                await writer.WriteLineAsync("Paused. Use 'stop' to stop tailing.");
-            },
-        };
+            await new EntryStreamer(Session, writer, styled: true).RunAsync(source, cancellationToken);
+            await writer.WriteLineAsync();
+            await writer.WriteLineAsync("Paused. Use 'stop' to stop tailing.");
+        });
     }
 
     /// <inheritdoc/>
@@ -85,25 +82,42 @@ internal sealed partial class ReplHost
     public Task WatchAsync(Func<CancellationToken, IAsyncEnumerable<StyledText>> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
-        _pending = new ReplRequest(ReplRequestKind.Stream)
+        _pending = StreamRequest(async (writer, cancellationToken) =>
+        {
+            try
+            {
+                await foreach (var line in lines(cancellationToken).WithCancellation(cancellationToken))
+                {
+                    await writer.WriteLineAsync(AnsiText.Render(line, Session.ColorEnabled));
+                    await writer.FlushAsync(CancellationToken.None);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Ctrl+C ends watching.
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    // The lines the command printed just before streaming, such as "Press Ctrl+C to stop", are written by the stream
+    // itself, once Ctrl+C stops it, so a Ctrl+C pressed as soon as they show is not lost.
+    private ReplRequest StreamRequest(Func<TextWriter, CancellationToken, Task> stream)
+    {
+        var header = Output.Take();
+        return new ReplRequest(ReplRequestKind.Stream)
         {
             Stream = async (writer, cancellationToken) =>
             {
-                try
+                foreach (var line in header)
                 {
-                    await foreach (var line in lines(cancellationToken).WithCancellation(cancellationToken))
-                    {
-                        await writer.WriteLineAsync(AnsiText.Render(line, Session.ColorEnabled));
-                        await writer.FlushAsync(cancellationToken);
-                    }
+                    await writer.WriteLineAsync(AnsiText.Render(line, Session.ColorEnabled));
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Ctrl+C ends watching.
-                }
+
+                await writer.FlushAsync(CancellationToken.None);
+                await stream(writer, cancellationToken);
             },
         };
-
-        return Task.CompletedTask;
     }
 }

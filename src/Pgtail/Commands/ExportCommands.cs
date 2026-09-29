@@ -125,10 +125,14 @@ internal static class ExportCommands
 
         if (follow)
         {
+            // The log is opened before the header shows, so every entry written after it is exported.
+            var logPath = source.Instance?.LogPath ?? (source.Files is [var first, ..] ? first : null);
+            var tail = LogSources.Create(new TailRequest(source, logPath, Stream: true), session, invocation.Host.CurrentDirectory,
+                Console.OpenStandardInput);
+            tail.Start();
             output.Line($"Exporting to {file} (Ctrl+C to stop)");
             output.Line();
-            await host.WatchAsync(cancellationToken => FollowAsync(session, source, invocation.Host.CurrentDirectory, path, file, format,
-                highlighted, cancellationToken));
+            await host.WatchAsync(cancellationToken => FollowAsync(session, tail, path, file, format, highlighted, cancellationToken));
             return;
         }
 
@@ -365,8 +369,7 @@ internal static class ExportCommands
 
     private static async IAsyncEnumerable<StyledText> FollowAsync(
         PgtailSession session,
-        TailSource source,
-        string currentDirectory,
+        ILogSource tail,
         string path,
         string file,
         ExportFormat format,
@@ -374,8 +377,6 @@ internal static class ExportCommands
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var count = 0;
-        var logPath = source.Instance?.LogPath ?? (source.Files is [var first, ..] ? first : null);
-        var tail = LogSources.Create(new TailRequest(source, logPath, Stream: true), session, currentDirectory, Console.OpenStandardInput);
         await using (tail)
         {
             await using var writer = new StreamWriter(path, append: false, new UTF8Encoding(false)) { NewLine = "\n" };
@@ -384,7 +385,6 @@ internal static class ExportCommands
                 await writer.WriteLineAsync(EntryExporter.CsvHeader);
             }
 
-            tail.Start();
             var line = Highlighter(session, highlighted);
             while (!cancellationToken.IsCancellationRequested)
             {
