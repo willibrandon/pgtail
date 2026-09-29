@@ -125,7 +125,7 @@ While streaming, `Ctrl+C` pauses the output and the prompt changes to `paused [i
 
 | Command | Description |
 |---------|-------------|
-| `levels [LEVEL...]` | Set the level filter (`levels ERROR WARNING`, `levels error+`); with no levels, show it |
+| `levels [LEVEL...]` | Set the level filter (`levels ERROR WARNING`, `levels error+`); with no levels, show it. `level` is another name for it, as in tail mode |
 | `levels ALL` | Show every level |
 | `filter /pattern/` | Show only lines matching a regular expression, ignoring case |
 | `filter /pattern/c` | The same, matching case |
@@ -349,7 +349,7 @@ shows in a panel above the input until the next command or Escape; PgUp and PgDn
 
 | Command | Description |
 |---------|-------------|
-| `level <lvl>` | Level filter (`error`, `error+`, `warning-`, `error,warning`, `all`) |
+| `level <lvl>` | Level filter (`error`, `error+`, `warning-`, `error,warning`, `all`); `levels` is another name for it |
 | `filter /pattern/` | Regular expression filter (`/c`, `-/`, `+/`, `&/`, `field=value`, `clear`) |
 | `since <time>` | Time filter |
 | `until <time>` | End time filter |

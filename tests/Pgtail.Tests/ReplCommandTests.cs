@@ -195,6 +195,43 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
+    /// Deleting back to an empty line closes the menu, and Tab there lists every command.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Backspace_ToEmptyLine_ClosesMenu()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.Automator.TypeAsync("th", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Switch color theme");
+        await repl.Automator.BackspaceAsync(TestContext.CancellationToken);
+        await repl.Automator.BackspaceAsync(TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => !snapshot.ContainsText("Switch color theme") && !snapshot.ContainsText("Show detected PostgreSQL instances")
+                && ReplHarness.PromptLine(snapshot) == "pgtail>",
+            description: "an empty prompt with no menu");
+        await repl.Automator.TabAsync(TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Show detected PostgreSQL instances");
+    }
+
+    /// <summary>
+    /// level works at the REPL prompt as in tail mode, as another name for levels.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Level_IsLevelsAtThePrompt()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("level error+", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("Filter set: ERROR FATAL PANIC")
+                && ReplHarness.Toolbar(snapshot).Contains("levels:ERROR,FATAL,PANIC", StringComparison.Ordinal),
+            description: "the level filter set");
+    }
+
+    /// <summary>
     /// Completion offers a command's subcommands after its name.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

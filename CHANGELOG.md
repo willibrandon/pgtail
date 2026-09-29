@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `notify on /pattern with spaces/` keeps the whole pattern; it was cut at the first space.
+- Deleting back to an empty line at the REPL prompt closes the completion menu instead of listing every command.
+- `level` works at the REPL prompt and `levels` in tail mode, so the level filter command has the same name in both.
 
 ### Removed
 - The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`,

@@ -218,7 +218,7 @@ tail <id>          Tail logs for an instance in full screen tail mode (supports 
 tail --file <path> Tail arbitrary log file(s) (glob patterns, multiple files)
 tail --stdin       Read log data from stdin pipe
 tail ... --stream  Print entries in the REPL instead (Ctrl+C pauses, 'stop' ends)
-levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
+levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear; also 'level')
 since <time>       Filter logs since time (e.g., 5m, 14:30, 2024-01-15T14:30)
 until <time>       Filter logs until time
 between <s> <e>    Filter logs in time range (e.g., between 14:30 15:00)

@@ -43,7 +43,7 @@ internal static class ReplCatalog
                 Rest = ArgumentSpec.From(CompletionSources.Levels),
                 Positionals = [ArgumentSpec.From(CompletionSources.Levels)],
             },
-            FilterCommands.Levels),
+            FilterCommands.Levels) { Aliases = ["level"] },
         new("filter", "Set regex filter (e.g., 'filter /pattern/')", ArgumentSpec.Positional(new ArgumentSpec
         {
             Values = [new("clear", "Clear all filters")],

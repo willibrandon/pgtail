@@ -324,6 +324,22 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// levels works in tail mode as at the REPL prompt, as another name for level.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Levels_IsLevelInTailMode()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.RunAsync("levels error", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Status(screen).Contains("levels:ERROR", StringComparison.Ordinal) && !screen.ContainsText("routine"),
+            description: "the level filter set");
+    }
+
+    /// <summary>
     /// Text typed on the log that is not one of its keys goes to the input.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

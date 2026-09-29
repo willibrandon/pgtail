@@ -30,6 +30,7 @@ internal static class TailCatalog
     [
         new("level", "Filter by level", ArgumentSpec.Positional(Levels), FilterCommands.TailLevel)
         {
+            Aliases = ["levels"],
             Help = new("level <level>[+|-] [level2...]", "Filter log entries by severity level",
                 "Show only entries matching the specified log level(s).",
                 [

@@ -91,6 +91,13 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
             return;
         }
 
+        // Clearing the line closes the menu, as the prompt starts; Tab still lists every command.
+        if (string.IsNullOrWhiteSpace(State.Text[..Math.Min(State.Caret, State.Text.Length)]))
+        {
+            State.HideCompletions();
+            return;
+        }
+
         var (start, items) = Complete();
         var partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
         if (items is [var only] && only.Text.Equals(partial, StringComparison.OrdinalIgnoreCase))
