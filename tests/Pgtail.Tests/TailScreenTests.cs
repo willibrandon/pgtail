@@ -247,16 +247,16 @@ public sealed class TailScreenTests
         var log = WriteLog(environment, ("LOG", "hello"));
         await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("conn", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "connections",
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> connections",
             description: "the suggestion completing the command");
         await tail.Automator.RightAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync(" --history", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "connections --history",
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> connections --history",
             description: "the accepted suggestion with more typed");
     }
 
     /// <summary>
-    /// Up in the input recalls the previous command.
+    /// The input keeps the focus after a command, so Up there recalls it.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
@@ -266,11 +266,77 @@ public sealed class TailScreenTests
         var log = WriteLog(environment, ("ERROR", "a failure"));
         await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("errors", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilTextAsync("Error Statistics");
-        await tail.Automator.TypeAsync("/", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail>", description: "the input focused");
+        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("Error Statistics") && TailHarness.Input(screen) == "tail>",
+            description: "the output and an empty input");
         await tail.Automator.UpAsync(TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "errors", description: "the previous command");
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> errors",
+            description: "the previous command");
+    }
+
+    /// <summary>
+    /// Commands typed one after another each reach the input, since running one keeps the input focused.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Input_AfterCommand_TakesTheNextCommand()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.TypeAsync("level error", TestContext.CancellationToken);
+        await tail.Automator.EnterAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).Contains("levels:ERROR", StringComparison.Ordinal)
+            && TailHarness.Input(screen) == "tail>", description: "the filter applied and an empty input");
+        await tail.Automator.TypeAsync("level all", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level all",
+            description: "the next command typed in the input");
+        await tail.Automator.EnterAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).Contains("levels:ALL", StringComparison.Ordinal),
+            description: "the second command run");
+    }
+
+    /// <summary>
+    /// Text typed on the log that is not one of its keys goes to the input.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Log_TypedCommand_GoesToTheInput()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.EscapeAsync(TestContext.CancellationToken);
+        await tail.Automator.TypeAsync("since 5m", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> since 5m",
+            description: "the command in the input");
+    }
+
+    /// <summary>
+    /// A command's output stays above the input while entries arrive, pages with Page Down, and Escape closes it.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task CommandOutput_StaysWhileEntriesArrive_EscapeCloses()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.TypeAsync("help", TestContext.CancellationToken);
+        await tail.Automator.EnterAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("Navigation") && screen.ContainsText("more below"),
+            description: "the help output with more below");
+        LogFiles.Append(log, Enumerable.Range(1, 60).Select(i => LogFiles.Text(DateTime.UtcNow, 2000 + i, "LOG", $"arriving {i}")));
+        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("arriving 60") && screen.ContainsText("Navigation"),
+            description: "new entries with the output still shown");
+        await tail.Automator.PageDownAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("more above") && !screen.ContainsText("Scroll 1 line"),
+            description: "the next page of the output");
+        await tail.Automator.EscapeAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => !screen.ContainsText("more above") && TailHarness.Input(screen) == "tail>",
+            description: "the output closed with the input kept");
+        await tail.Automator.TypeAsync("pause", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> pause",
+            description: "the input still focused");
     }
 
     /// <summary>
@@ -536,9 +602,14 @@ public sealed class TailScreenTests
         await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 60);
         await tail.RunAsync("help", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
-            screen => screen.ContainsText("help keys    Show keybinding reference") && screen.ContainsText("stop/exit/q  Exit tail mode"),
-            description: "the command list");
+            screen => screen.ContainsText("help keys    Show keybinding reference") && screen.ContainsText("more below"),
+            description: "the command list's first page");
+        await tail.Automator.PageDownAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("stop/exit/q  Exit tail mode");
         await tail.RunAsync("help keys", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("j / ↓") && screen.ContainsText("more below"),
+            description: "the key reference's first page");
+        await tail.Automator.PageDownAsync(TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("Escape / q       Close help");
         await tail.RunAsync("help level", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(

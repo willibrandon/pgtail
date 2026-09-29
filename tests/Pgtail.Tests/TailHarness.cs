@@ -88,7 +88,7 @@ internal sealed class TailHarness : IAsyncDisposable
     }
 
     /// <summary>
-    /// The command input: the row above the status bar's rule.
+    /// The command input: the row above the status bar's rule, starting with the <c>tail&gt;</c> prompt.
     /// </summary>
     /// <param name="screen">The screen.</param>
     /// <returns>The row, trimmed.</returns>
@@ -110,11 +110,11 @@ internal sealed class TailHarness : IAsyncDisposable
     }
 
     /// <summary>
-    /// Types a command into the input and runs it, which leaves the log focused.
+    /// Types a command into the input and runs it, from whatever the screen was doing.
     /// </summary>
     /// <remarks>
-    /// Escape empties the input and focuses the log, or clears the log's selection, so <c>/</c> then reaches the log
-    /// and focuses the input either way.
+    /// In the input, Escape closes the last command's output and then empties the input and focuses the log; on the log
+    /// it clears the selection. Two of them leave the log focused either way, so <c>/</c> then focuses the input.
     /// </remarks>
     /// <param name="command">The command.</param>
     /// <param name="cancellationToken">Cancels the typing.</param>
@@ -122,11 +122,12 @@ internal sealed class TailHarness : IAsyncDisposable
     public async Task RunAsync(string command, CancellationToken cancellationToken)
     {
         await Automator.EscapeAsync(cancellationToken);
+        await Automator.EscapeAsync(cancellationToken);
         await Automator.TypeAsync("/", cancellationToken);
         await Automator.WaitUntilAsync(screen => Input(screen) == "tail>", description: "an empty command input");
         await Automator.TypeAsync(command, cancellationToken);
         await Automator.WaitUntilAsync(screen => Input(screen)
-            .StartsWith(command, StringComparison.Ordinal), description: "the command typed");
+            .StartsWith($"tail> {command}", StringComparison.Ordinal), description: "the command typed");
         await Automator.EnterAsync(cancellationToken);
     }
 

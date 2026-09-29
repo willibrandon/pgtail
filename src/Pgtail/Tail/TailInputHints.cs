@@ -4,7 +4,7 @@ using Hex1b.Theming;
 namespace Pgtail.Tail;
 
 /// <summary>
-/// Shows the <c>tail&gt; </c> placeholder in the empty input and the grey suggestion after the text typed.
+/// Shows the grey suggestion after the text typed.
 /// </summary>
 internal sealed class TailInputHints : ITextDecorationProvider
 {
@@ -12,11 +12,6 @@ internal sealed class TailInputHints : ITextDecorationProvider
     private IEditorSession? _session;
     private (int Column, string Text)? _shown;
     private (int Column, string Text)? _wanted;
-
-    /// <summary>
-    /// The placeholder shown while the input is empty.
-    /// </summary>
-    public const string Placeholder = "tail> ";
 
     /// <inheritdoc/>
     public void Activate(IEditorSession session)

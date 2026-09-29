@@ -9,8 +9,9 @@ namespace Pgtail.Tail;
 /// The <c>tail&gt;</c> command input: editing, history, and grey suggestions.
 /// </summary>
 /// <remarks>
-/// Right or End at the end of the line accepts the suggestion, Up and Down walk the history, Enter runs the command,
-/// Escape clears the line and returns to the log, and <c>q</c> on an empty line leaves tail mode.
+/// Right or End at the end of the line accepts the suggestion, Up and Down walk the history, Enter runs the command and
+/// keeps the input for the next one, Page Up and Page Down scroll the command output or else the log, Escape closes the
+/// command output or else clears the line and moves to the log, and <c>q</c> on an empty line leaves tail mode.
 /// </remarks>
 internal sealed class TailInput
 {
@@ -40,7 +41,7 @@ internal sealed class TailInput
     public EditorState Editor { get; } = new(new Hex1bDocument(""));
 
     /// <summary>
-    /// The placeholder and suggestion hints.
+    /// The suggestion hints.
     /// </summary>
     public TailInputHints Hints { get; } = new();
 
@@ -60,7 +61,7 @@ internal sealed class TailInput
     public void Load() => _history.Load();
 
     /// <summary>
-    /// Updates the placeholder and suggestion for the current line; called on every frame.
+    /// Updates the suggestion for the current line; called on every frame.
     /// </summary>
     public void UpdateHints()
     {
@@ -78,19 +79,14 @@ internal sealed class TailInput
         }
 
         var text = Text;
-        if (text.Length == 0)
-        {
-            Hints.Show(0, TailInputHints.Placeholder);
-        }
-        else if (Editor.Cursor.Position.Value == text.Length && _suffix is { Length: > 0 } suffix)
-        {
-            Hints.Show(text.Length, suffix);
-        }
-        else
-        {
-            Hints.Show(0, null);
-        }
+        Hints.Show(text.Length, Editor.Cursor.Position.Value == text.Length ? _suffix : null);
     }
+
+    /// <summary>
+    /// Inserts typed text at the caret, as when keys typed on the log belong to a command.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    public void Type(string text) => Editor.InsertText(text);
 
     /// <summary>
     /// Adds the input's keys to the editor's bindings.
@@ -107,12 +103,21 @@ internal sealed class TailInput
         bindings.Remove(Hex1bKey.Escape);
         _lineKeys ??= new LineEditingKeys(Editor);
         _lineKeys.Bind(bindings);
-        bindings.Key(Hex1bKey.Enter).Action(SubmitAsync, "Run the command");
+        bindings.Key(Hex1bKey.Enter).Action(_ => SubmitAsync(), "Run the command");
         bindings.Key(Hex1bKey.Escape).Action(context =>
         {
+            if (_screen.ResultVisible)
+            {
+                _screen.CloseResult();
+                return;
+            }
+
             SetText("");
             FocusLog?.Invoke(context);
-        }, "Clear and return to the log");
+        }, "Close the command output, or clear and return to the log");
+
+        bindings.Key(Hex1bKey.PageUp).Action(_ => _screen.Scroll(-1), "Scroll the command output or the log up");
+        bindings.Key(Hex1bKey.PageDown).Action(_ => _screen.Scroll(1), "Scroll the command output or the log down");
 
         bindings.Key(Hex1bKey.UpArrow).Action(_ =>
         {
@@ -168,12 +173,11 @@ internal sealed class TailInput
         }
     }
 
-    private async Task SubmitAsync(InputBindingActionContext context)
+    private async Task SubmitAsync()
     {
         var text = Text;
         SetText("");
         _history.ResetNavigation();
-        FocusLog?.Invoke(context);
         await _screen.RunCommandAsync(text);
     }
 }

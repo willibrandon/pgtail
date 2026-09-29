@@ -96,6 +96,20 @@ internal static class TailModeCommands
         }
 
         output.Line();
+        output.Markup("[bold cyan]Command Input[/bold cyan]");
+        foreach (var (key, description) in new[]
+        {
+            ("Enter", "Run the command; its output stays above the input"),
+            ("PgUp/PgDn", "Scroll the output, or the log"),
+            ("Up/Down", "Previous/next command"),
+            ("Escape", "Close the output, then go to the log"),
+            ("Tab", "Switch between the input and the log"),
+        })
+        {
+            output.Markup($"  [green]{Markup.Escape(key.PadRight(12))}[/green] [dim]{Markup.Escape(description)}[/dim]");
+        }
+
+        output.Line();
         output.Markup("[bold cyan]Utility Keys[/bold cyan]");
         foreach (var (key, description) in new[] { ("Ctrl+C", "Copy the selection, or exit tail mode"), ("q", "Exit tail mode") })
         {

@@ -1,6 +1,7 @@
 using Hex1b;
 using Pgtail.Commands;
 using Pgtail.Parsing;
+using Pgtail.Rendering;
 using Pgtail.Sessions;
 using Pgtail.Styling;
 using Pgtail.Tailing;
@@ -8,12 +9,13 @@ using Pgtail.Tailing;
 namespace Pgtail.Tail;
 
 /// <summary>
-/// The full screen tail view: the log, the command input, the status bar, and the help overlay.
+/// The full screen tail view: the log, the command output, the command input, the status bar, and the help overlay.
 /// </summary>
 /// <remarks>
 /// All state changes happen on Hex1b's app loop: entries are taken from the source while the screen is built, a
 /// filter change redraws the log a batch at a time across frames, and entries that arrive meanwhile wait in the
-/// source until the redraw finishes, so the log stays in order.
+/// source until the redraw finishes, so the log stays in order. A command's output shows in a panel above the input
+/// until the next command or Escape, so a busy log does not scroll it away.
 /// </remarks>
 internal sealed partial class TailScreen : ITailHost
 {
@@ -26,7 +28,10 @@ internal sealed partial class TailScreen : ITailHost
     private readonly TailLogView _view;
     private readonly TailHistory _history;
     private readonly FilterAnchor _anchor;
-    private readonly List<StyledText> _afterRebuild = [];
+    private readonly TailHelpOverlay _help = new();
+    private List<List<StyledSpan>> _result = [];
+    private int _resultTop;
+    private int _resultRows;
     private Hex1bApp? _app;
     private List<LogEntry>? _rebuildSnapshot;
     private int _rebuildIndex;
@@ -105,7 +110,37 @@ internal sealed partial class TailScreen : ITailHost
     /// <summary>
     /// Whether the help overlay is showing.
     /// </summary>
-    public bool HelpVisible { get; set; }
+    public bool HelpVisible { get; private set; }
+
+    /// <summary>
+    /// Whether a command's output is showing above the input.
+    /// </summary>
+    public bool ResultVisible => _result.Count > 0;
+
+    /// <summary>
+    /// Closes the command output.
+    /// </summary>
+    public void CloseResult()
+    {
+        _result = [];
+        _resultTop = 0;
+    }
+
+    /// <summary>
+    /// Scrolls the command output a page at a time when it is longer than its panel, or else the log.
+    /// </summary>
+    /// <param name="pages">The pages to scroll, negative for up.</param>
+    public void Scroll(int pages)
+    {
+        if (_result.Count > _resultRows)
+        {
+            var page = PageRows(_resultRows);
+            _resultTop = Math.Clamp(_resultTop + (pages * page), 0, Math.Max(0, _result.Count - page));
+            return;
+        }
+
+        _view.Page(pages);
+    }
 
     /// <inheritdoc/>
     public void Stop()
@@ -179,7 +214,7 @@ internal sealed partial class TailScreen : ITailHost
     }
 
     /// <summary>
-    /// Runs a command typed in the input and shows its output in the log.
+    /// Runs a command typed in the input and shows its output above the input.
     /// </summary>
     /// <param name="line">The command line.</param>
     /// <returns>A task that completes when the command has run.</returns>
@@ -194,7 +229,7 @@ internal sealed partial class TailScreen : ITailHost
 
         _history.Add(text);
         await TailCatalog.ExecuteAsync(text, this);
-        FlushOutput();
+        ShowResult(Output.Take());
     }
 
     private static string? TimeStatus(Filtering.TimeFilter time)
@@ -218,21 +253,10 @@ internal sealed partial class TailScreen : ITailHost
         };
     }
 
-    private void FlushOutput()
+    private void ShowResult(IReadOnlyList<StyledText> lines)
     {
-        var lines = Output.Take();
-        if (lines.Count == 0)
-        {
-            return;
-        }
-
-        if (_rebuildSnapshot is not null)
-        {
-            _afterRebuild.AddRange(lines);
-            return;
-        }
-
-        WriteLines(lines);
+        _result = [.. lines.SelectMany(line => StyledTextFolder.Fold(line, 0))];
+        _resultTop = 0;
     }
 
     private void WriteLines(IReadOnlyList<StyledText> lines)
@@ -252,7 +276,7 @@ internal sealed partial class TailScreen : ITailHost
         TailClipboard.Copy(_app, text);
         if (announce)
         {
-            WriteLines([Markup.Parse($"[dim]Copied {text.Length} characters[/]")]);
+            ShowResult([Markup.Parse($"[dim]Copied {text.Length} characters[/]")]);
         }
     }
 
@@ -283,11 +307,6 @@ internal sealed partial class TailScreen : ITailHost
             }
 
             _rebuildSnapshot = null;
-            if (_afterRebuild.Count > 0)
-            {
-                WriteLines(_afterRebuild);
-                _afterRebuild.Clear();
-            }
         }
 
         var shown = new List<StyledText>();

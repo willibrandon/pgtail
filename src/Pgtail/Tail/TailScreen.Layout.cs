@@ -16,6 +16,7 @@ internal sealed partial class TailScreen
     private static readonly TextStyle PanelText = StyleParser.Parse("fg:#c0c0c0 bg:#262626 bold");
     private static readonly TextStyle HeaderText = StyleParser.Parse("fg:#8a8a8a bg:#262626");
     private static readonly TextStyle Separator = StyleParser.Parse("fg:#5f5f5f");
+    private const string Prompt = "tail> ";
     private CancellationTokenSource? _watch;
     private Dictionary<char, Action<InputBindingActionContext>> _logKeys = [];
 
@@ -40,7 +41,11 @@ internal sealed partial class TailScreen
         _logKeys = new Dictionary<char, Action<InputBindingActionContext>>
         {
             ['q'] = _ => Stop(),
-            ['?'] = _ => HelpVisible = true,
+            ['?'] = _ =>
+            {
+                _help.Open();
+                HelpVisible = true;
+            },
             ['/'] = context => context.FocusWhere(IsInput),
         };
 
@@ -130,24 +135,31 @@ internal sealed partial class TailScreen
         }
 
         Input.UpdateHints();
+        var resultRows = ResultRows();
         var main = context.VStack(v =>
         [
             Bar(v, TailStatus.FormatHeader(), HeaderText),
             Rule(v),
-            _view.Build(v, _logKeys, bindings => BindScreenKeys(bindings, logFocused: true)).Fill(),
+            _view.Build(v, _logKeys, TypeCommand, bindings => BindScreenKeys(bindings, logFocused: true)).Fill(),
             Rule(v),
-            v.Editor(Input.Editor)
-                .Decorations(Input.Hints)
-                .InputBindings(bindings =>
-                {
-                    Input.Bind(bindings);
-                    BindScreenKeys(bindings, logFocused: false);
-                })
-                .FixedHeight(1),
+            // The output's place is always there, so the input keeps its place in the layout, and its focus.
+            v.VStack(r => resultRows > 0 ? [Result(r, resultRows), Rule(r)] : []).FixedHeight(resultRows > 0 ? resultRows + 1 : 0),
+            v.HStack(h =>
+            [
+                h.Text(Prompt),
+                h.Editor(Input.Editor)
+                    .Decorations(Input.Hints)
+                    .InputBindings(bindings =>
+                    {
+                        Input.Bind(bindings);
+                        BindScreenKeys(bindings, logFocused: false);
+                    })
+                    .FillWidth(),
+            ]).FixedHeight(1),
             Rule(v),
             Bar(v, Status.FormatStatus(), PanelText),
         ]);
-        return HelpVisible ? context.ZStack(z => [main, TailHelpOverlay.Build(z, CloseHelp)]) : main;
+        return HelpVisible ? context.ZStack(z => [main, _help.Build(z, ScreenRows(), CloseHelp)]) : main;
     }
 
     private void BindScreenKeys(InputBindingsBuilder bindings, bool logFocused)
@@ -162,6 +174,57 @@ internal sealed partial class TailScreen
                 Stop();
             }
         }, "Copy the selection, or leave tail mode");
+    }
+
+    // The command output takes as many rows as it has, up to half of what it shares with the log; a longer output
+    // shows a page at a time with a line saying how to scroll.
+    private int ResultRows()
+    {
+        if (_result.Count == 0)
+        {
+            _resultRows = 0;
+            return 0;
+        }
+
+        var shared = _view.Rows + (_resultRows > 0 ? _resultRows + 1 : 0);
+        _resultRows = Math.Min(_result.Count, Math.Max(3, shared / 2));
+        _resultTop = Math.Clamp(_resultTop, 0, Math.Max(0, _result.Count - PageRows(_resultRows)));
+        return _resultRows;
+    }
+
+    // The screen's rows: the log's, the output's with its rule, and the bars, rules, and input around them.
+    private int ScreenRows() => _view.Rows + (_resultRows > 0 ? _resultRows + 1 : 0) + 6;
+
+    private int PageRows(int rows) => _result.Count > rows ? rows - 1 : rows;
+
+    private SurfaceWidget Result<TParent>(WidgetContext<TParent> context, int rows)
+        where TParent : Hex1bWidget
+    {
+        var page = PageRows(rows);
+        var shown = _result.Skip(_resultTop).Take(page).ToList();
+        if (page < rows)
+        {
+            var above = _resultTop;
+            var below = _result.Count - _resultTop - page;
+            var where = (above, below) switch
+            {
+                (0, _) => $"{below} more below",
+                (_, 0) => $"{above} more above",
+                _ => $"{above} more above, {below} below",
+            };
+
+            shown.Add(StyledTextFolder.Fold(Markup.Parse($"[dim]── {where} · PgUp/PgDn scroll · Esc closes[/]"), 0)[0]);
+        }
+
+        return context.Surface(s => [s.Layer(surface => StyledBlock.Draw(surface, shown, Session.ColorEnabled))])
+            .Height(Hex1b.Layout.SizeHint.Fixed(rows));
+    }
+
+    // Keys typed on the log that are not its own start a command.
+    private void TypeCommand(string text, InputBindingActionContext context)
+    {
+        _ = context.FocusWhere(IsInput);
+        Input.Type(text);
     }
 
     private void CloseHelp(InputBindingActionContext context)

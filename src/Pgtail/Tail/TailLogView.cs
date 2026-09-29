@@ -78,29 +78,44 @@ internal sealed class TailLogView(TailLog log, bool color)
     /// </summary>
     /// <remarks>
     /// Typed keys are handled a character at a time, so keys typed faster than the screen reads them, which arrive
-    /// together, each still take effect.
+    /// together, each still take effect. Typed text holding any other character is a command being typed, and goes to
+    /// <paramref name="typed"/>.
     /// </remarks>
     /// <typeparam name="TParent">The parent widget type.</typeparam>
     /// <param name="context">The widget context.</param>
     /// <param name="screenKeys">The screen's typed keys, handled with the view's.</param>
+    /// <param name="typed">Receives text typed that is not the view's or the screen's keys.</param>
     /// <param name="more">Adds the screen's other keys.</param>
     /// <returns>The widget.</returns>
     public InteractableWidget Build<TParent>(
         WidgetContext<TParent> context,
         IReadOnlyDictionary<char, Action<InputBindingActionContext>> screenKeys,
+        Action<string, InputBindingActionContext> typed,
         Action<InputBindingsBuilder> more)
         where TParent : Hex1bWidget
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(screenKeys);
+        ArgumentNullException.ThrowIfNull(typed);
         ArgumentNullException.ThrowIfNull(more);
         return context.Interactable(i => i.Surface(s => [s.Layer(Draw)]).Fill())
             .InputBindings(bindings =>
             {
-                Bind(bindings, screenKeys);
+                Bind(bindings, screenKeys, typed);
                 more(bindings);
             });
     }
+
+    /// <summary>
+    /// The number of rows the view showed when last drawn.
+    /// </summary>
+    public int Rows => _viewport;
+
+    /// <summary>
+    /// Scrolls a page at a time, as Page Up and Page Down do.
+    /// </summary>
+    /// <param name="pages">The pages to scroll, negative for up.</param>
+    public void Page(int pages) => Move(pages * _viewport);
 
     /// <summary>
     /// Adjusts for rows dropped from the start of the log.
@@ -167,7 +182,10 @@ internal sealed class TailLogView(TailLog log, bool color)
         return true;
     }
 
-    private void Bind(InputBindingsBuilder bindings, IReadOnlyDictionary<char, Action<InputBindingActionContext>> screenKeys)
+    private void Bind(
+        InputBindingsBuilder bindings,
+        IReadOnlyDictionary<char, Action<InputBindingActionContext>> screenKeys,
+        Action<string, InputBindingActionContext> typed)
     {
         var keys = new Dictionary<char, Action<InputBindingActionContext>>
         {
@@ -200,6 +218,12 @@ internal sealed class TailLogView(TailLog log, bool color)
 
             return Task.CompletedTask;
         }, "Log keys");
+
+        bindings.Character(text => !text.All(keys.ContainsKey) && !text.Any(char.IsControl)).Action((text, context) =>
+        {
+            typed(text, context);
+            return Task.CompletedTask;
+        }, "Type a command");
 
         bindings.Key(Hex1bKey.DownArrow).Action(_ => Move(1), "Down one line");
         bindings.Key(Hex1bKey.UpArrow).Action(_ => Move(-1), "Up one line");

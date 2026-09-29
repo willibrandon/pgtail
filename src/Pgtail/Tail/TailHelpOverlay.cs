@@ -9,8 +9,10 @@ namespace Pgtail.Tail;
 /// <summary>
 /// The keybinding reference shown over tail mode with <c>?</c>.
 /// </summary>
-internal static class TailHelpOverlay
+internal sealed class TailHelpOverlay
 {
+    private int _top;
+
     /// <summary>
     /// The keys, by category.
     /// </summary>
@@ -40,9 +42,16 @@ internal static class TailHelpOverlay
             ("Ctrl+a", "Select all"),
             ("Ctrl+c", "Copy selection"),
         ]),
-        ("Commands",
+        ("Command input",
         [
             ("/ or Tab", "Focus command input"),
+            ("Enter", "Run; output shows above the input"),
+            ("PgUp / PgDn", "Scroll the output, or the log"),
+            ("↑ / ↓", "Previous / next command"),
+            ("Escape", "Close the output, then the input"),
+        ]),
+        ("Commands",
+        [
             ("level <lvl>", "Filter by level"),
             ("filter /re/", "Filter by regex"),
             ("since <time>", "Filter by time"),
@@ -62,30 +71,53 @@ internal static class TailHelpOverlay
     ];
 
     /// <summary>
+    /// Shows the overlay from its first line.
+    /// </summary>
+    public void Open() => _top = 0;
+
+    /// <summary>
     /// Builds the overlay, centered, closed by Escape, <c>q</c>, or <c>?</c>.
     /// </summary>
+    /// <remarks>
+    /// When the screen is shorter than the keys, the overlay fills the screen's height and the keys scroll with the
+    /// arrow keys, <c>j</c> and <c>k</c>, Page Up and Page Down, and Home and End.
+    /// </remarks>
     /// <typeparam name="TParent">The parent widget type.</typeparam>
     /// <param name="context">The widget context.</param>
+    /// <param name="height">The screen's height.</param>
     /// <param name="close">Closes the overlay.</param>
     /// <returns>The overlay.</returns>
-    public static Hex1bWidget Build<TParent>(WidgetContext<TParent> context, Action<InputBindingActionContext> close)
+    public Hex1bWidget Build<TParent>(WidgetContext<TParent> context, int height, Action<InputBindingActionContext> close)
         where TParent : Hex1bWidget
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(close);
-        var lines = new List<StyledText> { Markup.Parse("[bold]pgtail Keybindings[/]"), new() };
+        var body = new List<StyledText>();
         foreach (var (category, keys) in Keybindings)
         {
-            lines.Add(Markup.Parse($"[bold magenta]{category}[/]"));
-            foreach (var (key, description) in keys)
+            if (body.Count > 0)
             {
-                lines.Add(Markup.Parse($"[green]{Markup.Escape(key.PadRight(16))}[/] [dim]{Markup.Escape(description)}[/]"));
+                body.Add(new StyledText());
             }
 
-            lines.Add(new StyledText());
+            body.Add(Markup.Parse($"[bold magenta]{category}[/]"));
+            foreach (var (key, description) in keys)
+            {
+                body.Add(Markup.Parse($"[green]{Markup.Escape(key.PadRight(16))}[/] [dim]{Markup.Escape(description)}[/]"));
+            }
         }
 
-        lines.Add(Markup.Parse("[dim]Press Escape, q, or ? to close[/]"));
+        // The border, the title and the blank line under it, and the blank line and footer below the keys.
+        var rows = Math.Max(1, Math.Min(body.Count, height - 6));
+        var page = Math.Max(1, rows - 1);
+        _top = Math.Clamp(_top, 0, body.Count - rows);
+        var scrolls = rows < body.Count;
+        var lines = new List<StyledText> { Markup.Parse("[bold]pgtail Keybindings[/]"), new() };
+        lines.AddRange(body.Skip(_top).Take(rows));
+        lines.Add(new StyledText());
+        lines.Add(Markup.Parse(scrolls
+            ? "[dim]↑↓ PgUp PgDn scroll · Press Escape, q, or ? to close[/]"
+            : "[dim]Press Escape, q, or ? to close[/]"));
         const int width = 66;
         return context.Center(context.Interactable(i => i.Border(StyledBlock.Build(i, lines, width, color: true)))
             .InputBindings(bindings =>
@@ -97,6 +129,15 @@ internal static class TailHelpOverlay
                     close(actionContext);
                     return Task.CompletedTask;
                 }, "Close help");
+
+                bindings.Key(Hex1bKey.DownArrow).Action(_ => _top++, "Scroll down");
+                bindings.Key(Hex1bKey.UpArrow).Action(_ => _top--, "Scroll up");
+                bindings.Key(Hex1bKey.J).Action(_ => _top++, "Scroll down");
+                bindings.Key(Hex1bKey.K).Action(_ => _top--, "Scroll up");
+                bindings.Key(Hex1bKey.PageDown).Action(_ => _top += page, "Page down");
+                bindings.Key(Hex1bKey.PageUp).Action(_ => _top -= page, "Page up");
+                bindings.Key(Hex1bKey.Home).Action(_ => _top = 0, "Top");
+                bindings.Key(Hex1bKey.End).Action(_ => _top = body.Count, "Bottom");
             }).FixedWidth(width + 2));
     }
 }
