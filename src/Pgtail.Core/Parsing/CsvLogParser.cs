@@ -39,9 +39,11 @@ public static class CsvLogParser
         }
 
         string Field(int index) => index < fields.Count ? fields[index] : "";
+        var timestamp = LogTimestamps.ParseStructured(Field(0));
         entry = new LogEntry
         {
-            Timestamp = LogTimestamps.ParseStructured(Field(0)),
+            Timestamp = timestamp?.Time,
+            Offset = timestamp?.Offset,
             Level = LogLevels.FromSeverity(Field(11)),
             Message = Field(13),
             Raw = line,
@@ -54,7 +56,7 @@ public static class CsvLogParser
             SessionId = NonEmpty(Field(5)),
             SessionLineNumber = ParseLong(Field(6)),
             CommandTag = NonEmpty(Field(7)),
-            SessionStart = LogTimestamps.ParseStructured(Field(8)),
+            SessionStart = LogTimestamps.ParseStructured(Field(8))?.Time,
             VirtualTransactionId = NonEmpty(Field(9)),
             TransactionId = NonEmpty(Field(10)),
             SqlState = NonEmpty(Field(12)),

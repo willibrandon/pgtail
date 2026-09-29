@@ -73,16 +73,26 @@ public static class TextLogParser
         }
 
         DateTime? time = null;
+        TimeSpan? offset = null;
         if (LogTimestamps.TryParseNaive(timestamp, out var parsed))
         {
-            // Only UTC is attached; any other zone name is read as the local time it was written in.
-            time = zone.Equals("UTC", StringComparison.OrdinalIgnoreCase) ? DateTime.SpecifyKind(parsed, DateTimeKind.Utc) : parsed;
+            // A zone pgtail knows gives the instant; any other zone name is read as the local time it was written in.
+            if (LogTimestamps.TryGetZoneOffset(zone, out var known))
+            {
+                time = DateTime.SpecifyKind(parsed - known, DateTimeKind.Utc);
+                offset = known;
+            }
+            else
+            {
+                time = parsed;
+            }
         }
 
         var continues = ContinuationLabels.Contains(level.ToUpperInvariant());
         return new LogEntry
         {
             Timestamp = time,
+            Offset = offset,
             Level = LogLevels.FromSeverity(level),
             Message = continues ? $"{level.ToUpperInvariant()}:  {message}" : message,
             RawUtf8 = line,

@@ -113,4 +113,8 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   showed each as a separate LOG entry with its label dropped, and sorted tab-indented lines to the top in multi-file
   mode). A level filter now keeps an error's detail and statement with it, the error counts once, and text export still
   writes the lines exactly as PostgreSQL wrote them. Found by tailing a real PostgreSQL 18 server.
+- Times show as the log wrote them in every format. The Python release showed csvlog and jsonlog times converted to
+  UTC but text times as written, so the same server's logs disagreed by the zone offset. Entries now keep the instant
+  (UTC, used for every comparison) and the offset they were written with, text lines in a known zone such as `PDT`
+  included, and JSON and CSV export write that offset (`-07:00`).
 

@@ -142,7 +142,7 @@ public static class EntryFormatter
             switch (field)
             {
                 case "timestamp":
-                    text.Append(FormatTime((DateTime)value), theme.Style("timestamp"));
+                    text.Append(FormatTime(entry.WrittenTime!.Value), theme.Style("timestamp"));
                     break;
                 case "pid":
                     text.Append($"[{FieldText(value)}]", theme.Style("pid"));
@@ -250,7 +250,7 @@ public static class EntryFormatter
             text.Append($"[{file}]", TailStyles.SourceFile).Append(" ");
         }
 
-        if (entry.Timestamp is { } timestamp)
+        if (entry.WrittenTime is { } timestamp)
         {
             text.Append(FormatTime(timestamp), TailStyles.Dim).Append(" ");
         }
@@ -290,6 +290,9 @@ public static class EntryFormatter
                 var value = entry.GetField(field)!;
                 switch (value)
                 {
+                    case DateTime when field == "timestamp":
+                        writer.WriteString(field, LogTimestamps.ToIsoFormat(entry));
+                        break;
                     case DateTime time:
                         writer.WriteString(field, LogTimestamps.ToIsoFormat(time));
                         break;
@@ -332,7 +335,7 @@ public static class EntryFormatter
     private static StyledText Prefix(LogEntry entry, Theme theme)
     {
         var text = new StyledText();
-        if (entry.Timestamp is { } timestamp)
+        if (entry.WrittenTime is { } timestamp)
         {
             text.Append(FormatTime(timestamp) + " ", theme.Style("timestamp"));
         }

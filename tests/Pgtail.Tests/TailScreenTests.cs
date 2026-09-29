@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hex1b.Automation;
 using Hex1b.Theming;
 
@@ -461,6 +462,27 @@ public sealed class TailScreenTests
         var text = await File.ReadAllTextAsync(output, TestContext.CancellationToken);
         Assert.Contains("keep this one", text);
         Assert.Contains("and this error", text);
+    }
+
+    /// <summary>
+    /// A time written in a named zone shows as written, and JSON export keeps its offset.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ZoneWrittenInLog_ShowsTimeAsWrittenAndExportsOffset()
+    {
+        using var environment = new TestEnvironment();
+        var path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        var written = DateTime.UtcNow.AddHours(-7).AddMinutes(-5);
+        var stamp = written.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        LogFiles.Append(path, $"{stamp} PDT [3001] ERROR:  relation \"missing_table\" does not exist");
+        var output = Path.Combine(environment.Root, "exported.json");
+        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken, width: 160);
+        await tail.Automator.WaitUntilTextAsync($"{stamp[11..]} [3001 ] ERROR  : relation \"missing_table\" does not exist");
+        await tail.RunAsync($"export --format json {output}", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("Exported 1 entries");
+        var json = await File.ReadAllTextAsync(output, TestContext.CancellationToken);
+        Assert.Contains($"\"timestamp\": \"{stamp.Replace(' ', 'T')}000-07:00\"", json);
     }
 
     /// <summary>

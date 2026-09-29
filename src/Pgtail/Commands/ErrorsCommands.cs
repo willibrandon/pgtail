@@ -293,7 +293,7 @@ internal static class ErrorsCommands
         foreach (var item in events.TakeLast(5))
         {
             var message = item.Message.Length > 60 ? item.Message[..60] + "..." : item.Message;
-            output.Line($"  {item.Timestamp.ToString("HH:mm:ss", CultureInfo.InvariantCulture)} {message}");
+            output.Line($"  {LogTimestamps.ToLocal(item.Timestamp).ToString("HH:mm:ss", CultureInfo.InvariantCulture)} {message}");
         }
     }
 

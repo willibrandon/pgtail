@@ -44,7 +44,7 @@ public static class EntryExporter
     {
         ArgumentNullException.ThrowIfNull(entry);
         var builder = new StringBuilder("{\"timestamp\": ");
-        builder.Append(entry.Timestamp is { } time ? Quote(LogTimestamps.ToIsoFormat(time)) : "null");
+        builder.Append(LogTimestamps.ToIsoFormat(entry) is { } time ? Quote(time) : "null");
         builder.Append(", \"level\": ").Append(Quote(entry.Level.ToName()));
         builder.Append(", \"pid\": ").Append(entry.Pid is { } pid ? pid.ToString(CultureInfo.InvariantCulture) : "null");
         builder.Append(", \"message\": ").Append(Quote(entry.Message)).Append('}');
@@ -60,7 +60,7 @@ public static class EntryExporter
     {
         ArgumentNullException.ThrowIfNull(entry);
         return string.Join(',',
-            CsvField(entry.Timestamp is { } time ? LogTimestamps.ToIsoFormat(time) : ""),
+            CsvField(LogTimestamps.ToIsoFormat(entry) ?? ""),
             CsvField(entry.Level.ToName()),
             CsvField(entry.Pid?.ToString(CultureInfo.InvariantCulture) ?? ""),
             CsvField(entry.Message));

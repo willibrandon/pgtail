@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update checks suggest the upgrade command for the way pgtail was installed.
 - Shell completion offers options once the word starts with `-`, so `pgtail <Tab>` lists commands.
 - Time windows and `errors --trend` compare timestamps in UTC, fixing errors when mixing logs with and without time zones.
+- Times show as the log wrote them in every format; csvlog and jsonlog times were shown converted to UTC. JSON and CSV
+  export keep the offset the time was written with.
 - In text logs, a message's `DETAIL:`, `HINT:`, `CONTEXT:`, `STATEMENT:`, `QUERY:`, and `LOCATION:` lines and the
   further lines of a multi-line message stay with the entry they belong to, so level filters keep them and an error
   counts once.

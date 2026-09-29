@@ -61,9 +61,11 @@ public static class JsonLogParser
             ? level.GetString()
             : "LOG";
         var message = data.TryGetValue("message", out var text) ? AsText(text) ?? "" : "";
+        var timestamp = LogTimestamps.ParseStructured(StringOrNull(data, "timestamp"));
         entry = new LogEntry
         {
-            Timestamp = LogTimestamps.ParseStructured(StringOrNull(data, "timestamp")),
+            Timestamp = timestamp?.Time,
+            Offset = timestamp?.Offset,
             Level = LogLevels.FromSeverity(severity),
             Message = message,
             RawUtf8 = utf8,
@@ -75,7 +77,7 @@ public static class JsonLogParser
             RemotePort = (int?)Integer(data, "remote_port"),
             SessionId = Text(data, "session_id"),
             SessionLineNumber = Integer(data, "line_num"),
-            SessionStart = LogTimestamps.ParseStructured(StringOrNull(data, "session_start")),
+            SessionStart = LogTimestamps.ParseStructured(StringOrNull(data, "session_start"))?.Time,
             VirtualTransactionId = Text(data, "vxid"),
             TransactionId = Text(data, "txid"),
             SqlState = Text(data, "state_code"),

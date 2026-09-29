@@ -80,7 +80,21 @@ public static partial class LogTimestamps
     }
 
     /// <summary>
-    /// Parses a csvlog or jsonlog timestamp into UTC.
+    /// The UTC offset of a zone abbreviation PostgreSQL writes, such as <c>UTC</c> or <c>PDT</c>.
+    /// </summary>
+    /// <param name="zone">The abbreviation.</param>
+    /// <param name="offset">The offset, when the abbreviation is known.</param>
+    /// <returns>True when the abbreviation is known.</returns>
+    public static bool TryGetZoneOffset(string zone, out TimeSpan offset)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        var known = ZoneOffsets.TryGetValue(zone.ToUpperInvariant(), out var hours);
+        offset = TimeSpan.FromHours(hours);
+        return known;
+    }
+
+    /// <summary>
+    /// Parses a csvlog or jsonlog timestamp into UTC and the offset it was written with.
     /// </summary>
     /// <remarks>
     /// Accepts a trailing zone abbreviation such as <c>PST</c>, an ISO 8601 offset such as <c>+00</c> or <c>-05:00</c>, or
@@ -88,8 +102,8 @@ public static partial class LogTimestamps
     /// as local time.
     /// </remarks>
     /// <param name="text">The timestamp, or null.</param>
-    /// <returns>The time in UTC, or null when the text is empty or not a time.</returns>
-    public static DateTime? ParseStructured(string? text)
+    /// <returns>The time in UTC and its offset, or null when the text is empty or not a time.</returns>
+    public static (DateTime Time, TimeSpan Offset)? ParseStructured(string? text)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -140,7 +154,8 @@ public static partial class LogTimestamps
             return null;
         }
 
-        return offset is { } known ? DateTime.SpecifyKind(local - known, DateTimeKind.Utc) : ToUtc(local);
+        var written = offset ?? TimeZoneInfo.Local.GetUtcOffset(local);
+        return (DateTime.SpecifyKind(local - written, DateTimeKind.Utc), written);
     }
 
     /// <summary>
@@ -187,6 +202,24 @@ public static partial class LogTimestamps
         }
 
         return value.Kind == DateTimeKind.Utc ? text + "+00:00" : text;
+    }
+
+    /// <summary>
+    /// Formats an entry's time as ISO 8601 in the zone it was written in, such as <c>2024-01-15T10:30:45.123000-07:00</c>.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <returns>The time, or null when the entry has none.</returns>
+    public static string? ToIsoFormat(LogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        if (entry is not { WrittenTime: { } written, Offset: { } offset })
+        {
+            return entry.Timestamp is { } time ? ToIsoFormat(time) : null;
+        }
+
+        var sign = offset < TimeSpan.Zero ? '-' : '+';
+        var magnitude = offset.Duration();
+        return ToIsoFormat(written) + $"{sign}{magnitude.Hours:D2}:{magnitude.Minutes:D2}";
     }
 
     [GeneratedRegex(@"^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})\s+([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})(?:\.([0-9]{1,6}))?$")]

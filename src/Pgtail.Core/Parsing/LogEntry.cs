@@ -37,6 +37,21 @@ public sealed class LogEntry
     public DateTime? Timestamp { get; init; }
 
     /// <summary>
+    /// The UTC offset of the zone the time was written in, when the line named a zone pgtail knows.
+    /// </summary>
+    /// <remarks>
+    /// When it is set, <see cref="Timestamp"/> is in UTC and <see cref="WrittenTime"/> is the time as the log wrote it.
+    /// </remarks>
+    public TimeSpan? Offset { get; init; }
+
+    /// <summary>
+    /// The time as the log wrote it, in the zone it was written in, for display.
+    /// </summary>
+    public DateTime? WrittenTime => Timestamp is { } time && Offset is { } offset
+        ? DateTime.SpecifyKind(time + offset, DateTimeKind.Unspecified)
+        : Timestamp;
+
+    /// <summary>
     /// The severity.
     /// </summary>
     public LogLevel Level { get; init; } = LogLevel.Log;
@@ -311,6 +326,7 @@ public sealed class LogEntry
         return new LogEntry
         {
             Timestamp = Timestamp,
+            Offset = Offset,
             Level = Level,
             Message = Message + "\n" + continuation.Message,
             RawUtf8 = raw,
