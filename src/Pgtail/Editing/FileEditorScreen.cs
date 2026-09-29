@@ -56,7 +56,7 @@ internal sealed class FileEditorScreen
         var title = $" {_request.Title}{(dirty ? " [modified]" : "")}";
         return context.VStack(v =>
         [
-            v.InfoBar(b => [b.Section(title), b.Section("Ctrl+S save · Esc close")]),
+            v.InfoBar(b => [b.Section(title), b.Spacer(), b.Section("Ctrl+S save · Esc close ")]),
             v.Editor(_editor)
                 .LineNumbers()
                 .Decorations(_decorations)
@@ -99,7 +99,7 @@ internal sealed class FileEditorScreen
             File.WriteAllText(_request.Path, text, new UTF8Encoding(false));
             _savedVersion = _editor.Document.Version;
             Saved = true;
-            _status = $"Saved {_request.Path}";
+            _status = $"Saved {Path.GetFileName(_request.Path)}";
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

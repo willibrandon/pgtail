@@ -1,6 +1,7 @@
 using System.Text;
 using Pgtail.Configuration;
 using Pgtail.Detection;
+using Pgtail.Sessions;
 using Pgtail.Styling;
 using Pgtail.Toml;
 
@@ -355,6 +356,29 @@ internal static class ConfigCommands
         return value;
     }
 
+    /// <summary>
+    /// The request to edit the configuration file in the built-in editor, which saves only valid TOML.
+    /// </summary>
+    /// <param name="session">The session.</param>
+    /// <returns>The request.</returns>
+    public static EditRequest ConfigEditRequest(PgtailSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        var file = session.Store.ConfigFile;
+        return new EditRequest(file, $"Editing {PathDisplay.Shorten(file, session.Home)}", ConfigStore.DefaultTemplate, text =>
+        {
+            try
+            {
+                _ = TomlDocument.Parse(Encoding.UTF8.GetBytes(text));
+                return [];
+            }
+            catch (TomlException exception)
+            {
+                return [exception.Message];
+            }
+        });
+    }
+
     private static async Task EditAsync(CommandInvocation invocation)
     {
         var output = invocation.Output;
@@ -366,23 +390,7 @@ internal static class ConfigCommands
             store.CreateDefault();
         }
 
-        var saved = await CoreCommands.Repl(invocation).EditAsync(new EditRequest(
-            store.ConfigFile,
-            $"Editing {store.ConfigFile}",
-            ConfigStore.DefaultTemplate,
-            text =>
-            {
-                try
-                {
-                    _ = TomlDocument.Parse(Encoding.UTF8.GetBytes(text));
-                    return [];
-                }
-                catch (TomlException exception)
-                {
-                    return [exception.Message];
-                }
-            }));
-
+        var saved = await CoreCommands.Repl(invocation).EditAsync(ConfigEditRequest(session));
         if (!saved)
         {
             output.Line("No changes saved.");

@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using Hex1b;
 using Pgtail.Commands;
-using Pgtail.Configuration;
 using Pgtail.Detection;
 using Pgtail.Editing;
 using Pgtail.Filtering;
@@ -10,7 +9,6 @@ using Pgtail.Rendering;
 using Pgtail.Sessions;
 using Pgtail.Tail;
 using Pgtail.Tailing;
-using Pgtail.Toml;
 using Pgtail.Updates;
 
 namespace Pgtail.Cli;
@@ -153,19 +151,7 @@ internal static class PgtailCli
         if (arguments.ConfigEdit)
         {
             store.CreateDefault();
-            var screen = new FileEditorScreen(new EditRequest(store.ConfigFile, $"Editing {store.ConfigFile}", ConfigStore.DefaultTemplate,
-                text =>
-                {
-                    try
-                    {
-                        _ = TomlDocument.Parse(Encoding.UTF8.GetBytes(text));
-                        return [];
-                    }
-                    catch (TomlException exception)
-                    {
-                        return [exception.Message];
-                    }
-                }));
+            var screen = new FileEditorScreen(ConfigCommands.ConfigEditRequest(session));
 
             await using var terminal = Terminals.Builder()
                 .WithHex1bApp(options => options.EnableDefaultCtrlCExit = false, app =>
