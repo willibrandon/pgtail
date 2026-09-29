@@ -1,33 +1,50 @@
 using Hex1b;
 using Hex1b.Input;
+using Hex1b.Surfaces;
+using Hex1b.Theming;
 using Hex1b.Widgets;
+using Pgtail.Rendering;
+using Pgtail.Styling;
 
 namespace Pgtail.Tail;
 
 /// <summary>
-/// Moves through the tail log and selects in it with vim-style keys, the mouse, and visual modes.
+/// The tail log view: scrolling, following new rows, vim-style keys, visual selection, and the mouse.
 /// </summary>
 /// <remarks>
-/// Moving highlights the current row, as selecting a row does. <c>v</c> selects characters from where it was pressed,
-/// <c>V</c> selects whole rows, <c>y</c> copies the selection, and Escape clears it. Leaving the last row stops
-/// following new entries; returning to it or pressing <c>f</c> resumes.
+/// The view stays on the newest rows while it is at the end. Moving the cursor highlights its row and marks its column;
+/// <c>v</c> selects characters from where it was pressed and <c>V</c> whole rows; <c>y</c> copies the selection. The
+/// mouse wheel scrolls, a click selects a row, and dragging selects text and copies it on release. Rows longer than the
+/// view scroll sideways to keep the cursor in sight.
 /// </remarks>
-/// <param name="log">The log.</param>
-internal sealed class TailLogView(TailLogDocument log)
+/// <param name="log">The rows.</param>
+/// <param name="color">False to draw attributes only, for <c>NO_COLOR</c>.</param>
+internal sealed class TailLogView(TailLog log, bool color)
 {
     private const int WheelLines = 3;
+    private static readonly Hex1bColor SelectionBackground = Hex1bColor.FromRgb(38, 79, 120);
+    private static readonly Hex1bColor ScrollTrack = Hex1bColor.FromBright(0, 128, 128, 128);
+    private int _top;
+    private int _left;
+    private int _viewport = 20;
+    private int _width = 80;
     private int _line;
     private int _column;
     private int _anchorLine;
     private int _anchorColumn;
 
     /// <summary>
-    /// The log.
+    /// The rows.
     /// </summary>
-    public TailLogDocument Log { get; } = log;
+    public TailLog Log { get; } = log;
 
     /// <summary>
-    /// Whether a row is highlighted because the user moved to it.
+    /// Whether the view shows the newest rows and keeps doing so as rows arrive.
+    /// </summary>
+    public bool Following { get; private set; } = true;
+
+    /// <summary>
+    /// Whether the cursor's row is highlighted because the user moved to it.
     /// </summary>
     public bool Navigating { get; private set; }
 
@@ -42,19 +59,9 @@ internal sealed class TailLogView(TailLogDocument log)
     public bool VisualLines { get; private set; }
 
     /// <summary>
-    /// Whether the user moved away from the last row, so new entries should not scroll it.
+    /// Whether anything is selected: a visual selection or the highlighted cursor row.
     /// </summary>
-    public bool AwayFromEnd => Navigating && _line < Log.Count - 1;
-
-    /// <summary>
-    /// The row the cursor is on, counting from zero.
-    /// </summary>
-    public int CursorLine => _line;
-
-    /// <summary>
-    /// The character the cursor is on.
-    /// </summary>
-    public int CursorColumn => _column;
+    public bool HasSelection => (Visual || Navigating) && Log.Count > 0;
 
     /// <summary>
     /// Called when the user asks to pause with <c>p</c>.
@@ -62,7 +69,7 @@ internal sealed class TailLogView(TailLogDocument log)
     public Action? PauseRequested { get; set; }
 
     /// <summary>
-    /// Called when the user asks to follow with <c>f</c>, <c>G</c>, or by returning to the last row.
+    /// Called when the user asks to follow with <c>f</c>.
     /// </summary>
     public Action? FollowRequested { get; set; }
 
@@ -72,56 +79,82 @@ internal sealed class TailLogView(TailLogDocument log)
     public Action<string, bool>? Copy { get; set; }
 
     /// <summary>
-    /// Adds the log's keys and mouse handling to the editor's bindings.
+    /// Builds the view.
     /// </summary>
-    /// <param name="bindings">The editor's bindings.</param>
-    public void Bind(InputBindingsBuilder bindings)
+    /// <remarks>
+    /// Typed keys are handled a character at a time, so keys typed faster than the screen reads them, which arrive
+    /// together, each still take effect.
+    /// </remarks>
+    /// <typeparam name="TParent">The parent widget type.</typeparam>
+    /// <param name="context">The widget context.</param>
+    /// <param name="screenKeys">The screen's typed keys, handled with the view's.</param>
+    /// <param name="more">Adds the screen's other keys.</param>
+    /// <returns>The widget.</returns>
+    public InteractableWidget Build<TParent>(
+        WidgetContext<TParent> context,
+        IReadOnlyDictionary<char, Action> screenKeys,
+        Action<InputBindingsBuilder> more)
+        where TParent : Hex1bWidget
     {
-        ArgumentNullException.ThrowIfNull(bindings);
-        foreach (var action in new[]
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(screenKeys);
+        ArgumentNullException.ThrowIfNull(more);
+        return context.Interactable(i => i.Surface(s => [s.Layer(Draw)]).Fill())
+            .InputBindings(bindings =>
+            {
+                Bind(bindings, screenKeys);
+                more(bindings);
+            });
+    }
+
+    /// <summary>
+    /// Adjusts for rows dropped from the start of the log.
+    /// </summary>
+    /// <param name="dropped">The number of rows dropped.</param>
+    public void Dropped(int dropped)
+    {
+        if (dropped <= 0)
         {
-            EditorWidget.MoveUp, EditorWidget.MoveDown, EditorWidget.MoveLeft, EditorWidget.MoveRight,
-            EditorWidget.MoveToLineStart, EditorWidget.MoveToLineEnd, EditorWidget.MoveToDocumentStart,
-            EditorWidget.MoveToDocumentEnd, EditorWidget.PageUp, EditorWidget.PageDown, EditorWidget.SelectAll,
-            EditorWidget.ScrollUp, EditorWidget.ScrollDown, EditorWidget.Click, EditorWidget.DoubleClick,
-            EditorWidget.TripleClick, EditorWidget.CtrlClick, EditorWidget.AddCursorAtNextMatch,
-        })
-        {
-            bindings.Remove(action);
+            return;
         }
 
-        bindings.Remove(Hex1bKey.Escape);
-        bindings.Key(Hex1bKey.J).Action(_ => Move(1), "Down one line");
-        bindings.Key(Hex1bKey.DownArrow).Action(_ => Move(1), "Down one line");
-        bindings.Key(Hex1bKey.K).Action(_ => Move(-1), "Up one line");
-        bindings.Key(Hex1bKey.UpArrow).Action(_ => Move(-1), "Up one line");
-        bindings.Key(Hex1bKey.H).Action(_ => Left(), "Left");
-        bindings.Key(Hex1bKey.LeftArrow).Action(_ => Left(), "Left");
-        bindings.Key(Hex1bKey.L).Action(_ => Right(), "Right");
-        bindings.Key(Hex1bKey.RightArrow).Action(_ => Right(), "Right");
-        bindings.Key(Hex1bKey.D0).Action(_ => LineStart(), "Line start");
-        bindings.Character(text => text == "$").Action(_ => LineEnd(), "Line end");
-        bindings.Key(Hex1bKey.G).Action(_ => Top(), "Top");
-        bindings.Key(Hex1bKey.Home).Action(_ => Top(), "Top");
-        bindings.Shift().Key(Hex1bKey.G).Action(_ => Bottom(), "Bottom");
-        bindings.Key(Hex1bKey.End).Action(_ => Bottom(), "Bottom");
-        bindings.Ctrl().Key(Hex1bKey.D).Action(context => Move(Page(context) / 2), "Half page down");
-        bindings.Ctrl().Key(Hex1bKey.U).Action(context => Move(-(Page(context) / 2)), "Half page up");
-        bindings.Ctrl().Key(Hex1bKey.F).Action(context => Move(Page(context)), "Page down");
-        bindings.Key(Hex1bKey.PageDown).Action(context => Move(Page(context)), "Page down");
-        bindings.Ctrl().Key(Hex1bKey.B).Action(context => Move(-Page(context)), "Page up");
-        bindings.Key(Hex1bKey.PageUp).Action(context => Move(-Page(context)), "Page up");
-        bindings.Key(Hex1bKey.P).Action(_ => PauseRequested?.Invoke(), "Pause");
-        bindings.Key(Hex1bKey.F).Action(_ => Follow(), "Follow");
-        bindings.Key(Hex1bKey.V).Action(_ => StartVisual(lines: false), "Visual mode");
-        bindings.Shift().Key(Hex1bKey.V).Action(_ => StartVisual(lines: true), "Visual line mode");
-        bindings.Key(Hex1bKey.Y).Action(_ => Yank(), "Yank selection");
-        bindings.Key(Hex1bKey.Escape).Action(_ => ClearSelection(), "Clear selection");
-        bindings.Ctrl().Key(Hex1bKey.A).Action(_ => SelectAll(), "Select all");
-        bindings.Mouse(MouseButton.ScrollUp).Action(_ => Move(-WheelLines), "Scroll up");
-        bindings.Mouse(MouseButton.ScrollDown).Action(_ => Move(WheelLines), "Scroll down");
-        bindings.Mouse(MouseButton.Left).Action(context => Click(context), "Select the clicked line");
-        bindings.Drag(MouseButton.Left).Action((x, y) => Drag(x, y), "Drag to select and copy");
+        _top = Math.Max(0, _top - dropped);
+        _line = Math.Max(0, _line - dropped);
+        _anchorLine = Math.Max(0, _anchorLine - dropped);
+    }
+
+    /// <summary>
+    /// Returns to the newest rows with nothing selected, as after the log is cleared or redrawn.
+    /// </summary>
+    public void Reset()
+    {
+        ClearSelection();
+        _left = 0;
+        Following = true;
+    }
+
+    /// <summary>
+    /// Scrolls to the newest rows and follows them, keeping the selection.
+    /// </summary>
+    public void ShowEnd() => Following = true;
+
+    /// <summary>
+    /// Clears the selection and leaves visual mode.
+    /// </summary>
+    public void ClearSelection()
+    {
+        Visual = false;
+        VisualLines = false;
+        Navigating = false;
+    }
+
+    /// <summary>
+    /// Returns to the newest rows and follows.
+    /// </summary>
+    public void Follow()
+    {
+        Reset();
+        FollowRequested?.Invoke();
     }
 
     /// <summary>
@@ -130,8 +163,7 @@ internal sealed class TailLogView(TailLogDocument log)
     /// <returns>True when something was copied.</returns>
     public bool CopySelection()
     {
-        var text = SelectedText();
-        if (text.Length == 0)
+        if (SelectedText() is not { Length: > 0 } text)
         {
             return false;
         }
@@ -140,65 +172,237 @@ internal sealed class TailLogView(TailLogDocument log)
         return true;
     }
 
-    /// <summary>
-    /// Whether any text is selected.
-    /// </summary>
-    public bool HasSelection => Log.Editor.Cursor.HasSelection;
-
-    /// <summary>
-    /// Returns to following: clears the selection and moves to the end of the log.
-    /// </summary>
-    public void Follow()
+    private void Bind(InputBindingsBuilder bindings, IReadOnlyDictionary<char, Action> screenKeys)
     {
-        EndNavigation();
-        FollowRequested?.Invoke();
-    }
-
-    /// <summary>
-    /// Clears the selection and leaves visual mode, keeping the cursor row.
-    /// </summary>
-    public void ClearSelection()
-    {
-        Visual = false;
-        VisualLines = false;
-        Navigating = false;
-        Log.Editor.Cursor.ClearSelection();
-    }
-
-    /// <summary>
-    /// Keeps the editor's caret at the end of the log while following.
-    /// </summary>
-    public void StickToEnd()
-    {
-        if (!Navigating && !Visual)
+        var keys = new Dictionary<char, Action>
         {
-            Log.Editor.Cursor.ClearSelection();
-            Log.Editor.SetCursorPosition(new Hex1b.Documents.DocumentOffset(Log.Editor.Document.Length));
-            _line = Math.Max(0, Log.Count - 1);
-            _column = 0;
+            ['j'] = () => Move(1),
+            ['k'] = () => Move(-1),
+            ['h'] = Left,
+            ['l'] = Right,
+            ['0'] = LineStart,
+            ['$'] = LineEnd,
+            ['g'] = Top,
+            ['G'] = Bottom,
+            ['p'] = () => PauseRequested?.Invoke(),
+            ['f'] = Follow,
+            ['v'] = () => StartVisual(lines: false),
+            ['V'] = () => StartVisual(lines: true),
+            ['y'] = Yank,
+        };
+
+        foreach (var (key, action) in screenKeys)
+        {
+            keys[key] = action;
+        }
+
+        bindings.Character(text => text.All(keys.ContainsKey)).Action(text =>
+        {
+            foreach (var key in text)
+            {
+                keys[key]();
+            }
+        }, "Log keys");
+
+        bindings.Key(Hex1bKey.DownArrow).Action(_ => Move(1), "Down one line");
+        bindings.Key(Hex1bKey.UpArrow).Action(_ => Move(-1), "Up one line");
+        bindings.Key(Hex1bKey.LeftArrow).Action(_ => Left(), "Left");
+        bindings.Key(Hex1bKey.RightArrow).Action(_ => Right(), "Right");
+        bindings.Key(Hex1bKey.Home).Action(_ => Top(), "Top");
+        bindings.Key(Hex1bKey.End).Action(_ => Bottom(), "Bottom");
+        bindings.Ctrl().Key(Hex1bKey.D).Action(_ => Move(_viewport / 2), "Half page down");
+        bindings.Ctrl().Key(Hex1bKey.U).Action(_ => Move(-(_viewport / 2)), "Half page up");
+        bindings.Ctrl().Key(Hex1bKey.F).Action(_ => Move(_viewport), "Page down");
+        bindings.Key(Hex1bKey.PageDown).Action(_ => Move(_viewport), "Page down");
+        bindings.Ctrl().Key(Hex1bKey.B).Action(_ => Move(-_viewport), "Page up");
+        bindings.Key(Hex1bKey.PageUp).Action(_ => Move(-_viewport), "Page up");
+        bindings.Key(Hex1bKey.Escape).Action(_ => ClearSelection(), "Clear selection");
+        bindings.Ctrl().Key(Hex1bKey.A).Action(_ => SelectAll(), "Select all");
+        bindings.Mouse(MouseButton.ScrollUp).Action(_ => Scroll(-WheelLines), "Scroll up");
+        bindings.Mouse(MouseButton.ScrollDown).Action(_ => Scroll(WheelLines), "Scroll down");
+        bindings.Mouse(MouseButton.ScrollUp).Shift().Action(_ => _left = Math.Max(0, _left - WheelLines), "Scroll left");
+        bindings.Mouse(MouseButton.ScrollDown).Shift().Action(_ => _left += WheelLines, "Scroll right");
+        bindings.Drag(MouseButton.Left).Action(Drag, "Click to select a line, or drag to select and copy");
+    }
+
+    private void Draw(Surface surface)
+    {
+        _viewport = Math.Max(1, surface.Height);
+        _width = Math.Max(1, surface.Width - 1);
+        var count = Log.Count;
+        var maxTop = Math.Max(0, count - _viewport);
+        _top = Following ? maxTop : Math.Clamp(_top, 0, maxTop);
+        var selection = Selection();
+        for (var row = 0; row < _viewport && _top + row < count; row++)
+        {
+            var index = _top + row;
+            DrawLine(surface, row, Log.Lines[index]);
+            if (selection is { } range && index >= range.StartLine && index <= range.EndLine)
+            {
+                var text = Log.Lines[index].Text;
+                var start = index == range.StartLine ? range.StartColumn : 0;
+                var end = index == range.EndLine ? Math.Min(range.EndColumn, text.Length) : text.Length;
+                Highlight(surface, row, text, start, end, fullWidth: VisualLines || !Visual, lineBreak: index != range.EndLine);
+            }
+        }
+
+        if ((Navigating || Visual) && !VisualLines && _line >= _top && _line < Math.Min(count, _top + _viewport))
+        {
+            DrawCaret(surface, _line - _top, Log.Lines[_line].Text);
+        }
+
+        DrawScrollbar(surface, count);
+    }
+
+    private void DrawLine(Surface surface, int row, TailLine line)
+    {
+        var text = line.Text;
+        var styles = line.Styles;
+        var styleIndex = 0;
+        var column = 0;
+        var index = 0;
+        while (index < text.Length)
+        {
+            var next = GraphemeHelper.GetNextClusterBoundary(text, index);
+            if (next <= index)
+            {
+                next = index + 1;
+            }
+
+            var cluster = text[index..next];
+            var width = Math.Max(1, GraphemeHelper.GetClusterDisplayWidth(cluster));
+            while (styleIndex < styles.Count && styles[styleIndex].End <= index)
+            {
+                styleIndex++;
+            }
+
+            var style = styleIndex < styles.Count && styles[styleIndex].Start <= index ? styles[styleIndex].Style : TextStyle.Plain;
+            var x = column - _left;
+            if (x >= _width)
+            {
+                break;
+            }
+
+            if (x >= 0)
+            {
+                var foreground = color ? style.Foreground?.ToHex1b() : null;
+                var background = color ? style.Background?.ToHex1b() : null;
+                _ = surface.WriteText(x, row, cluster, foreground, background, style.Attributes.ToCellAttributes());
+            }
+
+            column += width;
+            index = next;
         }
     }
 
-    /// <summary>
-    /// Forgets the position after the log is cleared or rebuilt.
-    /// </summary>
-    public void Reset()
+    private void Highlight(Surface surface, int row, string text, int start, int end, bool fullWidth, bool lineBreak)
     {
-        _line = 0;
-        _column = 0;
-        EndNavigation();
+        var from = GraphemeHelper.IndexToDisplayColumn(text, Math.Clamp(start, 0, text.Length)) - _left;
+        var to = fullWidth ? _width : GraphemeHelper.IndexToDisplayColumn(text, Math.Clamp(end, 0, text.Length)) - _left;
+        if (!fullWidth && (lineBreak || end > text.Length))
+        {
+            to++;
+        }
+
+        for (var x = Math.Max(0, from); x < Math.Min(_width, to); x++)
+        {
+            var cell = surface[x, row];
+            if (cell.IsContinuation)
+            {
+                continue;
+            }
+
+            if (cell == SurfaceCells.Empty)
+            {
+                cell = cell with { Character = " " };
+            }
+
+            surface[x, row] = color
+                ? cell.WithBackground(SelectionBackground)
+                : cell.WithAddedAttributes(CellAttributes.Reverse);
+        }
     }
 
-    private void EndNavigation()
+    private void DrawCaret(Surface surface, int row, string text)
     {
-        Visual = false;
-        VisualLines = false;
-        Navigating = false;
-        StickToEnd();
+        var x = GraphemeHelper.IndexToDisplayColumn(text, Math.Min(_column, text.Length)) - _left;
+        if (x < 0 || x >= _width)
+        {
+            return;
+        }
+
+        var cell = surface[x, row];
+        if (cell == SurfaceCells.Empty)
+        {
+            cell = cell with { Character = " " };
+        }
+
+        surface[x, row] = cell.WithAttributes(cell.Attributes ^ CellAttributes.Reverse);
     }
 
-    private static int Page(InputBindingActionContext context) =>
-        context.FocusedNode is EditorNode { ViewportLines: > 0 } editor ? editor.ViewportLines : 20;
+    private void DrawScrollbar(Surface surface, int count)
+    {
+        if (count <= _viewport)
+        {
+            return;
+        }
+
+        var x = surface.Width - 1;
+        var thumb = Math.Max(1, _viewport * _viewport / count);
+        var travel = _viewport - thumb;
+        var position = travel * _top / Math.Max(1, count - _viewport);
+        for (var row = 0; row < _viewport; row++)
+        {
+            var inThumb = row >= position && row < position + thumb;
+            _ = surface.WriteText(x, row, inThumb ? "▉" : "│", color ? ScrollTrack : null, null);
+        }
+    }
+
+    private (int StartLine, int StartColumn, int EndLine, int EndColumn)? Selection()
+    {
+        if (Log.Count == 0)
+        {
+            return null;
+        }
+
+        if (Visual && VisualLines)
+        {
+            var (first, last) = (Math.Min(_anchorLine, _line), Math.Max(_anchorLine, _line));
+            return (first, 0, last, Length(last));
+        }
+
+        if (Visual)
+        {
+            var anchorFirst = _anchorLine < _line || (_anchorLine == _line && _anchorColumn <= _column);
+            return anchorFirst
+                ? (_anchorLine, _anchorColumn, _line, _column + 1)
+                : (_line, _column, _anchorLine, _anchorColumn + 1);
+        }
+
+        return Navigating ? (_line, 0, _line, Length(_line)) : null;
+    }
+
+    private string? SelectedText() => Selection() is { } range
+        ? Log.GetText(range.StartLine, range.StartColumn, range.EndLine, range.EndColumn)
+        : null;
+
+    private int Length(int line) => line >= 0 && line < Log.Count ? Log.Lines[line].Text.Length : 0;
+
+    private void BeginNavigation()
+    {
+        if (!Navigating && !Visual)
+        {
+            _line = Math.Clamp(_top + _viewport - 1, 0, Math.Max(0, Log.Count - 1));
+            if (Following)
+            {
+                _line = Math.Max(0, Log.Count - 1);
+            }
+
+            _column = 0;
+        }
+
+        Navigating = true;
+    }
 
     private void Move(int delta)
     {
@@ -207,20 +411,23 @@ internal sealed class TailLogView(TailLogDocument log)
             return;
         }
 
+        BeginNavigation();
         _line = Math.Clamp(_line + delta, 0, Log.Count - 1);
-        _column = Math.Min(_column, Log.Lines[_line].Text.Length);
-        Navigating = true;
-        Select();
+        _column = Math.Min(_column, Length(_line));
+        Reveal();
     }
 
     private void Top()
     {
-        if (Log.Count > 0)
+        if (Log.Count == 0)
         {
-            _line = 0;
-            Navigating = true;
-            Select();
+            return;
         }
+
+        BeginNavigation();
+        _line = 0;
+        _column = 0;
+        Reveal();
     }
 
     private void Bottom()
@@ -230,14 +437,10 @@ internal sealed class TailLogView(TailLogDocument log)
             return;
         }
 
+        BeginNavigation();
         _line = Log.Count - 1;
-        if (Visual)
-        {
-            Select();
-            return;
-        }
-
-        Follow();
+        _column = Math.Min(_column, Length(_line));
+        Reveal();
     }
 
     private void Left()
@@ -247,6 +450,7 @@ internal sealed class TailLogView(TailLogDocument log)
             return;
         }
 
+        BeginNavigation();
         if (_column > 0)
         {
             _column--;
@@ -254,11 +458,10 @@ internal sealed class TailLogView(TailLogDocument log)
         else if (_line > 0)
         {
             _line--;
-            _column = Log.Lines[_line].Text.Length;
+            _column = Length(_line);
         }
 
-        Navigating = true;
-        Select();
+        Reveal();
     }
 
     private void Right()
@@ -268,7 +471,8 @@ internal sealed class TailLogView(TailLogDocument log)
             return;
         }
 
-        if (_column < Log.Lines[_line].Text.Length)
+        BeginNavigation();
+        if (_column < Length(_line))
         {
             _column++;
         }
@@ -278,28 +482,21 @@ internal sealed class TailLogView(TailLogDocument log)
             _column = 0;
         }
 
-        Navigating = true;
-        Select();
+        Reveal();
     }
 
     private void LineStart()
     {
         _column = 0;
-        if (Visual && !VisualLines)
-        {
-            Select();
-        }
+        Reveal();
     }
 
     private void LineEnd()
     {
-        if (Log.Count > 0)
+        if (Log.Count > 0 && (Navigating || Visual))
         {
-            _column = Log.Lines[_line].Text.Length;
-            if (Visual && !VisualLines)
-            {
-                Select();
-            }
+            _column = Length(_line);
+            Reveal();
         }
     }
 
@@ -310,18 +507,12 @@ internal sealed class TailLogView(TailLogDocument log)
             return;
         }
 
-        if (!Navigating)
-        {
-            _line = Log.Count - 1;
-            _column = 0;
-        }
-
+        BeginNavigation();
         Visual = true;
         VisualLines = lines;
-        Navigating = true;
         _anchorLine = _line;
         _anchorColumn = _column;
-        Select();
+        Reveal();
     }
 
     private void Yank()
@@ -345,22 +536,13 @@ internal sealed class TailLogView(TailLogDocument log)
         VisualLines = true;
         _anchorLine = 0;
         _line = Log.Count - 1;
-        Select();
     }
 
-    private void Click(InputBindingActionContext context)
+    private void Scroll(int delta)
     {
-        if (Log.Count == 0 || context.FocusedNode is not EditorNode editor)
-        {
-            return;
-        }
-
-        Visual = false;
-        VisualLines = false;
-        _line = Math.Clamp(editor.ScrollOffset - 1 + context.MouseY - editor.Bounds.Y, 0, Log.Count - 1);
-        _column = 0;
-        Navigating = true;
-        Select();
+        var maxTop = Math.Max(0, Log.Count - _viewport);
+        _top = Math.Clamp((Following ? maxTop : _top) + delta, 0, maxTop);
+        Following = _top >= maxTop;
     }
 
     private DragHandler Drag(int x, int y)
@@ -370,90 +552,78 @@ internal sealed class TailLogView(TailLogDocument log)
             return new DragHandler();
         }
 
-        EditorNode? editor = null;
-        (int Line, int Column) Hit(InputBindingActionContext context, int column, int row)
-        {
-            editor ??= context.FocusedNode as EditorNode;
-            var top = editor?.ScrollOffset ?? 1;
-            var left = editor?.HorizontalScrollOffset ?? 0;
-            var line = Math.Clamp(top - 1 + row, 0, Log.Count - 1);
-            var text = Log.Lines[line].Text;
-            return (line, Math.Clamp(GraphemeHelper.DisplayColumnToIndex(text, Math.Max(0, left + column)), 0, text.Length));
-        }
-
-        var started = false;
+        var anchor = Hit(x, y);
+        var dragged = false;
         return new DragHandler(
-            onMove: (context, deltaX, deltaY) =>
+            onMove: (_, deltaX, deltaY) =>
             {
-                if (!started)
+                if (!dragged && Math.Abs(deltaX) <= 1 && deltaY == 0)
                 {
-                    started = true;
-                    (_anchorLine, _anchorColumn) = Hit(context, x, y);
-                    Visual = true;
-                    VisualLines = false;
-                    Navigating = true;
+                    return;
                 }
 
-                (_line, _column) = Hit(context, x + deltaX, y + deltaY);
-                _column = Math.Max(0, _column - 1);
-                Select();
+                dragged = true;
+                (_anchorLine, _anchorColumn) = anchor;
+                (_line, _column) = Hit(x + deltaX, y + deltaY);
+                Navigating = true;
+                Visual = true;
+                VisualLines = false;
             },
             onEnd: _ =>
             {
-                if (started && SelectedText() is { Length: > 0 } text)
+                if (!dragged)
+                {
+                    Visual = false;
+                    VisualLines = false;
+                    Navigating = true;
+                    (_line, _column) = (anchor.Line, 0);
+                    Reveal();
+                }
+                else if (SelectedText() is { Length: > 0 } text)
                 {
                     Copy?.Invoke(text, false);
                 }
             });
     }
 
-    private void Select()
+    private (int Line, int Column) Hit(int x, int y)
     {
-        var editor = Log.Editor;
-        if (Log.Count == 0)
-        {
-            return;
-        }
-
-        int startLine, startColumn, endLine, endColumn;
-        if (Visual && VisualLines)
-        {
-            (startLine, endLine) = (Math.Min(_anchorLine, _line), Math.Max(_anchorLine, _line));
-            (startColumn, endColumn) = (0, Log.Lines[endLine].Text.Length);
-        }
-        else if (Visual)
-        {
-            var anchorFirst = _anchorLine < _line || (_anchorLine == _line && _anchorColumn <= _column);
-            (startLine, startColumn, endLine, endColumn) = anchorFirst
-                ? (_anchorLine, _anchorColumn, _line, _column + 1)
-                : (_line, _column, _anchorLine, _anchorColumn + 1);
-        }
-        else
-        {
-            (startLine, startColumn, endLine, endColumn) = (_line, 0, _line, Log.Lines[_line].Text.Length);
-        }
-
-        var start = Log.OffsetOf(startLine, startColumn);
-        var end = Log.OffsetOf(endLine, endColumn);
-        var caret = Log.OffsetOf(_line, Visual ? _column : 0);
-        var anchor = caret == start ? end : start;
-        editor.SetCursorPosition(anchor);
-        editor.SetCursorPosition(caret, extend: true);
-        if (_line == Log.Count - 1 && !Visual)
-        {
-            FollowRequested?.Invoke();
-        }
+        var maxTop = Math.Max(0, Log.Count - _viewport);
+        _top = Following ? maxTop : _top;
+        Following = false;
+        var line = Math.Clamp(_top + y, 0, Log.Count - 1);
+        var text = Log.Lines[line].Text;
+        return (line, Math.Clamp(GraphemeHelper.DisplayColumnToIndex(text, Math.Max(0, _left + x)), 0, text.Length));
     }
 
-    private string SelectedText()
+    private void Reveal()
     {
-        var cursor = Log.Editor.Cursor;
-        if (!cursor.HasSelection)
+        var maxTop = Math.Max(0, Log.Count - _viewport);
+        if (Following)
         {
-            return "";
+            _top = maxTop;
         }
 
-        var document = Log.Editor.Document;
-        return document.GetText(cursor.SelectionRange);
+        if (_line < _top)
+        {
+            _top = _line;
+        }
+        else if (_line >= _top + _viewport)
+        {
+            _top = _line - _viewport + 1;
+        }
+
+        _top = Math.Clamp(_top, 0, maxTop);
+        var column = GraphemeHelper.IndexToDisplayColumn(Log.Lines[_line].Text, Math.Min(_column, Length(_line)));
+        if (column < _left)
+        {
+            _left = column;
+        }
+        else if (column >= _left + _width)
+        {
+            _left = column - _width + 1;
+        }
+
+        Following = _top >= maxTop && _line == Log.Count - 1;
     }
 }

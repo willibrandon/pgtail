@@ -1,6 +1,6 @@
 using Hex1b;
 using Hex1b.Input;
-using Hex1b.Theming;
+using Hex1b.Nodes;
 using Hex1b.Widgets;
 using Pgtail.Detection;
 using Pgtail.Rendering;
@@ -16,10 +16,8 @@ internal sealed partial class TailScreen
     private static readonly TextStyle PanelText = StyleParser.Parse("fg:#c0c0c0 bg:#262626 bold");
     private static readonly TextStyle HeaderText = StyleParser.Parse("fg:#8a8a8a bg:#262626");
     private static readonly TextStyle Separator = StyleParser.Parse("fg:#5f5f5f");
-    private static readonly Hex1bColor SelectionBackground = Hex1bColor.FromRgb(38, 79, 120);
-    private static readonly LogViewRenderer LogRenderer = new();
     private CancellationTokenSource? _watch;
-    private TailLogDecorations? _decorations;
+    private Dictionary<char, Action> _logKeys = [];
 
     /// <summary>
     /// Sets up the app and returns the screen's builder.
@@ -37,9 +35,15 @@ internal sealed partial class TailScreen
         _app = app;
         options.EnableDefaultCtrlCExit = false;
         options.EnableMouse = true;
-        _decorations = new TailLogDecorations(_log, Session.ColorEnabled);
         Input.Load();
-        Input.FocusLog = () => app.RequestFocus(node => node is EditorNode editor && editor.State == _log.Editor);
+        Input.FocusLog = () => app.RequestFocus(IsLog);
+        _logKeys = new Dictionary<char, Action>
+        {
+            ['q'] = Stop,
+            ['?'] = () => HelpVisible = true,
+            ['/'] = () => ToggleFocus(logFocused: true),
+        };
+
         CheckInitialAccess();
         _source.Start();
         _watch = new CancellationTokenSource();
@@ -130,21 +134,7 @@ internal sealed partial class TailScreen
         [
             Bar(v, TailStatus.FormatHeader(), HeaderText),
             Rule(v),
-            v.ThemePanel(
-                theme => theme
-                    .Set(EditorTheme.SelectionBackgroundColor, SelectionBackground)
-                    .Set(EditorTheme.SelectionForegroundColor, Hex1bColor.Default)
-                    .Set(EditorTheme.CursorBackgroundColor, SelectionBackground)
-                    .Set(EditorTheme.CursorForegroundColor, Hex1bColor.Default),
-                v.Editor(_log.Editor)
-                    .ViewRenderer(LogRenderer)
-                    .Decorations(_decorations!)
-                    .InputBindings(bindings =>
-                    {
-                        _view.Bind(bindings);
-                        BindScreenKeys(bindings, logFocused: true);
-                    }))
-                .Fill(),
+            _view.Build(v, _logKeys, bindings => BindScreenKeys(bindings, logFocused: true)).Fill(),
             Rule(v),
             v.Editor(Input.Editor)
                 .Decorations(Input.Hints)
@@ -157,7 +147,7 @@ internal sealed partial class TailScreen
             Rule(v),
             Bar(v, Status.FormatStatus(), PanelText),
         ]);
-        return HelpVisible ? context.ZStack(z => [main, TailHelpOverlay.Build(z, () => HelpVisible = false)]) : main;
+        return HelpVisible ? context.ZStack(z => [main, TailHelpOverlay.Build(z, CloseHelp)]) : main;
     }
 
     private void BindScreenKeys(InputBindingsBuilder bindings, bool logFocused)
@@ -171,20 +161,18 @@ internal sealed partial class TailScreen
                 Stop();
             }
         }, "Copy the selection, or leave tail mode");
-
-        if (logFocused)
-        {
-            bindings.Key(Hex1bKey.Q).Action(_ => Stop(), "Leave tail mode");
-            bindings.Character(text => text == "?").Action(_ => HelpVisible = true, "Show help");
-            bindings.Character(text => text == "/").Action(_ => ToggleFocus(logFocused: true), "Type a command");
-        }
     }
 
-    private void ToggleFocus(bool logFocused)
+    private void CloseHelp()
     {
-        var target = logFocused ? Input.Editor : _log.Editor;
-        _app?.RequestFocus(node => node is EditorNode editor && editor.State == target);
+        HelpVisible = false;
+        _app?.RequestFocus(IsLog);
     }
+
+    private static bool IsLog(Hex1bNode node) => node is InteractableNode { Child: SurfaceNode };
+
+    private void ToggleFocus(bool logFocused) =>
+        _app?.RequestFocus(logFocused ? node => node is EditorNode editor && editor.State == Input.Editor : IsLog);
 
     private SurfaceWidget Bar<TParent>(WidgetContext<TParent> context, StyledText text, TextStyle panel)
         where TParent : Hex1bWidget

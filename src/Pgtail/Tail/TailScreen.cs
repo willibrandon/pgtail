@@ -22,7 +22,7 @@ internal sealed partial class TailScreen : ITailHost
     private readonly TailRequest _request;
     private readonly ILogSource _source;
     private readonly List<LogEntry> _entries = [];
-    private readonly TailLogDocument _log = new();
+    private readonly TailLog _log = new();
     private readonly TailLogView _view;
     private readonly TailHistory _history;
     private readonly FilterAnchor _anchor;
@@ -51,10 +51,10 @@ internal sealed partial class TailScreen : ITailHost
         _request = request;
         _source = source;
         CurrentDirectory = currentDirectory;
-        _view = new TailLogView(_log)
+        _view = new TailLogView(_log, session.ColorEnabled)
         {
             PauseRequested = Pause,
-            FollowRequested = FollowFromView,
+            FollowRequested = Follow,
             Copy = CopyText,
         };
 
@@ -236,17 +236,14 @@ internal sealed partial class TailScreen : ITailHost
 
     private void WriteLines(IReadOnlyList<StyledText> lines)
     {
-        _ = _log.Append(lines);
-        Status.TotalLines = _log.Count;
-        _view.StickToEnd();
+        Append(lines);
+        _view.ShowEnd();
     }
 
-    private void FollowFromView()
+    private void Append(IReadOnlyList<StyledText> lines)
     {
-        if (!_paused)
-        {
-            Status.SetFollowing(true);
-        }
+        _view.Dropped(_log.Append(lines));
+        Status.TotalLines = _log.Count;
     }
 
     private void CopyText(string text, bool announce)
@@ -277,8 +274,7 @@ internal sealed partial class TailScreen : ITailHost
                 }
             }
 
-            _ = _log.Append(lines);
-            Status.TotalLines = _log.Count;
+            Append(lines);
             if (_rebuildIndex < snapshot.Count)
             {
                 _app?.Invalidate();
@@ -288,12 +284,9 @@ internal sealed partial class TailScreen : ITailHost
             _rebuildSnapshot = null;
             if (_afterRebuild.Count > 0)
             {
-                _ = _log.Append(_afterRebuild);
+                WriteLines(_afterRebuild);
                 _afterRebuild.Clear();
-                Status.TotalLines = _log.Count;
             }
-
-            _view.StickToEnd();
         }
 
         var shown = new List<StyledText>();
@@ -306,17 +299,16 @@ internal sealed partial class TailScreen : ITailHost
 
         if (shown.Count > 0)
         {
-            _ = _log.Append(shown);
-            Status.TotalLines = _log.Count;
-            if (_view.AwayFromEnd)
+            Append(shown);
+            if (!_view.Following)
             {
                 Status.SetFollowing(false, Status.NewSincePause + shown.Count);
             }
-            else
-            {
-                Status.SetFollowing(true);
-                _view.StickToEnd();
-            }
+        }
+
+        if (!_paused && _view.Following != Status.Following)
+        {
+            Status.SetFollowing(_view.Following, 0);
         }
 
         if (taken == EntriesPerFrame)

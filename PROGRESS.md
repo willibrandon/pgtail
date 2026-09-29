@@ -58,8 +58,13 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   with SQL-region detection, all 30 built-in highlighters on source-generated regular expressions, custom highlighters,
   and the highlighting configuration with comment-preserving saves. The SQL tokenizer is not ported: Python used it
   only on paths that rendered without a theme, and every path now renders through the themed chain.
-- Design: the REPL runs as a Hex1b Flow (inline, scrollback-preserving, like the prompt_toolkit REPL), and the tail log is
-  a read-only Hex1b editor with decoration providers (the dotsider approach).
+- Design: the REPL runs as a Hex1b Flow (inline, scrollback-preserving, like the prompt_toolkit REPL). The tail log is its
+  own focusable Hex1b view (an interactable surface) because it must follow new rows, which needs programmatic scrolling
+  that Hex1b 0.172.0's editor does not expose; it draws every attribute (dim, reverse) and its own scrollbar, scrolls
+  sideways to keep the cursor in sight, and handles typed keys a character at a time so keys that arrive together (fast
+  typing, key repeat) all take effect.
+- Moving the cursor in the tail log off the newest row stops following and shows `PAUSED`, the way `less +F` behaves;
+  returning to the end resumes. A plain click selects a row and a drag selects text and copies it silently on release.
 - Commands follow ilrepl's model: one catalog per mode (`ReplCatalog`, `TailCatalog`) holds each command's name,
   aliases, description, argument spec, detailed help, and handler, and drives dispatch, the REPL's completion menu,
   tail mode's inline suggestions, and help. The argument specs follow the Python tail completion data.
