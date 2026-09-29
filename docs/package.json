@@ -1,0 +1,19 @@
+{
+  "name": "pgtail-docs",
+  "type": "module",
+  "version": "0.6.1",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.0",
+    "astro": "^7.3.3",
+    "sharp": "^0.35.3"
+  }
+}
