@@ -24,4 +24,9 @@ public enum LogSourceEventKind
     /// Piped input ended.
     /// </summary>
     EndOfInput,
+
+    /// <summary>
+    /// Everything the source found when it started has been read, so later entries are new.
+    /// </summary>
+    CaughtUp,
 }

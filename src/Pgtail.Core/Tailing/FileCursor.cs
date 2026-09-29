@@ -63,6 +63,11 @@ public sealed class FileCursor(string path)
     }
 
     /// <summary>
+    /// Whether the last read reached the end of the file, or found nothing to read.
+    /// </summary>
+    public bool AtEnd { get; private set; }
+
+    /// <summary>
     /// Reads the complete lines appended since the last read.
     /// </summary>
     /// <param name="lines">Receives each non-blank line without its line ending.</param>
@@ -73,6 +78,7 @@ public sealed class FileCursor(string path)
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(formatDetected);
         var info = new FileInfo(Path);
+        AtEnd = true;
         if (!info.Exists)
         {
             return ReadOutcome.Unavailable;
@@ -102,6 +108,8 @@ public sealed class FileCursor(string path)
             {
                 Array.Resize(ref data, total);
             }
+
+            AtEnd = Position + total >= stream.Length;
         }
         catch (UnauthorizedAccessException)
         {

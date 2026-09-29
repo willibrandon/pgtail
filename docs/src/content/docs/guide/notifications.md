@@ -64,9 +64,15 @@ Notifications: enabled
 Platform: macOS (osascript)
 ```
 
-## Rate limiting
+## What notifies, and how often
 
-- At most one notification every 5 seconds
+- Only entries logged after tailing starts. Entries a time filter reads back, as `tail 0 --since 1d` does, count in
+  the statistics but never notify.
+- At most one notification every 5 seconds. Alerts that match in between are not dropped: when the 5 seconds are up,
+  one notification counts them (`pgtail: 4 more alerts`, `3 ERROR · 1 FATAL`) and shows the most severe.
+- An alert whose message was already shown in the last minute, apart from its numbers (`queue depth is 814` and
+  `queue depth is 233`), counts as a repeat instead of showing again; the next time it shows, it says how many times it
+  repeated.
 - Error rate alerts at most once a minute
 - Nothing during quiet hours
 

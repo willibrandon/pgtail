@@ -235,14 +235,15 @@ public sealed class PgtailSession
     }
 
     /// <summary>
-    /// Counts an entry in the statistics and checks it against the notification rules.
+    /// Counts an entry in the statistics and, when it is new, checks it against the notification rules.
     /// </summary>
     /// <remarks>
-    /// Every entry read is observed, whether or not the filters show it.
+    /// Every entry read is observed, whether or not the filters show it. Entries already in the log when tailing
+    /// started, as a time filter reads back, count in the statistics but notify no one.
     /// </remarks>
     /// <param name="entry">The entry.</param>
-    /// <returns>The notification the entry triggered, for the caller to deliver off the UI thread, or null.</returns>
-    public Notification? Observe(LogEntry entry)
+    /// <param name="isNew">Whether the entry was logged after tailing started.</param>
+    public void Observe(LogEntry entry, bool isNew)
     {
         ArgumentNullException.ThrowIfNull(entry);
         if (DurationExtractor.Extract(entry.Message) is { } duration)
@@ -252,7 +253,10 @@ public sealed class PgtailSession
 
         Errors.Add(entry);
         _ = Connections.Add(entry);
-        return Notifications.Check(entry);
+        if (isNew)
+        {
+            Notifications.Consider(entry);
+        }
     }
 
     /// <summary>

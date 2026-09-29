@@ -143,7 +143,11 @@ internal sealed partial class TailScreen
             Rule(v),
             // The output's place is always there, so the input keeps its place in the layout, and its focus.
             v.VStack(r => resultRows > 0 ? [Result(r, resultRows), Rule(r)] : []).FixedHeight(resultRows > 0 ? resultRows + 1 : 0),
-            v.HStack(h => [h.Text(Prompt), Input.Build(h, bindings => BindScreenKeys(bindings, logFocused: false))]).FixedHeight(1),
+            v.HStack(h =>
+            [
+                h.Text(Prompt),
+                .. Input.Build(h, bindings => BindScreenKeys(bindings, logFocused: false), Session.ColorEnabled),
+            ]).FixedHeight(1),
             Rule(v),
             Bar(v, Status.FormatStatus(), PanelText),
         ]);

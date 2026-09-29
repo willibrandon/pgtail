@@ -7,7 +7,8 @@ namespace Pgtail.Tailing;
 /// Reads log entries from piped input until it ends.
 /// </summary>
 /// <remarks>
-/// Every entry is marked as coming from <c>stdin</c>. The format is detected from the first non-blank line.
+/// Every entry is marked as coming from <c>stdin</c>. The format is detected from the first non-blank line. Piped input
+/// has no backlog to tell apart, so every entry counts as new.
 /// </remarks>
 /// <param name="input">The piped input.</param>
 public sealed class StreamLogSource(Stream input) : ILogSource
@@ -57,6 +58,7 @@ public sealed class StreamLogSource(Stream input) : ILogSource
 
     private async Task ReadAsync()
     {
+        _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.CaughtUp));
         var buffer = new byte[64 * 1024];
         var pending = new List<byte>();
         LogFormat? format = null;

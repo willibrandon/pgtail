@@ -190,3 +190,14 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   shell line keys work on either input through a small line interface. `q` typed in the input is text; the Python
   release's quit-on-`q`-when-empty is gone, since `q` and Enter runs the `q` command. A complete word such as `level`
   no longer suggests the longer `levels` alias.
+- Notifications, after a user got one for a warning from hours earlier while running `tail 0 --since 1d`: sources now
+  report `CaughtUp` once they have read what the log held when tailing started, and only entries after that run the
+  notification rules (piped input counts as new). Instead of dropping every alert within five seconds of the last one,
+  pgtail holds them and shows one notification that counts them and names the most severe; a message shown in the last
+  minute, apart from its numbers, is counted as a repeat and reported with its count when it next shows. Checked with a
+  day of backlog (140,000 lines, no notifications) and 72 seconds of constant errors and repeated warnings (4
+  notifications instead of 14). Hex1b apps get no terminal focus events, so pgtail cannot hold notifications while its
+  terminal is in front.
+- The tail prompt's suggestion now comes from pgtail each frame and is drawn after a content-width text box: the text
+  box's own predictions run on a thread pool task, and one computed for an earlier keystroke could land after Enter had
+  emptied the line, leaving a stale grey suggestion on an empty prompt.

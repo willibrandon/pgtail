@@ -317,18 +317,21 @@ public sealed class TailScreenTests
         await tail.Automator.TypeAsync("level error ", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen).StartsWith("tail> level error", StringComparison.Ordinal),
             description: "the line typed");
+        // As in readline, the space before the cut word stays; at the end of the line the first level is suggested after it.
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.W, TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level", description: "the last word cut");
-
-        // As in readline, the space before the cut word stays.
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Input(screen) == "tail> level debug" && screen.CursorX == "tail> level ".Length,
+            description: "the last word cut, with the suggestion after the caret");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.A, TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => screen.CursorX == "tail> ".Length, description: "the cursor at the start");
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Input(screen) == "tail> level" && screen.CursorX == "tail> ".Length,
+            description: "the cursor at the start, with no suggestion");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.E, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => screen.CursorX == "tail> level ".Length, description: "the cursor at the end");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.U, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail>", description: "the line cut");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.Y, TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level", description: "the cut text pasted");
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level debug", description: "the cut text pasted");
     }
 
     /// <summary>

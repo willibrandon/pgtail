@@ -23,6 +23,7 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
     private readonly EntryGrouper _grouper = new();
     private FileCursor _cursor = new(path);
     private long _lastDirectoryScan;
+    private bool _caughtUp;
 
     /// <inheritdoc />
     protected override void Prepare() => _cursor.Open(fromStart);
@@ -44,6 +45,12 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
         if (_grouper.Flush() is { } last)
         {
             Post(new LogSourceEvent(LogSourceEventKind.Entry, last));
+        }
+
+        if (!_caughtUp && _cursor.AtEnd)
+        {
+            _caughtUp = true;
+            Post(new LogSourceEvent(LogSourceEventKind.CaughtUp));
         }
 
         IsUnavailable = outcome != ReadOutcome.Read;

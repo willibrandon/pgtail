@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Pgtail.Parsing;
 using Pgtail.Statistics;
 
@@ -8,16 +9,27 @@ namespace Pgtail.Notifications;
 /// Decides which log entries send notifications and sends them.
 /// </summary>
 /// <remarks>
-/// Rules are checked in order: level, pattern, error rate, then slow query. At most one notification is sent every five
-/// seconds, error rate alerts at most once a minute, and nothing is sent during quiet hours.
+/// Rules are checked in order: level, pattern, error rate, then slow query, and only for entries logged after tailing
+/// started. At most one notification is shown every five seconds; alerts that match in between are held and shown
+/// together when the five seconds are up, as one notification that counts them. An alert whose message is one already
+/// shown in the last minute, apart from its numbers, counts as a repeat instead of showing again, and the next time it
+/// shows it says how often it repeated. Error rate alerts come at most once a minute, and nothing is shown during quiet
+/// hours.
 /// </remarks>
 /// <param name="notifier">The platform notifier.</param>
 /// <param name="errorStats">The error statistics error rate rules read.</param>
 /// <param name="clock">Returns the current local time.</param>
 public sealed class NotificationManager(INotifier notifier, ErrorStats errorStats, Func<DateTime> clock)
 {
-    private readonly RateLimiter _limiter = new(TimeSpan.FromSeconds(5));
+    private static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan RepeatWindow = TimeSpan.FromMinutes(1);
+    private const int RememberedAlerts = 256;
+    private readonly Lock _gate = new();
+    private readonly Dictionary<string, Shown> _shown = new(StringComparer.Ordinal);
+    private readonly List<Notification> _held = [];
+    private DateTime? _lastShown;
     private DateTime? _lastErrorRateAlert;
+    private Timer? _release;
 
     /// <summary>
     /// The rules and settings.
@@ -30,71 +42,50 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
     public INotifier Notifier { get; } = notifier;
 
     /// <summary>
-    /// Checks an entry against the rules and sends a notification when one matches.
+    /// Checks a newly logged entry against the rules and shows, holds, or counts the alert it raises.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns>The notification to send, or null; the caller sends it with <see cref="Deliver"/>.</returns>
-    public Notification? Check(LogEntry entry)
+    public void Consider(LogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
         var now = clock();
-        if (!Config.Enabled || Config.QuietHours?.IsActive(now) == true)
+        if (!IsOn(now) || Match(entry, now) is not { } matched)
         {
-            return null;
+            return;
         }
 
-        if (Config.LevelRules().Contains(entry.Level))
+        var (alert, key) = matched;
+        lock (_gate)
         {
-            return Allow(now, EntryNotification(entry, "Level Alert", $"lvl:{entry.Level.ToName()}"));
-        }
-
-        if (Config.PatternRules().Any(rule => rule.Pattern!.IsMatch(entry.Message)))
-        {
-            var start = entry.Message.Length > 10 ? entry.Message[..10] : entry.Message;
-            return Allow(now, EntryNotification(entry, "Pattern Match", "pat:" + start));
-        }
-
-        if (ErrorRateExceeded(now) is { } rate)
-        {
-            var alert = Allow(now, new Notification(
-                "pgtail: High Error Rate",
-                $"Error rate: {rate}/min (threshold: {Config.ErrorRateThreshold()}/min)",
-                Severity: NotificationSeverity.Error,
-                Tag: "rate:err"));
-            if (alert is not null)
+            if (_shown.TryGetValue(key, out var shown) && now - shown.At < RepeatWindow)
             {
-                _lastErrorRateAlert = now;
+                shown.Repeats++;
+                return;
             }
 
-            return alert;
-        }
+            if (shown is { Repeats: > 0 })
+            {
+                alert = alert with { Body = $"{alert.Body}\n(repeated {shown.Repeats} times since it was last shown)" };
+            }
 
-        if (Config.SlowQueryThreshold() is { } threshold && DurationExtractor.Extract(entry.Message) is { } duration
-            && duration > threshold)
-        {
-            var message = entry.Message.Length > 100 ? entry.Message[..97] + "..." : entry.Message;
-            return Allow(now, new Notification(
-                "pgtail: Slow Query",
-                $"Duration: {FormatMs(duration)}ms (threshold: {threshold}ms)\n{message}",
-                Severity: NotificationSeverities.FromLevel(entry.Level),
-                Tag: "slow:query"));
-        }
+            Remember(key, now);
+            if (_held.Count == 0 && (_lastShown is not { } last || now - last >= Cooldown))
+            {
+                Show(alert, now);
+                return;
+            }
 
-        return null;
+            _held.Add(alert);
+            var wait = (_lastShown ?? now) + Cooldown - now;
+            _release ??= new Timer(_ => Release(), null, wait < TimeSpan.Zero ? TimeSpan.Zero : wait, Timeout.InfiniteTimeSpan);
+        }
     }
 
     /// <summary>
-    /// Sends a notification through the platform notifier.
+    /// Sends a test notification, regardless of the rules and quiet hours.
     /// </summary>
-    /// <param name="notification">The notification.</param>
-    /// <returns>True when it was delivered.</returns>
-    public bool Deliver(Notification notification) => Notifier.Send(notification);
-
-    /// <summary>
-    /// Sends a test notification, regardless of rate limits and quiet hours.
-    /// </summary>
-    /// <param name="severity">The severity to test.</param>
-    /// <returns>True when it was delivered.</returns>
+    /// <param name="severity">The severity.</param>
+    /// <returns>True when it was sent.</returns>
     public bool SendTest(NotificationSeverity severity) => Notifier.Send(new Notification(
         $"pgtail: Test ({severity.ToName().ToUpperInvariant()})",
         "Notification system is working correctly",
@@ -102,15 +93,117 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
         severity,
         "test:pgtail"));
 
-    private Notification? Allow(DateTime now, Notification notification)
+    private bool IsOn(DateTime now) => Config.Enabled && Config.QuietHours?.IsActive(now) != true;
+
+    // The alert an entry raises, with the key that tells its repeats apart: its rule and its message without numbers.
+    private (Notification Alert, string Key)? Match(LogEntry entry, DateTime now)
     {
-        if (!_limiter.ShouldAllow(now))
+        if (Config.LevelRules().Contains(entry.Level))
         {
-            return null;
+            return (EntryNotification(entry, "Level Alert", $"lvl:{entry.Level.ToName()}"), "level:" + Shape(entry.Message));
         }
 
-        _limiter.RecordSent(now);
-        return notification;
+        if (Config.PatternRules().Any(rule => rule.Pattern!.IsMatch(entry.Message)))
+        {
+            var start = entry.Message.Length > 10 ? entry.Message[..10] : entry.Message;
+            return (EntryNotification(entry, "Pattern Match", "pat:" + start), "pattern:" + Shape(entry.Message));
+        }
+
+        if (ErrorRateExceeded(now) is { } rate)
+        {
+            _lastErrorRateAlert = now;
+            return (new Notification(
+                "pgtail: High Error Rate",
+                $"Error rate: {rate}/min (threshold: {Config.ErrorRateThreshold()}/min)",
+                Severity: NotificationSeverity.Error,
+                Tag: "rate:err"), "rate");
+        }
+
+        if (Config.SlowQueryThreshold() is { } threshold && DurationExtractor.Extract(entry.Message) is { } duration
+            && duration > threshold)
+        {
+            var message = entry.Message.Length > 100 ? entry.Message[..97] + "..." : entry.Message;
+            return (new Notification(
+                "pgtail: Slow Query",
+                $"Duration: {FormatMs(duration)}ms (threshold: {threshold}ms)\n{message}",
+                Severity: NotificationSeverities.FromLevel(entry.Level),
+                Tag: "slow:query"), "slow:" + Shape(entry.Message));
+        }
+
+        return null;
+    }
+
+    private void Show(Notification alert, DateTime now)
+    {
+        _lastShown = now;
+        _ = Task.Run(() => Notifier.Send(alert));
+    }
+
+    // Shows what was held while the last notification was on screen: the alert itself, or one that counts them.
+    private void Release()
+    {
+        lock (_gate)
+        {
+            _release?.Dispose();
+            _release = null;
+            var now = clock();
+            if (_held.Count > 0 && IsOn(now))
+            {
+                Show(_held.Count == 1 ? _held[0] : Summary(_held), now);
+            }
+
+            _held.Clear();
+        }
+    }
+
+    private static Notification Summary(List<Notification> held)
+    {
+        var counts = held.GroupBy(alert => alert.Subtitle ?? alert.Title["pgtail: ".Length..], StringComparer.Ordinal)
+            .Select(group => $"{group.Count()} {group.Key}");
+        // The detail is the most severe alert, the newest of those.
+        var worst = held.Where(alert => alert.Severity == held.Max(other => other.Severity)).Last();
+        return new Notification(
+            $"pgtail: {held.Count} more alerts",
+            $"{string.Join(" · ", counts)}\n{worst.Body.Split('\n')[0]}",
+            Severity: worst.Severity,
+            Tag: "summary");
+    }
+
+    private void Remember(string key, DateTime now)
+    {
+        if (_shown.Count >= RememberedAlerts)
+        {
+            foreach (var old in _shown.Where(pair => now - pair.Value.At >= RepeatWindow).Select(pair => pair.Key).ToList())
+            {
+                _ = _shown.Remove(old);
+            }
+        }
+
+        _shown[key] = new Shown(now);
+    }
+
+    // A message with each run of digits replaced, so "queue depth is 814" and "queue depth is 233" are one alert.
+    private static string Shape(string message)
+    {
+        var shape = new StringBuilder(Math.Min(message.Length, 120));
+        foreach (var character in message)
+        {
+            if (shape.Length >= 120)
+            {
+                break;
+            }
+
+            if (!char.IsAsciiDigit(character))
+            {
+                _ = shape.Append(character);
+            }
+            else if (shape.Length == 0 || shape[^1] != '#')
+            {
+                _ = shape.Append('#');
+            }
+        }
+
+        return shape.ToString();
     }
 
     private int? ErrorRateExceeded(DateTime now)
@@ -151,4 +244,18 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
     }
 
     private static string FormatMs(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    // When an alert was last shown, and how often it repeated since.
+    private sealed class Shown(DateTime at)
+    {
+        /// <summary>
+        /// When the alert was last shown.
+        /// </summary>
+        public DateTime At { get; } = at;
+
+        /// <summary>
+        /// How often it repeated since.
+        /// </summary>
+        public int Repeats { get; set; }
+    }
 }

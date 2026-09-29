@@ -146,7 +146,9 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 
 ## Notifications
 
-- [x] Rules by level, pattern, error rate, slow query; quiet hours (overnight spans); rate limit 1 per 5 seconds
+- [x] Rules by level, pattern, error rate, slow query; quiet hours (overnight spans); rate limit 1 per 5 seconds, with
+      alerts in between summarized and repeats within a minute counted (new), and only for entries logged after tailing
+      starts (new; the Python release notified for history read back by `--since`)
       (each verified in tail mode against a live PostgreSQL 18 workload, watching `Notify` calls on the session bus
       with `dbus-monitor`; a pattern with spaces, split at the first space in the Python release, now works)
 - [x] `notify`, `notify on ...`, `notify off`, `notify test`, `notify quiet HH:MM-HH:MM|off`, `notify clear`

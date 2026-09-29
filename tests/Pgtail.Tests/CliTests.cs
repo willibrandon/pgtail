@@ -429,7 +429,10 @@ public sealed class CliTests
         await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("Press Ctrl+C to stop");
         await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
-        await pgtail.Automator.WaitUntilTextAsync("Paused. Use 'stop' to stop tailing.");
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("Paused. Use 'stop' to stop tailing.")
+                && ReplHarness.PromptLine(screen).StartsWith("paused [", StringComparison.Ordinal),
+            description: "the paused prompt");
         await pgtail.Automator.TypeAsync("connections --watch", TestContext.CancellationToken);
         await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("[+] connect  [-] disconnect  [!] failed");

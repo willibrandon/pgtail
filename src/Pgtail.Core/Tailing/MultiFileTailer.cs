@@ -23,6 +23,7 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
 
     private readonly List<ReadOnlyMemory<byte>> _lines = [];
     private long _lastScan;
+    private bool _caughtUp;
 
     /// <summary>
     /// The files being read.
@@ -87,6 +88,12 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
             .ThenBy(entry => entry.SourceFile, StringComparer.Ordinal))
         {
             Post(new LogSourceEvent(LogSourceEventKind.Entry, entry));
+        }
+
+        if (!_caughtUp && _cursors.Values.All(cursor => cursor.AtEnd))
+        {
+            _caughtUp = true;
+            Post(new LogSourceEvent(LogSourceEventKind.CaughtUp));
         }
     }
 

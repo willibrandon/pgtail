@@ -59,6 +59,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `'%m [%p] %q%u@%d '`, whose lines were shown unparsed; its user and database show in the full display.
 
 ### Fixed
+- Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.
+- Alerts that arrive within 5 seconds of a notification are summarized in one notification when the 5 seconds are up
+  instead of being dropped, and a message repeated within a minute, apart from its numbers, is counted instead of shown
+  again.
 - `notify on /pattern with spaces/` keeps the whole pattern; it was cut at the first space.
 - Deleting back to an empty line at the REPL prompt closes the completion menu instead of listing every command.
 - `level` works at the REPL prompt and `levels` in tail mode, so the level filter command has the same name in both.

@@ -1,7 +1,10 @@
 using Hex1b;
 using Hex1b.Input;
+using Hex1b.Theming;
 using Hex1b.Widgets;
 using Pgtail.Editing;
+using Pgtail.Rendering;
+using Pgtail.Styling;
 
 namespace Pgtail.Tail;
 
@@ -9,20 +12,22 @@ namespace Pgtail.Tail;
 /// The <c>tail&gt;</c> command input: editing, history, and grey suggestions.
 /// </summary>
 /// <remarks>
-/// The terminal's own cursor marks the caret, and the rest of a command the input suggests follows it in grey; Right, or
-/// End at the end of the line, accepts it. Up and Down walk the history, Enter runs the command and keeps the input for
+/// The terminal's own cursor marks the caret, and the rest of a command the input suggests follows it in grey, worked
+/// out as each frame is built so it always belongs to the line on screen; Right, or End at the end of the line, accepts
+/// it. Up and Down walk the history, Enter runs the command and keeps the input for
 /// the next one, Page Up and Page Down scroll the command output or else the log, and Escape closes the command output
 /// or else clears the line and moves to the log. Every character typed is text, <c>q</c> included; the <c>q</c> command
 /// leaves tail mode once Enter runs it.
 /// </remarks>
 internal sealed class TailInput
 {
+    private static readonly TextStyle SuggestionText = StyleParser.Parse("fg:#808080");
     private readonly TailScreen _screen;
     private readonly TailHistory _history;
     private readonly TextBoxLine _line;
     private readonly LineEditingKeys _lineKeys;
-    private readonly Func<string, CancellationToken, Task<string?>> _suggest;
-    private bool _dropSuggestion;
+    private readonly TailSuggester _suggester;
+    private (string Text, string? Suffix) _suggested = ("", null);
 
     /// <summary>
     /// Creates the input for a screen.
@@ -35,8 +40,7 @@ internal sealed class TailInput
         _history = history;
         _line = new TextBoxLine(State);
         _lineKeys = new LineEditingKeys(_line, history.ResetNavigation);
-        var suggester = new TailSuggester(Commands.TailCatalog.Catalog, screen, history);
-        _suggest = (text, _) => Task.FromResult(suggester.Suffix(text));
+        _suggester = new TailSuggester(Commands.TailCatalog.Catalog, screen, history);
     }
 
     /// <summary>
@@ -60,19 +64,28 @@ internal sealed class TailInput
     public void Load() => _history.Load();
 
     /// <summary>
-    /// Builds the text box.
+    /// The rest of the command the input suggests, when the caret is at the end of the line.
     /// </summary>
+    public string? Suggestion => State.CursorPosition == State.Text.Length && !State.HasSelection ? Suffix(State.Text) : null;
+
+    /// <summary>
+    /// Builds the text box, as wide as its text, and the suggestion after it.
+    /// </summary>
+    /// <remarks>
+    /// The text box has no fill of its own, so the line reads like a shell prompt.
+    /// </remarks>
     /// <typeparam name="TParent">The parent widget type.</typeparam>
     /// <param name="context">The widget context.</param>
     /// <param name="more">Adds the screen's keys.</param>
-    /// <returns>The text box.</returns>
-    public TextBoxWidget Build<TParent>(WidgetContext<TParent> context, Action<InputBindingsBuilder> more)
+    /// <param name="color">Whether colors are on.</param>
+    /// <returns>The widgets.</returns>
+    public Hex1bWidget[] Build<TParent>(WidgetContext<TParent> context, Action<InputBindingsBuilder> more, bool color)
         where TParent : Hex1bWidget
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(more);
         var box = context.TextBox()
-            .FillWidth()
+            .ContentWidth()
             .State(State)
             .OnTextChanged(_ => _history.ResetNavigation())
             .InputBindings(bindings =>
@@ -81,15 +94,23 @@ internal sealed class TailInput
                 more(bindings);
             });
 
-        // A line replaced from outside, as by the history or a command that ran, drops the suggestion made for the old
-        // one: a frame without a suggester clears it.
-        if (_dropSuggestion)
-        {
-            _dropSuggestion = false;
-            return box;
-        }
-
-        return box.Predict(_suggest);
+        var suggestion = Suggestion;
+        return
+        [
+            context.ThemePanel(theme => theme
+                .Set(TextBoxTheme.FillBackgroundColor, Hex1bColor.Default)
+                .Set(TextBoxTheme.FocusedFillBackgroundColor, Hex1bColor.Default), box),
+            context.Surface(s =>
+            [
+                s.Layer(layer =>
+                {
+                    if (suggestion is not null)
+                    {
+                        _ = StyledBlock.DrawRow(layer, 0, 0, [new StyledSpan(suggestion, SuggestionText)], color);
+                    }
+                }),
+            ]).FillWidth(),
+        ];
     }
 
     /// <summary>
@@ -111,7 +132,6 @@ internal sealed class TailInput
     {
         ArgumentNullException.ThrowIfNull(text);
         _line.Replace(0, _line.Text.Length, text);
-        _dropSuggestion = true;
     }
 
     private void Bind(InputBindingsBuilder bindings)
@@ -149,12 +169,30 @@ internal sealed class TailInput
             }
         }, "Next command");
 
-        // At the end of the line, End accepts the suggestion as Right does; with none there is nowhere to move.
-        if (State.CursorPosition == State.Text.Length)
+        if (Suggestion is { } suggestion)
         {
+            bindings.Remove(TextBoxWidget.MoveRight);
             bindings.Remove(TextBoxWidget.MoveEnd);
-            bindings.Key(Hex1bKey.End).Triggers(TextBoxWidget.MoveRight);
+            bindings.Key(Hex1bKey.RightArrow).Action(_ => Accept(suggestion), "Accept the suggestion");
+            bindings.Key(Hex1bKey.End).Action(_ => Accept(suggestion), "Accept the suggestion");
         }
+    }
+
+    private void Accept(string suggestion)
+    {
+        _line.Replace(_line.Text.Length, _line.Text.Length, suggestion);
+        _history.ResetNavigation();
+    }
+
+    // The suggester runs once for each line typed.
+    private string? Suffix(string text)
+    {
+        if (_suggested.Text != text)
+        {
+            _suggested = (text, _suggester.Suffix(text));
+        }
+
+        return _suggested.Suffix;
     }
 
     private async Task SubmitAsync()

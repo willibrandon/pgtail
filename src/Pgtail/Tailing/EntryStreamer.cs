@@ -12,13 +12,16 @@ namespace Pgtail.Tailing;
 /// <param name="styled">True when writing to a terminal: colors, attributes, and status lines; false for plain entries.</param>
 internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bool styled)
 {
+    private bool _caughtUp;
+
     /// <summary>
     /// Streams until the source ends or the token is cancelled.
     /// </summary>
     /// <remarks>
-    /// Every entry is counted in the statistics, checked against notification rules, and kept in the session buffer;
-    /// only entries that pass the filters are written. On a terminal, format detection and file switches are announced;
-    /// in a pipe only entries are written, so the output stays one entry per line for tools such as <c>jq</c>.
+    /// Every entry is counted in the statistics and kept in the session buffer, and new ones are checked against the
+    /// notification rules; only entries that pass the filters are written. On a terminal, format detection and file
+    /// switches are announced; in a pipe only entries are written, so the output stays one entry per line for tools such
+    /// as <c>jq</c>.
     /// </remarks>
     /// <param name="source">The started source.</param>
     /// <param name="cancellationToken">Stops streaming.</param>
@@ -50,10 +53,7 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
         {
             case LogSourceEventKind.Entry when item.Entry is { } entry:
                 session.Buffer.Add(entry);
-                if (session.Observe(entry) is { } notification)
-                {
-                    _ = Task.Run(() => session.Notifications.Deliver(notification));
-                }
+                session.Observe(entry, isNew: _caughtUp);
 
                 if (session.ShouldShow(entry))
                 {
@@ -68,6 +68,9 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
                     output.WriteLine($"Detected format: {format.ToDestinationName()}");
                 }
 
+                break;
+            case LogSourceEventKind.CaughtUp:
+                _caughtUp = true;
                 break;
             case LogSourceEventKind.FileSwitched when item.Path is { } path && styled:
                 output.WriteLine();

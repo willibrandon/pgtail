@@ -40,6 +40,7 @@ internal sealed partial class TailScreen : ITailHost
     private bool _versionDetected;
     private bool _portDetected;
     private bool _ended;
+    private bool _caughtUp;
 
     /// <summary>
     /// Creates the screen for a request.
@@ -357,6 +358,9 @@ internal sealed partial class TailScreen : ITailHost
                 Format = format;
                 Session.DetectedFormat = format;
                 break;
+            case LogSourceEventKind.CaughtUp:
+                _caughtUp = true;
+                break;
             case LogSourceEventKind.EndOfInput:
                 shown.Add(Markup.Parse($"[dim]--- stdin complete ({item.LinesRead} lines loaded) - press 'q' to quit ---[/]"));
                 break;
@@ -368,10 +372,7 @@ internal sealed partial class TailScreen : ITailHost
         _entries.Add(entry);
 
         Session.Buffer.Add(entry);
-        if (Session.Observe(entry) is { } notification)
-        {
-            _ = Task.Run(() => Session.Notifications.Deliver(notification));
-        }
+        Session.Observe(entry, isNew: _caughtUp);
 
         DetectInstance(entry);
         if (!Session.ShouldShow(entry))
