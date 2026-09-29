@@ -152,7 +152,8 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 - [x] `notify`, `notify on ...`, `notify off`, `notify test`, `notify quiet HH:MM-HH:MM|off`, `notify clear`
 - [x] Linux `notify-send` (verified on the desktop session bus)
 - [ ] macOS `osascript` and Windows toast notifications (with Start menu shortcut/AUMID): covered by
-      `Notify_Status_NamesPlatformNotifier` and `NotifyTest_SendsThroughPlatformNotifier` on the macOS and Windows CI runners
+      `Notify_Status_NamesPlatformNotifier` (both; on Windows it writes the shortcut and activates the toast API) and
+      `NotifyTest_SendsThroughPlatformNotifier` (macOS) on the CI runners; a toast on screen needs a Windows desktop
 - [x] Persistence under `[notifications]`
 
 ## Export and pipe

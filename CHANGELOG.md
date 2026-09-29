@@ -63,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A misspelled setting in `config.toml` is reported at startup instead of being ignored silently, and the built-in
   editor saves only settings pgtail knows with valid values.
 - The editor no longer reports unsaved changes after edits are undone back to the saved text.
+- On Windows, copying from tail mode through `clip.exe` sends a byte order mark, which `clip.exe` needs to read the text
+  as UTF-16.
 - On Windows, pgtail started directly by a terminal, such as a Windows Terminal profile whose command is `pgtail`, runs
   the REPL instead of exiting at once; it still exits silently when started with no terminal, as by package validation.
 

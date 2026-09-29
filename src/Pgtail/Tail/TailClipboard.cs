@@ -50,7 +50,9 @@ internal static class TailClipboard
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    StandardInputEncoding = OperatingSystem.IsWindows() ? Encoding.Unicode : new UTF8Encoding(false),
+                    StandardInputEncoding = OperatingSystem.IsWindows()
+                        ? new UnicodeEncoding(bigEndian: false, byteOrderMark: false)
+                        : new UTF8Encoding(false),
                 };
 
                 foreach (var argument in arguments)
@@ -64,7 +66,8 @@ internal static class TailClipboard
                     continue;
                 }
 
-                process.StandardInput.Write(text);
+                // clip.exe reads UTF-16 only after a byte order mark, which is written here rather than left to the encoding.
+                process.StandardInput.Write(OperatingSystem.IsWindows() ? "\uFEFF" + text : text);
                 process.StandardInput.Close();
                 if (process.WaitForExit(TimeSpan.FromSeconds(3)) && process.ExitCode == 0)
                 {

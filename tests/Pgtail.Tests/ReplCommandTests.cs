@@ -447,6 +447,10 @@ public sealed class ReplCommandTests
     /// <summary>
     /// notify names the platform's way of showing notifications: osascript, WinRT toasts, or notify-send.
     /// </summary>
+    /// <remarks>
+    /// On Windows, WinRT Toast means the Start menu shortcut that registers pgtail's application ID was written and the
+    /// toast API was activated.
+    /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
     public async Task Notify_Status_NamesPlatformNotifier()
@@ -464,15 +468,16 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
-    /// notify test shows a notification through osascript on macOS and a toast on Windows.
+    /// notify test shows a notification through osascript on macOS.
     /// </summary>
     /// <remarks>
-    /// Linux sends through notify-send the same way osascript is run; the test leaves it out so running the tests on a
-    /// Linux desktop does not show a notification.
+    /// Linux sends through notify-send the same way; the test leaves it out so running the tests on a Linux desktop does
+    /// not show a notification. A Windows toast needs the shortcut in the user's real Start menu, which a test's own
+    /// APPDATA does not reach.
     /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    [OSCondition(OperatingSystems.OSX | OperatingSystems.Windows)]
+    [OSCondition(OperatingSystems.OSX)]
     public async Task NotifyTest_SendsThroughPlatformNotifier()
     {
         using var environment = new TestEnvironment();
