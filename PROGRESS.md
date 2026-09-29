@@ -88,3 +88,14 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   suggests `--stream` instead of printing unfiltered lines.
 - Update checks suggest the upgrade command for the .NET distribution channels: `dotnet tool update -g pgtail`,
   Homebrew, winget, Scoop, or the releases page.
+- Between the REPL's terminals (the prompt flow, a full screen app, a shell command) pgtail waits 150 ms after a
+  terminal stops: Hex1b's Unix console reader notices its terminal stopped between 100 ms waits for input, and could
+  otherwise read the next terminal's cursor position reply (the prompt then never returned after a quick `!echo`) or a
+  shell command's first keys. After clearing the screen or a full screen app the next prompt's row is known, so the
+  terminal is not asked.
+- Shell completion offers options once the word starts with `-`, as Click does, so `pgtail <Tab>` lists commands.
+- Tests: REPL tests run the REPL's flow in a headless Hex1b terminal (full screen requests are served on a second
+  one), tail mode tests run the tail screen on a real log file, and CLI tests run the built executable, in a
+  pseudo-terminal for interactive use and with piped output for one-shot commands. The thread pool minimum is raised
+  as Hex1b's own tests do, so parallel terminals do not starve.
+

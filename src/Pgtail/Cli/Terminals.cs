@@ -31,4 +31,15 @@ internal static class Terminals
         options.ResizeSettleDelay = TimeSpan.FromMilliseconds(75);
         options.EnableMouse = true;
     }
+
+    /// <summary>
+    /// Waits until a stopped terminal no longer reads the console, before anything else reads it.
+    /// </summary>
+    /// <remarks>
+    /// Hex1b's console input reader checks whether its terminal has stopped between 100 ms waits for input, so for up
+    /// to one wait after a terminal stops it can still read what arrives: a shell command's first keys, or the reply to
+    /// the next terminal's cursor position query, which then never comes.
+    /// </remarks>
+    /// <returns>A task that completes when the console is free.</returns>
+    public static Task ReleaseConsoleAsync() => Task.Delay(TimeSpan.FromMilliseconds(150));
 }

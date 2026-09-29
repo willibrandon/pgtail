@@ -268,7 +268,7 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
-    /// Ctrl+D on an empty line ends the REPL.
+    /// Ctrl+D on an empty line says goodbye and ends the REPL.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
@@ -278,6 +278,21 @@ public sealed class ReplCommandTests
         await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.Ctrl().KeyAsync(Hex1bKey.D, TestContext.CancellationToken);
         _ = await repl.WaitForRequestAsync(ReplRequestKind.Exit);
+        await repl.Automator.WaitUntilTextAsync("Goodbye!");
+    }
+
+    /// <summary>
+    /// quit says goodbye and ends the REPL.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Quit_SaysGoodbyeAndExits()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("quit", TestContext.CancellationToken);
+        _ = await repl.WaitForRequestAsync(ReplRequestKind.Exit);
+        await repl.Automator.WaitUntilTextAsync("Goodbye!");
     }
 
     /// <summary>

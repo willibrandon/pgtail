@@ -13,7 +13,9 @@ namespace Pgtail.Cli;
 /// Runs the interactive REPL on the real terminal.
 /// </summary>
 /// <remarks>
-/// Between prompts the terminal goes to shell commands, streaming output, and clearing the screen.
+/// Between prompts the terminal goes to shell commands, streaming output, clearing the screen, and full screen apps.
+/// After clearing, the next prompt starts on the top row, and after a full screen app, which leaves the cursor where it
+/// found it, on the row where the flow ended; otherwise the flow asks the terminal where the cursor is.
 /// </remarks>
 internal static class ReplRunner
 {
@@ -40,16 +42,28 @@ internal static class ReplRunner
             _ = CheckForUpdateAsync(session, updates, host);
         }
 
+        int? resumeRow = null;
         while (true)
         {
             ReplRequest? request = null;
+            var startRow = resumeRow;
+            resumeRow = null;
             await using (var terminal = Terminals.Builder()
-                .WithHex1bFlow(async flow => request = await host.RunAsync(flow), Terminals.FlowOptions)
+                .WithHex1bFlow(async flow => request = await host.RunAsync(flow), options =>
+                {
+                    Terminals.FlowOptions(options);
+                    if (startRow is { } row)
+                    {
+                        options.InitialCursorRow = row;
+                        options.CursorRowProvider = () => row;
+                    }
+                })
                 .Build())
             {
                 _ = await terminal.RunAsync();
             }
 
+            await Terminals.ReleaseConsoleAsync();
             switch (request)
             {
                 case null or { Kind: ReplRequestKind.Exit }:
@@ -57,6 +71,7 @@ internal static class ReplRunner
                 case { Kind: ReplRequestKind.ClearScreen }:
                     Console.Out.Write("\e[H\e[2J\e[3J");
                     Console.Out.Flush();
+                    resumeRow = 0;
                     break;
                 case { Kind: ReplRequestKind.Shell, Command: { } command }:
                     ShellRunner.Run(command, message => Console.Out.WriteLine(message));
@@ -65,6 +80,7 @@ internal static class ReplRunner
                     await StreamAsync(stream);
                     break;
                 case { Kind: ReplRequestKind.Screen, Screen: { } screen }:
+                    resumeRow = host.EndRow;
                     await RunScreenAsync(screen);
                     break;
             }
@@ -107,10 +123,14 @@ internal static class ReplRunner
     {
         ArgumentNullException.ThrowIfNull(screen);
         Hex1bAppOptions? options = null;
-        await using var terminal = Terminals.Builder()
+        await using (var terminal = Terminals.Builder()
             .WithHex1bApp(configure => options = configure, app => screen(app, options!))
-            .Build();
-        _ = await terminal.RunAsync();
+            .Build())
+        {
+            _ = await terminal.RunAsync();
+        }
+
+        await Terminals.ReleaseConsoleAsync();
     }
 
     private static async Task CheckForUpdateAsync(PgtailSession session, UpdateChecker updates, ReplHost host)

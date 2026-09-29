@@ -65,6 +65,11 @@ internal sealed partial class ReplHost : IReplHost
     public List<StyledText> StartupNotices { get; } = [];
 
     /// <summary>
+    /// The screen row the cursor was on when the flow last ended, below everything it printed.
+    /// </summary>
+    public int EndRow { get; private set; }
+
+    /// <summary>
     /// Runs prompts until a command needs the real terminal.
     /// </summary>
     /// <param name="flow">The flow.</param>
@@ -125,6 +130,7 @@ internal sealed partial class ReplHost : IReplHost
         }
         finally
         {
+            EndRow = flow.TerminalHeight - flow.AvailableHeight;
             _flow = null;
         }
     }

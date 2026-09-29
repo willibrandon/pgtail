@@ -11,6 +11,9 @@ namespace Pgtail.Tests;
 /// <summary>
 /// Runs the REPL in a headless Hex1b terminal for a test.
 /// </summary>
+/// <remarks>
+/// When the REPL ends, its flow stays up until the harness is disposed, so a test can still read what it printed last.
+/// </remarks>
 internal sealed class ReplHarness : IAsyncDisposable
 {
     private readonly Hex1bTerminal _terminal;
@@ -18,6 +21,7 @@ internal sealed class ReplHarness : IAsyncDisposable
     private readonly CancellationTokenSource _stop;
     private readonly Channel<Hex1bTerminalAutomator> _screens = Channel.CreateUnbounded<Hex1bTerminalAutomator>();
     private readonly Channel<ReplRequest> _requests = Channel.CreateUnbounded<ReplRequest>();
+    private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile bool _exited;
 
     private ReplHarness(
@@ -43,6 +47,7 @@ internal sealed class ReplHarness : IAsyncDisposable
                     switch (request)
                     {
                         case { Kind: ReplRequestKind.Exit }:
+                            await _release.Task;
                             return;
                         case { Kind: ReplRequestKind.Screen, Screen: { } screen }:
                             await RunScreenAsync(screen, width, height, cancellationToken);
@@ -202,6 +207,7 @@ internal sealed class ReplHarness : IAsyncDisposable
     /// <returns>A task that completes when the terminal has stopped.</returns>
     public async ValueTask DisposeAsync()
     {
+        _ = _release.TrySetResult();
         if (!_exited)
         {
             await _stop.CancelAsync();

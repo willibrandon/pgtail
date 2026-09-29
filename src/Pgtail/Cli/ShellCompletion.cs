@@ -118,6 +118,10 @@ internal static class ShellCompletion
     /// <summary>
     /// The candidates for the last word of a command line.
     /// </summary>
+    /// <remarks>
+    /// Options are offered once the word starts with <c>-</c>, as Click completes them, so an empty word lists commands,
+    /// instances, or values.
+    /// </remarks>
     /// <param name="words">The words after <c>pgtail</c>; the last one is being typed and may be empty.</param>
     /// <returns>The candidates and their descriptions.</returns>
     public static IEnumerable<(string Value, string Description)> Candidates(IReadOnlyList<string> words)
@@ -148,7 +152,8 @@ internal static class ShellCompletion
             };
         }
 
-        return items.Where(item => item.Value.StartsWith(partial, StringComparison.Ordinal));
+        return items.Where(item => item.Value.StartsWith(partial, StringComparison.Ordinal)
+            && (!item.Value.StartsWith('-') || partial.StartsWith('-')));
     }
 
     private static IEnumerable<(string Value, string Description)> Tail(List<string> before, string partial)
@@ -173,7 +178,7 @@ internal static class ShellCompletion
             ("--stream", "Print entries to standard output."),
             ("--help", "Show this message and exit."),
         ];
-        return partial.StartsWith('-') ? options : Instances().Concat(options);
+        return partial.StartsWith('-') ? options : Instances();
     }
 
     private static IEnumerable<(string Value, string Description)> Instances()
