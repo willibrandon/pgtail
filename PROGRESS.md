@@ -26,6 +26,20 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   Items are checked only after they are ported and verified.
 - Copied ilrepl's `.editorconfig` verbatim and its layout/documentation analyzers into `src/Pgtail.Analyzers`
   (rules renamed `PGTAIL0001`-`PGTAIL0007`).
+- Ported the core (parsing, filtering, statistics, styling, highlighting, TOML, configuration, detection, tailing,
+  notifications, export, updates), then the REPL, tail mode, the built-in editor, the command catalogs, and the
+  command line.
+- Rebuilt the tail log as its own Hex1b view so it follows new rows; added mouse and horizontal scrolling.
+- Wrote the terminal test suite: the REPL flow, tail mode, and the built executable in a pseudo-terminal and with
+  piped output (86 tests, run repeatedly for flakiness).
+- Drove every feature with the `hex1b` CLI, including against real PostgreSQL 18 servers (running process detection,
+  logging on and off, `enable-logging`, rotation, csvlog and jsonlog, live connection and error views), which found
+  and fixed: continuation lines shown as separate entries, csvlog/jsonlog times shown in UTC, the port not read after
+  the version, status lines in piped output, the prompt overwriting streamed output, lost characters in wrapped
+  echoes, focus changes applied a frame late, and batched keystrokes ignored in the log.
+- Added Ctrl+R history search and the shell's line editing keys, which the prompt_toolkit REPL had.
+- Native AOT publish, the .NET tool packages, the release and CI workflows, the Astro Starlight docs site, README,
+  CHANGELOG, and the feature checklist.
 
 ## Decisions
 
