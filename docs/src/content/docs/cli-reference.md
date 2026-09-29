@@ -68,7 +68,8 @@ Notes:
 - `--file` and an instance ID cannot be combined, and `--stdin` works with neither.
 - Glob patterns expand to files ordered most recently modified first.
 - Tailing several files marks each entry with its `[filename]`.
-- `--stream` follows a single file (or the pipe with `--stdin`).
+- `--stream` follows a single file (or the pipe with `--stdin`). When its output is piped, it writes only the entries,
+  one per line, without colors or status lines, so it works with `grep` and other tools.
 - With `--stdin` and no `--stream`, the piped data is read in full before tail mode opens, and the keyboard is read
   from the terminal.
 

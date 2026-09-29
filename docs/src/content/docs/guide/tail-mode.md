@@ -238,4 +238,5 @@ when you widen or clear it.
 `pgtail tail --stream` (or `tail --stream` in the REPL) prints entries to the terminal instead of opening tail mode,
 with the same filters and colors. It follows a single file. In the REPL, `Ctrl+C` pauses the stream and shows a
 `paused` prompt; `stop` stops it. On the command line, `Ctrl+C` stops it. With `--stdin`, `--stream` prints the piped
-entries through the filters.
+entries through the filters. When its output is piped, only the entries are written, one per line, without colors or
+status lines.
