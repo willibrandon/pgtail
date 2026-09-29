@@ -573,6 +573,13 @@ internal sealed class TailLogView(TailLog log, bool color)
             return new DragHandler();
         }
 
+        // Pressing the scrollbar jumps to that point of the log, and dragging moves through it.
+        if (x >= _width && Log.Count > _viewport)
+        {
+            ScrollTo(y);
+            return new DragHandler(onMove: (_, _, deltaY) => ScrollTo(y + deltaY));
+        }
+
         var anchor = Hit(x, y);
         var dragged = false;
         return new DragHandler(
@@ -605,6 +612,13 @@ internal sealed class TailLogView(TailLog log, bool color)
                     Copy?.Invoke(text, false);
                 }
             });
+    }
+
+    private void ScrollTo(int row)
+    {
+        var maxTop = Math.Max(0, Log.Count - _viewport);
+        _top = (int)((long)Math.Clamp(row, 0, _viewport - 1) * maxTop / Math.Max(1, _viewport - 1));
+        Following = _top >= maxTop;
     }
 
     private (int Line, int Column) Hit(int x, int y)

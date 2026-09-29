@@ -16,7 +16,6 @@ internal sealed partial class TailScreen
     private static readonly TextStyle PanelText = StyleParser.Parse("fg:#c0c0c0 bg:#262626 bold");
     private static readonly TextStyle HeaderText = StyleParser.Parse("fg:#8a8a8a bg:#262626");
     private static readonly TextStyle Separator = StyleParser.Parse("fg:#5f5f5f");
-    private const string Prompt = "tail> ";
     private CancellationTokenSource? _watch;
     private Dictionary<char, Action<InputBindingActionContext>> _logKeys = [];
 
@@ -46,14 +45,14 @@ internal sealed partial class TailScreen
                 _help.Open();
                 HelpVisible = true;
             },
-            ['/'] = context => context.FocusWhere(IsInput),
+            ['/'] = context => context.FocusWhere(TailInput.Is),
         };
 
         CheckInitialAccess();
         _source.Start();
         _watch = new CancellationTokenSource();
         _ = WatchAsync(app, _watch.Token);
-        app.RequestFocus(IsInput);
+        app.RequestFocus(TailInput.Is);
         return Build;
     }
 
@@ -78,14 +77,17 @@ internal sealed partial class TailScreen
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
         var unavailable = false;
         var denied = false;
+        var blink = Input.BlinkPhase;
         try
         {
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                if (_source.Events.TryPeek(out _) || _source.IsUnavailable != unavailable || _source.IsPermissionDenied != denied)
+                if (_source.Events.TryPeek(out _) || _source.IsUnavailable != unavailable || _source.IsPermissionDenied != denied
+                    || Input.BlinkPhase != blink)
                 {
                     unavailable = _source.IsUnavailable;
                     denied = _source.IsPermissionDenied;
+                    blink = Input.BlinkPhase;
                     app.Invalidate();
                 }
             }
@@ -127,7 +129,7 @@ internal sealed partial class TailScreen
         }
     }
 
-    private Hex1bWidget Build(RootContext context)
+    private PastableWidget Build(RootContext context)
     {
         if (!_ended)
         {
@@ -143,21 +145,24 @@ internal sealed partial class TailScreen
             Rule(v),
             // The output's place is always there, so the input keeps its place in the layout, and its focus.
             v.VStack(r => resultRows > 0 ? [Result(r, resultRows), Rule(r)] : []).FixedHeight(resultRows > 0 ? resultRows + 1 : 0),
-            v.HStack(h =>
-            [
-                h.Text(Prompt),
-                .. Input.Build(h, bindings => BindScreenKeys(bindings, logFocused: false), Session.ColorEnabled),
-            ]).FixedHeight(1),
+            Input.Build(v, bindings => BindScreenKeys(bindings, logFocused: false), Session.ColorEnabled).FixedHeight(1),
             Rule(v),
             Bar(v, Status.FormatStatus(), PanelText),
         ]);
-        return HelpVisible ? context.ZStack(z => [main, _help.Build(z, ScreenRows(), CloseHelp)]) : main;
+
+        // Pasted text goes to the input, wherever the focus is.
+        return context.Pastable(HelpVisible ? context.ZStack(z => [main, _help.Build(z, ScreenRows(), CloseHelp)]) : main)
+            .OnPaste(async paste =>
+            {
+                Input.Type(await paste.Paste.ReadToEndAsync());
+                _app?.RequestFocus(TailInput.Is);
+            });
     }
 
     private void BindScreenKeys(InputBindingsBuilder bindings, bool logFocused)
     {
         bindings.Remove(Hex1bKey.Tab);
-        bindings.Key(Hex1bKey.Tab).Action(context => context.FocusWhere(logFocused ? IsInput : IsLog),
+        bindings.Key(Hex1bKey.Tab).Action(context => context.FocusWhere(logFocused ? TailInput.Is : IsLog),
             "Switch between the log and the command input");
         bindings.Ctrl().Key(Hex1bKey.C).Action(_ =>
         {
@@ -215,7 +220,7 @@ internal sealed partial class TailScreen
     // Keys typed on the log that are not its own start a command.
     private void TypeCommand(string text, InputBindingActionContext context)
     {
-        _ = context.FocusWhere(IsInput);
+        _ = context.FocusWhere(TailInput.Is);
         Input.Type(text);
     }
 
@@ -226,8 +231,6 @@ internal sealed partial class TailScreen
     }
 
     private static bool IsLog(Hex1bNode node) => node is InteractableNode { Child: SurfaceNode };
-
-    private static bool IsInput(Hex1bNode node) => node is TextBoxNode;
 
     private SurfaceWidget Bar<TParent>(WidgetContext<TParent> context, StyledText text, TextStyle panel)
         where TParent : Hex1bWidget

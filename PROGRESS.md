@@ -209,3 +209,9 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   back from the end and moving on to the first line that starts an entry, since it keeps 10,000; streaming still reads
   the whole range. A day of the test server's log (142,000 lines) opens at the tail 0.28 s after the screen appears in
   the Native AOT build, against about 5 s of scrolling before; the Debug build spends another second compiling.
+- Mouse in tail mode from the REPL: full screen apps were built without `WithMouse()` on the terminal builder, and the
+  app option pgtail set does not turn mouse reporting on in the terminal, so clicks and drags never arrived and the
+  wheel worked only as the arrow keys some terminals send without mouse reporting. The editor and tail mode now turn it
+  on, a test checks the modes a real terminal receives, and the scrollbar can be pressed and dragged. The tail input is
+  now drawn by pgtail, since Hex1b's text box shows the terminal's cursor as a steady bar and hides it without focus:
+  the block cursor blinks while the input has focus and stays solid while the log has it.

@@ -154,6 +154,7 @@ internal static class PgtailCli
             var screen = new FileEditorScreen(ConfigCommands.ConfigEditRequest(session));
 
             await using var terminal = Terminals.Builder()
+                .WithMouse()
                 .WithHex1bApp(options => options.EnableDefaultCtrlCExit = false, app =>
                 {
                     FileEditorScreen.Focus(app);
@@ -364,6 +365,7 @@ internal static class PgtailCli
         {
             Hex1bAppOptions? options = null;
             await using var terminal = Terminals.Builder()
+                .WithMouse()
                 .WithHex1bApp(configure => options = configure, app => screen.Configure(app, options!))
                 .Build();
             _ = await terminal.RunAsync();

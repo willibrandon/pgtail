@@ -298,8 +298,7 @@ public sealed class TailScreenTests
         {
             await tail.Automator.TypeAsync(typed[^1..], TestContext.CancellationToken);
             await tail.Automator.WaitUntilAsync(
-                screen => TailHarness.Input(screen) == shown && screen.CursorY == screen.Height - 3
-                    && screen.CursorX == "tail> ".Length + typed.Length,
+                screen => TailHarness.Input(screen) == shown && TailHarness.InputCursor(screen) == "tail> ".Length + typed.Length,
                 description: $"the cursor after '{typed}' with the rest of theme after it");
         }
     }
@@ -320,14 +319,15 @@ public sealed class TailScreenTests
         // As in readline, the space before the cut word stays; at the end of the line the first level is suggested after it.
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.W, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
-            screen => TailHarness.Input(screen) == "tail> level debug" && screen.CursorX == "tail> level ".Length,
+            screen => TailHarness.Input(screen) == "tail> level debug" && TailHarness.InputCursor(screen) == "tail> level ".Length,
             description: "the last word cut, with the suggestion after the caret");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.A, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
-            screen => TailHarness.Input(screen) == "tail> level" && screen.CursorX == "tail> ".Length,
+            screen => TailHarness.Input(screen) == "tail> level" && TailHarness.InputCursor(screen) == "tail> ".Length,
             description: "the cursor at the start, with no suggestion");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.E, TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => screen.CursorX == "tail> level ".Length, description: "the cursor at the end");
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) == "tail> level ".Length,
+            description: "the cursor at the end");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.U, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail>", description: "the line cut");
         await tail.Automator.Ctrl().KeyAsync(Hex1bKey.Y, TestContext.CancellationToken);
@@ -496,6 +496,52 @@ public sealed class TailScreenTests
             screen => screen.GetCell(60, row).Background is { R: 38, G: 79, B: 120 }
                 && screen.GetCell(60, row + 1).Background is not { R: 38, G: 79 },
             description: "the clicked row highlighted");
+    }
+
+    /// <summary>
+    /// Pressing the scrollbar jumps to that point of the log, and dragging it to the bottom follows again.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Scrollbar_PressAndDrag_Scrolls()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, [.. Enumerable.Range(1, 100).Select(i => ("LOG", $"entry {i:D3}"))]);
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("entry 100");
+        var scrollbar = tail.Automator.CreateSnapshot().Width - 1;
+        await tail.Automator.ClickAtAsync(scrollbar, 2, ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("entry 001") && TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal),
+            description: "the first entries, paused");
+        await tail.Automator.DragAsync(scrollbar, 2, scrollbar, 20, ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("entry 100") && TailHarness.Status(screen).StartsWith("FOLLOW", StringComparison.Ordinal),
+            description: "the newest entries, following");
+    }
+
+    /// <summary>
+    /// The input's block cursor blinks while the input has focus and stays on while the log has it.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task InputCursor_BlinksWhenFocused_SolidOtherwise()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) == "tail> ".Length, description: "the cursor on");
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is null, description: "the cursor blinking off");
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is not null, description: "the cursor back on");
+        await tail.Automator.TabAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is not null,
+            description: "the cursor with the log focused");
+        for (var sample = 0; sample < 6; sample++)
+        {
+            await Task.Delay(Tail.TailInput.BlinkInterval / 2, TestContext.CancellationToken);
+            using var screen = tail.Automator.CreateSnapshot();
+            Assert.AreEqual("tail> ".Length, TailHarness.InputCursor(screen), "the cursor stays on while the log has focus");
+        }
     }
 
     /// <summary>

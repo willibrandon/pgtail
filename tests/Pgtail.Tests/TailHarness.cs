@@ -99,6 +99,26 @@ internal sealed class TailHarness : IAsyncDisposable
     }
 
     /// <summary>
+    /// The column of the input's cursor: the reversed cell in the input's row, while the cursor is shown.
+    /// </summary>
+    /// <param name="screen">The screen.</param>
+    /// <returns>The column, or null while the cursor blinks off.</returns>
+    public static int? InputCursor(IHex1bTerminalRegion screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        var row = screen.Height - 3;
+        for (var x = 0; x < screen.Width; x++)
+        {
+            if (screen.GetCell(x, row).IsReverse)
+            {
+                return x;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The log's rows, between the header's rule and the input's rule, trimmed.
     /// </summary>
     /// <param name="screen">The screen.</param>

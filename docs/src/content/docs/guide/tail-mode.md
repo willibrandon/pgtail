@@ -143,6 +143,10 @@ Lines longer than the window scroll sideways to keep the cursor in view.
 | Shift+wheel | Scroll sideways |
 | Click | Select the clicked line |
 | Drag | Select text; it is copied when you release the button |
+| Click or drag the scrollbar | Jump to that point of the log, and move through it while dragging |
+| Click the input | Put the cursor there |
+
+The input's cursor is a block that blinks while the input has focus and stays solid while the log has it.
 
 ### Clipboard
 

@@ -326,6 +326,26 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// Tail mode opened from the REPL asks the terminal to report the mouse, so clicks and the scrollbar reach it.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_TailMode_ReportsMouse()
+    {
+        using var environment = new TestEnvironment();
+        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4600, "LOG", "entry with the mouse on"));
+        await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        await pgtail.Automator.TypeAsync($"tail --file {log} --since 1h", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.InAlternateScreen && screen.ContainsText("entry with the mouse on")
+                && screen.MouseProtocolAnyEnabled && screen.MouseEncodingSgrEnabled,
+            description: "tail mode with mouse reporting on");
+    }
+
+    /// <summary>
     /// config edit opens the built-in editor, and closing it returns to the prompt.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

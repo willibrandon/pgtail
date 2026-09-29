@@ -59,6 +59,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `'%m [%p] %q%u@%d '`, whose lines were shown unparsed; its user and database show in the full display.
 
 ### Fixed
+- Tail mode asks the terminal to report the mouse when opened from the REPL, so clicks, drags, and the scrollbar work
+  there; the wheel only scrolled through the arrow keys some terminals send in its place. The scrollbar can be clicked
+  and dragged.
+- The tail input draws a block cursor that blinks while the input has focus and stays solid while the log has it,
+  with a suggestion's first character under it.
 - Tail mode with a time filter, such as `tail 0 --since 1d`, opens at the newest entries at once instead of scrolling
   through the backlog: it reads only the end of the log it keeps (the newest 10,000 lines), reads it back to back
   rather than a chunk per poll, and highlights rows as they are drawn. A filter change redraws the log at once too.

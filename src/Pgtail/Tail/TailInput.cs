@@ -1,10 +1,10 @@
 using Hex1b;
 using Hex1b.Input;
+using Hex1b.Nodes;
+using Hex1b.Surfaces;
 using Hex1b.Theming;
 using Hex1b.Widgets;
 using Pgtail.Editing;
-using Pgtail.Rendering;
-using Pgtail.Styling;
 
 namespace Pgtail.Tail;
 
@@ -12,22 +12,34 @@ namespace Pgtail.Tail;
 /// The <c>tail&gt;</c> command input: editing, history, and grey suggestions.
 /// </summary>
 /// <remarks>
-/// The terminal's own cursor marks the caret, and the rest of a command the input suggests follows it in grey, worked
+/// The input draws itself, with a block cursor that blinks while it has focus and stays solid when the log has it. The
+/// rest of a command the input suggests follows the text in grey, its first character under the cursor, and is worked
 /// out as each frame is built so it always belongs to the line on screen; Right, or End at the end of the line, accepts
-/// it. Up and Down walk the history, Enter runs the command and keeps the input for
-/// the next one, Page Up and Page Down scroll the command output or else the log, and Escape closes the command output
-/// or else clears the line and moves to the log. Every character typed is text, <c>q</c> included; the <c>q</c> command
-/// leaves tail mode once Enter runs it.
+/// it. Up and Down walk the history, Enter runs the command and keeps the input for the next one, Page Up and Page Down
+/// scroll the command output or else the log, and Escape closes the command output or else clears the line and moves to
+/// the log. Every character typed is text, <c>q</c> included; the <c>q</c> command leaves tail mode once Enter runs it.
 /// </remarks>
 internal sealed class TailInput
 {
-    private static readonly TextStyle SuggestionText = StyleParser.Parse("fg:#808080");
+    /// <summary>
+    /// The prompt in front of the line.
+    /// </summary>
+    public const string Prompt = "tail> ";
+
+    /// <summary>
+    /// How long the cursor stays on, and then off, while it blinks.
+    /// </summary>
+    public static readonly TimeSpan BlinkInterval = TimeSpan.FromMilliseconds(530);
+
+    private static readonly Hex1bColor SuggestionColor = Hex1bColor.FromRgb(128, 128, 128);
     private readonly TailScreen _screen;
     private readonly TailHistory _history;
-    private readonly TextBoxLine _line;
+    private readonly TextLine _line = new();
     private readonly LineEditingKeys _lineKeys;
     private readonly TailSuggester _suggester;
     private (string Text, string? Suffix) _suggested = ("", null);
+    private long _lastInput = Environment.TickCount64;
+    private int _scroll;
 
     /// <summary>
     /// Creates the input for a screen.
@@ -38,20 +50,14 @@ internal sealed class TailInput
     {
         _screen = screen;
         _history = history;
-        _line = new TextBoxLine(State);
-        _lineKeys = new LineEditingKeys(_line, history.ResetNavigation);
+        _lineKeys = new LineEditingKeys(_line, Edited);
         _suggester = new TailSuggester(Commands.TailCatalog.Catalog, screen, history);
     }
 
     /// <summary>
-    /// The text box's state, holding the line and the caret.
-    /// </summary>
-    public TextBoxState State { get; } = new();
-
-    /// <summary>
     /// The line being typed.
     /// </summary>
-    public string Text => State.Text;
+    public string Text => _line.Text;
 
     /// <summary>
     /// Called from a key's action to move focus to the log at once.
@@ -59,69 +65,63 @@ internal sealed class TailInput
     public Action<InputBindingActionContext>? FocusLog { get; set; }
 
     /// <summary>
+    /// The rest of the command the input suggests, when the caret is at the end of the line.
+    /// </summary>
+    public string? Suggestion => _line.Caret == _line.Text.Length ? Suffix(_line.Text) : null;
+
+    /// <summary>
+    /// Which half of its blink the cursor is in; a frame is due whenever this changes.
+    /// </summary>
+    public long BlinkPhase => (Environment.TickCount64 - _lastInput) / (long)BlinkInterval.TotalMilliseconds;
+
+    /// <summary>
+    /// Whether a node is the input.
+    /// </summary>
+    /// <remarks>
+    /// The input and the log are both drawn on a surface in an interactable; the input's surface sits in a row of its own.
+    /// </remarks>
+    /// <param name="node">The node.</param>
+    /// <returns>True for the input.</returns>
+    public static bool Is(Hex1bNode node) => node is InteractableNode { Child: HStackNode };
+
+    /// <summary>
     /// Loads the history.
     /// </summary>
     public void Load() => _history.Load();
 
     /// <summary>
-    /// The rest of the command the input suggests, when the caret is at the end of the line.
+    /// Builds the input.
     /// </summary>
-    public string? Suggestion => State.CursorPosition == State.Text.Length && !State.HasSelection ? Suffix(State.Text) : null;
-
-    /// <summary>
-    /// Builds the text box, as wide as its text, and the suggestion after it.
-    /// </summary>
-    /// <remarks>
-    /// The text box has no fill of its own, so the line reads like a shell prompt.
-    /// </remarks>
     /// <typeparam name="TParent">The parent widget type.</typeparam>
     /// <param name="context">The widget context.</param>
     /// <param name="more">Adds the screen's keys.</param>
     /// <param name="color">Whether colors are on.</param>
-    /// <returns>The widgets.</returns>
-    public Hex1bWidget[] Build<TParent>(WidgetContext<TParent> context, Action<InputBindingsBuilder> more, bool color)
+    /// <returns>The input.</returns>
+    public InteractableWidget Build<TParent>(WidgetContext<TParent> context, Action<InputBindingsBuilder> more, bool color)
         where TParent : Hex1bWidget
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(more);
-        var box = context.TextBox()
-            .ContentWidth()
-            .State(State)
-            .OnTextChanged(_ => _history.ResetNavigation())
+        return context.Interactable(i => i.HStack(h =>
+            [
+                h.Surface(s => [s.Layer(surface => Draw(surface, i.IsFocused, color))]).Fill(),
+            ]))
             .InputBindings(bindings =>
             {
                 Bind(bindings);
                 more(bindings);
             });
-
-        var suggestion = Suggestion;
-        return
-        [
-            context.ThemePanel(theme => theme
-                .Set(TextBoxTheme.FillBackgroundColor, Hex1bColor.Default)
-                .Set(TextBoxTheme.FocusedFillBackgroundColor, Hex1bColor.Default), box),
-            context.Surface(s =>
-            [
-                s.Layer(layer =>
-                {
-                    if (suggestion is not null)
-                    {
-                        _ = StyledBlock.DrawRow(layer, 0, 0, [new StyledSpan(suggestion, SuggestionText)], color);
-                    }
-                }),
-            ]).FillWidth(),
-        ];
     }
 
     /// <summary>
-    /// Inserts typed text at the caret, as when keys typed on the log belong to a command.
+    /// Inserts typed text at the caret, as when keys typed on the log belong to a command or text is pasted.
     /// </summary>
-    /// <param name="text">The text.</param>
+    /// <param name="text">The text; line breaks become spaces.</param>
     public void Type(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        _line.Replace(_line.Caret, _line.Caret, text);
-        _history.ResetNavigation();
+        _line.Replace(_line.Caret, _line.Caret, text.ReplaceLineEndings(" "));
+        Edited();
     }
 
     /// <summary>
@@ -132,12 +132,56 @@ internal sealed class TailInput
     {
         ArgumentNullException.ThrowIfNull(text);
         _line.Replace(0, _line.Text.Length, text);
+        _lastInput = Environment.TickCount64;
+    }
+
+    // The prompt, the part of the line that fits, the suggestion, and the cursor, which blinks while the input has focus.
+    private void Draw(Surface surface, bool focused, bool color)
+    {
+        var text = _line.Text;
+        var start = Prompt.Length;
+        var room = Math.Max(1, surface.Width - start - 1);
+        var caretColumn = GraphemeHelper.IndexToDisplayColumn(text, _line.Caret);
+        _scroll = Math.Clamp(_scroll, Math.Max(0, caretColumn - room), caretColumn);
+        _ = surface.WriteText(0, 0, Prompt);
+        var written = surface.WriteText(start, 0, text[GraphemeHelper.DisplayColumnToIndex(text, _scroll)..]);
+        if (Suggestion is { } suggestion)
+        {
+            _ = surface.WriteText(start + written, 0, suggestion, color ? SuggestionColor : null, null);
+        }
+
+        var x = start + caretColumn - _scroll;
+        if ((!focused || BlinkPhase % 2 == 0) && x < surface.Width)
+        {
+            // Under the cursor, a suggested character is drawn like typed text, so the block looks the same everywhere.
+            var cell = surface[x, 0];
+            if (cell == SurfaceCells.Empty || _line.Caret == text.Length)
+            {
+                cell = SurfaceCells.Empty with { Character = cell == SurfaceCells.Empty ? " " : cell.Character };
+            }
+
+            surface[x, 0] = cell.WithAttributes(cell.Attributes ^ CellAttributes.Reverse);
+        }
     }
 
     private void Bind(InputBindingsBuilder bindings)
     {
-        bindings.Remove(Hex1bKey.Escape);
         _lineKeys.Bind(bindings);
+        bindings.Character(text => !text.Any(char.IsControl)).Action((text, _) =>
+        {
+            Type(text);
+            return Task.CompletedTask;
+        }, "Type text");
+
+        bindings.Key(Hex1bKey.Backspace).Action(_ => Delete(GraphemeHelper.GetPreviousClusterBoundary(Text, _line.Caret), _line.Caret),
+            "Delete the character before the cursor");
+        bindings.Key(Hex1bKey.Delete).Action(_ => Delete(_line.Caret, GraphemeHelper.GetNextClusterBoundary(Text, _line.Caret)),
+            "Delete the character under the cursor");
+        bindings.Key(Hex1bKey.LeftArrow).Action(_ => Move(GraphemeHelper.GetPreviousClusterBoundary(Text, _line.Caret)), "Left");
+        bindings.Key(Hex1bKey.Home).Action(_ => Move(0), "Start of the line");
+        bindings.Key(Hex1bKey.RightArrow).Action(_ => AcceptOr(() => Move(GraphemeHelper.GetNextClusterBoundary(Text, _line.Caret))),
+            "Right, or accept the suggestion");
+        bindings.Key(Hex1bKey.End).Action(_ => AcceptOr(() => Move(Text.Length)), "End of the line, or accept the suggestion");
         bindings.Key(Hex1bKey.Enter).Action(_ => SubmitAsync(), "Run the command");
         bindings.Key(Hex1bKey.Escape).Action(context =>
         {
@@ -169,19 +213,53 @@ internal sealed class TailInput
             }
         }, "Next command");
 
-        if (Suggestion is { } suggestion)
+        bindings.Mouse(MouseButton.Left).Action(context =>
         {
-            bindings.Remove(TextBoxWidget.MoveRight);
-            bindings.Remove(TextBoxWidget.MoveEnd);
-            bindings.Key(Hex1bKey.RightArrow).Action(_ => Accept(suggestion), "Accept the suggestion");
-            bindings.Key(Hex1bKey.End).Action(_ => Accept(suggestion), "Accept the suggestion");
+            _ = context.FocusWhere(Is);
+            Move(GraphemeHelper.DisplayColumnToIndex(Text, Math.Max(0, context.MouseX - Prompt.Length + _scroll)));
+        }, "Put the cursor where clicked");
+    }
+
+    private void Delete(int start, int end)
+    {
+        if (end > start)
+        {
+            _line.Replace(start, end, "");
+            Edited();
         }
     }
 
-    private void Accept(string suggestion)
+    private void Move(int caret)
     {
-        _line.Replace(_line.Text.Length, _line.Text.Length, suggestion);
+        _line.Caret = caret;
+        _lastInput = Environment.TickCount64;
+    }
+
+    private void AcceptOr(Action otherwise)
+    {
+        if (Suggestion is { } suggestion)
+        {
+            _line.Replace(Text.Length, Text.Length, suggestion);
+            Edited();
+            return;
+        }
+
+        otherwise();
+    }
+
+    // Keeps the cursor on while typing and starts history navigation over.
+    private void Edited()
+    {
+        _lastInput = Environment.TickCount64;
         _history.ResetNavigation();
+    }
+
+    private async Task SubmitAsync()
+    {
+        var text = Text;
+        SetText("");
+        _history.ResetNavigation();
+        await _screen.RunCommandAsync(text);
     }
 
     // The suggester runs once for each line typed.
@@ -193,13 +271,5 @@ internal sealed class TailInput
         }
 
         return _suggested.Suffix;
-    }
-
-    private async Task SubmitAsync()
-    {
-        var text = Text;
-        SetText("");
-        _history.ResetNavigation();
-        await _screen.RunCommandAsync(text);
     }
 }
