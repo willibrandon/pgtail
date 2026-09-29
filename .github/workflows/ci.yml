@@ -20,18 +20,24 @@ jobs:
         include:
           - name: Linux x64
             os: ubuntu-latest
+            artifact: linux-x64
+          - name: Linux Arm64
+            os: ubuntu-24.04-arm
+            artifact: linux-arm64
           - name: macOS Arm64
-            os: macos-latest
+            os: macos-14
+            artifact: macos-arm64
           - name: Windows x64
             os: windows-2025-vs2026
+            artifact: windows-x64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -39,11 +45,45 @@ jobs:
         run: dotnet build -c Release
 
       - name: Test
-        run: dotnet test -c Release --no-build --report-trx --results-directory TestResults
+        run: >-
+          dotnet test -c Release --no-build --report-trx --results-directory TestResults
+          --hangdump --hangdump-timeout 10m --hangdump-type None
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-${{ matrix.artifact }}
           path: TestResults/
+
+  native-aot:
+    name: native build (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-2025-vs2026
+          - rid: win-arm64
+            os: windows-11-arm
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+          - rid: osx-x64
+            os: macos-15-intel
+          - rid: osx-arm64
+            os: macos-14
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Publish, check, and pack
+        run: dotnet run --file scripts/Publish-NativeAot.cs -- --rid ${{ matrix.rid }}

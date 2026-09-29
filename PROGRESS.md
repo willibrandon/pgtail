@@ -98,4 +98,11 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   one), tail mode tests run the tail screen on a real log file, and CLI tests run the built executable, in a
   pseudo-terminal for interactive use and with piped output for one-shot commands. The thread pool minimum is raised
   as Hex1b's own tests do, so parallel terminals do not starve.
+- Packaging follows ilrepl: `pgtail` is a .NET tool whose pointer package picks a Native AOT runtime package
+  (win-x64, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64) or the framework-dependent `any` package. Hex1b's
+  native pseudo-terminal helpers are excluded, since pgtail starts no processes in a pseudo-terminal, so a publish
+  holds only the executable. `scripts/Publish-NativeAot.cs` publishes, runs, packs, and runs the packaged executable
+  for one runtime; CI runs it on every runtime and the release workflow builds from it.
+- The release keeps every channel: the same archive names (with `pgtail-windows-arm64.zip` added), the x64 MSI,
+  Homebrew, Scoop (now with arm64), and winget, and adds nuget.org through trusted publishing.
 

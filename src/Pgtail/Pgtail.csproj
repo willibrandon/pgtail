@@ -9,15 +9,36 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <ToolPackageRuntimeIdentifiers>$(RuntimeIdentifiers);any</ToolPackageRuntimeIdentifiers>
     <OptimizationPreference>Speed</OptimizationPreference>
     <StripSymbols>true</StripSymbols>
     <StackTraceSupport>true</StackTraceSupport>
     <ApplicationIcon>../../art/pgtail.ico</ApplicationIcon>
-    <IsPackable>false</IsPackable>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+    <IncludeSymbols>false</IncludeSymbols>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>pgtail</ToolCommandName>
+    <PackageId>pgtail</PackageId>
+    <Description>Interactive PostgreSQL log tailer with auto-detection, filtering, semantic highlighting, and a full screen tail mode.</Description>
+    <PackageTags>postgresql;postgres;logs;log-viewer;tail;cli;dotnet-tool;hex1b</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Hex1b" />
+    <!-- pgtail starts no processes in a pseudo-terminal, so Hex1b's native helpers for doing so are left out. -->
+    <PackageReference Include="Hex1b" ExcludeAssets="native" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../art/pgtail-icon.png" Pack="true" PackagePath="/icon.png" />
   </ItemGroup>
 
   <ItemGroup>
