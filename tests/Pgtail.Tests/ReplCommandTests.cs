@@ -445,6 +445,43 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
+    /// notify names the platform's way of showing notifications: osascript, WinRT toasts, or notify-send.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Notify_Status_NamesPlatformNotifier()
+    {
+        using var environment = new TestEnvironment();
+        var expected = OperatingSystem.IsMacOS() ? "Platform: macOS (osascript)"
+            : OperatingSystem.IsWindows() ? "Platform: Windows (WinRT Toast)"
+            : (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
+                .Any(directory => directory.Length > 0 && File.Exists(Path.Combine(directory, "notify-send")))
+                ? "Platform: Linux (notify-send)"
+                : "Platform: Linux (notify-send not found)";
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("notify", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync(expected);
+    }
+
+    /// <summary>
+    /// notify test shows a notification through osascript on macOS and a toast on Windows.
+    /// </summary>
+    /// <remarks>
+    /// Linux sends through notify-send the same way osascript is run; the test leaves it out so running the tests on a
+    /// Linux desktop does not show a notification.
+    /// </remarks>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    [OSCondition(OperatingSystems.OSX | OperatingSystems.Windows)]
+    public async Task NotifyTest_SendsThroughPlatformNotifier()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("notify test", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Test notification sent (INFO)");
+    }
+
+    /// <summary>
     /// Turning notifications on for levels saves them to the configuration file.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

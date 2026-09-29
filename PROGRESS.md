@@ -175,3 +175,11 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   accepted); undoing edits back to the saved text still counted as unsaved (the editor now compares the text).
   Tail mode clicks, the paused REPL stream, live views, export, and pipe behaved as expected. `tail --since` reads the
   log from its start, as the Python release did, taking about two seconds on a 132,000-line log.
+- Windows, reviewed for what CI will meet: Hex1b starts a process straight into a pseudoconsole, as Windows Terminal does
+  for a profile whose command is `pgtail`, so pgtail was the only process on its console and the check carried over from
+  the Python release (exit when alone, for winget validation) would have ended the REPL at once, failing every
+  interactive test and the publish script's REPL check on Windows. A console hosted by a terminal has a
+  `PseudoConsoleWindow` stand-in window, so pgtail now exits only when it is alone on a console without one. The publish
+  script also starts the REPL on Windows with no console and expects a prompt exit with status 0. New tests name each
+  platform's config path, known user data location, and notification backend, and send a real notification on macOS
+  and Windows; they run on the CI runners, which need the branch pushed.

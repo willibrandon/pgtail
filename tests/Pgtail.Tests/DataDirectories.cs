@@ -12,9 +12,18 @@ internal static class DataDirectories
     /// <param name="version">The major version written to <c>PG_VERSION</c>.</param>
     /// <param name="port">The port written to <c>postgresql.conf</c>.</param>
     /// <returns>The data directory and its log file.</returns>
-    public static (string DataDirectory, string LogFile) Create(string root, string version, int port)
+    public static (string DataDirectory, string LogFile) Create(string root, string version, int port) =>
+        CreateAt(Path.Combine(root, "pgdata"), version, port);
+
+    /// <summary>
+    /// Creates a data directory at a given place, such as where a platform's installer puts one.
+    /// </summary>
+    /// <param name="data">The data directory.</param>
+    /// <param name="version">The major version written to <c>PG_VERSION</c>.</param>
+    /// <param name="port">The port written to <c>postgresql.conf</c>.</param>
+    /// <returns>The data directory and its log file.</returns>
+    public static (string DataDirectory, string LogFile) CreateAt(string data, string version, int port)
     {
-        var data = Path.Combine(root, "pgdata");
         var logs = Path.Combine(data, "log");
         Directory.CreateDirectory(logs);
         File.WriteAllText(Path.Combine(data, "PG_VERSION"), version + "\n");

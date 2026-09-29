@@ -239,7 +239,8 @@ static async Task<bool> SmokeAsync(string executable, string version)
             Console.WriteLine($"checked: {command}");
         }
 
-        return await InteractiveAsync(executable, environment);
+        return await InteractiveAsync(executable, environment)
+            && (!OperatingSystem.IsWindows() || await WithoutConsoleAsync(executable, environment));
     }
     finally
     {
@@ -282,4 +283,37 @@ static async Task<bool> InteractiveAsync(string executable, Dictionary<string, s
 
     Console.Error.WriteLine("the REPL did not start and leave cleanly in a pseudo-terminal");
     return false;
+}
+
+// Starts the REPL on Windows in a console of its own with no window, as Start-Process or package validation does, and
+// expects it to leave at once with status 0 instead of waiting for keys no one will type.
+static async Task<bool> WithoutConsoleAsync(string executable, Dictionary<string, string> environment)
+{
+    var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true };
+    foreach (var (name, value) in environment)
+    {
+        info.Environment[name] = value;
+    }
+
+    using var process = Process.Start(info)!;
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    try
+    {
+        await process.WaitForExitAsync(timeout.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        process.Kill();
+        Console.Error.WriteLine("pgtail without a console waited instead of leaving");
+        return false;
+    }
+
+    if (process.ExitCode != 0)
+    {
+        Console.Error.WriteLine($"pgtail without a console left with exit code {process.ExitCode}");
+        return false;
+    }
+
+    Console.WriteLine("checked: pgtail (the REPL without a console leaves at once)");
+    return true;
 }

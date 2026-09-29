@@ -77,15 +77,44 @@ public sealed class CliTests
     }
 
     /// <summary>
-    /// config --path prints where the configuration file lives.
+    /// config --path prints the platform's place for settings: Application Support, APPDATA, or XDG_CONFIG_HOME.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ConfigPath_PrintsConfigFile()
+    public async Task ConfigPath_PrintsPlatformConfigFile()
     {
         using var environment = new TestEnvironment();
+        var expected = OperatingSystem.IsMacOS()
+            ? Path.Combine(environment.Home, "Library", "Application Support", "pgtail", "config.toml")
+            : OperatingSystem.IsWindows()
+                ? Path.Combine(environment.Home, "AppData", "Roaming", "pgtail", "config.toml")
+                : Path.Combine(environment.Home, ".config", "pgtail", "config.toml");
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "config", "--path");
-        await pgtail.Automator.WaitUntilTextAsync(environment.Paths.ConfigFile);
+        await pgtail.Automator.WaitUntilTextAsync(expected);
+        Assert.AreEqual(0, await pgtail.WaitForExitAsync());
+    }
+
+    /// <summary>
+    /// list-instances finds a data directory where the platform keeps one for the user.
+    /// </summary>
+    /// <remarks>
+    /// On Windows that is <c>%LOCALAPPDATA%\PostgreSQL\data</c>; elsewhere Postgres.app's
+    /// <c>~/Library/Application Support/Postgres/var-&lt;version&gt;</c>, which is looked for on every Unix system.
+    /// </remarks>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ListInstances_UserKnownLocation_ShowsInstance()
+    {
+        using var environment = new TestEnvironment();
+        var data = OperatingSystem.IsWindows()
+            ? Path.Combine(environment.Home, "AppData", "Local", "PostgreSQL", "data")
+            : Path.Combine(environment.Home, "Library", "Application Support", "Postgres", "var-16");
+        DataDirectories.CreateAt(data, "16", 5493);
+        await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "list-instances");
+        await pgtail.Automator.WaitUntilAsync(
+            screen => Enumerable.Range(0, screen.Height).Select(screen.GetLineTrimmed)
+                .Any(line => line.Contains("5493", StringComparison.Ordinal) && line.EndsWith("known", StringComparison.Ordinal)),
+            description: "the instance found in the known location");
         Assert.AreEqual(0, await pgtail.WaitForExitAsync());
     }
 

@@ -38,13 +38,14 @@ internal static partial class ConsoleSupport
     }
 
     /// <summary>
-    /// Whether pgtail is the only process attached to its console on Windows.
+    /// Whether pgtail is the only process attached to a console no terminal hosts, on Windows.
     /// </summary>
     /// <remarks>
     /// That happens when it is started by a double click, <c>Start-Process</c>, or package validation, so there is
-    /// no one to type at the prompt.
+    /// no one to type at the prompt. A terminal that starts pgtail itself, such as a Windows Terminal profile or Hex1b,
+    /// hosts it in a pseudoconsole, whose window is a hidden stand-in of the class <c>PseudoConsoleWindow</c>.
     /// </remarks>
-    /// <returns>True when no shell shares the console.</returns>
+    /// <returns>True when neither a shell nor a terminal is there.</returns>
     public static bool IsAloneInConsole()
     {
         if (!OperatingSystem.IsWindows())
@@ -53,7 +54,15 @@ internal static partial class ConsoleSupport
         }
 
         var processes = new uint[16];
-        return GetConsoleProcessList(processes, (uint)processes.Length) == 1;
+        if (GetConsoleProcessList(processes, (uint)processes.Length) != 1)
+        {
+            return false;
+        }
+
+        var window = GetConsoleWindow();
+        var name = new char[32];
+        var length = window == 0 ? 0 : GetClassNameW(window, name, name.Length);
+        return !name.AsSpan(0, Math.Max(0, length)).SequenceEqual("PseudoConsoleWindow");
     }
 
     /// <summary>
@@ -92,6 +101,12 @@ internal static partial class ConsoleSupport
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     private static partial uint GetConsoleProcessList([Out] uint[] processes, uint count);
+
+    [LibraryImport("kernel32.dll")]
+    private static partial nint GetConsoleWindow();
+
+    [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    private static partial int GetClassNameW(nint window, [Out] char[] name, int count);
 
     [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     private static partial nint CreateFileW(string name, uint access, uint share, nint security, uint disposition, uint flags,
