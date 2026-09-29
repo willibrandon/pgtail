@@ -525,6 +525,86 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// help lists the commands, help keys the keys, and help with a command, or the command with help, its usage.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task HelpCommands_ShowCommandsKeysAndUsage()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 60);
+        await tail.RunAsync("help", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("help keys    Show keybinding reference") && screen.ContainsText("stop/exit/q  Exit tail mode"),
+            description: "the command list");
+        await tail.RunAsync("help keys", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("Escape / q       Close help");
+        await tail.RunAsync("help level", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("Usage: level <level>[+|-] [level2...]") && screen.ContainsText("Aliases: e=error"),
+            description: "the level command's usage");
+        await tail.RunAsync("filter ?", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("Usage: filter");
+    }
+
+    /// <summary>
+    /// The pause and follow commands switch the status like the p and f keys.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task PauseAndFollowCommands_SwitchStatus()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.RunAsync("pause", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal),
+            description: "paused");
+        await tail.RunAsync("follow", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).StartsWith("FOLLOW", StringComparison.Ordinal),
+            description: "following");
+    }
+
+    /// <summary>
+    /// theme, set, and notify work from tail mode, and set saves the configuration.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ThemeSetNotifyCommands_Work()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.RunAsync("theme monokai", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("✓ Switched to theme monokai");
+        await tail.RunAsync("set slow.warn 50", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("Set slow.warn = 50")
+                && TailHarness.Status(screen).Contains("slow:>50ms", StringComparison.Ordinal),
+            description: "the setting applied");
+        await tail.RunAsync("notify", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("Notifications: disabled");
+        var config = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        Assert.Contains("warn = 50", config);
+        Assert.Contains("name = \"monokai\"", config);
+    }
+
+    /// <summary>
+    /// The stop command leaves tail mode.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task StopCommand_LeavesTailMode()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.RunAsync("stop", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped");
+    }
+
+    /// <summary>
     /// q in the log leaves tail mode.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
