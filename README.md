@@ -12,7 +12,8 @@ Interactive PostgreSQL log tailer with auto-detection.
 
 ## Features
 
-- Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths)
+- Auto-detects PostgreSQL instances (running processes, pgrx, PGDATA, known paths), including Debian and Ubuntu clusters
+  and their `/var/log/postgresql` logs
 - **Tail arbitrary log files** (`--file`) with glob patterns and multi-file support
 - **Stdin pipe support** (`--stdin`) for archived/compressed logs
 - Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
@@ -328,7 +329,7 @@ pgtail auto-detects and parses three PostgreSQL log formats:
 
 | Format | Config Setting | Fields |
 |--------|---------------|--------|
-| TEXT   | `log_destination = 'stderr'` | Basic (timestamp, pid, level, message) |
+| TEXT   | `log_destination = 'stderr'` | Basic (timestamp, pid, level, message; user and database with Debian's `%u@%d` prefix) |
 | CSV    | `log_destination = 'csvlog'` | 26 fields (user, database, query, SQL state, etc.) |
 | JSON   | `log_destination = 'jsonlog'` | 29 fields (PostgreSQL 15+) |
 
@@ -893,13 +894,18 @@ Mouse drag selection auto-copies to clipboard on release.
 
 **Command input (history & autocomplete):**
 
-The `tail>` command prompt supports persistent history and ghost text suggestions:
+The `tail>` command prompt has the focus when tail mode starts and keeps it after each command, so commands can be typed
+one after another; text typed on the log that is not one of its keys goes to the prompt too. A command's output shows in
+a panel above the prompt until the next command or Escape, so a busy log does not scroll it away.
 
 | Key | Action |
 |-----|--------|
+| Enter | Run the command |
 | Up | Recall previous command from history |
 | Down | Navigate forward through history |
 | Right / End | Accept ghost text suggestion |
+| PgUp / PgDn | Page through the command output, or else the log |
+| Escape | Close the command output; then clear the prompt and move to the log |
 
 - **Command history** persists across sessions (Up/Down arrows to navigate)
 - **Ghost text autocomplete** shows dimmed suggestions as you type:

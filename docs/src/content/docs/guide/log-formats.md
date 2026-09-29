@@ -41,7 +41,14 @@ logging_collector = on
 ```
 
 pgtail recognizes the default `log_line_prefix` form `time zone [pid] LEVEL:`, the bracketed form
-`[time zone] [pid] [context] LEVEL:`, and `time zone LEVEL:` without a process ID, which is common on Windows.
+`[time zone] [pid] [context] LEVEL:`, and `time zone LEVEL:` without a process ID, which is common on Windows. A
+longer prefix that starts with the time is read too, such as Debian and Ubuntu's `'%m [%p] %q%u@%d '` or
+`'%t [%p]: user=%u,db=%d '`: the level is the first severity followed by a colon, and the process ID the first
+`[digits]` before it. With `%u@%d`, the user and database show in the `full` display and in notifications:
+
+```
+2024-01-15 10:30:45.123 UTC [12345] alice@orders ERROR:  division by zero
+```
 
 PostgreSQL writes a message's `DETAIL:`, `HINT:`, `CONTEXT:`, `STATEMENT:`, `QUERY:`, and `LOCATION:` on lines of their
 own, and indents the further lines of a multi-line message with a tab. pgtail joins these lines to the entry they belong

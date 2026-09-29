@@ -333,6 +333,8 @@ public sealed class LogEntry
             Pid = Pid,
             Format = Format,
             SourceFile = SourceFile,
+            UserName = UserName,
+            DatabaseName = DatabaseName,
         };
     }
 

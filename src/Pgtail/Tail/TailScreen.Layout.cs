@@ -116,7 +116,7 @@ internal sealed partial class TailScreen
                 new(),
             };
 
-            lines.AddRange(PermissionAdvice.LogPermission(markup: true).Select(Markup.Parse));
+            lines.AddRange(PermissionAdvice.LogPermission(path).Select(Markup.Parse));
             WriteLines(lines);
             Status.FilePermissionDenied = true;
             Status.FileUnavailable = true;

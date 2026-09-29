@@ -171,6 +171,34 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// Lines with Debian and Ubuntu's <c>log_line_prefix</c>, <c>'%m [%p] %q%u@%d '</c>, filter by level like any other.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task DebianPrefix_LevelCommand_KeepsErrorWithStatement()
+    {
+        using var environment = new TestEnvironment();
+        var path = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
+        var time = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        LogFiles.Append(path,
+            $"{time} UTC [4200] [unknown]@[unknown] LOG:  connection received: host=::1 port=50000",
+            $"{time} UTC [4200] alice@orders ERROR:  division by zero",
+            $"{time} UTC [4200] alice@orders STATEMENT:  select 1/0",
+            $"{time} UTC [17] LOG:  checkpoint starting: time");
+        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("LOG    : connection received: host=::1 port=50000")
+                && TailHarness.Status(screen).Contains("E:1 W:0 | 4 lines", StringComparison.Ordinal),
+            description: "the entries read with their levels");
+        await tail.RunAsync("level error", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.LogRows(screen).Where(row => row.Length > 0).ToList() is [var error, var statement]
+                && error.EndsWith("[4200 ] ERROR  : division by zero", StringComparison.Ordinal)
+                && statement == "STATEMENT:  select 1/0",
+            description: "the error with its statement, and nothing else");
+    }
+
+    /// <summary>
     /// An error's DETAIL and STATEMENT lines stay with it: a level filter keeps them, and they count as one error.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

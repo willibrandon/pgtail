@@ -42,6 +42,11 @@ public static partial class PostgresConf
     }
 
     /// <summary>
+    /// The directory <c>pg_ctlcluster</c> writes Debian and Ubuntu cluster logs to.
+    /// </summary>
+    public const string DebianLogDirectory = "/var/log/postgresql";
+
+    /// <summary>
     /// Reads a setting from <c>postgresql.conf</c> text: the first line setting the key, with quotes and comments removed.
     /// </summary>
     /// <param name="content">The file contents.</param>
@@ -111,7 +116,9 @@ public static partial class PostgresConf
     /// <remarks>
     /// Logging is on when <c>logging_collector</c> is on. The directory is <c>log_directory</c> (default <c>log</c>,
     /// relative to the data directory), or <c>pg_log</c> for older versions. The current file comes from
-    /// <c>current_logfiles</c>, or else is the newest log file in the directory.
+    /// <c>current_logfiles</c>, or else is the newest log file in the directory. With the collector off, a Debian or Ubuntu
+    /// cluster still logs: <c>pg_ctlcluster</c> sends the server's output to one file, which is then the log and has no
+    /// directory to follow, since the directory holds every cluster's log.
     /// </remarks>
     /// <param name="dataDirectory">The data directory.</param>
     /// <returns>The current log file, the log directory, and whether logging is on.</returns>
@@ -126,7 +133,7 @@ public static partial class PostgresConf
         var collector = GetValue(content, "logging_collector");
         if (collector is null || collector.ToLowerInvariant() is not ("on" or "true" or "yes" or "1"))
         {
-            return (null, null, false);
+            return DebianServerLog(dataDirectory) is { } serverLog ? (serverLog, null, true) : (null, null, false);
         }
 
         var configured = GetValue(content, "log_directory") ?? "log";
@@ -203,6 +210,29 @@ public static partial class PostgresConf
                 .OrderByDescending(ModifiedTime)
                 .Select(file => file.FullName)
                 .FirstOrDefault();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    // pg_ctlcluster logs to the target of the log link in the cluster's configuration directory, which
+    // pg_createcluster --logfile makes, or else to postgresql-<version>-<cluster>.log.
+    private static string? DebianServerLog(string dataDirectory)
+    {
+        if (DebianDataDirectory().Match(dataDirectory) is not { Success: true } match)
+        {
+            return null;
+        }
+
+        var (version, cluster) = (match.Groups[1].Value, match.Groups[2].Value);
+        try
+        {
+            var link = new FileInfo($"/etc/postgresql/{version}/{cluster}/log");
+            var log = (link.LinkTarget is null ? null : link.ResolveLinkTarget(returnFinalTarget: false)?.FullName)
+                ?? $"{DebianLogDirectory}/postgresql-{version}-{cluster}.log";
+            return File.Exists(log) ? log : null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

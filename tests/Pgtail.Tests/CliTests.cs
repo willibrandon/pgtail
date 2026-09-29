@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hex1b.Automation;
 using Hex1b.Input;
 
@@ -121,6 +122,40 @@ public sealed class CliTests
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 4101, "LOG", "a line written while streaming"));
         await pgtail.Automator.WaitUntilTextAsync("a line written while streaming");
         await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
+        Assert.AreEqual(0, await pgtail.WaitForExitAsync());
+    }
+
+    /// <summary>
+    /// The full display names the user and database Debian and Ubuntu's <c>log_line_prefix</c> writes.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_DisplayFull_DebianPrefix_ShowsUserAndDatabase()
+    {
+        using var environment = new TestEnvironment();
+        var log = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
+        var time = DateTime.UtcNow.AddMinutes(-1).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        LogFiles.Append(log,
+            $"{time} UTC [4200] alice@orders ERROR:  division by zero",
+            $"{time} UTC [4200] alice@orders STATEMENT:  select 1/0");
+        await using var pgtail = PgtailProcess.Start(environment, 120, 30, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        await pgtail.Automator.TypeAsync("display full", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Display mode: full");
+        await pgtail.Automator.TypeAsync($"tail --file {log} --since 1h --stream", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("ERROR  : division by zero") && screen.ContainsText("STATEMENT:  select 1/0")
+                && screen.ContainsText("Database: orders") && screen.ContainsText("User: alice"),
+            description: "the error with its statement, database, and user");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("paused [postgresql-18-main.log]>");
+        await pgtail.Automator.TypeAsync("stop", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => ReplHarness.PromptLine(screen) == "pgtail>", description: "the prompt");
+        await pgtail.Automator.TypeAsync("quit", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
         Assert.AreEqual(0, await pgtail.WaitForExitAsync());
     }
 

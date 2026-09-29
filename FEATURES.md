@@ -29,8 +29,14 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 - [x] Running `postgres`/`postmaster` processes (data directory from the command line or the process)
 - [x] pgrx instances under `~/.pgrx/data-*`
 - [x] `PGDATA` environment variable
-- [ ] Platform known paths: Homebrew, Postgres.app, Debian/Ubuntu `/var/lib/postgresql/<ver>/<cluster>`, RHEL, Windows
-- [ ] Debian config in `/etc/postgresql/<version>/<cluster>/`, version fallback from the data directory path
+- [x] Platform known paths: Homebrew (`/usr/local/var/postgres`, `/opt/homebrew/var/postgresql@*`), Postgres.app,
+      Debian/Ubuntu `/var/lib/postgresql/<ver>/<cluster>`, RHEL and PGDG `/var/lib/pgsql`, and Arch
+      `/var/lib/postgres/data` (each layout verified with `list-instances` in a bubblewrap sandbox that places it)
+- [ ] Windows known paths (`Program Files\PostgreSQL\<ver>\data`, `%APPDATA%`, `%LOCALAPPDATA%`): needs a Windows machine
+- [x] Debian config in `/etc/postgresql/<version>/<cluster>/`, version fallback from the data directory path (verified
+      with a real PostgreSQL 18 server laid out as a Debian cluster, running and stopped with its data directory closed)
+- [x] Debian and Ubuntu server logs from `pg_ctlcluster` in `/var/log/postgresql` with `adm` group advice, and the
+      `'%m [%p] %q%u@%d '` line prefix (new; the Python release showed these lines unparsed)
 - [x] Version from `PG_VERSION`, port from `postmaster.pid`/`postgresql.conf`, running status
 - [x] Logging status and log path (`logging_collector`, `log_directory`, `log_destination`, `current_logfiles`)
 - [x] Latest log file selection in a log directory

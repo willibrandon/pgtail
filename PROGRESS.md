@@ -144,3 +144,20 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   pattern matches before extracting its parts, piped output skips semantic highlighting since it drops styles, streams
   write through a buffer flushed per batch, and tail mode trims its entries once per frame.
 
+- Tail mode's prompt, found janky in real use: after each command the Python release, and the port with it, handed the
+  focus back to the log, so the next command's letters ran log keys (`v` started visual mode), and command output went
+  into the log, where a busy server scrolled it away within a second. The input now keeps the focus, text typed on the
+  log that is not one of its keys goes to the input, `tail>` is a prompt rather than a placeholder, and command output
+  stays in a panel above the input until the next command or Escape, paging with PgUp/PgDn. The panel's place is always
+  in the layout: inserting it moved the input to a new position, Hex1b built a new editor for it, and the focus fell
+  back to the log. The `?` overlay was taller than a 24-row terminal; it now fits and scrolls. The harness shortcut
+  (Escape, `/`, command) hid all of this, so tests now type commands one after another the way a person does.
+- Debian and Ubuntu, checked with a real PostgreSQL 18 server laid out as a Debian cluster in a bubblewrap sandbox
+  (data in `/var/lib/postgresql/18/main`, configuration in `/etc/postgresql/18/main`, output sent to
+  `/var/log/postgresql/postgresql-18-main.log` as `pg_ctlcluster` does, per postgresql-common's `PgCommon.pm` and
+  `pg_ctlcluster`): the cluster was detected but reported logging off, and Debian's default
+  `log_line_prefix = '%m [%p] %q%u@%d '`, which the docs also recommend, left every session line unparsed. pgtail now
+  tails the `pg_ctlcluster` log when the collector is off, finds a stopped cluster from `/etc/postgresql` when its data
+  directory is closed to the user, suggests the `adm` group when the log is unreadable, and reads any prefix that starts
+  with the time, keeping `user@database`. Homebrew, Postgres.app, RHEL, PGDG, and Arch layouts were each placed in a
+  sandbox and detected. Advice text forms nothing used were removed.

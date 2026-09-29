@@ -8,13 +8,25 @@ namespace Pgtail.Parsing;
 /// <remarks>
 /// Three prefixes are recognized: <c>time zone [pid] LEVEL:</c> (the zone may be missing), the bracketed
 /// <c>[time zone] [pid] [context] LEVEL:</c>, and <c>time zone LEVEL:</c> without a process ID, which is common on
-/// Windows. Anything else becomes a LOG entry whose message is the whole line. Lines are read as bytes by a scanner, since
-/// every line of a log passes through here, and only the parts kept are decoded.
+/// Windows. A longer <c>log_line_prefix</c> that starts with the time is read too, such as Debian and Ubuntu's
+/// <c>'%m [%p] %q%u@%d '</c>: the level is the first severity followed by a colon, the process ID the first
+/// <c>[digits]</c> before it, and a <c>user@database</c> between them names the session's user and database. Anything
+/// else becomes a LOG entry whose message is the whole line. Lines are read as bytes by a scanner, since every line of a
+/// log passes through here, and only the parts kept are decoded.
 /// </remarks>
 public static class TextLogParser
 {
     // The labels of the lines PostgreSQL writes after a message's first line; they keep their label in the message.
     private static readonly HashSet<string> ContinuationLabels = ["DETAIL", "HINT", "CONTEXT", "STATEMENT", "QUERY", "LOCATION"];
+
+    // The severities PostgreSQL writes, which mark where a longer prefix ends.
+    private static readonly byte[][] Severities =
+    [
+        "LOG"u8.ToArray(), "ERROR"u8.ToArray(), "WARNING"u8.ToArray(), "FATAL"u8.ToArray(), "PANIC"u8.ToArray(),
+        "NOTICE"u8.ToArray(), "INFO"u8.ToArray(), "DEBUG"u8.ToArray(), "DEBUG1"u8.ToArray(), "DEBUG2"u8.ToArray(),
+        "DEBUG3"u8.ToArray(), "DEBUG4"u8.ToArray(), "DEBUG5"u8.ToArray(), "DETAIL"u8.ToArray(), "HINT"u8.ToArray(),
+        "CONTEXT"u8.ToArray(), "STATEMENT"u8.ToArray(), "QUERY"u8.ToArray(), "LOCATION"u8.ToArray(),
+    ];
 
     /// <summary>
     /// Parses one line.
@@ -53,6 +65,7 @@ public static class TextLogParser
         var message = Encoding.UTF8.GetString(bytes[prefix.Message..]);
         var label = level.ToUpperInvariant();
         var continues = ContinuationLabels.Contains(label);
+        var (user, database) = ReadSession(bytes[prefix.Session]);
         return new LogEntry
         {
             Timestamp = time,
@@ -63,6 +76,8 @@ public static class TextLogParser
             Pid = prefix.Pid,
             Format = LogFormat.Text,
             Continues = continues,
+            UserName = user,
+            DatabaseName = database,
         };
     }
 
@@ -72,7 +87,7 @@ public static class TextLogParser
         prefix = default;
         return line is [(byte)'[', ..]
             ? TryReadBracketed(line, ref prefix)
-            : TryReadWithPid(line, ref prefix) || TryReadWithoutPid(line, ref prefix);
+            : TryReadWithPid(line, ref prefix) || TryReadWithoutPid(line, ref prefix) || TryReadLongPrefix(line, ref prefix);
     }
 
     // time [zone] [pid] LEVEL: message
@@ -146,6 +161,105 @@ public static class TextLogParser
         prefix.Pid = null;
         return SkipSpaces(line, ref position) > 0
             && TryReadLevel(line, ref position, out prefix.Level, requireSpace: true, out prefix.Message);
+    }
+
+    // time [zone] anything LEVEL: message, with at least one space after the colon
+    private static bool TryReadLongPrefix(ReadOnlySpan<byte> line, ref Prefix prefix)
+    {
+        var position = 0;
+        if (!TryReadTime(line, ref position, out prefix.Time) || SkipSpaces(line, ref position) == 0)
+        {
+            return false;
+        }
+
+        var zoneStart = position;
+        _ = SkipWord(line, ref position);
+        prefix.Zone = zoneStart..position;
+        if (!TryFindLevel(line, position, out prefix.Level, out prefix.Message))
+        {
+            return false;
+        }
+
+        // The session part follows the first [digits], or the zone when there is none.
+        prefix.Pid = null;
+        var levelStart = prefix.Level.Start.Value;
+        for (var open = line[position..levelStart].IndexOf((byte)'['); open >= 0;)
+        {
+            var at = position + open;
+            if (TryReadPid(line, ref at, out prefix.Pid))
+            {
+                position = at;
+                break;
+            }
+
+            var next = line[(position + open + 1)..levelStart].IndexOf((byte)'[');
+            open = next < 0 ? -1 : open + 1 + next;
+        }
+
+        prefix.Session = position..levelStart;
+        return true;
+    }
+
+    // The first severity after a word boundary, followed by a colon and a space.
+    private static bool TryFindLevel(ReadOnlySpan<byte> line, int start, out Range level, out int message)
+    {
+        level = default;
+        message = 0;
+        for (var colon = start; colon < line.Length; colon++)
+        {
+            if (line[colon] != (byte)':')
+            {
+                continue;
+            }
+
+            var word = colon;
+            while (word > start && char.IsAsciiLetterOrDigit((char)line[word - 1]))
+            {
+                word--;
+            }
+
+            var after = colon + 1;
+            if (word == colon || (word > 0 && line[word - 1] == (byte)'_') || !IsSeverity(line[word..colon])
+                || SkipSpaces(line, ref after) == 0)
+            {
+                continue;
+            }
+
+            level = word..colon;
+            message = after;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSeverity(ReadOnlySpan<byte> word)
+    {
+        foreach (var severity in Severities)
+        {
+            if (word.SequenceEqual(severity))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // user@database, where PostgreSQL writes [unknown] before a connection is authenticated
+    private static (string? User, string? Database) ReadSession(ReadOnlySpan<byte> session)
+    {
+        session = session.Trim(" \t:"u8);
+        var at = session.IndexOf((byte)'@');
+        if (at < 0 || session.LastIndexOf((byte)'@') != at || session.IndexOfAny(" \t,="u8) >= 0)
+        {
+            return (null, null);
+        }
+
+        return (Name(session[..at]), Name(session[(at + 1)..]));
+
+        static string? Name(ReadOnlySpan<byte> name) =>
+            name.IsEmpty || name.SequenceEqual("[unknown]"u8) ? null : Encoding.UTF8.GetString(name);
     }
 
     // [digits]
@@ -299,5 +413,6 @@ public static class TextLogParser
         public int? Pid;
         public Range Level;
         public int Message;
+        public Range Session;
     }
 }

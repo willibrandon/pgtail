@@ -172,7 +172,7 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
             yield break;
         }
 
-        // Homebrew, Debian and Ubuntu clusters, PGDG and distribution RPM layouts, and Postgres.app, for every version.
+        // Homebrew, Debian and Ubuntu clusters, PGDG and distribution RPM layouts, Arch, and Postgres.app, for every version.
         string[] patterns =
         [
             "/usr/local/var/postgres",
@@ -180,9 +180,11 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
             "/usr/local/var/postgresql@*",
             "/opt/homebrew/var/postgresql@*",
             "/var/lib/postgresql",
+            "/var/lib/postgresql/data",
             "/var/lib/postgresql/*/*",
             "/var/lib/pgsql/data",
             "/var/lib/pgsql/*/data",
+            "/var/lib/postgres/data",
             Path.Combine(home, "Library", "Application Support", "Postgres", "var-*"),
             Path.Combine(home, "postgres"),
             Path.Combine(home, "postgresql"),
@@ -210,11 +212,13 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         }
     }
 
+    // A Debian or Ubuntu cluster's data directory is closed to other users, but its configuration directory is not.
     private static bool IsDataDirectory(string path)
     {
         try
         {
-            return Directory.Exists(path) && File.Exists(Path.Combine(path, "PG_VERSION"));
+            return Directory.Exists(path) && (File.Exists(Path.Combine(path, "PG_VERSION"))
+                || (PostgresConf.DebianConfFile(path) is { } conf && File.Exists(conf)));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

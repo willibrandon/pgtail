@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In text logs, a message's `DETAIL:`, `HINT:`, `CONTEXT:`, `STATEMENT:`, `QUERY:`, and `LOCATION:` lines and the
   further lines of a multi-line message stay with the entry they belong to, so level filters keep them and an error
   counts once.
+- Tail mode's `tail>` input keeps the focus after a command, so the next one can be typed at once instead of the keys
+  scrolling or selecting in the log; text typed on the log that is not one of its keys goes to the input, and `tail>`
+  stays in front of the text. A command's output shows in a panel above the input until the next command or Escape,
+  instead of in the log where new entries scrolled it away. The `?` key reference fits the screen and scrolls.
 
 ### Added
 - **.NET tool**: `dotnet tool install -g pgtail` installs the native executable for Windows, Linux, and macOS on x64 and
@@ -43,8 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Alt+B/F/D) at the prompt and in tail mode's command input, as prompt_toolkit gave the Python REPL.
 - Mouse support in tail mode: the wheel scrolls (Shift scrolls sideways), a click selects a line, and a drag selects
   text and copies it.
-- Detection finds every Debian cluster, PGDG `/var/lib/pgsql/*/data`, every Homebrew `postgresql@*`, and Postgres.app
-  data directories.
+- Detection finds every Debian cluster, PGDG `/var/lib/pgsql/*/data`, every Homebrew `postgresql@*`, Arch Linux's
+  `/var/lib/postgres/data`, and Postgres.app data directories. A Debian or Ubuntu cluster is found from its
+  configuration in `/etc/postgresql` even when its data directory is closed to the user.
+- Debian and Ubuntu clusters with the logging collector off, as installed, are tailed from the file `pg_ctlcluster`
+  writes, `/var/log/postgresql/postgresql-<version>-<cluster>.log` (or the target of the cluster's `log` link), and a
+  permission error there suggests joining the `adm` group.
+- Text logs with a longer `log_line_prefix` that starts with the time are read, such as Debian and Ubuntu's
+  `'%m [%p] %q%u@%d '`, whose lines were shown unparsed; its user and database show in the full display.
 
 ### Removed
 - The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`,

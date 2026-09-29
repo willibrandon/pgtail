@@ -44,8 +44,13 @@ pgtail finds PostgreSQL instances from:
 1. Running processes (`postgres` or `postmaster`)
 2. pgrx development instances (`~/.pgrx/data-*`)
 3. The `PGDATA` environment variable
-4. Platform locations: Homebrew, Debian and Ubuntu clusters, PGDG and RPM layouts, Postgres.app, and the Windows
-   installer's `Program Files\PostgreSQL\*\data`
+4. Platform locations: Homebrew, Debian and Ubuntu clusters, PGDG and RPM layouts, Arch Linux, Postgres.app, and the
+   Windows installer's `Program Files\PostgreSQL\*\data`
+
+A Debian or Ubuntu cluster is found from `/etc/postgresql/<version>/<cluster>` even though its data directory is closed
+to other users. With the logging collector off, as installed, `pg_ctlcluster` writes the server log to
+`/var/log/postgresql/postgresql-<version>-<cluster>.log`, and pgtail tails that file; members of the `adm` group can
+read it.
 
 Example output:
 
@@ -55,7 +60,8 @@ Example output:
   1  16       5433   stopped  on   pgrx    ~/.pgrx/data-16
 ```
 
-`LOG` says whether the instance has the logging collector on. Run `refresh` to scan again after starting an instance.
+`LOG` says whether the instance logs to files: the logging collector is on, or a Debian or Ubuntu cluster logs through
+`pg_ctlcluster`. Run `refresh` to scan again after starting an instance.
 
 ## Start tailing
 
@@ -76,7 +82,8 @@ cat log.gz | gunzip | pgtail tail --stdin   # From a pipe
 This opens **tail mode**, a full screen view with:
 
 - The log, which follows new entries and scrolls with vim keys or the mouse
-- A command input (`tail>`) with command history (Up/Down) and suggestions as you type
+- A command input (`tail>`) with command history (Up/Down) and suggestions as you type. It keeps the focus after each
+  command, and a command's output shows above it until the next command or Escape
 - A status bar with the mode, error and warning counts, the line count, filters, and the instance
 
 ## Tail mode keys
@@ -92,8 +99,10 @@ This opens **tail mode**, a full screen view with:
 | `V` | Visual mode (line) |
 | `y` | Yank (copy) the selection |
 | `?` | Show the key reference |
-| `/` or `Tab` | Focus the command input |
-| `q` | Leave tail mode |
+| `/` or `Tab` | Focus the command input (typing a command on the log also does) |
+| `PgUp` / `PgDn` | In the input, page through the command output, or else the log |
+| `Escape` | In the input, close the command output; then move to the log |
+| `q` | Leave tail mode (on the log, or in an empty input) |
 
 ## Filter logs
 
