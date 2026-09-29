@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Globalization;
 using System.Text;
 using Pgtail.Highlighting;
@@ -11,6 +12,10 @@ namespace Pgtail.Configuration;
 /// <param name="paths">Where the configuration lives.</param>
 public sealed class ConfigStore(PgtailPaths paths)
 {
+    // Settings earlier releases wrote or documented that pgtail no longer reads; a file that has them is still valid.
+    private static readonly FrozenSet<string> RetiredKeys =
+        ["default.follow", "display.timestamp_format", "display.show_pid", "display.show_level", "updates.last_version", "buffer"];
+
     /// <summary>
     /// The file a new configuration starts from, documenting every setting.
     /// </summary>
@@ -111,7 +116,8 @@ public sealed class ConfigStore(PgtailPaths paths)
     /// </summary>
     /// <remarks>
     /// A missing file gives the defaults. A file that is not valid TOML gives the defaults with a warning. Slow
-    /// thresholds that are not ascending are replaced by their defaults.
+    /// thresholds that are not ascending are replaced by their defaults, and settings pgtail does not know are reported
+    /// and ignored.
     /// </remarks>
     /// <param name="warn">Receives each warning.</param>
     /// <returns>The settings and the highlighting configuration.</returns>
@@ -134,6 +140,11 @@ public sealed class ConfigStore(PgtailPaths paths)
         {
             warn($"Config parse error: {exception.Message}. Using defaults.");
             return (config, highlighting);
+        }
+
+        foreach (var key in UnknownKeys(document.Root))
+        {
+            warn($"Unknown setting {key}, ignored.");
         }
 
         foreach (var setting in SettingsSchema.All)
@@ -293,21 +304,104 @@ public sealed class ConfigStore(PgtailPaths paths)
         }
     }
 
+    /// <summary>
+    /// Finds what keeps configuration text from being saved.
+    /// </summary>
+    /// <remarks>
+    /// A problem is a TOML error, a setting pgtail does not know, an invalid value, or slow thresholds that do not ascend.
+    /// </remarks>
+    /// <param name="text">The text.</param>
+    /// <returns>The problems, empty when the text can be saved.</returns>
+    public static List<string> Problems(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        TomlDocument document;
+        try
+        {
+            document = TomlDocument.Parse(Encoding.UTF8.GetBytes(text));
+        }
+        catch (TomlException exception)
+        {
+            return [exception.Message];
+        }
+
+        var problems = UnknownKeys(document.Root).Select(key => $"Unknown setting {key}").ToList();
+        var config = new PgtailConfig();
+        foreach (var setting in SettingsSchema.All)
+        {
+            if (document.Root.GetPath(setting.Path) is not { } raw)
+            {
+                continue;
+            }
+
+            try
+            {
+                config[setting.Key] = setting.Validate(raw);
+            }
+            catch (FormatException exception)
+            {
+                problems.Add($"Invalid value for {setting.Key}: {exception.Message}");
+            }
+        }
+
+        if (SlowOrderProblem(config) is { } order)
+        {
+            problems.Add(order);
+        }
+
+        return problems;
+    }
+
+    // The keys of a table and the tables in it that are not settings, as dotted paths. Custom highlighters are checked
+    // when they load, and a highlighter switch must name a built-in highlighter.
+    private static IEnumerable<string> UnknownKeys(TomlTable table, string prefix = "")
+    {
+        foreach (var (name, value) in table)
+        {
+            var key = prefix.Length == 0 ? name : $"{prefix}.{name}";
+            if (key == "highlighting.custom" || RetiredKeys.Contains(key) || SettingsSchema.Find(key) is not null)
+            {
+                continue;
+            }
+
+            if (key == "highlighting.enabled_highlighters" && value is TomlTable switches)
+            {
+                foreach (var highlighter in switches.Keys.Where(highlighter => !BuiltInHighlighters.Names.Contains(highlighter)))
+                {
+                    yield return $"{key}.{highlighter}";
+                }
+
+                continue;
+            }
+
+            if (value is not TomlTable child)
+            {
+                yield return key;
+                continue;
+            }
+
+            foreach (var inner in UnknownKeys(child, key))
+            {
+                yield return inner;
+            }
+        }
+    }
+
+    private static string? SlowOrderProblem(PgtailConfig config) =>
+        config.SlowWarn >= config.SlowError
+            ? $"slow.error ({config.SlowError}) must be greater than slow.warn ({config.SlowWarn})"
+            : config.SlowError >= config.SlowCritical
+                ? $"slow.critical ({config.SlowCritical}) must be greater than slow.error ({config.SlowError})"
+                : null;
+
     private static void CheckSlowOrder(PgtailConfig config, Action<string> warn)
     {
-        if (config.SlowWarn >= config.SlowError)
-        {
-            warn($"slow.error ({config.SlowError}) must be greater than slow.warn ({config.SlowWarn}). Using defaults.");
-        }
-        else if (config.SlowError >= config.SlowCritical)
-        {
-            warn($"slow.critical ({config.SlowCritical}) must be greater than slow.error ({config.SlowError}). Using defaults.");
-        }
-        else
+        if (SlowOrderProblem(config) is not { } problem)
         {
             return;
         }
 
+        warn($"{problem}. Using defaults.");
         foreach (var key in new[] { "slow.warn", "slow.error", "slow.critical" })
         {
             config[key] = SettingsSchema.Find(key)!.Default;

@@ -318,6 +318,71 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// Edits undone back to the saved text leave nothing unsaved, so Escape closes the editor at once.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_ConfigEdit_UndoneEdit_ClosesWithoutWarning()
+    {
+        using var environment = new TestEnvironment();
+        await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        await pgtail.Automator.TypeAsync("config edit", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => screen.InAlternateScreen && screen.ContainsText("config.toml"),
+            description: "the editor");
+        await pgtail.Automator.TypeAsync("x", TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("[modified]");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.Z, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilNoTextAsync("[modified]");
+        await pgtail.Automator.EscapeAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => !screen.InAlternateScreen && ReplHarness.PromptLine(screen) == "pgtail>",
+            description: "the prompt, with no unsaved changes to discard");
+    }
+
+    /// <summary>
+    /// A misspelled setting is reported at startup, and the editor saves the file only once it is spelled right.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_ConfigEdit_UnknownSetting_NotSavedUntilFixed()
+    {
+        using var environment = new TestEnvironment();
+        Directory.CreateDirectory(Path.GetDirectoryName(environment.Paths.ConfigFile)!);
+        await File.WriteAllTextAsync(environment.Paths.ConfigFile, "[slow]\nwarning = 250\n\n[updates]\ncheck = false\n",
+            TestContext.CancellationToken);
+        await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("Unknown setting slow.warning, ignored.") && ReplHarness.PromptLine(screen) == "pgtail>",
+            description: "the warning at startup");
+        await pgtail.Automator.TypeAsync("config edit", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => screen.InAlternateScreen && screen.ContainsText("warning = 250"),
+            description: "the editor");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.S, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Not saved: Unknown setting slow.warning");
+        await pgtail.Automator.DownAsync(TestContext.CancellationToken);
+        for (var i = 0; i < "warning".Length; i++)
+        {
+            await pgtail.Automator.DeleteAsync(TestContext.CancellationToken);
+        }
+
+        await pgtail.Automator.WaitUntilAsync(screen => screen.ContainsText(" = 250") && !screen.ContainsText("warning = 250"),
+            description: "the misspelled name deleted");
+
+        await pgtail.Automator.TypeAsync("warn", TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("warn = 250");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.S, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Saved config.toml");
+        await pgtail.Automator.EscapeAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => !screen.InAlternateScreen && ReplHarness.PromptLine(screen) == "pgtail>",
+            description: "the prompt again");
+        await pgtail.Automator.TypeAsync("slow", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Warning (yellow):      > 250ms");
+    }
+
+    /// <summary>
     /// connections --watch streams events on the real terminal until Ctrl+C, then sums up and gives the prompt back.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

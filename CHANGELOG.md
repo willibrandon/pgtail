@@ -60,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `notify on /pattern with spaces/` keeps the whole pattern; it was cut at the first space.
 - Deleting back to an empty line at the REPL prompt closes the completion menu instead of listing every command.
 - `level` works at the REPL prompt and `levels` in tail mode, so the level filter command has the same name in both.
+- A misspelled setting in `config.toml` is reported at startup instead of being ignored silently, and the built-in
+  editor saves only settings pgtail knows with valid values.
+- The editor no longer reports unsaved changes after edits are undone back to the saved text.
 
 ### Removed
 - The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`,

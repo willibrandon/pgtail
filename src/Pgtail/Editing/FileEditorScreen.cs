@@ -20,6 +20,7 @@ internal sealed class FileEditorScreen
     private readonly EditorState _editor;
     private readonly TomlDecorationProvider _decorations = new();
     private long _savedVersion;
+    private string _savedText;
     private bool _discardArmed;
     private string _status;
 
@@ -34,6 +35,7 @@ internal sealed class FileEditorScreen
         var text = File.Exists(request.Path) ? File.ReadAllText(request.Path, Encoding.UTF8) : request.InitialText;
         _editor = new EditorState(new Hex1bDocument(text));
         _savedVersion = _editor.Document.Version;
+        _savedText = text;
         _status = File.Exists(request.Path) ? "" : "New file";
     }
 
@@ -41,6 +43,9 @@ internal sealed class FileEditorScreen
     /// Whether the file was saved at least once.
     /// </summary>
     public bool Saved { get; private set; }
+
+    // Edits undone back to the saved text leave nothing unsaved.
+    private bool Dirty => _editor.Document.Version != _savedVersion && _editor.Document.GetText() != _savedText;
 
     /// <summary>
     /// Builds the screen.
@@ -52,8 +57,7 @@ internal sealed class FileEditorScreen
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(close);
-        var dirty = _editor.Document.Version != _savedVersion;
-        var title = $" {_request.Title}{(dirty ? " [modified]" : "")}";
+        var title = $" {_request.Title}{(Dirty ? " [modified]" : "")}";
         return context.VStack(v =>
         [
             v.InfoBar(b => [b.Section(title), b.Spacer(), b.Section("Ctrl+S save · Esc close ")]),
@@ -98,6 +102,7 @@ internal sealed class FileEditorScreen
             Directory.CreateDirectory(Path.GetDirectoryName(_request.Path)!);
             File.WriteAllText(_request.Path, text, new UTF8Encoding(false));
             _savedVersion = _editor.Document.Version;
+            _savedText = text;
             Saved = true;
             _status = $"Saved {Path.GetFileName(_request.Path)}";
         }
@@ -109,7 +114,7 @@ internal sealed class FileEditorScreen
 
     private void Close(Action close)
     {
-        if (_editor.Document.Version != _savedVersion && !_discardArmed)
+        if (Dirty && !_discardArmed)
         {
             _discardArmed = true;
             _status = "Unsaved changes. Ctrl+S to save, Esc again to discard.";

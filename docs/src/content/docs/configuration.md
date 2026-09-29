@@ -38,9 +38,14 @@ pgtail config --reset   # Reset to the defaults, keeping a backup
 ```
 
 `config edit` creates the file from a commented template if it does not exist, then opens it in pgtail's built-in
-editor, which highlights the TOML. **Ctrl+S** saves only valid TOML and shows any error in the status line; **Esc**
-(or **Ctrl+Q**) closes the editor, and a second **Esc** discards unsaved changes. When you close it after saving, the
-REPL reloads the configuration.
+editor, which highlights the TOML. **Ctrl+S** saves only valid settings: a TOML error, a setting pgtail does not know
+(such as a misspelled `slow.warning` for `slow.warn`), an invalid value, or slow thresholds that do not ascend is shown
+in the status line instead. **Esc** (or **Ctrl+Q**) closes the editor, and a second **Esc** discards unsaved changes.
+When you close it after saving, the REPL reloads the configuration.
+
+A file edited elsewhere is checked when pgtail starts: unknown settings are reported and ignored, and invalid values
+are reported and replaced by their defaults. Settings earlier releases wrote that pgtail no longer reads, such as
+`updates.last_version`, are accepted silently.
 
 `config reset` renames the file to `config.toml.bak.YYYYMMDD-HHMMSS`, so pgtail runs on its defaults.
 

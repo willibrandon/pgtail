@@ -1,4 +1,3 @@
-using System.Text;
 using Pgtail.Configuration;
 using Pgtail.Detection;
 using Pgtail.Sessions;
@@ -357,7 +356,7 @@ internal static class ConfigCommands
     }
 
     /// <summary>
-    /// The request to edit the configuration file in the built-in editor, which saves only valid TOML.
+    /// The request to edit the configuration file in the built-in editor, which saves only valid settings.
     /// </summary>
     /// <param name="session">The session.</param>
     /// <returns>The request.</returns>
@@ -365,18 +364,8 @@ internal static class ConfigCommands
     {
         ArgumentNullException.ThrowIfNull(session);
         var file = session.Store.ConfigFile;
-        return new EditRequest(file, $"Editing {PathDisplay.Shorten(file, session.Home)}", ConfigStore.DefaultTemplate, text =>
-        {
-            try
-            {
-                _ = TomlDocument.Parse(Encoding.UTF8.GetBytes(text));
-                return [];
-            }
-            catch (TomlException exception)
-            {
-                return [exception.Message];
-            }
-        });
+        return new EditRequest(file, $"Editing {PathDisplay.Shorten(file, session.Home)}", ConfigStore.DefaultTemplate,
+            ConfigStore.Problems);
     }
 
     private static async Task EditAsync(CommandInvocation invocation)
