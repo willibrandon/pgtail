@@ -186,72 +186,28 @@ public sealed class HighlightingConfig
     }
 
     /// <summary>
-    /// Reads the <c>[highlighting]</c> section of a configuration document.
+    /// Adds the custom highlighters listed under <c>highlighting.custom</c> in a configuration document.
     /// </summary>
     /// <remarks>
-    /// Values of the wrong type keep their defaults and are reported; custom highlighters without a name or pattern
-    /// are skipped.
+    /// Entries without a name or pattern, and entries whose name is taken, are skipped.
     /// </remarks>
     /// <param name="root">The configuration root table.</param>
-    /// <param name="warn">Receives a message for each value that is ignored.</param>
-    /// <returns>The configuration.</returns>
-    public static HighlightingConfig FromToml(TomlTable root, Action<string> warn)
+    public void LoadCustom(TomlTable root)
     {
         ArgumentNullException.ThrowIfNull(root);
-        ArgumentNullException.ThrowIfNull(warn);
-        var config = new HighlightingConfig();
-        if (!root.TryGetTable("highlighting", out var section))
+        if (root.GetPath(["highlighting", "custom"]) is not TomlArray entries)
         {
-            return config;
+            return;
         }
 
-        if (Read<bool>(section, "enabled", "highlighting.enabled", warn) is { } enabled)
+        foreach (var entry in entries)
         {
-            config.Enabled = enabled;
-        }
-
-        if (ReadPositive(section, "max_length", "highlighting.max_length", warn) is { } maxLength)
-        {
-            config.MaxLength = maxLength;
-        }
-
-        if (section.TryGetTable("duration", out var duration))
-        {
-            config.DurationSlow = ReadPositive(duration, "slow", "highlighting.duration.slow", warn) ?? config.DurationSlow;
-            config.DurationVerySlow =
-                ReadPositive(duration, "very_slow", "highlighting.duration.very_slow", warn) ?? config.DurationVerySlow;
-            config.DurationCritical =
-                ReadPositive(duration, "critical", "highlighting.duration.critical", warn) ?? config.DurationCritical;
-        }
-
-        if (section.TryGetTable("enabled_highlighters", out var switches))
-        {
-            foreach (var (name, value) in switches)
+            if (entry is TomlTable table && ReadCustom(table) is { } definition && definition.Name.Length > 0
+                && !BuiltInHighlighters.Names.Contains(definition.Name) && GetCustom(definition.Name) is null)
             {
-                if (value is bool flag)
-                {
-                    config.SetHighlighter(name, flag);
-                }
-                else
-                {
-                    warn($"Invalid value for highlighting.enabled_highlighters.{name}: must be true or false. Using default.");
-                }
+                Change(() => _custom.Add(definition));
             }
         }
-
-        if (section.TryGetValue("custom", out var custom) && custom is TomlArray entries)
-        {
-            foreach (var entry in entries)
-            {
-                if (entry is TomlTable table && ReadCustom(table) is { } definition && definition.Name.Length > 0
-                    && !BuiltInHighlighters.Names.Contains(definition.Name) && config.GetCustom(definition.Name) is null)
-                {
-                    config.Change(() => config._custom.Add(definition));
-                }
-            }
-        }
-
-        return config;
     }
 
     /// <summary>
@@ -363,39 +319,6 @@ public sealed class HighlightingConfig
         bool flag => flag ? "true" : "false",
         _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "",
     };
-
-    private static T? Read<T>(TomlTable table, string key, string setting, Action<string> warn)
-        where T : struct
-    {
-        if (!table.TryGetValue(key, out var value))
-        {
-            return null;
-        }
-
-        if (value is T typed)
-        {
-            return typed;
-        }
-
-        warn($"Invalid value for {setting}: must be true or false. Using default.");
-        return null;
-    }
-
-    private static long? ReadPositive(TomlTable table, string key, string setting, Action<string> warn)
-    {
-        if (!table.TryGetValue(key, out var value))
-        {
-            return null;
-        }
-
-        if (value is long number && number > 0)
-        {
-            return number;
-        }
-
-        warn($"Invalid value for {setting}: must be a positive integer. Using default.");
-        return null;
-    }
 
     private void Change(Action change)
     {
