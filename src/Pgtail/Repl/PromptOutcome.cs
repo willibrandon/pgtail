@@ -24,4 +24,9 @@ internal enum PromptOutcome
     /// Ctrl+L asked to clear the screen.
     /// </summary>
     ClearScreen,
+
+    /// <summary>
+    /// The terminal changed size; the prompt starts again at the new size with the same line.
+    /// </summary>
+    Resized,
 }

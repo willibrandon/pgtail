@@ -17,6 +17,7 @@ namespace Pgtail.Tests;
 internal sealed class ReplHarness : IAsyncDisposable
 {
     private readonly Hex1bTerminal _terminal;
+    private readonly HeadlessPresentationAdapter _presentation;
     private readonly Task<int> _run;
     private readonly CancellationTokenSource _stop;
     private readonly Channel<Hex1bTerminalAutomator> _screens = Channel.CreateUnbounded<Hex1bTerminalAutomator>();
@@ -36,6 +37,9 @@ internal sealed class ReplHarness : IAsyncDisposable
         var history = new ReplHistory(session.Paths.HistoryFile);
         history.Load();
         Host = new ReplHost(session, ReplCatalog.Catalog, history, environment.Root);
+
+        // The headless presentation WithHeadless would make, kept so a test can resize it as a window would be.
+        _presentation = new HeadlessPresentationAdapter(width, height, TerminalCapabilities.Modern);
         _terminal = Hex1bTerminal.CreateBuilder()
             .WithHex1bFlow(async flow =>
             {
@@ -55,7 +59,7 @@ internal sealed class ReplHarness : IAsyncDisposable
                     }
                 }
             }, Cli.Terminals.FlowOptions)
-            .WithHeadless()
+            .WithPresentation(_presentation)
             .WithDimensions(width, height)
             .Build();
         _stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -192,6 +196,13 @@ internal sealed class ReplHarness : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(screen);
         return screen.GetLineTrimmed(screen.Height - 1);
     }
+
+    /// <summary>
+    /// Resizes the terminal, as a user dragging the window would.
+    /// </summary>
+    /// <param name="width">The new width.</param>
+    /// <param name="height">The new height.</param>
+    public void Resize(int width, int height) => _presentation.TriggerResize(width, height);
 
     /// <summary>
     /// The screen's text, one string per row.

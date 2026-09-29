@@ -702,4 +702,23 @@ public sealed class ReplCommandTests
         await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.EditedLine(snapshot) == "pgtail>",
             description: "the line cut back to the start");
     }
+
+    /// <summary>
+    /// After the terminal grows, the toolbar is on the new bottom row and the line being typed is kept.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Resize_WhileTyping_KeepsLineAndMovesToolbar()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 100, height: 24);
+        await repl.Automator.TypeAsync("levels err", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("pgtail> levels err");
+        repl.Resize(110, 32);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.Height == 32
+                && snapshot.GetLineTrimmed(31).Contains("Theme: dark", StringComparison.Ordinal)
+                && ReplHarness.EditedLine(snapshot) == "pgtail> levels err",
+            description: "the toolbar on the new bottom row and the line kept");
+    }
 }

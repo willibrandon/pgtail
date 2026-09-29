@@ -117,6 +117,9 @@ internal sealed partial class ReplHost : IReplHost
                         _pending = new ReplRequest(ReplRequestKind.ClearScreen);
                         execution = Task.CompletedTask;
                         break;
+                    case PromptOutcome.Resized:
+                        execution = Task.CompletedTask;
+                        break;
                     default:
                         execution = ExecuteAsync(result);
                         break;
@@ -384,9 +387,20 @@ internal sealed partial class ReplHost : IReplHost
         var completed = new TaskCompletionSource<PromptResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var height = Math.Min(flow.TerminalHeight, Math.Max(flow.AvailableHeight, PromptState.MenuRows + 2));
         var width = Math.Max(1, flow.TerminalWidth);
+        var terminalHeight = flow.TerminalHeight;
+        var resized = false;
         var step = flow.Step(
             ctx =>
             {
+                // The prompt fills the rows down to the toolbar at the bottom, which a resized terminal moves, so it
+                // starts again at the new size, leaving nothing behind.
+                if (!resized && (flow.TerminalWidth != width || flow.TerminalHeight != terminalHeight))
+                {
+                    resized = true;
+                    ctx.Step.Complete();
+                    _ = completed.TrySetResult(new PromptResult(PromptOutcome.Resized, _prompt.Text, _shellMode.Value));
+                }
+
                 controller.Changed = ctx.Step.Invalidate;
                 controller.Ended = result =>
                 {
@@ -402,7 +416,7 @@ internal sealed partial class ReplHost : IReplHost
         step.RequestFocus(node => node is EditorNode);
         await step.WaitForCompletionAsync(flow.CancellationToken);
         var result = await completed.Task;
-        if (result.Outcome != PromptOutcome.ClearScreen)
+        if (result.Outcome is not (PromptOutcome.ClearScreen or PromptOutcome.Resized))
         {
             if (result.Outcome == PromptOutcome.Submitted)
             {
