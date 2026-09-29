@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Pgtail.Analyzers/Pgtail.Analyzers.csproj" />
+    <Project Path="src/Pgtail.Core/Pgtail.Core.csproj" />
+    <Project Path="src/Pgtail/Pgtail.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pgtail.Tests/Pgtail.Tests.csproj" />
+  </Folder>
+</Solution>
