@@ -80,7 +80,7 @@ scoop install pgtail
 ### Binary Download
 
 Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest). Each holds a
-single native executable; nothing else needs to be installed.
+native executable (with Hex1b's small console helper beside it on macOS and Linux); nothing else needs to be installed.
 
 | Platform | Archive |
 |----------|---------|
@@ -99,8 +99,9 @@ tar -xzf pgtail-macos-arm64.tar.gz
 # Run pgtail from the extracted folder
 ./pgtail-macos-arm64/pgtail --version
 
-# Optional: Add to PATH
-sudo cp pgtail-macos-arm64/pgtail /usr/local/bin/pgtail
+# Optional: Add to PATH (keep the folder together; the helper library sits beside the executable)
+sudo cp -r pgtail-macos-arm64 /usr/local/lib/
+sudo ln -s /usr/local/lib/pgtail-macos-arm64/pgtail /usr/local/bin/pgtail
 ```
 
 **Windows (ZIP - portable, no admin):**

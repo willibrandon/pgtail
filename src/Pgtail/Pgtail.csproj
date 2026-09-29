@@ -32,8 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- pgtail starts no processes in a pseudo-terminal, so Hex1b's native helpers for doing so are left out. -->
-    <PackageReference Include="Hex1b" ExcludeAssets="native" />
+    <PackageReference Include="Hex1b" />
   </ItemGroup>
 
   <ItemGroup>

@@ -41,10 +41,14 @@ internal sealed class PgtailProcess : IAsyncDisposable
     }
 
     /// <summary>
-    /// The built executable.
+    /// The executable in pgtail's own build output, beside exactly the files its build put there.
     /// </summary>
-    public static string Executable { get; } = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "pgtail.exe"
-        : "pgtail");
+    /// <remarks>
+    /// The tests' output also holds a copy, but with the tests' own dependencies beside it, which could hide a file
+    /// pgtail's build left out. The tests build to <c>tests/Pgtail.Tests/bin/CONFIGURATION/TFM</c> and pgtail to
+    /// <c>src/Pgtail/bin/CONFIGURATION/TFM</c>.
+    /// </remarks>
+    public static string Executable { get; } = FindExecutable();
 
     /// <summary>
     /// Drives the terminal.
@@ -143,6 +147,16 @@ internal sealed class PgtailProcess : IAsyncDisposable
 
         await _terminal.DisposeAsync();
         _stop.Dispose();
+    }
+
+    private static string FindExecutable()
+    {
+        var output = new DirectoryInfo(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
+        var configuration = output.Parent!;
+        var repository = configuration.Parent!.Parent!.Parent!.Parent!.FullName;
+        var executable = Path.Combine(repository, "src", "Pgtail", "bin", configuration.Name, output.Name,
+            OperatingSystem.IsWindows() ? "pgtail.exe" : "pgtail");
+        return File.Exists(executable) ? executable : throw new FileNotFoundException("pgtail has not been built", executable);
     }
 
     private static ProcessStartInfo StartInfo(TestEnvironment environment, string fileName, IEnumerable<string> arguments)

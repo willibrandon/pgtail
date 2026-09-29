@@ -1,11 +1,14 @@
 #!/usr/bin/env -S dotnet --
 #:property TargetFramework=net10.0
+#:package Hex1b
 
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
+using Hex1b;
+using Hex1b.Automation;
 
 // Publishes pgtail with Native AOT for one runtime, checks the executable, then packs and checks its tool package.
 // Usage: dotnet run --file scripts/Publish-NativeAot.cs -- --rid linux-x64 [--package-version 1.2.3] [--output dir]
@@ -40,11 +43,17 @@ if (await RunAsync(repo, "dotnet", ["publish", project, "-c", "Release", "-r", r
     return 1;
 }
 
+// Hex1b's console driver on Linux and macOS calls its native helper, which must sit beside the executable. On Windows,
+// Hex1b's native files serve only its pseudo-terminal support, which pgtail does not use but which ships as Hex1b does.
 var published = Directory.GetFiles(publishDirectory, "*", SearchOption.AllDirectories)
-    .Select(path => Path.GetRelativePath(publishDirectory, path)).ToArray();
-if (published is not [var only] || only != executableName)
+    .Select(path => Path.GetRelativePath(publishDirectory, path)).ToHashSet();
+string[] required = OperatingSystem.IsWindows() ? [executableName]
+    : OperatingSystem.IsMacOS() ? [executableName, "libhex1binterop.dylib"] : [executableName, "libhex1binterop.so"];
+if (required.Any(file => !published.Contains(file))
+    || published.Any(file => file.EndsWith(".dbg", StringComparison.Ordinal) || file.EndsWith(".xml", StringComparison.Ordinal)))
 {
-    Console.Error.WriteLine($"expected only {executableName} in the publish directory, found: {string.Join(", ", published)}");
+    Console.Error.WriteLine($"expected {string.Join(", ", required)} and no symbols or documentation, found: "
+        + string.Join(", ", published));
     return 1;
 }
 
@@ -230,10 +239,47 @@ static async Task<bool> SmokeAsync(string executable, string version)
             Console.WriteLine($"checked: {command}");
         }
 
-        return true;
+        return await InteractiveAsync(executable, environment);
     }
     finally
     {
         Directory.Delete(home, recursive: true);
     }
+}
+
+// Starts the REPL in a pseudo-terminal inside Hex1b's headless terminal, types quit once the prompt shows, and expects a
+// clean exit. This puts the console in raw mode and answers the terminal queries a real terminal would, so it fails the
+// way a user's terminal would if the executable could not drive the console.
+static async Task<bool> InteractiveAsync(string executable, Dictionary<string, string> environment)
+{
+    await using var terminal = Hex1bTerminal.CreateBuilder()
+        .WithPtyProcess(options =>
+        {
+            options.FileName = executable;
+            options.Environment = environment;
+        })
+        .WithHeadless()
+        .WithDimensions(100, 30)
+        .Build();
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+    var run = terminal.RunAsync(timeout.Token);
+    var automator = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(30));
+    try
+    {
+        await automator.WaitUntilTextAsync("pgtail>");
+        await automator.TypeAsync("quit");
+        await automator.EnterAsync();
+        if (await run.WaitAsync(TimeSpan.FromSeconds(30)) == 0)
+        {
+            Console.WriteLine("checked: pgtail (the REPL in a pseudo-terminal)");
+            return true;
+        }
+    }
+    catch (Exception exception) when (exception is Hex1bAutomationException or TimeoutException)
+    {
+        Console.Error.WriteLine(exception.Message);
+    }
+
+    Console.Error.WriteLine("the REPL did not start and leave cleanly in a pseudo-terminal");
+    return false;
 }

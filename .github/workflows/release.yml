@@ -57,7 +57,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "dist/${{ matrix.archive }}"
-          cp artifacts/native-aot/${{ matrix.rid }}/publish/pgtail LICENSE "dist/${{ matrix.archive }}/"
+          # The executable and Hex1b's native console helper, which must stay beside it
+          cp -R artifacts/native-aot/${{ matrix.rid }}/publish/. LICENSE "dist/${{ matrix.archive }}/"
           tar -C dist -czf "dist/${{ matrix.archive }}.tar.gz" "${{ matrix.archive }}"
           mkdir -p archive-check
           tar -C archive-check -xzf "dist/${{ matrix.archive }}.tar.gz"
@@ -68,7 +69,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force "dist\${{ matrix.archive }}" | Out-Null
-          Copy-Item "artifacts\native-aot\${{ matrix.rid }}\publish\pgtail.exe", "LICENSE" "dist\${{ matrix.archive }}\"
+          Copy-Item -Recurse "artifacts\native-aot\${{ matrix.rid }}\publish\*" "dist\${{ matrix.archive }}\"
+          Copy-Item "LICENSE" "dist\${{ matrix.archive }}\"
           Compress-Archive -Path "dist\${{ matrix.archive }}" -DestinationPath "dist\${{ matrix.archive }}.zip"
           Expand-Archive -Path "dist\${{ matrix.archive }}.zip" -DestinationPath "archive-check"
           if (-not (Test-Path "archive-check\${{ matrix.archive }}\pgtail.exe")) {
