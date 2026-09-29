@@ -168,3 +168,10 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   space, as in the Python release, and now takes the rest of the line. Linux config and history paths follow
   `XDG_CONFIG_HOME` and `XDG_DATA_HOME`. What is left unchecked needs macOS or Windows: `osascript` and toast
   notifications, their config paths, the Windows known data directories, and the Windows no-console exit.
+- A hands-on pass through the REPL, the way a person uses it, against the live workload: deleting back to an empty line
+  opened a menu of every command (now closed until something is typed or Tab is pressed); `level` and `levels` were
+  each unknown in the other mode (each mode now takes both); a misspelled setting such as `slow.warning` loaded silently
+  and the editor saved it (loading now warns and the editor refuses, with settings earlier releases wrote still
+  accepted); undoing edits back to the saved text still counted as unsaved (the editor now compares the text).
+  Tail mode clicks, the paused REPL stream, live views, export, and pipe behaved as expected. `tail --since` reads the
+  log from its start, as the Python release did, taking about two seconds on a 132,000-line log.
