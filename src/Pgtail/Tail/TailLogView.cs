@@ -92,7 +92,7 @@ internal sealed class TailLogView(TailLog log, bool color)
     /// <returns>The widget.</returns>
     public InteractableWidget Build<TParent>(
         WidgetContext<TParent> context,
-        IReadOnlyDictionary<char, Action> screenKeys,
+        IReadOnlyDictionary<char, Action<InputBindingActionContext>> screenKeys,
         Action<InputBindingsBuilder> more)
         where TParent : Hex1bWidget
     {
@@ -172,23 +172,23 @@ internal sealed class TailLogView(TailLog log, bool color)
         return true;
     }
 
-    private void Bind(InputBindingsBuilder bindings, IReadOnlyDictionary<char, Action> screenKeys)
+    private void Bind(InputBindingsBuilder bindings, IReadOnlyDictionary<char, Action<InputBindingActionContext>> screenKeys)
     {
-        var keys = new Dictionary<char, Action>
+        var keys = new Dictionary<char, Action<InputBindingActionContext>>
         {
-            ['j'] = () => Move(1),
-            ['k'] = () => Move(-1),
-            ['h'] = Left,
-            ['l'] = Right,
-            ['0'] = LineStart,
-            ['$'] = LineEnd,
-            ['g'] = Top,
-            ['G'] = Bottom,
-            ['p'] = () => PauseRequested?.Invoke(),
-            ['f'] = Follow,
-            ['v'] = () => StartVisual(lines: false),
-            ['V'] = () => StartVisual(lines: true),
-            ['y'] = Yank,
+            ['j'] = _ => Move(1),
+            ['k'] = _ => Move(-1),
+            ['h'] = _ => Left(),
+            ['l'] = _ => Right(),
+            ['0'] = _ => LineStart(),
+            ['$'] = _ => LineEnd(),
+            ['g'] = _ => Top(),
+            ['G'] = _ => Bottom(),
+            ['p'] = _ => PauseRequested?.Invoke(),
+            ['f'] = _ => Follow(),
+            ['v'] = _ => StartVisual(lines: false),
+            ['V'] = _ => StartVisual(lines: true),
+            ['y'] = _ => Yank(),
         };
 
         foreach (var (key, action) in screenKeys)
@@ -196,12 +196,14 @@ internal sealed class TailLogView(TailLog log, bool color)
             keys[key] = action;
         }
 
-        bindings.Character(text => text.All(keys.ContainsKey)).Action(text =>
+        bindings.Character(text => text.All(keys.ContainsKey)).Action((text, context) =>
         {
             foreach (var key in text)
             {
-                keys[key]();
+                keys[key](context);
             }
+
+            return Task.CompletedTask;
         }, "Log keys");
 
         bindings.Key(Hex1bKey.DownArrow).Action(_ => Move(1), "Down one line");

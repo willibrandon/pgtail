@@ -48,9 +48,9 @@ internal sealed class TailInput
     public string Text => Editor.Document.GetText();
 
     /// <summary>
-    /// Called to move focus to the log.
+    /// Called from a key's action to move focus to the log at once.
     /// </summary>
-    public Action? FocusLog { get; set; }
+    public Action<InputBindingActionContext>? FocusLog { get; set; }
 
     /// <summary>
     /// Loads the history.
@@ -103,11 +103,11 @@ internal sealed class TailInput
         bindings.Remove(EditorWidget.MoveDown);
         bindings.Remove(EditorWidget.AddCursorAtNextMatch);
         bindings.Remove(Hex1bKey.Escape);
-        bindings.Key(Hex1bKey.Enter).Action(_ => SubmitAsync(), "Run the command");
-        bindings.Key(Hex1bKey.Escape).Action(_ =>
+        bindings.Key(Hex1bKey.Enter).Action(SubmitAsync, "Run the command");
+        bindings.Key(Hex1bKey.Escape).Action(context =>
         {
             SetText("");
-            FocusLog?.Invoke();
+            FocusLog?.Invoke(context);
         }, "Clear and return to the log");
 
         bindings.Key(Hex1bKey.UpArrow).Action(_ =>
@@ -164,12 +164,12 @@ internal sealed class TailInput
         }
     }
 
-    private async Task SubmitAsync()
+    private async Task SubmitAsync(InputBindingActionContext context)
     {
         var text = Text;
         SetText("");
         _history.ResetNavigation();
-        FocusLog?.Invoke();
+        FocusLog?.Invoke(context);
         await _screen.RunCommandAsync(text);
     }
 }

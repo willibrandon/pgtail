@@ -17,7 +17,7 @@ internal sealed partial class TailScreen
     private static readonly TextStyle HeaderText = StyleParser.Parse("fg:#8a8a8a bg:#262626");
     private static readonly TextStyle Separator = StyleParser.Parse("fg:#5f5f5f");
     private CancellationTokenSource? _watch;
-    private Dictionary<char, Action> _logKeys = [];
+    private Dictionary<char, Action<InputBindingActionContext>> _logKeys = [];
 
     /// <summary>
     /// Sets up the app and returns the screen's builder.
@@ -36,19 +36,19 @@ internal sealed partial class TailScreen
         options.EnableDefaultCtrlCExit = false;
         options.EnableMouse = true;
         Input.Load();
-        Input.FocusLog = () => app.RequestFocus(IsLog);
-        _logKeys = new Dictionary<char, Action>
+        Input.FocusLog = context => context.FocusWhere(IsLog);
+        _logKeys = new Dictionary<char, Action<InputBindingActionContext>>
         {
-            ['q'] = Stop,
-            ['?'] = () => HelpVisible = true,
-            ['/'] = () => ToggleFocus(logFocused: true),
+            ['q'] = _ => Stop(),
+            ['?'] = _ => HelpVisible = true,
+            ['/'] = context => context.FocusWhere(IsInput),
         };
 
         CheckInitialAccess();
         _source.Start();
         _watch = new CancellationTokenSource();
         _ = WatchAsync(app, _watch.Token);
-        app.RequestFocus(node => node is EditorNode editor && editor.State == Input.Editor);
+        app.RequestFocus(IsInput);
         return Build;
     }
 
@@ -153,7 +153,8 @@ internal sealed partial class TailScreen
     private void BindScreenKeys(InputBindingsBuilder bindings, bool logFocused)
     {
         bindings.Remove(Hex1bKey.Tab);
-        bindings.Key(Hex1bKey.Tab).Action(_ => ToggleFocus(logFocused), "Switch between the log and the command input");
+        bindings.Key(Hex1bKey.Tab).Action(context => context.FocusWhere(logFocused ? IsInput : IsLog),
+            "Switch between the log and the command input");
         bindings.Ctrl().Key(Hex1bKey.C).Action(_ =>
         {
             if (!_view.CopySelection())
@@ -163,16 +164,15 @@ internal sealed partial class TailScreen
         }, "Copy the selection, or leave tail mode");
     }
 
-    private void CloseHelp()
+    private void CloseHelp(InputBindingActionContext context)
     {
         HelpVisible = false;
-        _app?.RequestFocus(IsLog);
+        _ = context.FocusWhere(IsLog);
     }
 
     private static bool IsLog(Hex1bNode node) => node is InteractableNode { Child: SurfaceNode };
 
-    private void ToggleFocus(bool logFocused) =>
-        _app?.RequestFocus(logFocused ? node => node is EditorNode editor && editor.State == Input.Editor : IsLog);
+    private bool IsInput(Hex1bNode node) => node is EditorNode editor && editor.State == Input.Editor;
 
     private SurfaceWidget Bar<TParent>(WidgetContext<TParent> context, StyledText text, TextStyle panel)
         where TParent : Hex1bWidget

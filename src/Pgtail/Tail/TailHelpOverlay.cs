@@ -68,7 +68,7 @@ internal static class TailHelpOverlay
     /// <param name="context">The widget context.</param>
     /// <param name="close">Closes the overlay.</param>
     /// <returns>The overlay.</returns>
-    public static Hex1bWidget Build<TParent>(WidgetContext<TParent> context, Action close)
+    public static Hex1bWidget Build<TParent>(WidgetContext<TParent> context, Action<InputBindingActionContext> close)
         where TParent : Hex1bWidget
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -90,9 +90,13 @@ internal static class TailHelpOverlay
         return context.Center(context.Interactable(i => i.Border(StyledBlock.Build(i, lines, width, color: true)))
             .InputBindings(bindings =>
             {
-                bindings.Key(Hex1bKey.Escape).Action(_ => close(), "Close help");
-                bindings.Key(Hex1bKey.Q).Action(_ => close(), "Close help");
-                bindings.Character(text => text == "?").Action(_ => close(), "Close help");
+                bindings.Key(Hex1bKey.Escape).Action(close, "Close help");
+                bindings.Key(Hex1bKey.Q).Action(close, "Close help");
+                bindings.Character(text => text == "?").Action((_, actionContext) =>
+                {
+                    close(actionContext);
+                    return Task.CompletedTask;
+                }, "Close help");
             }).FixedWidth(width + 2));
     }
 }
