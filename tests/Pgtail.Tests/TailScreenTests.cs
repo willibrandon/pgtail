@@ -486,6 +486,23 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// Tailing a server's file shows the version and port the server logged at startup.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ServerStartupLines_ShowVersionAndPortInStatus()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment,
+            ("LOG", "starting PostgreSQL 17.2 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 14.2.1, 64-bit"),
+            ("LOG", "listening on IPv4 address \"127.0.0.1\", port 5544"),
+            ("LOG", "database system is ready to accept connections"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).EndsWith("| PG17.2:5544", StringComparison.Ordinal),
+            description: "the logged version and port");
+    }
+
+    /// <summary>
     /// q in the log leaves tail mode.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

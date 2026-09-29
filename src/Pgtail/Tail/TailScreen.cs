@@ -33,6 +33,7 @@ internal sealed partial class TailScreen : ITailHost
     private bool _paused;
     private int _detectionScanned;
     private bool _versionDetected;
+    private bool _portDetected;
     private bool _ended;
 
     /// <summary>
@@ -371,7 +372,8 @@ internal sealed partial class TailScreen : ITailHost
 
     private void DetectInstance(LogEntry entry)
     {
-        if (_request.Source.Instance is not null || _versionDetected || _detectionScanned >= 50)
+        // The server logs its version and then the ports it listens on, so scanning goes on until both are found.
+        if (_request.Source.Instance is not null || (_versionDetected && _portDetected) || _detectionScanned >= 50)
         {
             return;
         }
@@ -387,6 +389,7 @@ internal sealed partial class TailScreen : ITailHost
         if (foundPort is { } value)
         {
             Status.PgPort = value;
+            _portDetected = true;
         }
     }
 }
