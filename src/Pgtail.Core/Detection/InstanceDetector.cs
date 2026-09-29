@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
+using Pgtail.Files;
 
 namespace Pgtail.Detection;
 
@@ -9,7 +9,7 @@ namespace Pgtail.Detection;
 /// <param name="environment">Reads an environment variable, such as <c>PGDATA</c>.</param>
 /// <param name="home">The user's home directory.</param>
 /// <param name="processes">Lists running processes.</param>
-public sealed partial class InstanceDetector(Func<string, string?> environment, string home, Func<IReadOnlyList<ProcessEntry>> processes)
+public sealed class InstanceDetector(Func<string, string?> environment, string home, Func<IReadOnlyList<ProcessEntry>> processes)
 {
     /// <summary>
     /// A detector for the current user and machine.
@@ -133,95 +133,81 @@ public sealed partial class InstanceDetector(Func<string, string?> environment, 
     private IEnumerable<string> FromPgrx()
     {
         var pgrx = Path.Combine(home, ".pgrx");
-        if (!Directory.Exists(pgrx))
+        foreach (var directory in Matching(Path.Combine(pgrx, "data-*")))
         {
-            yield break;
-        }
-
-        IEnumerable<string> entries;
-        try
-        {
-            entries = Directory.EnumerateDirectories(pgrx).ToList();
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            yield break;
-        }
-
-        foreach (var entry in entries)
-        {
-            var name = Path.GetFileName(entry);
-            var matches = OperatingSystem.IsWindows() ? name.StartsWith("data-", StringComparison.Ordinal) : PgrxName().IsMatch(name);
-            if (matches && File.Exists(Path.Combine(entry, "PG_VERSION")))
+            var suffix = Path.GetFileName(directory)[5..];
+            if ((OperatingSystem.IsWindows() || (suffix.Length > 0 && suffix.All(char.IsAsciiDigit)))
+                && File.Exists(Path.Combine(directory, "PG_VERSION")))
             {
-                yield return entry;
+                yield return directory;
             }
         }
     }
 
-    private List<string> KnownPaths()
+    private IEnumerable<string> KnownPaths()
     {
-        if (!OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows())
         {
-            return
-            [
-                "/usr/local/var/postgres",
-                "/opt/homebrew/var/postgres",
-                "/usr/local/var/postgresql@16",
-                "/usr/local/var/postgresql@15",
-                "/usr/local/var/postgresql@14",
-                "/opt/homebrew/var/postgresql@16",
-                "/opt/homebrew/var/postgresql@15",
-                "/opt/homebrew/var/postgresql@14",
-                "/var/lib/postgresql",
-                "/var/lib/pgsql/data",
-                "/var/lib/postgresql/16/main",
-                "/var/lib/postgresql/15/main",
-                "/var/lib/postgresql/14/main",
-                Path.Combine(home, "postgres"),
-                Path.Combine(home, "postgresql"),
-                Path.Combine(home, ".postgres"),
-            ];
-        }
-
-        var paths = new List<string>();
-        foreach (var programFiles in new[]
-        {
-            environment("ProgramFiles") ?? @"C:\Program Files",
-            environment("ProgramFiles(x86)") ?? @"C:\Program Files (x86)",
-        })
-        {
-            var postgres = Path.Combine(programFiles, "PostgreSQL");
-            if (!Directory.Exists(postgres))
+            var programFiles = environment("ProgramFiles") ?? @"C:\Program Files";
+            var programFilesX86 = environment("ProgramFiles(x86)") ?? @"C:\Program Files (x86)";
+            foreach (var directory in Matching(Path.Combine(programFiles, "PostgreSQL", "*", "data"))
+                .Concat(Matching(Path.Combine(programFilesX86, "PostgreSQL", "*", "data"))))
             {
-                continue;
+                yield return directory;
             }
 
-            try
+            if (environment("APPDATA") is { Length: > 0 } appData)
             {
-                paths.AddRange(Directory.EnumerateDirectories(postgres).Select(version => Path.Combine(version, "data"))
-                    .Where(Directory.Exists));
+                yield return Path.Combine(appData, "PostgreSQL", "data");
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+
+            if (environment("LOCALAPPDATA") is { Length: > 0 } localAppData)
             {
-                // A PostgreSQL directory we cannot list holds nothing we can tail.
+                yield return Path.Combine(localAppData, "PostgreSQL", "data");
+            }
+
+            yield return Path.Combine(home, "postgres");
+            yield return Path.Combine(home, "postgresql");
+            yield return Path.Combine(home, "PostgreSQL", "data");
+            yield break;
+        }
+
+        // Homebrew, Debian and Ubuntu clusters, PGDG and distribution RPM layouts, and Postgres.app, for every version.
+        string[] patterns =
+        [
+            "/usr/local/var/postgres",
+            "/opt/homebrew/var/postgres",
+            "/usr/local/var/postgresql@*",
+            "/opt/homebrew/var/postgresql@*",
+            "/var/lib/postgresql",
+            "/var/lib/postgresql/*/*",
+            "/var/lib/pgsql/data",
+            "/var/lib/pgsql/*/data",
+            Path.Combine(home, "Library", "Application Support", "Postgres", "var-*"),
+            Path.Combine(home, "postgres"),
+            Path.Combine(home, "postgresql"),
+            Path.Combine(home, ".postgres"),
+        ];
+
+        foreach (var pattern in patterns)
+        {
+            foreach (var directory in GlobPattern.IsGlob(pattern) ? Matching(pattern) : [pattern])
+            {
+                yield return directory;
             }
         }
+    }
 
-        if (environment("APPDATA") is { Length: > 0 } appData)
+    private IReadOnlyList<string> Matching(string pattern)
+    {
+        try
         {
-            paths.Add(Path.Combine(appData, "PostgreSQL", "data"));
+            return GlobPattern.FromPath(pattern, home, home).ExpandDirectories();
         }
-
-        if (environment("LOCALAPPDATA") is { Length: > 0 } localAppData)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            paths.Add(Path.Combine(localAppData, "PostgreSQL", "data"));
+            return [];
         }
-
-        paths.Add(Path.Combine(home, "postgres"));
-        paths.Add(Path.Combine(home, "postgresql"));
-        paths.Add(Path.Combine(home, "PostgreSQL", "data"));
-        return paths;
     }
 
     private static bool IsDataDirectory(string path)
@@ -259,7 +245,4 @@ public sealed partial class InstanceDetector(Func<string, string?> environment, 
 
         return (false, null);
     }
-
-    [GeneratedRegex("^data-[0-9]+$")]
-    private static partial Regex PgrxName();
 }
