@@ -125,7 +125,7 @@ public sealed class CliTests
     }
 
     /// <summary>
-    /// Piped input streams through the filters.
+    /// Piped input streams through the filters, and piped output holds only entries.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
@@ -139,8 +139,9 @@ public sealed class CliTests
         await using var shell = PgtailProcess.Shell(environment, $"{reader} \"{log}\" | {{pgtail}} tail --stdin --stream",
             TestContext.CancellationToken);
         await shell.Automator.WaitUntilAsync(
-            screen => screen.ContainsText("piped warning line") && screen.ContainsText("piped log line"),
-            description: "both piped entries");
+            screen => screen.ContainsText("piped warning line") && screen.ContainsText("piped log line")
+                && !screen.ContainsText("Detected format"),
+            description: "both piped entries and nothing else");
         Assert.AreEqual(0, await shell.WaitForExitAsync());
     }
 
