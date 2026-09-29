@@ -24,9 +24,14 @@ internal sealed partial class TailScreen : ITailHost
     /// How many of a log's last lines tail mode reads back for a time filter, enough for the entries it keeps.
     /// </summary>
     /// <remarks>
-    /// A long log opens as fast as a short one; streaming reads the whole range.
+    /// A long log opens as fast as a short one; the rest of the range is read back afterward.
     /// </remarks>
     public const int BacklogLines = 20_000;
+
+    /// <summary>
+    /// The most entries tail mode keeps; reading back older ones stops there.
+    /// </summary>
+    public const int MaxEntries = 200_000;
 
     private const int EntriesPerFrame = 2_000;
     private const int LoadPerFrame = 20_000;
@@ -268,13 +273,13 @@ internal sealed partial class TailScreen : ITailHost
 
     private void WriteLines(IReadOnlyList<StyledText> lines)
     {
-        Append(lines.SelectMany(TailLine.From));
+        Append(lines.Select(line => TailSegment.Of(TailLine.From(line))));
         _view.ShowEnd();
     }
 
-    private void Append(IEnumerable<TailLine> rows)
+    private void Append(IEnumerable<TailSegment> segments)
     {
-        _view.Dropped(_log.Append(rows));
+        _view.Dropped(_log.Append(segments));
         Status.TotalLines = _log.Count;
     }
 
@@ -298,7 +303,7 @@ internal sealed partial class TailScreen : ITailHost
             return;
         }
 
-        var shown = new List<TailLine>();
+        var shown = new List<TailSegment>();
         var taken = 0;
         while (taken < EntriesPerFrame && _source.Events.TryRead(out var item))
         {
@@ -331,7 +336,7 @@ internal sealed partial class TailScreen : ITailHost
         Status.FilePermissionDenied = _source.IsPermissionDenied;
     }
 
-    private void Handle(LogSourceEvent item, List<TailLine> shown)
+    private void Handle(LogSourceEvent item, List<TailSegment> shown)
     {
         switch (item.Kind)
         {
@@ -342,9 +347,15 @@ internal sealed partial class TailScreen : ITailHost
                 Format = format;
                 Session.DetectedFormat = format;
                 break;
+            case LogSourceEventKind.Older when item.Entries is { } older:
+                AddOlder(older);
+                break;
+            case LogSourceEventKind.OlderRead:
+                Status.LoadingOlder = false;
+                break;
             case LogSourceEventKind.EndOfInput:
-                shown.AddRange(TailLine.From(
-                    Markup.Parse($"[dim]--- stdin complete ({item.LinesRead} lines loaded) - press 'q' to quit ---[/]")));
+                shown.Add(TailSegment.Of(TailLine.From(
+                    Markup.Parse($"[dim]--- stdin complete ({item.LinesRead} lines loaded) - press 'q' to quit ---[/]"))));
                 break;
         }
     }
@@ -399,15 +410,43 @@ internal sealed partial class TailScreen : ITailHost
             }
         }
 
-        Append(shown.Skip(Math.Max(0, shown.Count - TailLog.MaxLines)).SelectMany(Rows));
+        Append(shown.Skip(Math.Max(0, shown.Count - TailLog.MaxLines)).Select(Segment));
     }
 
     // The oldest entries go once per frame rather than one at a time, which would shift the list for every entry.
     private void TrimEntries()
     {
-        if (_entries.Count > Sessions.LogBuffer.DefaultCapacity)
+        if (_entries.Count > MaxEntries)
         {
-            _entries.RemoveRange(0, _entries.Count - Sessions.LogBuffer.DefaultCapacity);
+            _entries.RemoveRange(0, _entries.Count - MaxEntries);
+        }
+    }
+
+    // Puts entries read back in front, as many as tail mode keeps, and stops reading back once it is full.
+    private void AddOlder(IReadOnlyList<LogEntry> older)
+    {
+        var room = MaxEntries - _entries.Count;
+        var kept = older.Count > room ? older.Skip(older.Count - Math.Max(0, room)).ToList() : older;
+        _entries.InsertRange(0, kept);
+        var segments = new List<TailSegment>();
+        foreach (var entry in kept)
+        {
+            Session.Observe(entry, isNew: false);
+            if (Session.ShouldShow(entry))
+            {
+                Status.Count(entry);
+                segments.Add(Segment(entry));
+            }
+        }
+
+        _view.Prepended(_log.Prepend(segments));
+        Status.TotalLines = _log.Count;
+        Status.LoadingOlder = true;
+        if (older.Count > room)
+        {
+            _source.StopReadingOlder();
+            Status.LoadingOlder = false;
+            Status.OlderNotLoaded = true;
         }
     }
 
@@ -419,7 +458,7 @@ internal sealed partial class TailScreen : ITailHost
         DetectInstance(entry);
     }
 
-    private void AddEntry(LogEntry entry, List<TailLine> shown)
+    private void AddEntry(LogEntry entry, List<TailSegment> shown)
     {
         Keep(entry, isNew: true);
         if (!Session.ShouldShow(entry))
@@ -434,13 +473,16 @@ internal sealed partial class TailScreen : ITailHost
             return;
         }
 
-        shown.AddRange(Rows(entry));
+        shown.Add(Segment(entry));
     }
 
-    // An entry's rows, formatted at once without semantic highlighting, which comes when a row is first drawn.
-    private List<TailLine> Rows(LogEntry entry) => TailLine.From(
-        Display.EntryFormatter.TailLine(entry, Session.Theme, Highlighting.HighlighterChain.None, Session.SlowLevel(entry)),
-        () => Formatted(entry));
+    // An entry's rows, one for each line of its message, made when first drawn: formatted without semantic
+    // highlighting, which comes when a row is first drawn.
+    private TailSegment Segment(LogEntry entry) => new(
+        1 + entry.Message.AsSpan().Count('\n'),
+        () => TailLine.From(
+            Display.EntryFormatter.TailLine(entry, Session.Theme, Highlighting.HighlighterChain.None, Session.SlowLevel(entry)),
+            () => Formatted(entry)));
 
     private StyledText Formatted(LogEntry entry) =>
         Display.EntryFormatter.TailLine(entry, Session.Theme, Session.Chain, Session.SlowLevel(entry));

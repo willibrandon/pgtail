@@ -27,6 +27,11 @@ internal sealed class TailLine
     }
 
     /// <summary>
+    /// An empty row.
+    /// </summary>
+    public static TailLine Blank { get; } = new("", [], null, 0);
+
+    /// <summary>
     /// The row's text.
     /// </summary>
     public string Text { get; }

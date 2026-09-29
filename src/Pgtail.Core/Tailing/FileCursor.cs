@@ -26,6 +26,7 @@ public sealed class FileCursor(string path)
     private bool _pendingSeen;
     private FileIdentity? _identity;
     private DateTime? _modified;
+    private const int OlderChunkSize = 1 << 20;
     private long _lastSize;
     private byte[]? _formatSample;
 
@@ -68,6 +69,11 @@ public sealed class FileCursor(string path)
         _modified = info.LastWriteTimeUtc;
         _lastSize = info.Length;
     }
+
+    /// <summary>
+    /// How many times the file was found rotated, after which offsets read before no longer apply.
+    /// </summary>
+    public int Generation { get; private set; }
 
     /// <summary>
     /// Whether the last read reached the end of the file, or found nothing to read.
@@ -230,28 +236,85 @@ public sealed class FileCursor(string path)
         stream.ReadExactly(head);
         var firstEnd = Array.IndexOf(head, (byte)'\n');
         _formatSample = head[..(firstEnd < 0 ? head.Length : firstEnd)];
-        var format = LogFormatDetector.Detect(_formatSample);
         stream.Seek(offset, SeekOrigin.Begin);
         var window = new byte[(int)Math.Min(length - offset, 1024 * 1024)];
         stream.ReadExactly(window);
-        for (var start = 0; start < window.Length;)
+        return EntryStart(window, 0, LogFormatDetector.Detect(_formatSample)) is { } start ? offset + start : offset;
+    }
+
+    /// <summary>
+    /// Reads the lines of the entries in the chunk before an offset.
+    /// </summary>
+    /// <remarks>
+    /// The chunk starts at the first line in it that starts an entry, and grows until it holds one.
+    /// </remarks>
+    /// <param name="end">Where the lines read end: the start of what was read before.</param>
+    /// <param name="lines">Receives the lines, oldest first.</param>
+    /// <returns>Where the lines read start, which the next chunk ends at; 0 at the start of the file.</returns>
+    public long ReadOlder(long end, List<ReadOnlyMemory<byte>> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        var format = Format ?? LogFormat.Text;
+        try
         {
-            var end = Array.IndexOf(window, (byte)'\n', start);
+            using var stream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            for (var size = OlderChunkSize; ; size *= 2)
+            {
+                var start = Math.Max(0, end - size);
+                var data = new byte[end - start];
+                stream.Seek(start, SeekOrigin.Begin);
+                stream.ReadExactly(data);
+
+                // Past the file's start, the chunk's first line may be the end of an entry the next chunk reads.
+                var skip = start == 0 ? 0 : Array.IndexOf(data, (byte)'\n') + 1;
+                if (start > 0 && (skip == 0 || EntryStart(data, skip, format) is not { } first))
+                {
+                    continue;
+                }
+
+                var from = start == 0 ? 0 : EntryStart(data, skip, format)!.Value;
+                for (var at = from; at < data.Length;)
+                {
+                    var newline = Array.IndexOf(data, (byte)'\n', at);
+                    var stop = newline < 0 ? data.Length : newline;
+                    var length = stop > at && data[stop - 1] == (byte)'\r' ? stop - at - 1 : stop - at;
+                    if (data.AsSpan(at, length).Trim(" \t\r\n\v\f"u8).Length > 0)
+                    {
+                        lines.Add(data.AsMemory(at, length));
+                    }
+
+                    at = stop + 1;
+                }
+
+                return start + from;
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    // The offset of the first line at or after an offset in a buffer that starts an entry, or null when none does.
+    private static int? EntryStart(byte[] data, int offset, LogFormat format)
+    {
+        for (var start = offset; start < data.Length;)
+        {
+            var end = Array.IndexOf(data, (byte)'\n', start);
             if (end < 0)
             {
-                break;
+                return null;
             }
 
-            var line = window.AsMemory(start, end - start);
-            if (LogLineParser.Parse(line, format) is { Timestamp: not null, Continues: false })
+            if (LogLineParser.Parse(data.AsMemory(start, end - start), format) is { Timestamp: not null, Continues: false })
             {
-                return offset + start;
+                return start;
             }
 
             start = end + 1;
         }
 
-        return offset;
+        return null;
     }
 
     private void CheckRotation(FileInfo info)
@@ -268,6 +331,7 @@ public sealed class FileCursor(string path)
         _lastSize = size;
         if (truncated || recreated || reused)
         {
+            Generation++;
             Position = 0;
             Format = null;
             _pending = [];

@@ -25,7 +25,7 @@ internal sealed class TailHarness : IAsyncDisposable
     {
         Session = session;
         var request = new TailRequest(new TailSource(Files: [logFile]), logFile, Stream: false);
-        var source = LogSources.Create(request, session, directory, () => Stream.Null);
+        var source = LogSources.Create(request, session, directory, () => Stream.Null, TailScreen.BacklogLines);
         _screen = new TailScreen(session, request, source, directory);
         Hex1bAppOptions? options = null;
         _terminal = Hex1bTerminal.CreateBuilder()

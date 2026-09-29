@@ -215,3 +215,11 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   on, a test checks the modes a real terminal receives, and the scrollbar can be pressed and dragged. The tail input is
   now drawn by pgtail, since Hex1b's text box shows the terminal's cursor as a steady bar and hides it without focus:
   the block cursor blinks while the input has focus and stays solid while the log has it.
+- `10,000 lines` in the status bar was tail mode's limit, not the range: the Python release kept 10,000 lines too, and
+  a filter such as `level error` then only saw those. Tail mode now keeps up to 200,000 entries and loads a time
+  filter's whole range: the newest 20,000 lines first, then the file read backward a megabyte at a time from where they
+  began, each chunk starting at its first line that starts an entry, reported as `Older` entries and put in front
+  without moving the view. The log holds one segment per entry, with its row count (one per line of the message), and
+  makes rows only when they are drawn, keeping the last 5,000 made. On the test server's day (142,358 lines, two of
+  them without a text time, which a time filter leaves out) the Native AOT build shows the tail at 0.5 s and the whole
+  day at 1.1 s in 167 MB, and `level error` finds the day's 1,993 errors in about 0.4 s.

@@ -499,6 +499,27 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// A time filter's whole range loads: the newest lines first, then the older ones, and the status counts every line.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TimeFilter_LongLog_LoadsWholeRangeAndCountsIt()
+    {
+        using var environment = new TestEnvironment();
+        var count = Tail.TailScreen.BacklogLines + 12_345;
+        var log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Status(screen).Contains($"| {count.ToString("N0", CultureInfo.InvariantCulture)} lines |",
+                    StringComparison.Ordinal)
+                && screen.ContainsText($"entry {count:D6}"),
+            description: "every line counted, the newest on screen");
+        await tail.Automator.EscapeAsync(TestContext.CancellationToken);
+        await tail.Automator.TypeAsync("g", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("entry 000001");
+    }
+
+    /// <summary>
     /// Pressing the scrollbar jumps to that point of the log, and dragging it to the bottom follows again.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

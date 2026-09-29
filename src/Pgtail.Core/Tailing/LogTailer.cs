@@ -9,21 +9,25 @@ namespace Pgtail.Tailing;
 /// <remarks>
 /// When the file stops growing or disappears, the source checks at most once a second whether PostgreSQL moved on:
 /// <c>current_logfiles</c> in the data directory names the current file, or else the newest file with the same
-/// extension in the log directory is taken.
+/// extension in the log directory is taken. When only the file's last lines are read at first, the rest of it is read
+/// back once caught up, a chunk at a time from the newest, and reported as older entries, until the start of the file
+/// or of the time filter, or until the reader has enough.
 /// </remarks>
 /// <param name="path">The log file.</param>
 /// <param name="fromStart">True to read existing lines, as when a time filter looks back; false to read only new lines.</param>
 /// <param name="dataDirectory">The instance's data directory, or null when tailing a file on its own.</param>
 /// <param name="logDirectory">The directory PostgreSQL logs to, or null.</param>
 /// <param name="interval">How often to poll.</param>
-/// <param name="lastLines">With <paramref name="fromStart"/>, how many of the file's last lines to read, or null for all.</param>
+/// <param name="lastLines">With <paramref name="fromStart"/>, how many of the file's last lines to read first, or null for all.</param>
+/// <param name="since">The start of the time filter, where reading back older entries stops.</param>
 public sealed class LogTailer(
     string path,
     bool fromStart,
     string? dataDirectory,
     string? logDirectory,
     TimeSpan interval,
-    int? lastLines = null)
+    int? lastLines = null,
+    DateTime? since = null)
     : PollingLogSource(interval)
 {
     private readonly List<ReadOnlyMemory<byte>> _lines = [];
@@ -31,9 +35,23 @@ public sealed class LogTailer(
     private FileCursor _cursor = new(path);
     private long _lastDirectoryScan;
     private bool _caughtUp;
+    private long _olderEnd = -1;
+    private int _olderGeneration;
+    private volatile bool _stopOlder;
 
     /// <inheritdoc />
-    protected override void Prepare() => _cursor.Open(fromStart, lastLines);
+    public override void StopReadingOlder() => _stopOlder = true;
+
+    /// <inheritdoc />
+    protected override void Prepare()
+    {
+        _cursor.Open(fromStart, lastLines);
+        if (fromStart && lastLines is not null && _cursor.Position > 0)
+        {
+            _olderEnd = _cursor.Position;
+            _olderGeneration = _cursor.Generation;
+        }
+    }
 
     /// <inheritdoc />
     protected override void Poll()
@@ -60,13 +78,63 @@ public sealed class LogTailer(
             Post(new LogSourceEvent(LogSourceEventKind.CaughtUp));
         }
 
-        Behind = outcome == ReadOutcome.Read && !_cursor.AtEnd;
+        if (_caughtUp && _olderEnd >= 0)
+        {
+            ReadOlder();
+        }
+
+        Behind = (outcome == ReadOutcome.Read && !_cursor.AtEnd) || _olderEnd > 0;
         IsUnavailable = outcome != ReadOutcome.Read;
         IsPermissionDenied = outcome == ReadOutcome.PermissionDenied;
         if (outcome != ReadOutcome.Read || _lines.Count == 0)
         {
             CheckForNewFile();
         }
+    }
+
+    // Reads back the chunk of entries before those read so far, until the start of the file or of the time filter.
+    private void ReadOlder()
+    {
+        if (_stopOlder || _olderEnd == 0 || _cursor.Generation != _olderGeneration)
+        {
+            FinishOlder();
+            return;
+        }
+
+        var lines = new List<ReadOnlyMemory<byte>>();
+        _olderEnd = _cursor.ReadOlder(_olderEnd, lines);
+        var grouper = new EntryGrouper();
+        var entries = new List<LogEntry>();
+        foreach (var line in lines)
+        {
+            if (grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)) is { } complete)
+            {
+                entries.Add(complete);
+            }
+        }
+
+        if (grouper.Flush() is { } last)
+        {
+            entries.Add(last);
+        }
+
+        if (entries.Count > 0)
+        {
+            Post(new LogSourceEvent(LogSourceEventKind.Older, Entries: entries));
+        }
+
+        var bound = since is { } start ? LogTimestamps.ToUtc(start) : (DateTime?)null;
+        var oldest = entries.Find(entry => entry.Timestamp is not null)?.Timestamp;
+        if (_olderEnd == 0 || (bound is { } limit && oldest is { } time && LogTimestamps.ToUtc(time) < limit))
+        {
+            FinishOlder();
+        }
+    }
+
+    private void FinishOlder()
+    {
+        _olderEnd = -1;
+        Post(new LogSourceEvent(LogSourceEventKind.OlderRead));
     }
 
     private void CheckForNewFile()

@@ -14,13 +14,7 @@ namespace Pgtail.Tailing;
 /// <param name="pattern">The pattern to watch for new files, or null.</param>
 /// <param name="fromStart">True to read existing lines; false to read only new lines.</param>
 /// <param name="interval">How often to poll.</param>
-/// <param name="lastLines">With <paramref name="fromStart"/>, how many of each file's last lines to read, or null for all.</param>
-public sealed class MultiFileTailer(
-    IReadOnlyList<string> paths,
-    GlobPattern? pattern,
-    bool fromStart,
-    TimeSpan interval,
-    int? lastLines = null)
+public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pattern, bool fromStart, TimeSpan interval)
     : PollingLogSource(interval)
 {
     private readonly Dictionary<string, FileCursor> _cursors = new(OperatingSystem.IsWindows()
@@ -46,7 +40,7 @@ public sealed class MultiFileTailer(
     {
         foreach (var path in paths)
         {
-            Add(path, fromStart, lastLines);
+            Add(path, fromStart);
         }
 
         _lastScan = Environment.TickCount64;
@@ -117,12 +111,12 @@ public sealed class MultiFileTailer(
         {
             if (!_cursors.ContainsKey(path))
             {
-                Add(path, fromStart, last: null);
+                Add(path, fromStart);
             }
         }
     }
 
-    private void Add(string path, bool start, int? last)
+    private void Add(string path, bool start)
     {
         if (!File.Exists(path))
         {
@@ -130,7 +124,7 @@ public sealed class MultiFileTailer(
         }
 
         var cursor = new FileCursor(path);
-        cursor.Open(start, last);
+        cursor.Open(start);
         _cursors[path] = cursor;
     }
 }

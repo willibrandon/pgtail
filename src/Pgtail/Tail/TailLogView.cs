@@ -118,6 +118,17 @@ internal sealed class TailLogView(TailLog log, bool color)
     public void Page(int pages) => Move(pages * _viewport);
 
     /// <summary>
+    /// Adjusts for rows put in front of the log, so the rows on screen and the selection stay where they are.
+    /// </summary>
+    /// <param name="rows">The number of rows put in.</param>
+    public void Prepended(int rows)
+    {
+        _top += rows;
+        _line += rows;
+        _anchorLine += rows;
+    }
+
+    /// <summary>
     /// Adjusts for rows dropped from the start of the log.
     /// </summary>
     /// <param name="dropped">The number of rows dropped.</param>
@@ -257,10 +268,10 @@ internal sealed class TailLogView(TailLog log, bool color)
         for (var row = 0; row < _viewport && _top + row < count; row++)
         {
             var index = _top + row;
-            DrawLine(surface, row, Log.Lines[index]);
+            DrawLine(surface, row, Log.Row(index));
             if (selection is { } range && index >= range.StartLine && index <= range.EndLine)
             {
-                var text = Log.Lines[index].Text;
+                var text = Log.Row(index).Text;
                 var start = index == range.StartLine ? range.StartColumn : 0;
                 var end = index == range.EndLine ? Math.Min(range.EndColumn, text.Length) : text.Length;
                 Highlight(surface, row, text, start, end, fullWidth: VisualLines || !Visual, lineBreak: index != range.EndLine);
@@ -269,7 +280,7 @@ internal sealed class TailLogView(TailLog log, bool color)
 
         if ((Navigating || Visual) && !VisualLines && _line >= _top && _line < Math.Min(count, _top + _viewport))
         {
-            DrawCaret(surface, _line - _top, Log.Lines[_line].Text);
+            DrawCaret(surface, _line - _top, Log.Row(_line).Text);
         }
 
         DrawScrollbar(surface, count);
@@ -407,7 +418,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         ? Log.GetText(range.StartLine, range.StartColumn, range.EndLine, range.EndColumn)
         : null;
 
-    private int Length(int line) => line >= 0 && line < Log.Count ? Log.Lines[line].Text.Length : 0;
+    private int Length(int line) => line >= 0 && line < Log.Count ? Log.Row(line).Text.Length : 0;
 
     private void BeginNavigation()
     {
@@ -627,7 +638,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         _top = Following ? maxTop : _top;
         Following = false;
         var line = Math.Clamp(_top + y, 0, Log.Count - 1);
-        var text = Log.Lines[line].Text;
+        var text = Log.Row(line).Text;
         return (line, Math.Clamp(GraphemeHelper.DisplayColumnToIndex(text, Math.Max(0, _left + x)), 0, text.Length));
     }
 
@@ -649,7 +660,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         }
 
         _top = Math.Clamp(_top, 0, maxTop);
-        var column = GraphemeHelper.IndexToDisplayColumn(Log.Lines[_line].Text, Math.Min(_column, Length(_line)));
+        var column = GraphemeHelper.IndexToDisplayColumn(Log.Row(_line).Text, Math.Min(_column, Length(_line)));
         if (column < _left)
         {
             _left = column;

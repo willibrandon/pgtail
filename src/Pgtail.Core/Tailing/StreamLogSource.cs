@@ -38,6 +38,14 @@ public sealed class StreamLogSource(Stream input) : ILogSource
     public void Start() => _loop ??= Task.Run(ReadAsync);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Piped input reads nothing back.
+    /// </remarks>
+    public void StopReadingOlder()
+    {
+    }
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         await _stop.CancelAsync().ConfigureAwait(false);

@@ -26,4 +26,9 @@ public interface ILogSource : IAsyncDisposable
     /// Starts reading.
     /// </summary>
     void Start();
+
+    /// <summary>
+    /// Stops reading back older entries; a source that reads none back ignores it.
+    /// </summary>
+    void StopReadingOlder();
 }

@@ -113,6 +113,16 @@ internal sealed class TailStatus
     public int? Loading { get; set; } = 0;
 
     /// <summary>
+    /// Whether older entries of the time filter's range are still being read back.
+    /// </summary>
+    public bool LoadingOlder { get; set; }
+
+    /// <summary>
+    /// Whether older entries of the time filter's range were left unread, past what tail mode keeps.
+    /// </summary>
+    public bool OlderNotLoaded { get; set; }
+
+    /// <summary>
     /// Clears the error and warning counts.
     /// </summary>
     public void ResetCounts()
@@ -154,6 +164,15 @@ internal sealed class TailStatus
 
         text.Append(" | ", Dim).Append($"E:{ErrorCount}", Errors).Append(" ", Dim).Append($"W:{WarningCount}", Warnings);
         text.Append(" | ", Dim).Append($"{TotalLines.ToString("N0", CultureInfo.InvariantCulture)} lines");
+        if (LoadingOlder)
+        {
+            text.Append(" (loading older)", Dim);
+        }
+        else if (OlderNotLoaded)
+        {
+            text.Append(" (older not loaded)", Dim);
+        }
+
         text.Append(" | ", Dim).Append(string.Join(' ', FilterParts()), Filters).Append(" | ", Dim);
         var unavailable = FilePermissionDenied ? "(permission denied)" : "(unavailable)";
         if (PgVersion.Length > 0)

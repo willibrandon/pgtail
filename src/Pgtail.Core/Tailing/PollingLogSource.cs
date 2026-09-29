@@ -56,6 +56,11 @@ public abstract class PollingLogSource(TimeSpan interval) : ILogSource
         GC.SuppressFinalize(this);
     }
 
+    /// <inheritdoc />
+    public virtual void StopReadingOlder()
+    {
+    }
+
     /// <summary>
     /// Whether the last poll stopped before the end of what there is to read, so the next one should follow at once.
     /// </summary>
