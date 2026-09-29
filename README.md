@@ -17,10 +17,10 @@ Interactive PostgreSQL log tailer with auto-detection.
 - **Stdin pipe support** (`--stdin`) for archived/compressed logs
 - Auto-detects log format (text, csvlog, jsonlog) and parses structured fields
 - Real-time log tailing with polling (handles log rotation and PostgreSQL restarts)
-- **Textual-based tail mode** with split-screen interface (header, log, input, status bar)
-- **Vim-style navigation** (j/k, g/G, Ctrl+d/u/f/b, p/f for pause/follow)
+- **Full screen tail mode** with split-screen interface (header, log, input, status bar)
+- **Vim-style navigation** (j/k, g/G, Ctrl+d/u/f/b, p/f for pause/follow) and mouse scrolling, clicking, and dragging
 - **Visual mode selection** (v/V for character/line mode, y to yank, Ctrl+a/c)
-- **Clipboard support** via OSC 52 terminal escape + pyperclip fallback
+- **Clipboard support** via OSC 52 terminal escape plus the platform clipboard (pbcopy, clip.exe, wl-copy, xclip, xsel)
 - Filter by log level with flexible syntax (ERROR, error+, warning-, abbreviations)
 - Filter by field values (app=, db=, user=) for CSV/JSON logs
 - Time-based filtering (since, until, between)
@@ -37,33 +37,25 @@ Interactive PostgreSQL log tailer with auto-detection.
 - Pipe logs to external commands (grep, jq, wc, etc.)
 - Color themes: 6 built-in themes plus custom TOML themes
 - **SQL syntax highlighting** in log messages (keywords, identifiers, strings, numbers, operators, comments)
-- **Semantic highlighting** - 29 built-in highlighters for timestamps, durations, SQLSTATE codes, WAL, locks, and more
+- **Semantic highlighting** - 30 built-in highlighters for timestamps, durations, SQLSTATE codes, WAL, locks, and more
 - Color-coded output by severity with SQL state codes
 - **Command history** in tail mode with Up/Down arrow recall (persists across sessions)
 - **Ghost text autocomplete** in tail mode with context-aware suggestions for commands, arguments, and flags
 - REPL with autocomplete, command history, and **bottom toolbar** (instance count, filters, theme)
 - **Shell mode** (`!` prefix) with clear toolbar indicator
-- Cross-platform (macOS, Linux, Windows)
+- **Built-in editor** for the configuration file and custom themes, with TOML highlighting and checks before saving
+- Cross-platform (macOS, Linux, Windows), a single native executable built with .NET Native AOT and [Hex1b](https://github.com/mitchdenny/hex1b)
 
 ## Installation
 
-### pip / pipx / uv (Python 3.10+)
+### .NET tool
 
 ```bash
-# pip
-pip install git+https://github.com/willibrandon/pgtail.git
-
-# pipx (recommended for CLI tools - isolated environment)
-pipx install git+https://github.com/willibrandon/pgtail.git
-
-# uv (fast Python package manager)
-uv tool install git+https://github.com/willibrandon/pgtail.git
+dotnet tool install -g pgtail
 ```
 
-Install a specific version:
-```bash
-pip install git+https://github.com/willibrandon/pgtail.git@v0.1.0
-```
+The tool installs the native executable for your platform (Windows, Linux, and macOS on x64 and Arm64), and a
+framework-dependent build that needs the .NET 10 runtime anywhere else.
 
 ### Homebrew (macOS / Linux)
 
@@ -87,15 +79,17 @@ scoop install pgtail
 
 ### Binary Download
 
-Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest).
+Download pre-built archives from [GitHub Releases](https://github.com/willibrandon/pgtail/releases/latest). Each holds a
+single native executable; nothing else needs to be installed.
 
-| Platform | Archive | Python Required |
-|----------|---------|-----------------|
-| macOS (Apple Silicon) | `pgtail-macos-arm64.tar.gz` | No |
-| macOS (Intel) | `pgtail-macos-x86_64.tar.gz` | No |
-| Linux (x86_64) | `pgtail-linux-x86_64.tar.gz` | No |
-| Linux (ARM64) | `pgtail-linux-arm64.tar.gz` | No |
-| Windows (x86_64) | `pgtail-windows-x86_64.zip` or `.msi` | No |
+| Platform | Archive |
+|----------|---------|
+| macOS (Apple Silicon) | `pgtail-macos-arm64.tar.gz` |
+| macOS (Intel) | `pgtail-macos-x86_64.tar.gz` |
+| Linux (x86_64) | `pgtail-linux-x86_64.tar.gz` |
+| Linux (ARM64) | `pgtail-linux-arm64.tar.gz` |
+| Windows (x86_64) | `pgtail-windows-x86_64.zip` or `.msi` |
+| Windows (ARM64) | `pgtail-windows-arm64.zip` |
 
 **macOS / Linux:**
 ```bash
@@ -106,8 +100,7 @@ tar -xzf pgtail-macos-arm64.tar.gz
 ./pgtail-macos-arm64/pgtail --version
 
 # Optional: Add to PATH
-sudo cp -r pgtail-macos-arm64 /usr/local/lib/
-sudo ln -s /usr/local/lib/pgtail-macos-arm64/pgtail /usr/local/bin/pgtail
+sudo cp pgtail-macos-arm64/pgtail /usr/local/bin/pgtail
 ```
 
 **Windows (ZIP - portable, no admin):**
@@ -132,36 +125,35 @@ pgtail --version
 
 ### From Source
 
+pgtail needs the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+
 ```bash
 git clone https://github.com/willibrandon/pgtail.git
 cd pgtail
-pip install -e .
+dotnet build
+dotnet test
+dotnet run --project src/Pgtail
 ```
 
-### Build Standalone Executable
-
-pgtail is compiled with Nuitka for optimal performance. To build locally:
+Publish a native executable for your machine (on the machine it targets):
 
 ```bash
-# Install build dependencies
-pip install nuitka
-
-# Build standalone folder distribution
-make build
-
-# Output: dist/pgtail-{platform}-{arch}/pgtail
+dotnet publish src/Pgtail -c Release -r linux-x64 -o out
+./out/pgtail --version
 ```
+
+`scripts/Publish-NativeAot.cs` publishes, checks, and packs a runtime as the release does; see `scripts/README.md`.
 
 ### Installation Summary
 
-| Method | Platforms | Python Required | Auto-Update | Notes |
-|--------|-----------|-----------------|-------------|-------|
-| pip / pipx / uv | All | Yes (3.10+) | Manual | |
-| Homebrew | macOS, Linux | No | `brew upgrade` | |
-| winget | Windows | No | `winget upgrade` | |
-| Scoop | Windows | No | `scoop update` | Portable install |
-| MSI | Windows | No | Manual | Admin required, adds to PATH |
-| ZIP/tar.gz | All | No | Manual | Portable, extract and run |
+| Method | Platforms | Auto-Update | Notes |
+|--------|-----------|-------------|-------|
+| .NET tool | All | `dotnet tool update -g pgtail` | Native executable per platform |
+| Homebrew | macOS, Linux | `brew upgrade` | |
+| winget | Windows | `winget upgrade` | |
+| Scoop | Windows | `scoop update` | Portable install |
+| MSI | Windows | Manual | Admin required, adds to PATH |
+| ZIP/tar.gz | All | Manual | Portable, extract and run |
 
 ## Upgrading
 
@@ -174,15 +166,14 @@ Upgrade commands by installation method:
 
 | Method | Upgrade Command |
 |--------|-----------------|
-| pip | `pip install --upgrade git+https://github.com/willibrandon/pgtail.git` |
-| pipx | `pipx upgrade pgtail` |
-| uv | `uv tool upgrade pgtail` |
+| .NET tool | `dotnet tool update -g pgtail` |
 | Homebrew | `brew upgrade pgtail` |
 | winget | `winget upgrade willibrandon.pgtail` |
 | Scoop | `scoop update pgtail` |
 | Binary | Re-download from [releases](https://github.com/willibrandon/pgtail/releases/latest) |
 
-pgtail checks for updates automatically on startup (once per 24 hours). Disable with:
+pgtail checks for updates automatically on startup (once per 24 hours) and suggests the upgrade command for the way it
+was installed. Disable the check with:
 ```bash
 pgtail set updates.check false
 ```
@@ -190,9 +181,12 @@ pgtail set updates.check false
 ## Usage
 
 ```bash
-python -m pgtail_py
-# Or after building:
-./dist/pgtail
+pgtail                      # Interactive REPL
+pgtail list                 # List detected instances (alias of list-instances)
+pgtail tail 0               # Full screen tail mode for instance 0
+pgtail tail 0 --stream      # Print entries to standard output instead
+pgtail enable-logging 0     # Turn on logging_collector for an instance
+pgtail config --edit        # Edit the configuration in the built-in editor
 ```
 
 ### Shell Completion
@@ -205,10 +199,11 @@ $ pgtail tail <TAB>
 1  -- PG16:5433 (stopped)
 ```
 
-Enable shell completion (auto-detects your current shell):
+Enable shell completion (auto-detects your current shell; bash, zsh, fish, and PowerShell are supported):
 
 ```bash
 pgtail --install-completion
+pgtail --show-completion zsh    # Print the script to install it yourself
 ```
 
 After installation, restart your shell or source your shell's config file.
@@ -217,9 +212,10 @@ After installation, restart your shell or source your shell's config file.
 
 ```
 list               Show detected PostgreSQL instances
-tail <id>          Tail logs for an instance (supports --since flag)
+tail <id>          Tail logs for an instance in full screen tail mode (supports --since)
 tail --file <path> Tail arbitrary log file(s) (glob patterns, multiple files)
 tail --stdin       Read log data from stdin pipe
+tail ... --stream  Print entries in the REPL instead (Ctrl+C pauses, 'stop' ends)
 levels [LEVEL...]  Set log level filter (no args = show current, ALL = clear)
 since <time>       Filter logs since time (e.g., 5m, 14:30, 2024-01-15T14:30)
 until <time>       Filter logs until time
@@ -246,7 +242,7 @@ stop               Stop current tail
 clear              Clear screen
 help               Show help
 quit               Exit (alias: exit, q)
-!<cmd>             Run shell command
+!<cmd>             Run shell command (through your shell, so pipes and quoting work)
 ```
 
 ### Log Levels
@@ -293,6 +289,7 @@ pgtail tail --file a.log --file b.log
 # From stdin (compressed/archived logs)
 cat log.gz | gunzip | pgtail tail --stdin
 zcat archived.log.gz | pgtail tail --stdin
+zcat archived.log.gz | pgtail tail --stdin --stream | grep deadlock   # Filtered, to standard output
 
 # Combine with time filter
 pgtail tail --file ./test.log --since 5m
@@ -314,7 +311,8 @@ pgtail tail --file ./test.log --since 5m
 - Per-file format auto-detection
 
 **Stdin Pipe Support:**
-- All data buffered before displaying (allows keyboard navigation)
+- All data buffered before displaying (allows keyboard navigation); with `--stream`, entries print as they are read
+- Without a terminal for the keyboard (for example under cron), use `--stream`
 - Format auto-detected from first line
 - All filters work (level, regex, time, field)
 - Press `q` to quit after viewing
@@ -371,7 +369,7 @@ output json         JSON Lines format (one object per line)
 
 JSON output can be piped to `jq`:
 ```bash
-./pgtail | jq '.message'
+pgtail tail 0 --stream | jq '.message'
 ```
 
 ### Filtering
@@ -397,6 +395,7 @@ pgtail provides automatic semantic highlighting for PostgreSQL log patterns. See
 
 Quick examples:
 ```
+highlight /pattern/       Highlight text matching a regex (REPL)
 highlight                 Show all highlighters and their status
 highlight preview         Preview highlighting with sample log lines
 highlight disable duration   Disable duration highlighting
@@ -578,7 +577,8 @@ theme reload               Reload current theme after external edits
 
 **Custom themes:**
 
-Create custom themes as TOML files:
+`theme edit <name>` opens the theme in the built-in editor, starting from a template, and checks it before saving.
+Themes are TOML files:
 - **macOS**: `~/Library/Application Support/pgtail/themes/mytheme.toml`
 - **Linux**: `~/.config/pgtail/themes/mytheme.toml`
 - **Windows**: `%APPDATA%/pgtail/themes/mytheme.toml`
@@ -648,7 +648,7 @@ sql_function = { fg = "blue" }
 
 ### Semantic Highlighting
 
-Beyond SQL, pgtail automatically colorizes meaningful patterns throughout PostgreSQL log messages. 29 built-in highlighters recognize timestamps, PIDs, SQLSTATE codes, durations, identifiers, WAL segments, lock types, and more.
+Beyond SQL, pgtail automatically colorizes meaningful patterns throughout PostgreSQL log messages. 30 built-in highlighters recognize timestamps, PIDs, SQLSTATE codes, durations, identifiers, WAL segments, lock types, and more.
 
 **Commands:**
 
@@ -723,10 +723,11 @@ export --format csv data.csv   Save as CSV with headers
 export --since 1h recent.log   Only entries from last hour
 export --append errors.log     Append to existing file
 export --follow test.log       Continuous export (like tail -f | tee)
+export --highlighted color.log Keep colors as ANSI escapes (view with less -R)
 ```
 
 Formats:
-- **text**: Raw log lines (default)
+- **text**: Log lines as written by PostgreSQL (default)
 - **json**: JSON Lines format, one object per line
 - **csv**: CSV with timestamp, level, pid, message columns
 
@@ -738,7 +739,7 @@ Pipe filtered log entries to external commands:
 pipe wc -l                     Count matching entries
 pipe grep "SELECT"             Filter with grep
 pipe --format json jq '.message'  Process JSON with jq
-pipe head -20                  First 20 entries
+pipe head -20 | sort           Pipelines and quoting work: the command runs through your shell
 ```
 
 ### Configuration
@@ -754,15 +755,13 @@ set slow.warn              Show current value
 unset slow.warn            Remove setting, use default
 config                     Show all settings as TOML
 config path                Show config file location
-config edit                Open in $EDITOR
+config edit                Edit in the built-in editor (checked before saving)
 config reset               Reset to defaults (creates backup)
 ```
 
 Available settings:
 - `default.levels` - Default log level filter (e.g., `ERROR WARNING`)
 - `slow.warn`, `slow.error`, `slow.critical` - Threshold values in ms
-- `display.timestamp_format` - strftime format for timestamps
-- `display.show_pid`, `display.show_level` - Toggle output fields
 - `theme.name` - Color theme (dark, light, high-contrast, monokai, solarized-dark, solarized-light, or custom)
 - `notifications.enabled` - Enable/disable desktop notifications
 - `notifications.levels` - Log levels that trigger notifications
@@ -770,6 +769,10 @@ Available settings:
 - `notifications.error_rate` - Error rate threshold (errors per minute)
 - `notifications.slow_query_ms` - Slow query threshold in milliseconds
 - `notifications.quiet_hours` - Time range to suppress notifications (e.g., `22:00-08:00`)
+- `updates.check` - Check for a newer release at startup (default `true`)
+- `highlighting.enabled`, `highlighting.max_length` - Semantic highlighting on/off and the longest message it colors
+- `highlighting.duration.slow`, `.very_slow`, `.critical` - Duration coloring thresholds in ms
+- `highlighting.enabled_highlighters.<name>` - Turn one built-in highlighter on or off
 
 ### Example
 
@@ -778,7 +781,7 @@ pgtail> list
   #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY
   0  16       5432   running  on   process ~/.pgrx/data-16
 
-pgtail> tail 0
+pgtail> tail 0 --stream
 Tailing ~/.pgrx/data-16/log/postgresql-2024-01-15.json
 Press Ctrl+C to stop
 
@@ -818,7 +821,8 @@ Query Duration Statistics
 
 ## Tail Mode
 
-When you run `tail <id>`, pgtail enters a Textual-based split-screen interface:
+When you run `tail <id>`, pgtail enters a full screen split-screen interface on the terminal's alternate screen, and
+returns to the REPL, with your scrollback intact, when you leave:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -858,6 +862,11 @@ When you run `tail <id>`, pgtail enters a Textual-based split-screen interface:
 | ? | Show help overlay |
 | / | Focus command input |
 | Tab | Toggle focus between log and input |
+| Mouse wheel | Scroll (Shift+wheel scrolls sideways) |
+| Click | Select a line |
+
+Moving off the newest line stops following and shows `PAUSED`; returning to the end resumes. Long lines scroll sideways
+to keep the cursor in view.
 
 **Visual mode (text selection):**
 
@@ -872,7 +881,7 @@ When you run `tail <id>`, pgtail enters a Textual-based split-screen interface:
 | Ctrl+a | Select all content |
 | Ctrl+c | Copy current selection |
 
-Text is copied to clipboard using OSC 52 (terminal clipboard) with pyperclip fallback.
+Text is copied to the clipboard with OSC 52 (the terminal's clipboard) and the platform's clipboard tool.
 Mouse drag selection auto-copies to clipboard on release.
 
 **Command input (history & autocomplete):**
@@ -906,6 +915,11 @@ The `tail>` command prompt supports persistent history and ghost text suggestion
 | `clear force` | Clear all filters |
 | `errors` | Show error statistics |
 | `connections` | Show connection statistics |
+| `highlight ...` | Manage semantic highlighters |
+| `export <file>` | Export the displayed entries |
+| `set <key> <value>` | Change a setting |
+| `theme <name>` | Switch theme |
+| `notify ...` | Configure desktop notifications |
 | `pause` / `p` | Enter PAUSED mode |
 | `follow` / `f` | Resume FOLLOW mode |
 | `help` | Show all commands |
@@ -932,11 +946,12 @@ level all        # Clear level filter (show all)
 
 | Key | Action |
 |-----|--------|
-| Tab | Autocomplete |
-| Up/Down | Command history |
+| Tab / Shift+Tab | Autocomplete, cycling through the menu |
+| Up/Down | Completion menu, or command history |
 | `!` | Enter shell mode (with empty prompt) |
-| Escape | Exit shell mode |
-| Ctrl+C | Stop current tail |
+| Escape | Close the completion menu, or exit shell mode |
+| Ctrl+C | Abandon the line; while streaming, pause output |
+| Ctrl+L | Clear the screen |
 | Ctrl+D | Exit pgtail |
 
 ## REPL Bottom Toolbar

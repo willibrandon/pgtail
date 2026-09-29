@@ -5,6 +5,44 @@ All notable changes to pgtail are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **pgtail is now a .NET 10 application** published with Native AOT: each release is a single native executable per
+  platform, with no Python or other runtime to install. The REPL, tail mode, and editor are built on
+  [Hex1b](https://github.com/mitchdenny/hex1b); log matching, globbing, and detection use Scout's byte-oriented regular
+  expressions and file walking.
+- Commands come from one catalog per mode that drives dispatch, completion, and help, so the REPL's completion menu, tail
+  mode's suggestions, and `help` always agree.
+- `config edit`, `pgtail config --edit`, and `theme edit` open a built-in editor with TOML highlighting that checks the
+  file before saving, instead of `$EDITOR`.
+- Tail mode keeps every entry it reads and applies filters when displaying, so `clear` brings back entries that a
+  narrower filter hid.
+- Moving the cursor off the newest line in tail mode stops following and shows `PAUSED`; returning to the end resumes.
+  Long lines scroll sideways to keep the cursor in view.
+- `export --highlighted` keeps colors as ANSI escapes, and text export writes log lines exactly as PostgreSQL wrote them.
+- `pipe` runs its command through the shell, so pipelines and quoting work.
+- Tail mode reports unknown commands and bad filter values instead of ignoring them.
+- Update checks suggest the upgrade command for the way pgtail was installed.
+- Shell completion offers options once the word starts with `-`, so `pgtail <Tab>` lists commands.
+- Time windows and `errors --trend` compare timestamps in UTC, fixing errors when mixing logs with and without time zones.
+
+### Added
+- **.NET tool**: `dotnet tool install -g pgtail` installs the native executable for Windows, Linux, and macOS on x64 and
+  Arm64, or a framework-dependent build elsewhere.
+- Windows Arm64 archive (`pgtail-windows-arm64.zip`), also offered through Scoop.
+- `pgtail list` as an alias of `pgtail list-instances`, and `pgtail enable-logging <id>` on the command line.
+- `pgtail tail --stdin --stream` prints piped input through the filters, for use without a terminal.
+- Mouse support in tail mode: the wheel scrolls (Shift scrolls sideways), a click selects a line, and a drag selects
+  text and copies it.
+- Detection finds every Debian cluster, PGDG `/var/lib/pgsql/*/data`, every Homebrew `postgresql@*`, and Postgres.app
+  data directories.
+
+### Removed
+- The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`, and `buffer.*`,
+  which were validated and stored but never used.
+- Installing with pip, pipx, or uv.
+
 ## [0.6.1] - 2026-06-10
 
 ### Changed
