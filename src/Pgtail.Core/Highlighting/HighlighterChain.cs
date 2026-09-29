@@ -39,6 +39,11 @@ public sealed class HighlighterChain
     }
 
     /// <summary>
+    /// A chain with no highlighters, which leaves text as it is.
+    /// </summary>
+    public static HighlighterChain None { get; } = new([]);
+
+    /// <summary>
     /// The highlighters by priority.
     /// </summary>
     public IReadOnlyList<IHighlighter> Highlighters { get; }

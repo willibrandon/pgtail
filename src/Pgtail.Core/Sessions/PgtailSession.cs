@@ -259,8 +259,10 @@ public sealed class PgtailSession
     /// Formats an entry for streaming output: JSON, a slow query, legacy highlights, or the display mode.
     /// </summary>
     /// <param name="entry">The entry.</param>
+    /// <param name="highlighted">False for output that drops styles anyway, such as a pipe, which skips semantic
+    /// highlighting.</param>
     /// <returns>The formatted entry.</returns>
-    public StyledText FormatEntry(LogEntry entry)
+    public StyledText FormatEntry(LogEntry entry, bool highlighted = true)
     {
         ArgumentNullException.ThrowIfNull(entry);
         if (Display.OutputFormat == OutputFormat.Json)
@@ -283,7 +285,7 @@ public sealed class PgtailSession
             }
         }
 
-        return EntryFormatter.Format(entry, Display, Theme, Chain);
+        return EntryFormatter.Format(entry, Display, Theme, highlighted ? Chain : HighlighterChain.None);
     }
 
     /// <summary>

@@ -13,20 +13,23 @@ namespace Pgtail.Highlighting;
 /// </remarks>
 public static class SqlDetector
 {
-    // Each alternative captures its prefix, SQL, and trailing whitespace, in that order.
-    private static readonly ByteRegex Pattern = ByteRegex.Compile(
-        @"(?is)^(?:(.*?duration:\s*[\d.]+\s*ms\s+(?:statement|parse|bind|execute)\s*(?:\S+)?:\s*)(.*?)(\s*)$"
-        + @"|(.*?statement:\s*)(.*?)(\s*)$"
-        + @"|(.*?execute\s+\S+:\s*)(.*?)(\s*)$"
-        + @"|(.*?parse\s+\S+:\s*)(.*?)(\s*)$"
-        + @"|(.*?bind\s+\S+:\s*)(.*?)(\s*)$"
-        + @"|(DETAIL:\s*)(.*?)(\s*)$)");
+    // The prefixes that introduce SQL, tried in this order; the SQL runs from the end of the first one found to the end
+    // of the message. Plain searches without captures keep this cheap for the many lines that have no SQL.
+    private static readonly ByteRegex[] Prefixes =
+    [
+        ByteRegex.Compile(@"(?i)duration:\s*[\d.]+\s*ms\s+(?:statement|parse|bind|execute)\s*(?:\S+)?:\s*"),
+        ByteRegex.Compile(@"(?i)statement:\s*"),
+        ByteRegex.Compile(@"(?i)execute\s+\S+:\s*"),
+        ByteRegex.Compile(@"(?i)parse\s+\S+:\s*"),
+        ByteRegex.Compile(@"(?i)bind\s+\S+:\s*"),
+        ByteRegex.Compile(@"(?i)^DETAIL:\s*"),
+    ];
 
     /// <summary>
-    /// Detects the SQL in a message.
+    /// Finds the SQL in a message.
     /// </summary>
     /// <param name="message">The message.</param>
-    /// <returns>The SQL and the text around it, or null when the message has none.</returns>
+    /// <returns>The prefix, SQL, and trailing whitespace, or null when the message has no SQL.</returns>
     public static SqlDetection? Detect(string message)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -35,37 +38,35 @@ public static class SqlDetector
     }
 
     /// <summary>
-    /// Detects the SQL in an encoded message.
+    /// Finds the SQL in a message already encoded as UTF-8.
     /// </summary>
-    /// <param name="text">The encoded message.</param>
-    /// <returns>The SQL and the text around it, or null when the message has none.</returns>
+    /// <param name="text">The message.</param>
+    /// <returns>The prefix, SQL, and trailing whitespace, or null when the message has no SQL.</returns>
     public static SqlDetection? Detect(Utf8Text text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        if (text.Length == 0 || Pattern.FindCaptures(text.Bytes) is not { } captures)
+        if (text.Length == 0)
         {
             return null;
         }
 
-        for (var alternative = 0; alternative < 6; alternative++)
+        var bytes = text.Bytes;
+        foreach (var prefix in Prefixes)
         {
-            var group = 1 + (alternative * 3);
-            if (captures.GetGroup(group + 1) is not { } sql)
+            if (prefix.Find(bytes) is not { } match)
             {
                 continue;
             }
 
-            var value = Slice(text, sql);
-            if (!string.IsNullOrWhiteSpace(value))
+            var sqlStart = text.ToCharOffset(match.End);
+            var rest = text.Text[sqlStart..];
+            var sql = rest.TrimEnd();
+            if (sql.Length > 0)
             {
-                var prefix = Slice(text, captures.GetGroup(group)!.Value);
-                return new SqlDetection(prefix, value, Slice(text, captures.GetGroup(group + 2)!.Value));
+                return new SqlDetection(text.Text[..sqlStart], sql, rest[sql.Length..]);
             }
         }
 
         return null;
     }
-
-    private static string Slice(Utf8Text text, ByteRegexMatch match) =>
-        text.Text[text.ToCharOffset(match.Start)..text.ToCharOffset(match.End)];
 }

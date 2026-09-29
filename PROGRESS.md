@@ -137,4 +137,10 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   attribute reset through `Console` before each prompt that asks where the cursor is, which makes .NET ask the terminal.
 - Lines printed just before a stream (`Press Ctrl+C to stop`) are written by the stream once Ctrl+C stops it, and the
   REPL ignores Ctrl+C between terminals instead of letting the signal end the process.
+- Throughput, measured with a 200,000 line log on the Native AOT build: streaming into a pipe went from 30.8 s to 2.1 s
+  (about 95,000 lines a second) and to a terminal, with highlighting, from 30.8 s to 19.6 s. The text prefix is read by
+  a byte scanner instead of three capture regexes (15.6 to 2.4 µs a line), SQL is found with plain searches for its
+  prefixes instead of one regex with lazy captures (50 to 1.6 µs), duration and connection parsing ask whether a
+  pattern matches before extracting its parts, piped output skips semantic highlighting since it drops styles, streams
+  write through a buffer flushed per batch, and tail mode trims its entries once per frame.
 

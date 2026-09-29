@@ -39,13 +39,14 @@ public static class ConnectionMessageParser
 
         using var text = new Utf8Text(message);
         var bytes = text.Bytes;
-        if (Authorized.FindCaptures(bytes) is { } authorized)
+        // Most lines are neither, and asking whether one matches is much cheaper than finding its parts.
+        if (Authorized.IsMatch(bytes) && Authorized.FindCaptures(bytes) is { } authorized)
         {
             return new ConnectionMessage(ConnectionEventType.Connect, Group(bytes, authorized, 1), Group(bytes, authorized, 2),
                 Group(bytes, authorized, 3));
         }
 
-        if (Disconnection.FindCaptures(bytes) is { } ended)
+        if (Disconnection.IsMatch(bytes) && Disconnection.FindCaptures(bytes) is { } ended)
         {
             return new ConnectionMessage(ConnectionEventType.Disconnect, Group(bytes, ended, 2), Group(bytes, ended, 3),
                 Host: Group(bytes, ended, 4), Port: Group(bytes, ended, 5), Duration: Group(bytes, ended, 1));

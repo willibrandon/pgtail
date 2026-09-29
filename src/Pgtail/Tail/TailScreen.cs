@@ -298,6 +298,12 @@ internal sealed partial class TailScreen : ITailHost
             Handle(item, shown);
         }
 
+        // The oldest entries go once per frame rather than one at a time, which would shift the list for every entry.
+        if (_entries.Count > Sessions.LogBuffer.DefaultCapacity)
+        {
+            _entries.RemoveRange(0, _entries.Count - Sessions.LogBuffer.DefaultCapacity);
+        }
+
         if (shown.Count > 0)
         {
             Append(shown);
@@ -341,10 +347,6 @@ internal sealed partial class TailScreen : ITailHost
     private void AddEntry(LogEntry entry, List<StyledText> shown)
     {
         _entries.Add(entry);
-        if (_entries.Count > Sessions.LogBuffer.DefaultCapacity)
-        {
-            _entries.RemoveAt(0);
-        }
 
         Session.Buffer.Add(entry);
         if (Session.Observe(entry) is { } notification)

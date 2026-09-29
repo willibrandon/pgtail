@@ -20,7 +20,9 @@ public static class DurationExtractor
     {
         ArgumentNullException.ThrowIfNull(text);
         using var utf8 = new Utf8Text(text);
-        if (Duration.FindCaptures(utf8.Bytes) is not { } captures || captures.GetGroup(1) is not { } number
+
+        // Most lines have no duration, and asking whether one matches is much cheaper than finding its parts.
+        if (!Duration.IsMatch(utf8.Bytes) || Duration.FindCaptures(utf8.Bytes) is not { } captures || captures.GetGroup(1) is not { } number
             || !double.TryParse(number.Value(utf8.Bytes), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
         {
             return null;

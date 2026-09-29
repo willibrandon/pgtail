@@ -1,6 +1,7 @@
 using Hex1b;
 using Hex1b.Widgets;
 using System.Globalization;
+using System.Text;
 using Pgtail.Commands;
 using Pgtail.Repl;
 using Pgtail.Sessions;
@@ -124,10 +125,14 @@ internal static class ReplRunner
         };
 
         Console.CancelKeyPress += stop;
+
+        // Streams flush after each batch of entries, so writing through a buffer saves a write to the terminal or pipe
+        // for every line.
+        await using var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false), 64 * 1024);
         try
         {
-            await stream(Console.Out, cancellation.Token);
-            await Console.Out.FlushAsync(CancellationToken.None);
+            await stream(output, cancellation.Token);
+            await output.FlushAsync(CancellationToken.None);
         }
         finally
         {

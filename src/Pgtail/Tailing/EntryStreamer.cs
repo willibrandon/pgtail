@@ -57,7 +57,7 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
 
                 if (session.ShouldShow(entry))
                 {
-                    output.WriteLine(AnsiText.Render(session.FormatEntry(entry), session.ColorEnabled, styled));
+                    output.WriteLine(AnsiText.Render(session.FormatEntry(entry, highlighted: styled), session.ColorEnabled, styled));
                 }
 
                 break;
