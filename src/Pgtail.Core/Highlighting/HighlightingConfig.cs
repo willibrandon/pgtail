@@ -140,6 +140,29 @@ public sealed class HighlightingConfig
     }
 
     /// <summary>
+    /// Switches a custom highlighter on or off.
+    /// </summary>
+    /// <param name="name">The name.</param>
+    /// <param name="enabled">True to switch it on.</param>
+    /// <returns>True when the highlighter exists.</returns>
+    public bool SetCustomEnabled(string name, bool enabled)
+    {
+        var index = _custom.FindIndex(existing => existing.Name == name);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        Change(() => _custom[index] = _custom[index] with { Enabled = enabled });
+        return true;
+    }
+
+    /// <summary>
+    /// Removes every custom highlighter.
+    /// </summary>
+    public void ClearCustom() => Change(_custom.Clear);
+
+    /// <summary>
     /// Finds a custom highlighter.
     /// </summary>
     /// <param name="name">The name.</param>

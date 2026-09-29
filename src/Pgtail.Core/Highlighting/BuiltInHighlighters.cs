@@ -1,7 +1,7 @@
 namespace Pgtail.Highlighting;
 
 /// <summary>
-/// The 29 built-in highlighters.
+/// The 30 built-in highlighters.
 /// </summary>
 public static class BuiltInHighlighters
 {

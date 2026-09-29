@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Pgtail.Toml;
 
 namespace Pgtail.Styling;
@@ -84,13 +85,37 @@ public static class ThemeLoader
             return (null, [$"TOML parse error: {exception.Message}"]);
         }
 
+        return FromDocument(Path.GetFileNameWithoutExtension(path), document);
+    }
+
+    /// <summary>
+    /// Reads a theme from TOML text, as the built-in editor checks it before saving.
+    /// </summary>
+    /// <param name="name">The theme name.</param>
+    /// <param name="text">The TOML text.</param>
+    /// <returns>The theme, or null when the text cannot be parsed, and the problems found.</returns>
+    public static (Theme? Theme, IReadOnlyList<string> Errors) FromText(string name, string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        try
+        {
+            return FromDocument(name, TomlDocument.Parse(Encoding.UTF8.GetBytes(text)));
+        }
+        catch (TomlException exception)
+        {
+            return (null, [$"TOML parse error: {exception.Message}"]);
+        }
+    }
+
+    private static (Theme? Theme, IReadOnlyList<string> Errors) FromDocument(string name, TomlDocument document)
+    {
         var errors = new List<string>();
         var description = document.Root.TryGetTable("meta", out var meta) && meta.TryGetValue("description", out var text)
             ? Convert.ToString(text, CultureInfo.InvariantCulture) ?? ""
             : "";
         var levels = ReadStyles(document.Root, "levels", errors, upperCase: true);
         var ui = ReadStyles(document.Root, "ui", errors, upperCase: false);
-        var theme = new Theme(Path.GetFileNameWithoutExtension(path), description, levels, ui);
+        var theme = new Theme(name, description, levels, ui);
         errors.AddRange(theme.Validate());
         return (theme, errors);
     }

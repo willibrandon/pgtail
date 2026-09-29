@@ -58,5 +58,28 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   with SQL-region detection, all 30 built-in highlighters on source-generated regular expressions, custom highlighters,
   and the highlighting configuration with comment-preserving saves. The SQL tokenizer is not ported: Python used it
   only on paths that rendered without a theme, and every path now renders through the themed chain.
-- Design: the REPL runs as a Hex1b Flow (inline, scrollback-preserving, like the prompt_toolkit REPL), tail mode is a
-  full-screen Flow step, and the tail log is a read-only Hex1b editor with decoration providers (the dotsider approach).
+- Design: the REPL runs as a Hex1b Flow (inline, scrollback-preserving, like the prompt_toolkit REPL), and the tail log is
+  a read-only Hex1b editor with decoration providers (the dotsider approach).
+- Commands follow ilrepl's model: one catalog per mode (`ReplCatalog`, `TailCatalog`) holds each command's name,
+  aliases, description, argument spec, detailed help, and handler, and drives dispatch, the REPL's completion menu,
+  tail mode's inline suggestions, and help. The argument specs follow the Python tail completion data.
+- When a command needs the real terminal (a `!` shell command, clearing the screen, streaming output, or a full screen
+  app such as tail mode or the built-in editor), the REPL flow ends with a request, the runner serves it on the real
+  terminal, and the flow starts again; a command that asked for a full screen app continues where it left off. Tail
+  mode and the editor are separate full screen Hex1b apps on the alternate screen, as Textual's were, because a flow's
+  full screen step releases the flow's input when its app finishes in Hex1b 0.172.0.
+- Flow output uses soft-wrap tombstones so it reflows in scrollback, and is folded one column short of the width so the
+  erase-to-end-of-line after a full row cannot drop its last character.
+- `config edit` and `theme edit` open a built-in Hex1b editor with TOML highlighting that checks the file before saving.
+- `export --highlighted` and tail mode's `export --highlighted` keep colors as ANSI escapes (the Python release wrote
+  Rich markup), and text export writes log lines unchanged (the Python release stripped anything in brackets).
+- `pipe` runs its command through the shell (`sh -c`, `cmd /c`) with the text typed after the options, so pipelines
+  and quoting work.
+- Tail mode reports unknown commands and bad filter values instead of ignoring them, and its filter confirmations
+  appear after the log is redrawn.
+- `pgtail list` works as an alias of `list-instances` (the Python messages already pointed to it), and
+  `pgtail enable-logging <id>` exists on the command line because `pgtail tail` suggests it.
+- `pgtail tail --stdin --stream` prints piped input through the filters; without a terminal for the keyboard, `--stdin`
+  suggests `--stream` instead of printing unfiltered lines.
+- Update checks suggest the upgrade command for the .NET distribution channels: `dotnet tool update -g pgtail`,
+  Homebrew, winget, Scoop, or the releases page.
