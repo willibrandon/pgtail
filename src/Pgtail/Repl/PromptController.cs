@@ -11,7 +11,7 @@ namespace Pgtail.Repl;
 /// <remarks>
 /// Completions appear while typing, as in the Python release. Tab inserts a lone completion or the part all
 /// completions share, then cycles through them; Up and Down move through the menu while it shows and through history
-/// otherwise; Escape closes the menu or leaves shell mode.
+/// otherwise; Escape closes the menu or leaves shell mode; <c>!</c> on an empty line enters shell mode.
 /// </remarks>
 /// <param name="state">The prompt state.</param>
 /// <param name="catalog">The commands to complete.</param>
@@ -44,7 +44,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
     public Action? Changed { get; set; }
 
     /// <summary>
-    /// Recomputes completions after the user edits the line.
+    /// Recomputes completions after the user edits the line, entering shell mode for <c>!</c> on an empty line.
     /// </summary>
     public void TextChanged()
     {
@@ -56,6 +56,12 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
 
         State.SeenVersion = version;
         State.History.ResetNavigation();
+        if (!ShellMode && State.Text == "!")
+        {
+            State.SetText("");
+            ShellMode = true;
+        }
+
         if (ShellMode)
         {
             State.HideCompletions();
@@ -95,7 +101,6 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
         bindings.Ctrl().Key(Hex1bKey.D).Action(_ => CtrlD(), "Leave on an empty line, else delete");
         bindings.Ctrl().Key(Hex1bKey.L).Action(_ => End(PromptOutcome.ClearScreen), "Clear the screen");
         bindings.Key(Hex1bKey.Backspace).Action(_ => Update(Backspace), "Delete back, or leave shell mode");
-        bindings.Character(text => text == "!").Action(text => Update(() => Bang(text)), "Shell mode on an empty line");
     }
 
     private (int Start, List<CompletionItem> Items) Complete()
@@ -185,19 +190,6 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
         }
 
         State.Editor.DeleteBackward();
-        TextChanged();
-    }
-
-    private void Bang(string text)
-    {
-        if (State.Text.Length == 0 && !ShellMode)
-        {
-            ShellMode = true;
-            State.HideCompletions();
-            return;
-        }
-
-        State.Editor.InsertText(text);
         TextChanged();
     }
 

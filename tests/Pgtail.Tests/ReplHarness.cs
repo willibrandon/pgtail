@@ -15,7 +15,10 @@ internal sealed class ReplHarness : IAsyncDisposable
 {
     private readonly Hex1bTerminal _terminal;
     private readonly Task<int> _run;
+    private readonly CancellationTokenSource _stop;
     private readonly Channel<Hex1bTerminalAutomator> _screens = Channel.CreateUnbounded<Hex1bTerminalAutomator>();
+    private readonly Channel<ReplRequest> _requests = Channel.CreateUnbounded<ReplRequest>();
+    private volatile bool _exited;
 
     private ReplHarness(
         TestEnvironment environment,
@@ -35,7 +38,8 @@ internal sealed class ReplHarness : IAsyncDisposable
                 while (true)
                 {
                     var request = await Host.RunAsync(flow);
-                    Requests.Add(request);
+                    _exited = request.Kind == ReplRequestKind.Exit;
+                    await _requests.Writer.WriteAsync(request, cancellationToken);
                     switch (request)
                     {
                         case { Kind: ReplRequestKind.Exit }:
@@ -49,7 +53,8 @@ internal sealed class ReplHarness : IAsyncDisposable
             .WithHeadless()
             .WithDimensions(width, height)
             .Build();
-        _run = _terminal.RunAsync(cancellationToken);
+        _stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _run = _terminal.RunAsync(_stop.Token);
         Automator = new Hex1bTerminalAutomator(_terminal, defaultTimeout: TimeSpan.FromSeconds(15));
     }
 
@@ -72,11 +77,6 @@ internal sealed class ReplHarness : IAsyncDisposable
     /// Drives the terminal.
     /// </summary>
     public Hex1bTerminalAutomator Automator { get; }
-
-    /// <summary>
-    /// The requests for the real terminal the REPL made, in order.
-    /// </summary>
-    public List<ReplRequest> Requests { get; } = [];
 
     /// <summary>
     /// Starts the REPL.
@@ -110,6 +110,24 @@ internal sealed class ReplHarness : IAsyncDisposable
     }
 
     /// <summary>
+    /// Waits for the REPL to ask for the real terminal, skipping other kinds of request.
+    /// </summary>
+    /// <param name="kind">The kind of request.</param>
+    /// <returns>The request.</returns>
+    public async Task<ReplRequest> WaitForRequestAsync(ReplRequestKind kind)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        while (true)
+        {
+            var request = await _requests.Reader.ReadAsync(timeout.Token);
+            if (request.Kind == kind)
+            {
+                return request;
+            }
+        }
+    }
+
+    /// <summary>
     /// Types a command and presses Enter.
     /// </summary>
     /// <param name="command">The command.</param>
@@ -119,6 +137,36 @@ internal sealed class ReplHarness : IAsyncDisposable
     {
         await Automator.TypeAsync(command, ct: cancellationToken);
         await Automator.EnterAsync(ct: cancellationToken);
+    }
+
+    /// <summary>
+    /// The prompt line: the last row above the toolbar that has text, when no completion menu shows.
+    /// </summary>
+    /// <param name="screen">The screen.</param>
+    /// <returns>The row, trimmed.</returns>
+    public static string PromptLine(IHex1bTerminalRegion screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        for (var row = screen.Height - 2; row >= 0; row--)
+        {
+            if (screen.GetLineTrimmed(row) is { Length: > 0 } line)
+            {
+                return line;
+            }
+        }
+
+        return "";
+    }
+
+    /// <summary>
+    /// The toolbar: the screen's last row.
+    /// </summary>
+    /// <param name="screen">The screen.</param>
+    /// <returns>The row, trimmed.</returns>
+    public static string Toolbar(IHex1bTerminalRegion screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        return screen.GetLineTrimmed(screen.Height - 1);
     }
 
     /// <summary>
@@ -149,18 +197,26 @@ internal sealed class ReplHarness : IAsyncDisposable
     }
 
     /// <summary>
-    /// Leaves the REPL and waits for the terminal to stop.
+    /// Stops the terminal, unless the REPL already ended, and waits for it.
     /// </summary>
     /// <returns>A task that completes when the terminal has stopped.</returns>
     public async ValueTask DisposeAsync()
     {
-        if (!_run.IsCompleted)
+        if (!_exited)
         {
-            await Automator.TypeAsync("quit");
-            await Automator.EnterAsync();
-            await _run.WaitAsync(TimeSpan.FromSeconds(15));
+            await _stop.CancelAsync();
+        }
+
+        try
+        {
+            _ = await _run.WaitAsync(TimeSpan.FromSeconds(15));
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested)
+        {
+            // The test ended without leaving the REPL.
         }
 
         await _terminal.DisposeAsync();
+        _stop.Dispose();
     }
 }

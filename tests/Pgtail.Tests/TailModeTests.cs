@@ -29,6 +29,6 @@ public sealed class TailModeTests
         await screen.WaitUntilTextAsync("FOLLOW");
         await screen.TypeAsync("q", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(snapshot => snapshot.ContainsText($"pgtail> tail --file {log}")
-            && snapshot.GetLineTrimmed(snapshot.Height - 1).Contains("Theme: dark", StringComparison.Ordinal));
+            && ReplHarness.Toolbar(snapshot).Contains("Theme: dark", StringComparison.Ordinal));
     }
 }
