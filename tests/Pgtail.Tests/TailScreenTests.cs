@@ -170,6 +170,36 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// An error's DETAIL and STATEMENT lines stay with it: a level filter keeps them, and they count as one error.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LevelCommand_ErrorWithDetail_KeepsContinuationLines()
+    {
+        using var environment = new TestEnvironment();
+        var path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        var time = DateTime.UtcNow.AddMinutes(-5);
+        LogFiles.Append(path,
+            LogFiles.Text(time, 2001, "ERROR", "duplicate key value violates unique constraint \"t_pkey\""),
+            LogFiles.Text(time, 2001, "DETAIL", "Key (id)=(1) already exists."),
+            LogFiles.Text(time, 2001, "STATEMENT", "insert into t values (1)"),
+            LogFiles.Text(time.AddSeconds(1), 2002, "LOG", "checkpoint starting: time"));
+        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("checkpoint starting")
+                && TailHarness.Status(screen).Contains("E:1 W:0 | 4 lines", StringComparison.Ordinal),
+            description: "one error with its two continuation lines, and one other entry");
+        await tail.RunAsync("level error", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.LogRows(screen).Where(row => row.Length > 0).ToList() is [var error, var detail, var statement]
+                && error.EndsWith("ERROR  : duplicate key value violates unique constraint \"t_pkey\"", StringComparison.Ordinal)
+                && detail == "DETAIL:  Key (id)=(1) already exists."
+                && statement == "STATEMENT:  insert into t values (1)"
+                && !screen.ContainsText("checkpoint starting"),
+            description: "the error with its detail and statement, and nothing else");
+    }
+
+    /// <summary>
     /// A regex filter keeps matching entries, and clear brings the rest back.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

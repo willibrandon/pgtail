@@ -16,6 +16,7 @@ public sealed class StreamLogSource(Stream input) : ILogSource
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
 
     private readonly CancellationTokenSource _stop = new();
+    private readonly EntryGrouper _grouper = new();
     private Task? _loop;
 
     /// <inheritdoc />
@@ -82,11 +83,13 @@ public sealed class StreamLogSource(Stream input) : ILogSource
                 }
 
                 pending.AddRange(buffer.AsSpan(start, read - start));
+                Flush();
             }
 
             if (pending.Count > 0)
             {
                 Emit([.. pending], ref format);
+                Flush();
             }
         }
         catch (IOException)
@@ -116,6 +119,17 @@ public sealed class StreamLogSource(Stream input) : ILogSource
 
         var entry = LogLineParser.Parse(memory, format.Value);
         entry.SourceFile = "stdin";
-        _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.Entry, entry));
+        if (_grouper.Add(entry) is { } complete)
+        {
+            _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.Entry, complete));
+        }
+    }
+
+    private void Flush()
+    {
+        if (_grouper.Flush() is { } last)
+        {
+            _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.Entry, last));
+        }
     }
 }

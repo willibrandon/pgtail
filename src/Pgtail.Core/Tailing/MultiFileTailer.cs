@@ -63,11 +63,20 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
             }
 
             var name = Path.GetFileName(cursor.Path);
+            var grouper = new EntryGrouper();
             foreach (var line in _lines)
             {
                 var entry = LogLineParser.Parse(line, cursor.Format ?? LogFormat.Text);
                 entry.SourceFile = name;
-                entries.Add(entry);
+                if (grouper.Add(entry) is { } complete)
+                {
+                    entries.Add(complete);
+                }
+            }
+
+            if (grouper.Flush() is { } last)
+            {
+                entries.Add(last);
             }
         }
 

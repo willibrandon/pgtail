@@ -20,6 +20,7 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
     : PollingLogSource(interval)
 {
     private readonly List<ReadOnlyMemory<byte>> _lines = [];
+    private readonly EntryGrouper _grouper = new();
     private FileCursor _cursor = new(path);
     private long _lastDirectoryScan;
 
@@ -39,7 +40,15 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
             Path: _cursor.Path)));
         foreach (var line in _lines)
         {
-            Post(new LogSourceEvent(LogSourceEventKind.Entry, LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)));
+            if (_grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)) is { } complete)
+            {
+                Post(new LogSourceEvent(LogSourceEventKind.Entry, complete));
+            }
+        }
+
+        if (_grouper.Flush() is { } last)
+        {
+            Post(new LogSourceEvent(LogSourceEventKind.Entry, last));
         }
 
         IsUnavailable = outcome != ReadOutcome.Read;

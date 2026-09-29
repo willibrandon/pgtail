@@ -108,4 +108,9 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   files a user gets.
 - The release keeps every channel: the same archive names (with `pgtail-windows-arm64.zip` added), the x64 MSI,
   Homebrew, Scoop (now with arm64), and winget, and adds nuget.org through trusted publishing.
+- Text logs: a message's `DETAIL:`, `HINT:`, `CONTEXT:`, `STATEMENT:`, `QUERY:`, and `LOCATION:` lines from the same
+  backend, and the tab-indented further lines of a multi-line message, join the entry they belong to (the Python release
+  showed each as a separate LOG entry with its label dropped, and sorted tab-indented lines to the top in multi-file
+  mode). A level filter now keeps an error's detail and statement with it, the error counts once, and text export still
+  writes the lines exactly as PostgreSQL wrote them. Found by tailing a real PostgreSQL 18 server.
 

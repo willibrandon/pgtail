@@ -44,7 +44,21 @@ public sealed class LogEntry
     /// <summary>
     /// The message text.
     /// </summary>
+    /// <remarks>
+    /// For text logs it includes the lines that continue the entry, such as its <c>DETAIL:</c> and <c>STATEMENT:</c>
+    /// lines, one per line.
+    /// </remarks>
     public string Message { get; init; } = "";
+
+    /// <summary>
+    /// Whether this text line continues the entry before it rather than starting one.
+    /// </summary>
+    /// <remarks>
+    /// PostgreSQL writes a message's detail, hint, context, statement, query, and location on lines of their own labeled
+    /// <c>DETAIL:</c>, <c>HINT:</c>, <c>CONTEXT:</c>, <c>STATEMENT:</c>, <c>QUERY:</c>, and <c>LOCATION:</c>, and indents
+    /// each further line of a multi-line message with a tab. csvlog and jsonlog keep these in fields instead.
+    /// </remarks>
+    public bool Continues { get; init; }
 
     /// <summary>
     /// The line as read, without its line ending, decoded from <see cref="RawUtf8"/> when first asked for.
@@ -277,6 +291,32 @@ public sealed class LogEntry
             "file_name" => FileName,
             "file_line_num" => FileLineNumber,
             _ => null,
+        };
+    }
+
+    /// <summary>
+    /// This text entry with a line that continues it joined on, as one entry.
+    /// </summary>
+    /// <param name="continuation">The continuing line's entry.</param>
+    /// <returns>The joined entry.</returns>
+    public LogEntry Join(LogEntry continuation)
+    {
+        ArgumentNullException.ThrowIfNull(continuation);
+        var first = RawUtf8.Span;
+        var next = continuation.RawUtf8.Span;
+        var raw = new byte[first.Length + 1 + next.Length];
+        first.CopyTo(raw);
+        raw[first.Length] = (byte)'\n';
+        next.CopyTo(raw.AsSpan(first.Length + 1));
+        return new LogEntry
+        {
+            Timestamp = Timestamp,
+            Level = Level,
+            Message = Message + "\n" + continuation.Message,
+            RawUtf8 = raw,
+            Pid = Pid,
+            Format = Format,
+            SourceFile = SourceFile,
         };
     }
 

@@ -26,6 +26,9 @@ public static class TextLogParser
     // Groups: timestamp, zone, level, message.
     private static readonly ByteRegex WithoutPid = ByteRegex.Compile(@"^" + Time + @"\s+(\w+)\s+(\w+):\s+(.*)$");
 
+    // The labels of the lines PostgreSQL writes after a message's first line; they keep their label in the message.
+    private static readonly HashSet<string> ContinuationLabels = ["DETAIL", "HINT", "CONTEXT", "STATEMENT", "QUERY", "LOCATION"];
+
     /// <summary>
     /// Parses one line.
     /// </summary>
@@ -56,8 +59,17 @@ public static class TextLogParser
         }
         else
         {
+            // PostgreSQL indents the further lines of a multi-line message with a tab.
             var raw = Encoding.UTF8.GetString(bytes);
-            return new LogEntry { Level = LogLevel.Log, Message = raw, Raw = raw, RawUtf8 = line, Format = LogFormat.Text };
+            return new LogEntry
+            {
+                Level = LogLevel.Log,
+                Message = raw,
+                Raw = raw,
+                RawUtf8 = line,
+                Format = LogFormat.Text,
+                Continues = bytes is [(byte)'\t', ..],
+            };
         }
 
         DateTime? time = null;
@@ -67,14 +79,16 @@ public static class TextLogParser
             time = zone.Equals("UTC", StringComparison.OrdinalIgnoreCase) ? DateTime.SpecifyKind(parsed, DateTimeKind.Utc) : parsed;
         }
 
+        var continues = ContinuationLabels.Contains(level.ToUpperInvariant());
         return new LogEntry
         {
             Timestamp = time,
             Level = LogLevels.FromSeverity(level),
-            Message = message,
+            Message = continues ? $"{level.ToUpperInvariant()}:  {message}" : message,
             RawUtf8 = line,
             Pid = pid,
             Format = LogFormat.Text,
+            Continues = continues,
         };
     }
 
