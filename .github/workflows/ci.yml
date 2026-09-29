@@ -8,59 +8,42 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    name: tests (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2025-vs2026]
-        python-version: ['3.11', '3.12', '3.13']
+        include:
+          - name: Linux x64
+            os: ubuntu-latest
+          - name: macOS Arm64
+            os: macos-latest
+          - name: Windows x64
+            os: windows-2025-vs2026
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          global-json-file: global.json
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - name: Build
+        run: dotnet build -c Release
+
+      - name: Test
+        run: dotnet test -c Release --no-build --report-trx --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
         with:
-          enable-cache: true
-          cache-suffix: test-${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: uv sync --extra dev
-
-      - name: Run linter
-        run: uv run ruff check pgtail_py/
-
-      - name: Run tests
-        run: uv run pytest tests/ -v -m "not performance" --tb=short
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-suffix: lint
-
-      - name: Install dependencies
-        run: uv sync --extra dev
-
-      - name: Check formatting
-        run: uv run ruff format --check pgtail_py/
-
-      - name: Check linting
-        run: uv run ruff check pgtail_py/
+          name: test-results-${{ matrix.os }}
+          path: TestResults/

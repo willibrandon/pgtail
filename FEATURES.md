@@ -162,6 +162,10 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 ## Distribution
 
 - [ ] Native AOT single binaries for macOS (arm64, x64), Linux (x64, arm64), Windows (x64)
-- [ ] Release workflow: archives, MSI, Homebrew tap, winget manifests, Scoop bucket
+- [ ] Release workflow keeps every channel: archives, MSI, Homebrew tap, winget manifests, Scoop bucket
+- [ ] Published to NuGet as a .NET tool (`dotnet tool install -g pgtail`) with per-RID Native AOT tool packages, like ilrepl
+- [ ] Python sources, tests, packaging (pyproject, uv, Nuitka, ruff, Makefile) and MkDocs removed
 - [ ] CI builds and runs the full test suite on Linux, macOS, and Windows
 - [ ] Documentation site and README updated for the .NET build
+- [ ] Documentation site migrated from MkDocs to Astro Starlight, laid out like ilrepl's `docs/` (pnpm, `astro.config.mjs`,
+      content under `src/content/docs`), with the docs workflow building and deploying it to pgtail.dev

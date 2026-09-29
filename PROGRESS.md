@@ -9,6 +9,10 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
 - Tests are real Hex1b terminal tests (terminal emulator plus workloads) and real file/process tests. No mocks.
 - The command system is modeled on ilrepl: a single command catalog that drives dispatch, completion, and help.
 - Dead code in the Python tree is not ported.
+- The MkDocs site moves to Astro Starlight, the same way ilrepl builds its documentation.
+- Python and MkDocs are removed entirely; the Python release on `main` is the reference while porting.
+- No fallbacks: one code path per behavior, with no compatibility shims for Python-era syntax.
+- pgtail also ships as a .NET tool like ilrepl, and every existing channel (Homebrew, winget, Scoop, MSI, archives) stays.
 - The binary must work on Linux, macOS, and Windows and publish with Native AOT.
 
 ## Log
