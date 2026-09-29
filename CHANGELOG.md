@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `export --highlighted` keeps colors as ANSI escapes, and text export writes log lines exactly as PostgreSQL wrote them.
 - `pipe` runs its command through the shell, so pipelines and quoting work.
 - Tail mode reports unknown commands and bad filter values instead of ignoring them.
+- `slow` in tail mode colors slow queries in the log, as streamed output does, instead of only updating the status bar.
 - Update checks suggest the upgrade command for the way pgtail was installed.
 - Shell completion offers options once the word starts with `-`, so `pgtail <Tab>` lists commands.
 - Time windows and `errors --trend` compare timestamps in UTC, fixing errors when mixing logs with and without time zones.

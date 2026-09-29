@@ -368,7 +368,8 @@ internal sealed partial class TailScreen : ITailHost
         shown.Add(Formatted(entry));
     }
 
-    private StyledText Formatted(LogEntry entry) => Display.EntryFormatter.TailLine(entry, Session.Theme, Session.Chain);
+    private StyledText Formatted(LogEntry entry) =>
+        Display.EntryFormatter.TailLine(entry, Session.Theme, Session.Chain, Session.SlowLevel(entry));
 
     private void DetectInstance(LogEntry entry)
     {

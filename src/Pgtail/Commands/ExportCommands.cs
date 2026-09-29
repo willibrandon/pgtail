@@ -214,7 +214,8 @@ internal static class ExportCommands
         try
         {
             Func<LogEntry, string>? line = highlighted
-                ? entry => AnsiText.Render(Display.EntryFormatter.TailLine(entry, session.Theme, session.Chain), session.ColorEnabled)
+                ? entry => AnsiText.Render(Display.EntryFormatter.TailLine(entry, session.Theme, session.Chain, session.SlowLevel(entry)),
+                    session.ColorEnabled)
                 : null;
             var count = EntryExporter.WriteFile(entries, path, format, append: false, line);
             output.Markup($"[bold green]✓[/] Exported {count} entries to [cyan]{Markup.Escape(path)}[/]");

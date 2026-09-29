@@ -16,9 +16,10 @@ Slow query highlighting is on from the start, with three thresholds:
 | Slow | > 500 ms | `slow_slow` | Bold yellow |
 | Critical | > 1000 ms | `slow_critical` | Bold red |
 
-An entry over a threshold is drawn in that level's style in streamed output (`tail --stream`) and in
-`export --highlighted`. In tail mode's log, the [`duration` highlighter](/guide/highlighting/#duration-threshold-coloring)
-colors each duration by its own thresholds.
+An entry over a threshold is drawn in that level's style in tail mode's log, in streamed output (`tail --stream`), and
+in `export --highlighted`. With slow query highlighting off, the
+[`duration` highlighter](/guide/highlighting/#duration-threshold-coloring) still colors each duration by its own
+thresholds.
 
 ## Setting thresholds
 
@@ -31,7 +32,7 @@ pgtail> slow off              # Turn slow query highlighting off
 ```
 
 In tail mode, `slow` takes one threshold and sets the others from it (slow at twice it, critical at five times),
-and the status bar shows it as `slow:>Nms`:
+redraws the log in the new colors, and the status bar shows it as `slow:>Nms`:
 
 ```
 tail> slow 200        # warning 200 ms, slow 400 ms, critical 1000 ms

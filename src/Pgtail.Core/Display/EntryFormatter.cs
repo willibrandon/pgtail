@@ -176,15 +176,15 @@ public static class EntryFormatter
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(theme);
-        var element = level switch
-        {
-            SlowQueryLevel.Critical => "slow_critical",
-            SlowQueryLevel.Slow => "slow_slow",
-            _ => "slow_warning",
-        };
-
-        return Prefix(entry, theme).Append($"{PadLevel(entry.Level)}: {entry.Message}", theme.Style(element));
+        return Prefix(entry, theme).Append($"{PadLevel(entry.Level)}: {entry.Message}", theme.Style(SlowElement(level)));
     }
+
+    private static string SlowElement(SlowQueryLevel level) => level switch
+    {
+        SlowQueryLevel.Critical => "slow_critical",
+        SlowQueryLevel.Slow => "slow_slow",
+        _ => "slow_warning",
+    };
 
     /// <summary>
     /// An entry whose message has highlighted ranges, from <c>highlight /pattern/</c>.
@@ -233,13 +233,15 @@ public static class EntryFormatter
     /// </summary>
     /// <remarks>
     /// The file appears only when several files are tailed. Levels use fixed colors so they read the same in every
-    /// theme; the message uses the theme's semantic highlighting.
+    /// theme; the message uses the theme's semantic highlighting, or the theme's slow query color when the entry is a
+    /// slow query.
     /// </remarks>
     /// <param name="entry">The entry.</param>
     /// <param name="theme">The theme.</param>
     /// <param name="chain">The semantic highlighters for the message.</param>
+    /// <param name="slow">How slow the query was, when the entry is a slow query.</param>
     /// <returns>The formatted line.</returns>
-    public static StyledText TailLine(LogEntry entry, Theme theme, HighlighterChain chain)
+    public static StyledText TailLine(LogEntry entry, Theme theme, HighlighterChain chain, SlowQueryLevel? slow)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(theme);
@@ -266,7 +268,10 @@ public static class EntryFormatter
             text.Append(" ").Append(state, TailStyles.SqlState);
         }
 
-        return text.Append(": ").Append(chain.Apply(entry.Message, theme));
+        text.Append(": ");
+        return slow is { } level
+            ? text.Append(entry.Message, theme.Style(SlowElement(level)))
+            : text.Append(chain.Apply(entry.Message, theme));
     }
 
     /// <summary>

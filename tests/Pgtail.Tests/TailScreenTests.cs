@@ -503,6 +503,28 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// slow colors the queries slower than its threshold in the log, the whole message in one slow query color.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task SlowCommand_ColorsSlowQueries()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "duration: 850.000 ms  statement: SELECT count(*) FROM orders WHERE id = 42"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, width: 120);
+        await tail.Automator.WaitUntilTextAsync("SELECT count(*) FROM orders");
+        await tail.RunAsync("slow 200", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Status(screen).Contains("slow:>200ms", StringComparison.Ordinal)
+                && RowOf(screen, "SELECT count(*)") is { } row
+                && screen.GetLineTrimmed(row).IndexOf("duration", StringComparison.Ordinal) is var first and > 0
+                && screen.GetCell(first, row) is { IsBold: true, Foreground: { } color }
+                && screen.GetCell(screen.GetLineTrimmed(row).Length - 1, row) is { IsBold: true, Foreground: { } last }
+                && last.Equals(color),
+            description: "the whole message in the slow query color");
+    }
+
+    /// <summary>
     /// q in the log leaves tail mode.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

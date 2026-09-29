@@ -268,7 +268,7 @@ public sealed class PgtailSession
             return new StyledText(EntryFormatter.Json(entry));
         }
 
-        if (Slow.Enabled && DurationExtractor.Extract(entry.Message) is { } duration && Slow.GetLevel(duration) is { } level)
+        if (SlowLevel(entry) is { } level)
         {
             return EntryFormatter.SlowQuery(entry, level, Theme);
         }
@@ -284,6 +284,17 @@ public sealed class PgtailSession
         }
 
         return EntryFormatter.Format(entry, Display, Theme, Chain);
+    }
+
+    /// <summary>
+    /// How slow a query an entry logged was, when slow query highlighting is on and its duration passes a threshold.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <returns>The level, or null.</returns>
+    public SlowQueryLevel? SlowLevel(LogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return Slow.Enabled && DurationExtractor.Extract(entry.Message) is { } duration ? Slow.GetLevel(duration) : null;
     }
 
     /// <summary>
