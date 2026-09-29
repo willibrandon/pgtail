@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows Arm64 archive (`pgtail-windows-arm64.zip`), also offered through Scoop.
 - `pgtail list` as an alias of `pgtail list-instances`, and `pgtail enable-logging <id>` on the command line.
 - `pgtail tail --stdin --stream` prints piped input through the filters, for use without a terminal.
+- `Ctrl+R` reverse history search at the REPL prompt, as in a shell.
 - Mouse support in tail mode: the wheel scrolls (Shift scrolls sideways), a click selects a line, and a drag selects
   text and copies it.
 - Detection finds every Debian cluster, PGDG `/var/lib/pgsql/*/data`, every Homebrew `postgresql@*`, and Postgres.app

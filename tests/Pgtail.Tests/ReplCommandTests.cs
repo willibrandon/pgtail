@@ -619,4 +619,57 @@ public sealed class ReplCommandTests
         var first = rows.ToList().FindIndex(row => row.StartsWith("pgtail> filter", StringComparison.Ordinal));
         Assert.AreEqual("pgtail> " + command, rows[first] + rows[first + 1]);
     }
+
+    /// <summary>
+    /// Ctrl+R finds the newest command containing the typed text, Ctrl+R again an older one, and Enter runs it.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task CtrlR_SearchesHistoryAndRunsMatch()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("display full", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Display mode: full");
+        await repl.RunAsync("display compact", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Display mode: compact");
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.R, TestContext.CancellationToken);
+        await repl.Automator.TypeAsync("disp", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => ReplHarness.PromptLine(snapshot) == "(reverse-i-search)`disp ': display compact",
+            description: "the newest match");
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.R, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => ReplHarness.PromptLine(snapshot) == "(reverse-i-search)`disp ': display full",
+            description: "the older match");
+        await repl.Automator.EnterAsync(TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.GetScreenText().Split('\n')
+                .Count(line => line.StartsWith("Display mode: full", StringComparison.Ordinal)) == 2,
+            description: "the match run again");
+    }
+
+    /// <summary>
+    /// Ctrl+G cancels a history search and gives back the line being typed.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task CtrlG_DuringSearch_RestoresLine()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("output text", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Output format: text");
+        await repl.Automator.TypeAsync("levels", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("pgtail> levels");
+        await repl.Automator.EscapeAsync(TestContext.CancellationToken);
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.R, TestContext.CancellationToken);
+        await repl.Automator.TypeAsync("out", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => ReplHarness.PromptLine(snapshot) == "(reverse-i-search)`out ': output text",
+            description: "the match");
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.G, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.PromptLine(snapshot) == "pgtail> levels",
+            description: "the line given back");
+    }
 }

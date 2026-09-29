@@ -32,6 +32,7 @@ internal sealed record ReplPromptView(
     private static readonly TextStyle CurrentItem = StyleParser.Parse("fg:#888888 bg:#ffffff reverse");
     private static readonly TextStyle Meta = StyleParser.Parse("fg:#000000 bg:#999999");
     private static readonly TextStyle CurrentMeta = StyleParser.Parse("fg:#000000 bg:#aaaaaa");
+    private static readonly TextStyle SearchLabel = StyleParser.Parse("fg:#888888");
 
     /// <summary>
     /// The most rows the line wraps onto before scrolling.
@@ -47,6 +48,11 @@ internal sealed record ReplPromptView(
     {
         ArgumentNullException.ThrowIfNull(ctx);
         var state = Controller.State;
+        if (Controller.Search is { } search)
+        {
+            return BuildSearch(ctx, state, search);
+        }
+
         var labelRow = StyledTextFolder.Fold(Label, 0)[0];
         var labelWidth = StyledTextFolder.Width(labelRow);
         var editorWidth = Math.Max(1, Width - labelWidth);
@@ -82,6 +88,34 @@ internal sealed record ReplPromptView(
             children.Add(v.Surface(s => [s.Layer(surface => DrawToolbar(surface, toolbarRow))]).Size(Width, 1));
             return [.. children];
         }).FixedHeight(height);
+    }
+
+    // The search reads as it does in a shell: (reverse-i-search)`text': command found
+    private VStackWidget BuildSearch(CompositionContext ctx, PromptState state, HistorySearch search)
+    {
+        var label = new StyledText().Append("(reverse-i-search)`", SearchLabel);
+        var labelRow = StyledTextFolder.Fold(label, 0)[0];
+        var labelWidth = StyledTextFolder.Width(labelRow);
+        var queryWidth = Math.Min(Math.Max(1, Width - labelWidth - 3), DisplayWidth.GetStringWidth(state.Text) + 1);
+        var found = new StyledText().Append("': ", SearchLabel).Append(search.Match ?? "");
+        var foundRow = StyledTextFolder.Fold(found, 0)[0];
+        var toolbarRow = StyledTextFolder.Fold(Toolbar, 0)[0];
+        return ctx.VStack(v =>
+        [
+            v.HStack(h =>
+            [
+                h.Surface(s => [s.Layer(surface => StyledBlock.DrawRow(surface, 0, 0, labelRow, Color))]).Size(labelWidth, 1),
+                h.Editor(state.Editor)
+                    .OnTextChanged(_ => Controller.TextChanged())
+                    .InputBindings(Controller.Bind)
+                    .FixedWidth(queryWidth)
+                    .FixedHeight(1),
+                h.Surface(s => [s.Layer(surface => StyledBlock.DrawRow(surface, 0, 0, foundRow, Color))])
+                    .Size(Math.Max(1, Width - labelWidth - queryWidth), 1),
+            ]).FixedHeight(1),
+            v.Text("").FillHeight(),
+            v.Surface(s => [s.Layer(surface => DrawToolbar(surface, toolbarRow))]).Size(Width, 1),
+        ]).FixedHeight(Math.Max(Height, 2));
     }
 
     private void DrawMenu(Surface surface, PromptState state, int anchor, int rows)

@@ -959,6 +959,7 @@ level all        # Clear level filter (show all)
 | Escape | Close the completion menu, or exit shell mode |
 | Ctrl+C | Abandon the line; while streaming, pause output |
 | Ctrl+L | Clear the screen |
+| Ctrl+R | Search history backward (Ctrl+R again for older; Enter runs, Escape edits, Ctrl+G cancels) |
 | Ctrl+D | Exit pgtail |
 
 ## REPL Bottom Toolbar

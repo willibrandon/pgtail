@@ -11,7 +11,9 @@ namespace Pgtail.Repl;
 /// <remarks>
 /// Completions appear while typing, as in the Python release. Tab inserts a lone completion or the part all
 /// completions share, then cycles through them; Up and Down move through the menu while it shows and through history
-/// otherwise; Escape closes the menu or leaves shell mode; <c>!</c> on an empty line enters shell mode.
+/// otherwise; Escape closes the menu or leaves shell mode; <c>!</c> on an empty line enters shell mode. Ctrl+R searches
+/// the history backward as a shell does: Enter runs the command found, Escape or an arrow key keeps it for editing, and
+/// Ctrl+G or Ctrl+C gives the line back.
 /// </remarks>
 /// <param name="state">The prompt state.</param>
 /// <param name="catalog">The commands to complete.</param>
@@ -19,6 +21,13 @@ namespace Pgtail.Repl;
 /// <param name="shellMode">Reads and sets shell mode.</param>
 internal sealed class PromptController(PromptState state, CommandCatalog catalog, ICommandHost host, StrongBox<bool> shellMode)
 {
+    // The keys that end a history search and keep the command found for editing.
+    private static readonly Hex1bKey[] SearchExitKeys =
+    [
+        Hex1bKey.Escape, Hex1bKey.Tab, Hex1bKey.LeftArrow, Hex1bKey.RightArrow, Hex1bKey.Home, Hex1bKey.End, Hex1bKey.UpArrow,
+        Hex1bKey.DownArrow,
+    ];
+
     /// <summary>
     /// The prompt state.
     /// </summary>
@@ -32,6 +41,11 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
         get => shellMode.Value;
         set => shellMode.Value = value;
     }
+
+    /// <summary>
+    /// The history search in progress, or null.
+    /// </summary>
+    public HistorySearch? Search { get; private set; }
 
     /// <summary>
     /// Called when the prompt ends.
@@ -56,6 +70,12 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
 
         State.SeenVersion = version;
         State.History.ResetNavigation();
+        if (Search is { } search)
+        {
+            search.Update(State.History.Entries, State.Text);
+            return;
+        }
+
         if (!ShellMode && State.Text == "!")
         {
             State.SetText("");
@@ -85,6 +105,12 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
     public void Bind(InputBindingsBuilder bindings)
     {
         ArgumentNullException.ThrowIfNull(bindings);
+        if (Search is not null)
+        {
+            BindSearch(bindings);
+            return;
+        }
+
         bindings.Remove(EditorWidget.InsertNewline);
         bindings.Remove(EditorWidget.InsertTab);
         bindings.Remove(EditorWidget.AddCursorAtNextMatch);
@@ -101,6 +127,63 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
         bindings.Ctrl().Key(Hex1bKey.D).Action(_ => CtrlD(), "Leave on an empty line, else delete");
         bindings.Ctrl().Key(Hex1bKey.L).Action(_ => End(PromptOutcome.ClearScreen), "Clear the screen");
         bindings.Key(Hex1bKey.Backspace).Action(_ => Update(Backspace), "Delete back, or leave shell mode");
+        bindings.Ctrl().Key(Hex1bKey.R).Action(_ => Update(StartSearch), "Search history backward");
+    }
+
+    private void BindSearch(InputBindingsBuilder bindings)
+    {
+        bindings.Remove(EditorWidget.InsertNewline);
+        bindings.Remove(EditorWidget.InsertTab);
+        bindings.Remove(EditorWidget.MoveUp);
+        bindings.Remove(EditorWidget.MoveDown);
+        bindings.Remove(Hex1bKey.Escape);
+        bindings.Key(Hex1bKey.Enter).Action(_ =>
+        {
+            FinishSearch();
+            End(PromptOutcome.Submitted);
+        }, "Run the command found");
+
+        bindings.Ctrl().Key(Hex1bKey.R).Action(_ => Update(() => Search?.Older(State.History.Entries, State.Text)),
+            "Find an older command");
+
+        foreach (var key in SearchExitKeys)
+        {
+            bindings.Remove(key);
+            bindings.Key(key).Action(_ => Update(FinishSearch), "Edit the command found");
+        }
+
+        bindings.Ctrl().Key(Hex1bKey.G).Action(_ => Update(CancelSearch), "Cancel the search");
+        bindings.Ctrl().Key(Hex1bKey.C).Action(_ => Update(CancelSearch), "Cancel the search");
+    }
+
+    private void StartSearch()
+    {
+        if (ShellMode)
+        {
+            return;
+        }
+
+        State.HideCompletions();
+        Search = new HistorySearch(State.Text);
+        State.SetText("");
+    }
+
+    private void FinishSearch()
+    {
+        if (Search is { } search)
+        {
+            Search = null;
+            State.SetText(search.Match ?? State.Text);
+        }
+    }
+
+    private void CancelSearch()
+    {
+        if (Search is { } search)
+        {
+            Search = null;
+            State.SetText(search.Saved);
+        }
     }
 
     private (int Start, List<CompletionItem> Items) Complete()

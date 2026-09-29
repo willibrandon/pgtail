@@ -289,6 +289,7 @@ An unknown command prints `Unknown command: <name>` and points to `help`.
 | `Ctrl+C` | Abandon the line |
 | `Ctrl+D` | Leave pgtail on an empty line |
 | `Ctrl+L` | Clear the screen |
+| `Ctrl+R` | Search the history backward: type part of a command, `Ctrl+R` again for an older one; `Enter` runs it, `Escape` or an arrow key keeps it for editing, `Ctrl+G` cancels |
 
 Completions appear as you type, with a description of each command, subcommand, flag, and value. The REPL history is
 kept across sessions (see [Configuration](/configuration/#config-file-location)).
