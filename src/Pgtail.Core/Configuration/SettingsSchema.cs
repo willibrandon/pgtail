@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Pgtail.Filtering;
+using Pgtail.Matching;
 using Pgtail.Highlighting;
 using Pgtail.Styling;
 
@@ -109,7 +110,7 @@ public static partial class SettingsSchema
             }
 
             var (pattern, _) = NotificationPattern(text);
-            if (!PatternSyntax.TryCompile(pattern, caseSensitive: true, out _, out var error))
+            if (!LogPattern.TryCompile(pattern, caseSensitive: true, out _, out var error))
             {
                 throw new FormatException($"invalid regex pattern '{text}': {error}");
             }

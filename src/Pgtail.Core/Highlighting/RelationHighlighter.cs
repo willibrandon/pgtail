@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using Pgtail.Matching;
 
 namespace Pgtail.Highlighting;
 
@@ -6,17 +6,16 @@ namespace Pgtail.Highlighting;
 /// Styles the name of a relation after a keyword such as <c>relation</c>, <c>table</c>, or <c>index</c>.
 /// </summary>
 public sealed class RelationHighlighter() : RegexHighlighter("relation", 410, "Table/index/sequence names (relation X, table Y)",
-    HighlightPatterns.Relation(), "hl_relation")
+    HighlightPatterns.Relation, "hl_relation")
 {
     /// <inheritdoc />
-    public override IEnumerable<HighlightMatch> FindMatches(string text)
+    public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (Match match in Regex.Matches(text))
+        foreach (var groups in LogPattern.Captures(Regex, text))
         {
-            var name = match.Groups[2];
-            if (name.Success)
+            if (groups[2] is { } name)
             {
-                yield return new HighlightMatch(name.Index, name.Index + name.Length, Style);
+                yield return new HighlightMatch(name.Start, name.End, Style);
             }
         }
     }

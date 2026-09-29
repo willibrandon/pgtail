@@ -1,3 +1,4 @@
+using Pgtail.Matching;
 using Pgtail.Styling;
 
 namespace Pgtail.Highlighting;
@@ -63,7 +64,8 @@ public sealed class HighlighterChain
         }
 
         var process = text.Length > MaxLength ? text[..MaxLength] : text;
-        var matches = Collect(process);
+        using var encoded = new Utf8Text(process);
+        var matches = Collect(encoded);
         var result = new StyledText();
         if (matches.Count > 0)
         {
@@ -92,7 +94,7 @@ public sealed class HighlighterChain
         return result.Append(text[process.Length..]);
     }
 
-    private List<(HighlightMatch Match, int Priority)> Collect(string text)
+    private List<(HighlightMatch Match, int Priority)> Collect(Utf8Text text)
     {
         var matches = new List<(HighlightMatch, int)>();
         foreach (var highlighter in _general)

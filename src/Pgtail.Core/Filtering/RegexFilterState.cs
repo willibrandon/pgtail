@@ -94,26 +94,44 @@ public sealed class RegexFilterState
     }
 
     /// <summary>
-    /// Whether a line passes the filters.
+    /// Whether a UTF-8 line passes the filters.
     /// </summary>
     /// <remarks>
     /// With include filters, one must match. No exclude filter may match. Every AND filter must match.
     /// </remarks>
-    /// <param name="text">The line.</param>
+    /// <param name="utf8">The line.</param>
     /// <returns>True to show the line.</returns>
-    public bool ShouldShow(string text)
+    public bool ShouldShow(ReadOnlySpan<byte> utf8)
     {
-        ArgumentNullException.ThrowIfNull(text);
-        if (Includes.Count > 0 && !Includes.Any(filter => filter.Matches(text)))
+        foreach (var filter in Excludes)
         {
-            return false;
+            if (filter.Matches(utf8))
+            {
+                return false;
+            }
         }
 
-        if (Excludes.Any(filter => filter.Matches(text)))
+        foreach (var filter in Ands)
         {
-            return false;
+            if (!filter.Matches(utf8))
+            {
+                return false;
+            }
         }
 
-        return Ands.Count == 0 || Ands.All(filter => filter.Matches(text));
+        if (Includes.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var filter in Includes)
+        {
+            if (filter.Matches(utf8))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

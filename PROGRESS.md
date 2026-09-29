@@ -34,7 +34,18 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   keep the fixed 10,000 entry limits the Python release actually used.
 - Timestamps keep Python's aware/naive distinction as `DateTime` kinds (`Utc` / `Unspecified`); comparisons always
   normalize to UTC, which fixes Python's naive/aware comparison errors in `errors --trend` and time windows.
-- Regular expressions are .NET regular expressions; Python-only syntax such as `(?P<name>...)` is not translated.
+- Scout (read-only reference at ~/src/scout, consumed as the NuGet packages Scout.Text.Regex, Scout.IO.Globbing, and
+  Scout.IO.Ignore 0.6.1) is pgtail's search engine. Every regular expression that searches log content or comes from
+  the user (filters, highlights, custom highlighters, notification patterns, the built-in highlighters, SQL detection,
+  duration and connection parsing, the text log parser) is a byte-oriented, linear-time Scout regex in ripgrep syntax,
+  matched on the raw UTF-8 line where possible. Fixed token syntaxes (time expressions, TOML, colors, config validation)
+  use compile-time `[GeneratedRegex]`.
+- `--file` globs and detection path patterns use Scout globs expanded with Scout's `FileWalker` (ignore files and
+  hidden-file filtering off, since log directories are usually version-control ignored). Detection now finds any
+  Debian cluster, PGDG `/var/lib/pgsql/*/data`, every Homebrew `postgresql@*`, and Postgres.app data directories
+  instead of the Python release's fixed 14-16 list.
+- Tail mode keeps every entry it reads and applies filters when displaying, so `clear` brings back entries a narrower
+  filter hid (the Python release lost them because the tailer discarded filtered entries).
 - JSON output is compact standard JSON without escaping non-ASCII characters.
 - Ported the log model and parsers (text, csvlog, jsonlog, format detection, timestamps), the level/regex/field/time
   filters, and the slow query, duration, error, and connection statistics.

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Pgtail.Parsing;
 
@@ -25,14 +26,13 @@ public static class CsvLogParser
     /// <summary>
     /// Parses one line.
     /// </summary>
-    /// <param name="line">The line.</param>
+    /// <param name="utf8">The line as UTF-8, without its line ending.</param>
     /// <param name="entry">The entry, when the line is a csvlog record.</param>
     /// <returns>True when the line is a csvlog record.</returns>
-    public static bool TryParse(string line, out LogEntry entry)
+    public static bool TryParse(ReadOnlyMemory<byte> utf8, out LogEntry entry)
     {
-        ArgumentNullException.ThrowIfNull(line);
         entry = null!;
-        line = line.TrimEnd('\n', '\r');
+        var line = Encoding.UTF8.GetString(utf8.Span);
         if (!CsvLine.TrySplit(line, out var fields) || fields.Count < 14)
         {
             return false;
@@ -45,6 +45,7 @@ public static class CsvLogParser
             Level = LogLevels.FromSeverity(Field(11)),
             Message = Field(13),
             Raw = line,
+            RawUtf8 = utf8,
             Pid = ParseInt(Field(3)),
             Format = LogFormat.Csv,
             UserName = NonEmpty(Field(1)),

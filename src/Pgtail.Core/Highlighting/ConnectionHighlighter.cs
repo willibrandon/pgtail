@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using Pgtail.Matching;
 
 namespace Pgtail.Highlighting;
 
@@ -6,14 +6,19 @@ namespace Pgtail.Highlighting;
 /// Styles connection settings such as <c>host=...</c> and <c>user=...</c>, each in the style of its setting.
 /// </summary>
 public sealed class ConnectionHighlighter() : RegexHighlighter("connection", 600, "Connection info (host, port, user, database)",
-    HighlightPatterns.Connection(), "hl_connection")
+    HighlightPatterns.Connection, "hl_connection")
 {
     /// <inheritdoc />
-    public override IEnumerable<HighlightMatch> FindMatches(string text)
+    public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (Match match in Regex.Matches(text))
+        foreach (var groups in LogPattern.Captures(Regex, text))
         {
-            var style = match.Groups[1].Value.ToLowerInvariant() switch
+            if (groups[0] is not { } whole || groups[1] is not { } setting)
+            {
+                continue;
+            }
+
+            var style = text.Text[setting.Start..setting.End].ToLowerInvariant() switch
             {
                 "host" => "hl_host",
                 "port" => "hl_port",
@@ -22,7 +27,7 @@ public sealed class ConnectionHighlighter() : RegexHighlighter("connection", 600
                 _ => Style,
             };
 
-            yield return new HighlightMatch(match.Index, match.Index + match.Length, style);
+            yield return new HighlightMatch(whole.Start, whole.End, style);
         }
     }
 }

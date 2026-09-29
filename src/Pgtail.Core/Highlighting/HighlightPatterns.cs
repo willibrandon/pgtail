@@ -1,184 +1,132 @@
-using System.Text.RegularExpressions;
+using Scout.Text.Regex;
 
 namespace Pgtail.Highlighting;
 
 /// <summary>
-/// The regular expressions of the built-in highlighters, compiled ahead of time.
+/// The regular expressions of the built-in highlighters, compiled once and shared.
 /// </summary>
-internal static partial class HighlightPatterns
+internal static class HighlightPatterns
 {
     /// <summary>
-    /// Timestamps: date, time, fraction, and zone groups.
+    /// Timestamps: date (1), time (2), fraction (3), and zone (4).
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"(?<date>\d{4}-\d{2}-\d{2})[T ](?<time>\d{2}:\d{2}:\d{2})(?:\.(?<ms>\d{3,6}))?"
-        + @"(?: ?(?<tz>[A-Z]{2,4}|[+-]\d{2}:?\d{2}))?")]
-    public static partial Regex Timestamp();
+    public static readonly ByteRegex Timestamp =
+        ByteRegex.Compile(@"(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d{3,6}))?(?: ?([A-Z]{2,4}|[+-]\d{2}:?\d{2}))?");
 
     /// <summary>
     /// Process IDs in brackets.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\[(\d+)(?:-\d+)?\]")]
-    public static partial Regex Pid();
+    public static readonly ByteRegex Pid = ByteRegex.Compile(@"\[(\d+)(?:-\d+)?\]");
 
     /// <summary>
     /// Context labels such as <c>DETAIL:</c>.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex("(DETAIL|HINT|CONTEXT|STATEMENT|QUERY|LOCATION):")]
-    public static partial Regex ContextLabel();
+    public static readonly ByteRegex ContextLabel = ByteRegex.Compile("(DETAIL|HINT|CONTEXT|STATEMENT|QUERY|LOCATION):");
 
     /// <summary>
-    /// Five character SQLSTATE codes.
+    /// Five character SQLSTATE codes (1).
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b([0-9A-Z]{5})\b")]
-    public static partial Regex SqlState();
+    public static readonly ByteRegex SqlState = ByteRegex.Compile(@"\b([0-9A-Z]{5})\b");
 
     /// <summary>
-    /// Durations in milliseconds.
+    /// Durations in milliseconds: the value is group 1.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(\d+(?:\.\d+)?)\s*(ms)\b")]
-    public static partial Regex Duration();
+    public static readonly ByteRegex Duration = ByteRegex.Compile(@"\b(\d+(?:\.\d+)?)\s*(ms)\b");
 
     /// <summary>
-    /// Memory sizes: value and unit groups.
+    /// Memory sizes: value (1) and unit (2).
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"(?<value>\d+(?:\.\d+)?)\s*(?<unit>bytes|kB|MB|GB|TB)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Memory();
+    public static readonly ByteRegex Memory = ByteRegex.Compile(@"(?i)(\d+(?:\.\d+)?)\s*(bytes|kB|MB|GB|TB)\b");
 
     /// <summary>
     /// Counts of buffers, pages, tuples, and similar statistics.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(\d+(?:\.\d+)?)\s*(buffers?|pages?|tuples?|rows?|transactions?|blocks?|segments?|files?|%)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Statistics();
+    public static readonly ByteRegex Statistics =
+        ByteRegex.Compile(@"(?i)\b(\d+(?:\.\d+)?)\s*(buffers?|pages?|tuples?|rows?|transactions?|blocks?|segments?|files?|%)");
 
     /// <summary>
     /// Double-quoted identifiers.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex("\"(?:[^\"\\\\]|\"\"|\\\\.)*\"")]
-    public static partial Regex Identifier();
+    public static readonly ByteRegex Identifier = ByteRegex.Compile("\"(?:[^\"\\\\]|\"\"|\\\\.)*\"");
 
     /// <summary>
     /// Relation names after a keyword such as <c>relation</c> or <c>table</c>; the name is group 2.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex("\\b(relation|table|index|sequence|constraint|view|materialized view|foreign table)\\s+\"?([a-zA-Z_][a-zA-Z0-9_]*)\"?",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Relation();
+    public static readonly ByteRegex Relation = ByteRegex.Compile(
+        "(?i)\\b(relation|table|index|sequence|constraint|view|materialized view|foreign table)\\s+\"?([a-zA-Z_][a-zA-Z0-9_]*)\"?");
 
     /// <summary>
     /// Schema-qualified names.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\.(?:\"[^\"]+\"|[a-zA-Z_][a-zA-Z0-9_]*)")]
-    public static partial Regex Schema();
+    public static readonly ByteRegex Schema = ByteRegex.Compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\.(?:\"[^\"]+\"|[a-zA-Z_][a-zA-Z0-9_]*)");
 
     /// <summary>
-    /// Log sequence numbers: segment and offset groups.
+    /// Log sequence numbers: segment (1) and offset (2).
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(?<segment>[0-9A-Fa-f]{1,8})/(?<offset>[0-9A-Fa-f]{1,8})\b")]
-    public static partial Regex Lsn();
+    public static readonly ByteRegex Lsn = ByteRegex.Compile(@"\b([0-9A-Fa-f]{1,8})/([0-9A-Fa-f]{1,8})\b");
 
     /// <summary>
     /// WAL segment file names.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b[0-9A-Fa-f]{24}\b")]
-    public static partial Regex WalSegment();
+    public static readonly ByteRegex WalSegment = ByteRegex.Compile(@"\b[0-9A-Fa-f]{24}\b");
 
     /// <summary>
     /// Transaction IDs after <c>xid</c>, <c>xmin</c>, <c>xmax</c>, or <c>transaction</c>.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(xid|xmin|xmax|transaction)\s*:?\s*(\d+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Txid();
+    public static readonly ByteRegex Txid = ByteRegex.Compile(@"(?i)\b(xid|xmin|xmax|transaction)\s*:?\s*(\d+)\b");
 
     /// <summary>
     /// Connection settings such as <c>host=...</c>; the setting is group 1.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex("\\b(host|port|user|database|application_name)=(\"[^\"]*\"|[^\\s,]+)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Connection();
+    public static readonly ByteRegex Connection =
+        ByteRegex.Compile("(?i)\\b(host|port|user|database|application_name)=(\"[^\"]*\"|[^\\s,]+)");
 
     /// <summary>
     /// IPv4 and IPv6 addresses with optional prefix lengths.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"(?:\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:/\d{1,2})?\b)"
+    public static readonly ByteRegex Ip = ByteRegex.Compile(
+        @"(?:\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:/\d{1,2})?\b)"
         + @"|(?:\b(?:[0-9A-Fa-f]{1,4}:){1,7}[0-9A-Fa-f]{1,4}\b|::(?:[0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4}"
-        + @"|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}(?:/\d{1,3})?)")]
-    public static partial Regex Ip();
+        + @"|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}(?:/\d{1,3})?)");
 
     /// <summary>
     /// Lock wait phrases.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(waiting for|acquired|still waiting for|deadlock detected|process \d+ still waiting|lock timeout)\b",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex LockWait();
+    public static readonly ByteRegex LockWait =
+        ByteRegex.Compile(@"(?i)\b(waiting for|acquired|still waiting for|deadlock detected|process \d+ still waiting|lock timeout)\b");
 
     /// <summary>
-    /// Boolean words.
+    /// Boolean words (1).
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(on|off|true|false|yes|no)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Boolean();
+    public static readonly ByteRegex Boolean = ByteRegex.Compile(@"(?i)\b(on|off|true|false|yes|no)\b");
 
     /// <summary>
     /// The NULL keyword.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\bNULL\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Null();
+    public static readonly ByteRegex Null = ByteRegex.Compile(@"(?i)\bNULL\b");
 
     /// <summary>
     /// Object IDs after <c>OID</c>, <c>regclass</c>, <c>regtype</c>, or <c>regproc</c>.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(OID|regclass|regtype|regproc)\s*[=:]?\s*(\d+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    public static partial Regex Oid();
+    public static readonly ByteRegex Oid = ByteRegex.Compile(@"(?i)\b(OID|regclass|regtype|regproc)\s*[=:]?\s*(\d+)\b");
 
     /// <summary>
     /// Unix file paths with at least two segments.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\B(/(?:[\w.-]+/)+[\w.-]+)\b")]
-    public static partial Regex Path();
+    public static readonly ByteRegex Path = ByteRegex.Compile(@"\B(/(?:[\w.-]+/)+[\w.-]+)\b");
 
     /// <summary>
     /// Query parameters such as <c>$1</c>.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\$\d+")]
-    public static partial Regex SqlParam();
-
-    /// <summary>
-    /// SQL string literals, dollar-quoted or single-quoted.
-    /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\$([a-zA-Z_][a-zA-Z0-9_]*)?\$.*?\$\1?\$|'(?:[^']|'')*'", RegexOptions.Singleline)]
-    public static partial Regex SqlString();
+    public static readonly ByteRegex SqlParam = ByteRegex.Compile(@"\$\d+");
 
     /// <summary>
     /// SQL numeric literals.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"\b(?:0x[0-9A-Fa-f]+|[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)\b")]
-    public static partial Regex SqlNumber();
+    public static readonly ByteRegex SqlNumber = ByteRegex.Compile(@"\b(?:0x[0-9A-Fa-f]+|[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)\b");
 
     /// <summary>
     /// SQL operators.
     /// </summary>
-    /// <returns>The expression.</returns>
-    [GeneratedRegex(@"<>|!=|<=|>=|\|\||::|[=<>+\-*/%!|:&^~@#]")]
-    public static partial Regex SqlOperator();
+    public static readonly ByteRegex SqlOperator = ByteRegex.Compile(@"<>|!=|<=|>=|\|\||::|[=<>+\-*/%!|:&^~@#]");
 }

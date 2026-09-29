@@ -1,3 +1,5 @@
+using Pgtail.Matching;
+
 namespace Pgtail.Highlighting;
 
 /// <summary>
@@ -21,9 +23,9 @@ public interface IHighlighter
     string Description { get; }
 
     /// <summary>
-    /// Finds every match in a text; matches may overlap.
+    /// Finds every match in a message; matches may overlap.
     /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>The matches.</returns>
-    IEnumerable<HighlightMatch> FindMatches(string text);
+    /// <param name="text">The message, encoded once for every highlighter.</param>
+    /// <returns>The matches as character ranges.</returns>
+    IEnumerable<HighlightMatch> FindMatches(Utf8Text text);
 }

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Pgtail.Parsing;
 
 /// <summary>
@@ -15,6 +17,8 @@ namespace Pgtail.Parsing;
 /// </remarks>
 public sealed class LogEntry
 {
+    private ReadOnlyMemory<byte>? _rawUtf8;
+
     /// <summary>
     /// The field names in the order they are listed and serialized.
     /// </summary>
@@ -43,9 +47,28 @@ public sealed class LogEntry
     public string Message { get; init; } = "";
 
     /// <summary>
-    /// The line as read, without its line ending.
+    /// The line as read, without its line ending, decoded from <see cref="RawUtf8"/> when first asked for.
     /// </summary>
-    public string Raw { get; init; } = "";
+    /// <remarks>
+    /// Bytes that are not valid UTF-8 decode as U+FFFD.
+    /// </remarks>
+    public string Raw
+    {
+        get => field ??= _rawUtf8 is { } bytes ? Encoding.UTF8.GetString(bytes.Span) : "";
+        init;
+    }
+
+    /// <summary>
+    /// The line as read, as UTF-8 bytes without its line ending.
+    /// </summary>
+    /// <remarks>
+    /// Regex filters match these bytes directly.
+    /// </remarks>
+    public ReadOnlyMemory<byte> RawUtf8
+    {
+        get => _rawUtf8 ??= Encoding.UTF8.GetBytes(Raw);
+        init => _rawUtf8 = value;
+    }
 
     /// <summary>
     /// The backend process ID, when the line carries one.

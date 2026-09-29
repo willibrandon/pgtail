@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using Pgtail.Matching;
 
 namespace Pgtail.Highlighting;
 
@@ -6,15 +6,19 @@ namespace Pgtail.Highlighting;
 /// Styles SQLSTATE codes by their class: success, warning, internal error, or error.
 /// </summary>
 public sealed class SqlStateHighlighter() : RegexHighlighter("sqlstate", 200, "SQLSTATE error codes with class-based coloring",
-    HighlightPatterns.SqlState(), "hl_sqlstate_error")
+    HighlightPatterns.SqlState, "hl_sqlstate_error")
 {
     /// <inheritdoc />
-    public override IEnumerable<HighlightMatch> FindMatches(string text)
+    public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (Match match in Regex.Matches(text))
+        foreach (var groups in LogPattern.Captures(Regex, text))
         {
-            var code = match.Groups[1];
-            var style = code.Value[..2] switch
+            if (groups[1] is not { } code)
+            {
+                continue;
+            }
+
+            var style = text.Text.Substring(code.Start, 2) switch
             {
                 "00" => "hl_sqlstate_success",
                 "01" or "02" => "hl_sqlstate_warning",
@@ -22,7 +26,7 @@ public sealed class SqlStateHighlighter() : RegexHighlighter("sqlstate", 200, "S
                 _ => "hl_sqlstate_error",
             };
 
-            yield return new HighlightMatch(code.Index, code.Index + code.Length, style);
+            yield return new HighlightMatch(code.Start, code.End, style);
         }
     }
 }

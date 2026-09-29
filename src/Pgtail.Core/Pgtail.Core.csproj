@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Scout.IO.Globbing" />
+    <PackageReference Include="Scout.IO.Ignore" />
+    <PackageReference Include="Scout.Text.Regex" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="pgtail" />
     <InternalsVisibleTo Include="Pgtail.Tests" />
   </ItemGroup>

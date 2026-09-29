@@ -1,5 +1,4 @@
-using System.Text.RegularExpressions;
-using Pgtail.Filtering;
+using Pgtail.Matching;
 
 namespace Pgtail.Highlighting;
 
@@ -8,9 +7,9 @@ namespace Pgtail.Highlighting;
 /// </summary>
 public sealed class CustomRegexHighlighter : RegexHighlighter
 {
-    private CustomRegexHighlighter(CustomHighlighterDefinition definition, Regex regex)
+    private CustomRegexHighlighter(CustomHighlighterDefinition definition, LogPattern pattern)
         : base(definition.Name, (int)Math.Clamp(definition.Priority, int.MinValue, int.MaxValue),
-            $"Custom pattern: {definition.Pattern}", regex, definition.Style)
+            $"Custom pattern: {definition.Pattern}", pattern.Regex, definition.Style)
     {
     }
 
@@ -27,12 +26,12 @@ public sealed class CustomRegexHighlighter : RegexHighlighter
             return "Pattern cannot be empty";
         }
 
-        if (!PatternSyntax.TryCompile(pattern, caseSensitive: true, out var regex, out var error))
+        if (!LogPattern.TryCompile(pattern, caseSensitive: true, out var compiled, out var error))
         {
             return $"Invalid regex: {error}";
         }
 
-        return regex.Match("") is { Success: true, Index: 0 } ? "Pattern matches zero-length strings" : null;
+        return compiled.MatchesEmpty() ? "Pattern matches zero-length strings" : null;
     }
 
     /// <summary>
@@ -44,7 +43,7 @@ public sealed class CustomRegexHighlighter : RegexHighlighter
     {
         ArgumentNullException.ThrowIfNull(definition);
         return Validate(definition.Pattern) is null
-            ? new CustomRegexHighlighter(definition, PatternSyntax.Compile(definition.Pattern, caseSensitive: true))
+            ? new CustomRegexHighlighter(definition, LogPattern.Compile(definition.Pattern))
             : null;
     }
 }

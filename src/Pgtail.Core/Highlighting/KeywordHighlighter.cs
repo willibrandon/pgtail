@@ -1,3 +1,5 @@
+using Pgtail.Matching;
+
 namespace Pgtail.Highlighting;
 
 /// <summary>
@@ -59,14 +61,15 @@ public sealed class KeywordHighlighter : IHighlighter
     private Dictionary<string, string> StyleOf { get; }
 
     /// <inheritdoc />
-    public IEnumerable<HighlightMatch> FindMatches(string text)
+    public IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        if (text.Length == 0)
+        ArgumentNullException.ThrowIfNull(text);
+        if (text.Text.Length == 0)
         {
             yield break;
         }
 
-        var search = _caseSensitive ? text : text.ToLowerInvariant();
+        var search = _caseSensitive ? text.Text : text.Text.ToLowerInvariant();
         var matcher = _matcher.Value;
         foreach (var (keyword, end) in matcher.Find(search))
         {

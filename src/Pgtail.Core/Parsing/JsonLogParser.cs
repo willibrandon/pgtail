@@ -46,15 +46,13 @@ public static class JsonLogParser
     /// <summary>
     /// Parses one line.
     /// </summary>
-    /// <param name="line">The line.</param>
+    /// <param name="utf8">The line as UTF-8, without its line ending.</param>
     /// <param name="entry">The entry, when the line is a JSON object.</param>
     /// <returns>True when the line is a JSON object.</returns>
-    public static bool TryParse(string line, out LogEntry entry)
+    public static bool TryParse(ReadOnlyMemory<byte> utf8, out LogEntry entry)
     {
-        ArgumentNullException.ThrowIfNull(line);
         entry = null!;
-        line = line.TrimEnd('\n', '\r');
-        if (!TryReadObject(line, out var data))
+        if (!TryReadObject(utf8, out var data))
         {
             return false;
         }
@@ -68,7 +66,7 @@ public static class JsonLogParser
             Timestamp = LogTimestamps.ParseStructured(StringOrNull(data, "timestamp")),
             Level = LogLevels.FromSeverity(severity),
             Message = message,
-            Raw = line,
+            RawUtf8 = utf8,
             Pid = (int?)Integer(data, "pid"),
             Format = LogFormat.Json,
             UserName = Text(data, "user"),
@@ -101,14 +99,13 @@ public static class JsonLogParser
     }
 
     /// <summary>
-    /// Reads a line as a JSON object, keeping the last value of a repeated key.
+    /// Reads a UTF-8 line as a JSON object, keeping the last value of a repeated key.
     /// </summary>
     /// <param name="line">The line.</param>
     /// <param name="data">The object's properties.</param>
     /// <returns>True when the line is one JSON object.</returns>
-    public static bool TryReadObject(string line, out Dictionary<string, JsonElement> data)
+    public static bool TryReadObject(ReadOnlyMemory<byte> line, out Dictionary<string, JsonElement> data)
     {
-        ArgumentNullException.ThrowIfNull(line);
         data = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         try
         {

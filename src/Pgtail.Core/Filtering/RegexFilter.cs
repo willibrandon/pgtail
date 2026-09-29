@@ -1,39 +1,33 @@
-using System.Text.RegularExpressions;
+using Pgtail.Matching;
 
 namespace Pgtail.Filtering;
 
 /// <summary>
 /// A compiled regex filter.
 /// </summary>
-public sealed class RegexFilter
+/// <param name="pattern">The compiled pattern.</param>
+/// <param name="type">How the filter combines with the others.</param>
+public sealed class RegexFilter(LogPattern pattern, FilterType type)
 {
-    private RegexFilter(string pattern, FilterType type, bool caseSensitive, Regex regex)
-    {
-        Pattern = pattern;
-        Type = type;
-        CaseSensitive = caseSensitive;
-        Regex = regex;
-    }
-
     /// <summary>
     /// The pattern as typed.
     /// </summary>
-    public string Pattern { get; }
+    public string Pattern => Compiled.Pattern;
 
     /// <summary>
     /// How the filter combines with the others.
     /// </summary>
-    public FilterType Type { get; }
+    public FilterType Type { get; } = type;
 
     /// <summary>
     /// Whether the pattern matches case.
     /// </summary>
-    public bool CaseSensitive { get; }
+    public bool CaseSensitive => Compiled.CaseSensitive;
 
     /// <summary>
     /// The compiled pattern.
     /// </summary>
-    public Regex Regex { get; }
+    public LogPattern Compiled { get; } = pattern;
 
     /// <summary>
     /// Compiles a filter.
@@ -42,17 +36,14 @@ public sealed class RegexFilter
     /// <param name="type">How the filter combines.</param>
     /// <param name="caseSensitive">False to ignore case.</param>
     /// <returns>The filter.</returns>
-    /// <exception cref="ArgumentException">The pattern is not a valid regular expression.</exception>
-    public static RegexFilter Create(string pattern, FilterType type, bool caseSensitive = false)
-    {
-        ArgumentNullException.ThrowIfNull(pattern);
-        return new RegexFilter(pattern, type, caseSensitive, PatternSyntax.Compile(pattern, caseSensitive));
-    }
+    /// <exception cref="FormatException">The pattern is not a valid regular expression.</exception>
+    public static RegexFilter Create(string pattern, FilterType type, bool caseSensitive = false) =>
+        new(LogPattern.Compile(pattern, caseSensitive), type);
 
     /// <summary>
-    /// Whether the pattern occurs in a text.
+    /// Whether the pattern occurs in a UTF-8 line.
     /// </summary>
-    /// <param name="text">The text.</param>
+    /// <param name="utf8">The line.</param>
     /// <returns>True on a match.</returns>
-    public bool Matches(string text) => Regex.IsMatch(text);
+    public bool Matches(ReadOnlySpan<byte> utf8) => Compiled.IsMatch(utf8);
 }

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Pgtail.Parsing;
 
 /// <summary>
@@ -11,13 +13,19 @@ public static class LogLineParser
     /// <summary>
     /// Parses one line.
     /// </summary>
-    /// <param name="line">The line, with or without its line ending.</param>
+    /// <param name="utf8">The line as UTF-8, with or without its line ending.</param>
     /// <param name="format">The format the log is written in.</param>
     /// <returns>The entry.</returns>
-    public static LogEntry Parse(string line, LogFormat format = LogFormat.Text)
+    public static LogEntry Parse(ReadOnlyMemory<byte> utf8, LogFormat format = LogFormat.Text)
     {
-        ArgumentNullException.ThrowIfNull(line);
-        line = line.TrimEnd('\n', '\r');
+        var span = utf8.Span;
+        var length = span.Length;
+        while (length > 0 && span[length - 1] is (byte)'\n' or (byte)'\r')
+        {
+            length--;
+        }
+
+        var line = utf8[..length];
         switch (format)
         {
             case LogFormat.Csv:
@@ -29,6 +37,9 @@ public static class LogLineParser
         }
     }
 
-    private static LogEntry Unparsed(string line, LogFormat format) =>
-        new() { Level = LogLevel.Log, Message = line, Raw = line, Format = format };
+    private static LogEntry Unparsed(ReadOnlyMemory<byte> line, LogFormat format)
+    {
+        var raw = Encoding.UTF8.GetString(line.Span);
+        return new LogEntry { Level = LogLevel.Log, Message = raw, Raw = raw, RawUtf8 = line, Format = format };
+    }
 }

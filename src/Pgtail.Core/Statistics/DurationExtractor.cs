@@ -1,13 +1,16 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
+using Pgtail.Matching;
+using Scout.Text.Regex;
 
 namespace Pgtail.Statistics;
 
 /// <summary>
 /// Reads query durations from log messages.
 /// </summary>
-public static partial class DurationExtractor
+public static class DurationExtractor
 {
+    private static readonly ByteRegex Duration = ByteRegex.Compile(@"(?i)duration:\s*([0-9]+\.?[0-9]*)\s*(ms|s)");
+
     /// <summary>
     /// Finds <c>duration: 234.567 ms</c> or <c>duration: 1.234 s</c> in a text.
     /// </summary>
@@ -16,21 +19,18 @@ public static partial class DurationExtractor
     public static double? Extract(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var match = Duration().Match(text);
-        if (!match.Success
-            || !double.TryParse(match.Groups[1].ValueSpan, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+        using var utf8 = new Utf8Text(text);
+        if (Duration.FindCaptures(utf8.Bytes) is not { } captures || captures.GetGroup(1) is not { } number
+            || !double.TryParse(number.Value(utf8.Bytes), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
         {
             return null;
         }
 
-        if (match.Groups[2].Value.Equals("s", StringComparison.OrdinalIgnoreCase))
+        if (captures.GetGroup(2) is { Length: 1 })
         {
             value *= 1000;
         }
 
         return value < 0 ? null : value;
     }
-
-    [GeneratedRegex(@"duration:\s*([0-9]+\.?[0-9]*)\s*(ms|s)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex Duration();
 }

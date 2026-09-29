@@ -1,26 +1,25 @@
-using System.Text.RegularExpressions;
+using System.Text;
+using Pgtail.Matching;
+using Scout.Text.Regex;
 
 namespace Pgtail.Statistics;
 
 /// <summary>
 /// Recognizes the log messages PostgreSQL writes for connections, disconnections, and failed connection attempts.
 /// </summary>
-public static partial class ConnectionMessageParser
+public static class ConnectionMessageParser
 {
-    /// <summary>
-    /// The FATAL messages that mean a connection attempt failed, as case-insensitive patterns.
-    /// </summary>
-    public static IReadOnlyList<string> FatalConnectionPatterns { get; } =
-    [
-        "too many connections",
-        "too many clients already",
-        "connection limit exceeded",
-        "password authentication failed",
-        "no pg_hba.conf entry",
-        "database .* does not exist",
-        "role .* does not exist",
-        "authentication failed",
-    ];
+    // Groups: user, database, application.
+    private static readonly ByteRegex Authorized =
+        ByteRegex.Compile(@"connection authorized:\s+user=(\S+)\s+database=(\S+)(?:\s+application_name=(\S+))?");
+
+    // Groups: duration, user, database, host, port.
+    private static readonly ByteRegex Disconnection = ByteRegex.Compile(
+        @"disconnection:\s+session time:\s+([0-9:\.]+)\s+user=(\S+)\s+database=(\S+)\s+host=(\S+)(?:\s+port=([0-9]+))?");
+
+    private static readonly ByteRegex FatalConnection = ByteRegex.Compile(
+        "(?i)too many connections|too many clients already|connection limit exceeded|password authentication failed"
+        + "|no pg_hba\\.conf entry|database .* does not exist|role .* does not exist|authentication failed");
 
     /// <summary>
     /// Parses a message.
@@ -38,37 +37,24 @@ public static partial class ConnectionMessageParser
             return null;
         }
 
-        var match = Authorized().Match(message);
-        if (match.Success)
+        using var text = new Utf8Text(message);
+        var bytes = text.Bytes;
+        if (Authorized.FindCaptures(bytes) is { } authorized)
         {
-            return new ConnectionMessage(ConnectionEventType.Connect, match.Groups["user"].Value, match.Groups["database"].Value,
-                match.Groups["application"].Success ? match.Groups["application"].Value : null);
+            return new ConnectionMessage(ConnectionEventType.Connect, Group(bytes, authorized, 1), Group(bytes, authorized, 2),
+                Group(bytes, authorized, 3));
         }
 
-        match = Disconnection().Match(message);
-        if (match.Success)
+        if (Disconnection.FindCaptures(bytes) is { } ended)
         {
-            return new ConnectionMessage(ConnectionEventType.Disconnect, match.Groups["user"].Value, match.Groups["database"].Value,
-                Host: match.Groups["host"].Value, Port: match.Groups["port"].Success ? match.Groups["port"].Value : null,
-                Duration: match.Groups["duration"].Value);
+            return new ConnectionMessage(ConnectionEventType.Disconnect, Group(bytes, ended, 2), Group(bytes, ended, 3),
+                Host: Group(bytes, ended, 4), Port: Group(bytes, ended, 5), Duration: Group(bytes, ended, 1));
         }
 
-        if (isFatal)
-        {
-            var lower = message.ToLowerInvariant();
-            if (FatalConnectionPatterns.Any(pattern => Regex.IsMatch(lower, pattern, RegexOptions.CultureInvariant)))
-            {
-                return new ConnectionMessage(ConnectionEventType.ConnectionFailed);
-            }
-        }
-
-        return null;
+        // The failure phrases are matched without regard to case, as they are written in lower case by PostgreSQL.
+        return isFatal && FatalConnection.IsMatch(bytes) ? new ConnectionMessage(ConnectionEventType.ConnectionFailed) : null;
     }
 
-    [GeneratedRegex(@"connection authorized:\s+user=(?<user>\S+)\s+database=(?<database>\S+)(?:\s+application_name=(?<application>\S+))?")]
-    private static partial Regex Authorized();
-
-    [GeneratedRegex(@"disconnection:\s+session time:\s+(?<duration>[0-9:\.]+)\s+user=(?<user>\S+)\s+database=(?<database>\S+)\s+"
-        + @"host=(?<host>\S+)(?:\s+port=(?<port>[0-9]+))?")]
-    private static partial Regex Disconnection();
+    private static string? Group(ReadOnlySpan<byte> bytes, ByteRegexCaptures captures, int index) =>
+        captures.GetGroup(index) is { } group ? Encoding.UTF8.GetString(group.Value(bytes)) : null;
 }

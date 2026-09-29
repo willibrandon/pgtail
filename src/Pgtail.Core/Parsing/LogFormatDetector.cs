@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Text;
 using System.Text.Json;
 
 namespace Pgtail.Parsing;
@@ -17,35 +18,33 @@ public static class LogFormatDetector
     /// <summary>
     /// Detects the format of a line: jsonlog, then csvlog, then plain text.
     /// </summary>
-    /// <param name="line">The first non-empty line of a log.</param>
+    /// <param name="utf8">The first non-empty line of a log, as UTF-8.</param>
     /// <returns>The format.</returns>
-    public static LogFormat Detect(string line)
+    public static LogFormat Detect(ReadOnlyMemory<byte> utf8)
     {
-        ArgumentNullException.ThrowIfNull(line);
-        line = line.Trim();
-        if (line.Length == 0)
+        var line = Trim(utf8);
+        if (line.IsEmpty)
         {
             return LogFormat.Text;
         }
 
-        if (line.StartsWith('{') && IsJsonLog(line))
+        if (line.Span[0] == (byte)'{' && IsJsonLog(line))
         {
             return LogFormat.Json;
         }
 
-        return IsCsvLog(line) ? LogFormat.Csv : LogFormat.Text;
+        return IsCsvLog(Encoding.UTF8.GetString(line.Span)) ? LogFormat.Csv : LogFormat.Text;
     }
 
     /// <summary>
     /// Whether a line is a jsonlog object: JSON with <c>error_severity</c> naming a level and a <c>message</c>.
     /// </summary>
-    /// <param name="line">The line.</param>
+    /// <param name="utf8">The line as UTF-8.</param>
     /// <returns>True for a jsonlog line.</returns>
-    public static bool IsJsonLog(string line)
+    public static bool IsJsonLog(ReadOnlyMemory<byte> utf8)
     {
-        ArgumentNullException.ThrowIfNull(line);
-        line = line.Trim();
-        if (!line.StartsWith('{') || !JsonLogParser.TryReadObject(line, out var data))
+        var line = Trim(utf8);
+        if (line.IsEmpty || line.Span[0] != (byte)'{' || !JsonLogParser.TryReadObject(line, out var data))
         {
             return false;
         }
@@ -82,4 +81,24 @@ public static class LogFormatDetector
 
         return Severities.Contains(fields[11].ToUpperInvariant());
     }
+
+    private static ReadOnlyMemory<byte> Trim(ReadOnlyMemory<byte> line)
+    {
+        var span = line.Span;
+        var start = 0;
+        var end = span.Length;
+        while (start < end && IsWhite(span[start]))
+        {
+            start++;
+        }
+
+        while (end > start && IsWhite(span[end - 1]))
+        {
+            end--;
+        }
+
+        return line[start..end];
+    }
+
+    private static bool IsWhite(byte b) => b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n' or 0x0B or 0x0C;
 }
