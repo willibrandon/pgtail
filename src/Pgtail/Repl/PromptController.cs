@@ -121,7 +121,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
             return;
         }
 
-        _lineKeys ??= new LineEditingKeys(State.Editor, TextChanged);
+        _lineKeys ??= new LineEditingKeys(new EditorLine(State.Editor), TextChanged);
         _lineKeys.Bind(bindings);
 
         bindings.Remove(EditorWidget.InsertNewline);

@@ -1,4 +1,4 @@
-using Hex1b.Documents;
+using Hex1b;
 using Hex1b.Input;
 using Hex1b.Widgets;
 using Pgtail.Editing;
@@ -9,19 +9,20 @@ namespace Pgtail.Tail;
 /// The <c>tail&gt;</c> command input: editing, history, and grey suggestions.
 /// </summary>
 /// <remarks>
-/// Right or End at the end of the line accepts the suggestion, Up and Down walk the history, Enter runs the command and
-/// keeps the input for the next one, Page Up and Page Down scroll the command output or else the log, Escape closes the
-/// command output or else clears the line and moves to the log, and <c>q</c> on an empty line leaves tail mode.
+/// The terminal's own cursor marks the caret, and the rest of a command the input suggests follows it in grey; Right, or
+/// End at the end of the line, accepts it. Up and Down walk the history, Enter runs the command and keeps the input for
+/// the next one, Page Up and Page Down scroll the command output or else the log, and Escape closes the command output
+/// or else clears the line and moves to the log. Every character typed is text, <c>q</c> included; the <c>q</c> command
+/// leaves tail mode once Enter runs it.
 /// </remarks>
 internal sealed class TailInput
 {
     private readonly TailScreen _screen;
     private readonly TailHistory _history;
-    private readonly TailSuggester _suggester;
-    private long _seenVersion;
-    private string? _suffix;
-    private bool _programmatic;
-    private LineEditingKeys? _lineKeys;
+    private readonly TextBoxLine _line;
+    private readonly LineEditingKeys _lineKeys;
+    private readonly Func<string, CancellationToken, Task<string?>> _suggest;
+    private bool _dropSuggestion;
 
     /// <summary>
     /// Creates the input for a screen.
@@ -32,23 +33,21 @@ internal sealed class TailInput
     {
         _screen = screen;
         _history = history;
-        _suggester = new TailSuggester(Commands.TailCatalog.Catalog, screen, history);
+        _line = new TextBoxLine(State);
+        _lineKeys = new LineEditingKeys(_line, history.ResetNavigation);
+        var suggester = new TailSuggester(Commands.TailCatalog.Catalog, screen, history);
+        _suggest = (text, _) => Task.FromResult(suggester.Suffix(text));
     }
 
     /// <summary>
-    /// The editor holding the line.
+    /// The text box's state, holding the line and the caret.
     /// </summary>
-    public EditorState Editor { get; } = new(new Hex1bDocument(""));
-
-    /// <summary>
-    /// The suggestion hints.
-    /// </summary>
-    public TailInputHints Hints { get; } = new();
+    public TextBoxState State { get; } = new();
 
     /// <summary>
     /// The line being typed.
     /// </summary>
-    public string Text => Editor.Document.GetText();
+    public string Text => State.Text;
 
     /// <summary>
     /// Called from a key's action to move focus to the log at once.
@@ -61,47 +60,63 @@ internal sealed class TailInput
     public void Load() => _history.Load();
 
     /// <summary>
-    /// Updates the suggestion for the current line; called on every frame.
+    /// Builds the text box.
     /// </summary>
-    public void UpdateHints()
+    /// <typeparam name="TParent">The parent widget type.</typeparam>
+    /// <param name="context">The widget context.</param>
+    /// <param name="more">Adds the screen's keys.</param>
+    /// <returns>The text box.</returns>
+    public TextBoxWidget Build<TParent>(WidgetContext<TParent> context, Action<InputBindingsBuilder> more)
+        where TParent : Hex1bWidget
     {
-        var version = Editor.Document.Version;
-        if (version != _seenVersion)
-        {
-            _seenVersion = version;
-            _suffix = _suggester.Suffix(Text);
-            if (!_programmatic)
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(more);
+        var box = context.TextBox()
+            .FillWidth()
+            .State(State)
+            .OnTextChanged(_ => _history.ResetNavigation())
+            .InputBindings(bindings =>
             {
-                _history.ResetNavigation();
-            }
+                Bind(bindings);
+                more(bindings);
+            });
 
-            _programmatic = false;
+        // A line replaced from outside, as by the history or a command that ran, drops the suggestion made for the old
+        // one: a frame without a suggester clears it.
+        if (_dropSuggestion)
+        {
+            _dropSuggestion = false;
+            return box;
         }
 
-        var text = Text;
-        Hints.Show(text.Length, Editor.Cursor.Position.Value == text.Length ? _suffix : null);
+        return box.Predict(_suggest);
     }
 
     /// <summary>
     /// Inserts typed text at the caret, as when keys typed on the log belong to a command.
     /// </summary>
     /// <param name="text">The text.</param>
-    public void Type(string text) => Editor.InsertText(text);
+    public void Type(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        _line.Replace(_line.Caret, _line.Caret, text);
+        _history.ResetNavigation();
+    }
 
     /// <summary>
-    /// Adds the input's keys to the editor's bindings.
+    /// Replaces the line and puts the caret at its end.
     /// </summary>
-    /// <param name="bindings">The editor's bindings.</param>
-    public void Bind(InputBindingsBuilder bindings)
+    /// <param name="text">The new line.</param>
+    public void SetText(string text)
     {
-        ArgumentNullException.ThrowIfNull(bindings);
-        bindings.Remove(EditorWidget.InsertNewline);
-        bindings.Remove(EditorWidget.InsertTab);
-        bindings.Remove(EditorWidget.MoveUp);
-        bindings.Remove(EditorWidget.MoveDown);
-        bindings.Remove(EditorWidget.AddCursorAtNextMatch);
+        ArgumentNullException.ThrowIfNull(text);
+        _line.Replace(0, _line.Text.Length, text);
+        _dropSuggestion = true;
+    }
+
+    private void Bind(InputBindingsBuilder bindings)
+    {
         bindings.Remove(Hex1bKey.Escape);
-        _lineKeys ??= new LineEditingKeys(Editor);
         _lineKeys.Bind(bindings);
         bindings.Key(Hex1bKey.Enter).Action(_ => SubmitAsync(), "Run the command");
         bindings.Key(Hex1bKey.Escape).Action(context =>
@@ -118,7 +133,6 @@ internal sealed class TailInput
 
         bindings.Key(Hex1bKey.PageUp).Action(_ => _screen.Scroll(-1), "Scroll the command output or the log up");
         bindings.Key(Hex1bKey.PageDown).Action(_ => _screen.Scroll(1), "Scroll the command output or the log down");
-
         bindings.Key(Hex1bKey.UpArrow).Action(_ =>
         {
             if (_history.Back(Text) is { } entry)
@@ -135,41 +149,11 @@ internal sealed class TailInput
             }
         }, "Next command");
 
-        if (_suffix is { Length: > 0 } && Editor.Cursor.Position.Value == Text.Length)
+        // At the end of the line, End accepts the suggestion as Right does; with none there is nowhere to move.
+        if (State.CursorPosition == State.Text.Length)
         {
-            bindings.Remove(EditorWidget.MoveRight);
-            bindings.Remove(EditorWidget.MoveToLineEnd);
-            bindings.Key(Hex1bKey.RightArrow).Action(_ => Accept(), "Accept the suggestion");
-            bindings.Key(Hex1bKey.End).Action(_ => Accept(), "Accept the suggestion");
-        }
-
-        if (Text.Length == 0)
-        {
-            bindings.Key(Hex1bKey.Q).Action(_ => _screen.Stop(), "Leave tail mode");
-        }
-    }
-
-    /// <summary>
-    /// Replaces the line and puts the caret at its end.
-    /// </summary>
-    /// <param name="text">The new line.</param>
-    public void SetText(string text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-        var document = Editor.Document;
-        _programmatic = true;
-        _ = document.Apply(new ReplaceOperation(new DocumentRange(DocumentOffset.Zero, new DocumentOffset(document.Length)), text));
-        Editor.History.Clear();
-        Editor.SetCursorPosition(new DocumentOffset(document.Length));
-    }
-
-    private void Accept()
-    {
-        if (_suffix is { Length: > 0 } suffix)
-        {
-            Editor.SetCursorPosition(new DocumentOffset(Editor.Document.Length));
-            Editor.InsertText(suffix);
-            _history.ResetNavigation();
+            bindings.Remove(TextBoxWidget.MoveEnd);
+            bindings.Key(Hex1bKey.End).Triggers(TextBoxWidget.MoveRight);
         }
     }
 

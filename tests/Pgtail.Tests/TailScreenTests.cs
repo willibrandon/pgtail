@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hex1b.Automation;
+using Hex1b.Input;
 using Hex1b.Theming;
 
 namespace Pgtail.Tests;
@@ -281,6 +282,53 @@ public sealed class TailScreenTests
         await tail.Automator.TypeAsync(" --history", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> connections --history",
             description: "the accepted suggestion with more typed");
+    }
+
+    /// <summary>
+    /// The terminal's cursor stays just after the typed text, and the suggestion follows it in the same place each key.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Input_Suggestion_FollowsTheCursor()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        foreach (var (typed, shown) in new[] { ("t", "tail> theme"), ("th", "tail> theme"), ("the", "tail> theme") })
+        {
+            await tail.Automator.TypeAsync(typed[^1..], TestContext.CancellationToken);
+            await tail.Automator.WaitUntilAsync(
+                screen => TailHarness.Input(screen) == shown && screen.CursorY == screen.Height - 3
+                    && screen.CursorX == "tail> ".Length + typed.Length,
+                description: $"the cursor after '{typed}' with the rest of theme after it");
+        }
+    }
+
+    /// <summary>
+    /// The shell's line keys work in the input: Ctrl+W, Ctrl+A, Ctrl+E, Ctrl+U, and Ctrl+Y.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Input_LineKeys_EditTheLine()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.TypeAsync("level error ", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen).StartsWith("tail> level error", StringComparison.Ordinal),
+            description: "the line typed");
+        await tail.Automator.Ctrl().KeyAsync(Hex1bKey.W, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level", description: "the last word cut");
+
+        // As in readline, the space before the cut word stays.
+        await tail.Automator.Ctrl().KeyAsync(Hex1bKey.A, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => screen.CursorX == "tail> ".Length, description: "the cursor at the start");
+        await tail.Automator.Ctrl().KeyAsync(Hex1bKey.E, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => screen.CursorX == "tail> level ".Length, description: "the cursor at the end");
+        await tail.Automator.Ctrl().KeyAsync(Hex1bKey.U, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail>", description: "the line cut");
+        await tail.Automator.Ctrl().KeyAsync(Hex1bKey.Y, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level", description: "the cut text pasted");
     }
 
     /// <summary>
@@ -717,6 +765,23 @@ public sealed class TailScreenTests
         await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("stop", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped");
+    }
+
+    /// <summary>
+    /// q typed at the prompt is text, like any other key, until Enter runs it as the q command.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Q_AtPrompt_IsTextUntilEnter()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.TypeAsync("q", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> q" && !tail.Stopped,
+            description: "q in the prompt, tail mode still running");
+        await tail.Automator.EnterAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped by the q command");
     }
 
     /// <summary>

@@ -102,7 +102,7 @@ This opens **tail mode**, a full screen view with:
 | `/` or `Tab` | Focus the command input (typing a command on the log also does) |
 | `PgUp` / `PgDn` | In the input, page through the command output, or else the log |
 | `Escape` | In the input, close the command output; then move to the log |
-| `q` | Leave tail mode (on the log, or in an empty input) |
+| `q` | Leave tail mode from the log; in the input, type `q` and Enter |
 
 ## Filter logs
 

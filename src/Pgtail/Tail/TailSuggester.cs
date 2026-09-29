@@ -27,12 +27,13 @@ internal sealed class TailSuggester(CommandCatalog catalog, ICommandHost host, T
             return null;
         }
 
+        // A word that already names something, such as level, is complete, even when a longer name starts with it.
         var (start, items) = catalog.Complete(value, host, CompletionStyle.Inline);
         var partial = value[start..];
-        var best = items.Select(item => item.Text)
-            .Where(text => text.Length > partial.Length)
-            .Order(StringComparer.Ordinal)
-            .FirstOrDefault();
+        var names = items.Select(item => item.Text).ToList();
+        var best = names.Contains(partial, StringComparer.OrdinalIgnoreCase)
+            ? null
+            : names.Where(text => text.Length > partial.Length).Order(StringComparer.Ordinal).FirstOrDefault();
         if (best is not null)
         {
             return best[partial.Length..];

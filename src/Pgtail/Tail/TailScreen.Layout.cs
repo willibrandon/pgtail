@@ -134,7 +134,6 @@ internal sealed partial class TailScreen
             Pump();
         }
 
-        Input.UpdateHints();
         var resultRows = ResultRows();
         var main = context.VStack(v =>
         [
@@ -144,18 +143,7 @@ internal sealed partial class TailScreen
             Rule(v),
             // The output's place is always there, so the input keeps its place in the layout, and its focus.
             v.VStack(r => resultRows > 0 ? [Result(r, resultRows), Rule(r)] : []).FixedHeight(resultRows > 0 ? resultRows + 1 : 0),
-            v.HStack(h =>
-            [
-                h.Text(Prompt),
-                h.Editor(Input.Editor)
-                    .Decorations(Input.Hints)
-                    .InputBindings(bindings =>
-                    {
-                        Input.Bind(bindings);
-                        BindScreenKeys(bindings, logFocused: false);
-                    })
-                    .FillWidth(),
-            ]).FixedHeight(1),
+            v.HStack(h => [h.Text(Prompt), Input.Build(h, bindings => BindScreenKeys(bindings, logFocused: false))]).FixedHeight(1),
             Rule(v),
             Bar(v, Status.FormatStatus(), PanelText),
         ]);
@@ -235,7 +223,7 @@ internal sealed partial class TailScreen
 
     private static bool IsLog(Hex1bNode node) => node is InteractableNode { Child: SurfaceNode };
 
-    private bool IsInput(Hex1bNode node) => node is EditorNode editor && editor.State == Input.Editor;
+    private static bool IsInput(Hex1bNode node) => node is TextBoxNode;
 
     private SurfaceWidget Bar<TParent>(WidgetContext<TParent> context, StyledText text, TextStyle panel)
         where TParent : Hex1bWidget

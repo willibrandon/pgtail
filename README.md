@@ -866,7 +866,7 @@ returns to the REPL, with your scrollback intact, when you leave:
 | PgDn / PgUp | Full page down/up |
 | p | Pause (freeze display) |
 | f | Resume FOLLOW mode |
-| q | Exit tail mode |
+| q | Exit tail mode (in the command input, `q` and Enter) |
 | ? | Show help overlay |
 | / | Focus command input |
 | Tab | Toggle focus between log and input |

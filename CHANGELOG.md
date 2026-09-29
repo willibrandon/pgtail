@@ -35,7 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tail mode's `tail>` input keeps the focus after a command, so the next one can be typed at once instead of the keys
   scrolling or selecting in the log; text typed on the log that is not one of its keys goes to the input, and `tail>`
   stays in front of the text. A command's output shows in a panel above the input until the next command or Escape,
-  instead of in the log where new entries scrolled it away. The `?` key reference fits the screen and scrolls.
+  instead of in the log where new entries scrolled it away. The `?` key reference fits the screen and scrolls. The
+  terminal's own cursor marks where you type, with the suggestion in grey after it, and `q` typed in the input is text
+  like any other key; the `q` command, run with Enter, leaves tail mode.
 
 ### Added
 - **.NET tool**: `dotnet tool install -g pgtail` installs the native executable for Windows, Linux, and macOS on x64 and

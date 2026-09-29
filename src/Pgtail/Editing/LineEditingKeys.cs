@@ -1,6 +1,4 @@
-using Hex1b.Documents;
 using Hex1b.Input;
-using Hex1b.Widgets;
 
 namespace Pgtail.Editing;
 
@@ -12,16 +10,16 @@ namespace Pgtail.Editing;
 /// Ctrl+F by a character, Alt+B and Alt+F by a word, Ctrl+K and Ctrl+U cut to the end and start of the line, Ctrl+W
 /// cuts the word before the caret, Alt+D the word after it, and Ctrl+Y pastes the last cut text.
 /// </remarks>
-/// <param name="editor">The line's editor.</param>
-/// <param name="changed">Called after a key changes the line, for an owner that does not watch the document's version.</param>
-internal sealed class LineEditingKeys(EditorState editor, Action? changed = null)
+/// <param name="line">The line.</param>
+/// <param name="changed">Called after a key changes the text, for an owner that does not watch the text itself.</param>
+internal sealed class LineEditingKeys(IEditableLine line, Action? changed = null)
 {
     private string _cut = "";
 
     /// <summary>
-    /// Adds the keys, replacing the editor's own for Ctrl+A (select all), Ctrl+K (hover), and Ctrl+Y (redo).
+    /// Replaces the input's own bindings for these keys.
     /// </summary>
-    /// <param name="bindings">The editor's bindings.</param>
+    /// <param name="bindings">The input's bindings.</param>
     public void Bind(InputBindingsBuilder bindings)
     {
         ArgumentNullException.ThrowIfNull(bindings);
@@ -33,22 +31,20 @@ internal sealed class LineEditingKeys(EditorState editor, Action? changed = null
         bindings.Remove(Hex1bKey.B, Hex1bModifiers.Alt);
         bindings.Remove(Hex1bKey.F, Hex1bModifiers.Alt);
         bindings.Remove(Hex1bKey.D, Hex1bModifiers.Alt);
-        bindings.Ctrl().Key(Hex1bKey.A).Triggers(EditorWidget.MoveToLineStart);
-        bindings.Ctrl().Key(Hex1bKey.E).Triggers(EditorWidget.MoveToLineEnd);
-        bindings.Ctrl().Key(Hex1bKey.B).Triggers(EditorWidget.MoveLeft);
-        bindings.Ctrl().Key(Hex1bKey.F).Triggers(EditorWidget.MoveRight);
-        bindings.Alt().Key(Hex1bKey.B).Triggers(EditorWidget.MoveWordLeft);
-        bindings.Alt().Key(Hex1bKey.F).Triggers(EditorWidget.MoveWordRight);
-        bindings.Ctrl().Key(Hex1bKey.K).Action(_ => Cut(Caret, Text.Length), "Cut to the end of the line");
+        bindings.Ctrl().Key(Hex1bKey.A).Action(_ => line.Caret = 0, "Go to the start of the line");
+        bindings.Ctrl().Key(Hex1bKey.E).Action(_ => line.Caret = line.Text.Length, "Go to the end of the line");
+        bindings.Ctrl().Key(Hex1bKey.B).Action(_ => line.Caret = Math.Max(0, Caret - 1), "Back a character");
+        bindings.Ctrl().Key(Hex1bKey.F).Action(_ => line.Caret = Math.Min(line.Text.Length, Caret + 1), "Forward a character");
+        bindings.Alt().Key(Hex1bKey.B).Action(_ => line.Caret = WordStartBefore(Caret), "Back a word");
+        bindings.Alt().Key(Hex1bKey.F).Action(_ => line.Caret = WordEndAfter(Caret), "Forward a word");
+        bindings.Ctrl().Key(Hex1bKey.K).Action(_ => Cut(Caret, line.Text.Length), "Cut to the end of the line");
         bindings.Ctrl().Key(Hex1bKey.U).Action(_ => Cut(0, Caret), "Cut to the start of the line");
-        bindings.Ctrl().Key(Hex1bKey.W).Action(_ => Cut(WordStartBefore(Caret), Caret), "Cut the word before the caret");
+        bindings.Ctrl().Key(Hex1bKey.W).Action(_ => Cut(SpaceWordStartBefore(Caret), Caret), "Cut the word before the caret");
         bindings.Alt().Key(Hex1bKey.D).Action(_ => Cut(Caret, WordEndAfter(Caret)), "Cut the word after the caret");
         bindings.Ctrl().Key(Hex1bKey.Y).Action(_ => Paste(), "Paste the last cut text");
     }
 
-    private string Text => editor.Document.GetText();
-
-    private int Caret => Math.Clamp(editor.Cursor.Position.Value, 0, Text.Length);
+    private int Caret => Math.Clamp(line.Caret, 0, line.Text.Length);
 
     private void Cut(int start, int end)
     {
@@ -57,9 +53,8 @@ internal sealed class LineEditingKeys(EditorState editor, Action? changed = null
             return;
         }
 
-        _cut = Text[start..end];
-        _ = editor.Document.Apply(new ReplaceOperation(new DocumentRange(new DocumentOffset(start), new DocumentOffset(end)), ""));
-        editor.SetCursorPosition(new DocumentOffset(start));
+        _cut = line.Text[start..end];
+        line.Replace(start, end, "");
         changed?.Invoke();
     }
 
@@ -67,15 +62,15 @@ internal sealed class LineEditingKeys(EditorState editor, Action? changed = null
     {
         if (_cut.Length > 0)
         {
-            editor.InsertText(_cut);
+            line.Replace(Caret, Caret, _cut);
             changed?.Invoke();
         }
     }
 
     // As readline's Ctrl+W: back over spaces, then over the word before them.
-    private int WordStartBefore(int caret)
+    private int SpaceWordStartBefore(int caret)
     {
-        var text = Text;
+        var text = line.Text;
         var start = caret;
         while (start > 0 && char.IsWhiteSpace(text[start - 1]))
         {
@@ -90,9 +85,28 @@ internal sealed class LineEditingKeys(EditorState editor, Action? changed = null
         return start;
     }
 
+    // As readline's Alt+B: back over anything else, then over letters and digits.
+    private int WordStartBefore(int caret)
+    {
+        var text = line.Text;
+        var start = caret;
+        while (start > 0 && !char.IsLetterOrDigit(text[start - 1]))
+        {
+            start--;
+        }
+
+        while (start > 0 && char.IsLetterOrDigit(text[start - 1]))
+        {
+            start--;
+        }
+
+        return start;
+    }
+
+    // As readline's Alt+F and Alt+D: forward over anything else, then over letters and digits.
     private int WordEndAfter(int caret)
     {
-        var text = Text;
+        var text = line.Text;
         var end = caret;
         while (end < text.Length && !char.IsLetterOrDigit(text[end]))
         {

@@ -111,7 +111,11 @@ internal static class TailModeCommands
 
         output.Line();
         output.Markup("[bold cyan]Utility Keys[/bold cyan]");
-        foreach (var (key, description) in new[] { ("Ctrl+C", "Copy the selection, or exit tail mode"), ("q", "Exit tail mode") })
+        foreach (var (key, description) in new[]
+        {
+            ("Ctrl+C", "Copy the selection, or exit tail mode"),
+            ("q", "Exit tail mode from the log; in the input, q and Enter"),
+        })
         {
             output.Markup($"  [green]{Markup.Escape(key.PadRight(12))}[/green] [dim]{Markup.Escape(description)}[/dim]");
         }

@@ -183,3 +183,10 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   script also starts the REPL on Windows with no console and expects a prompt exit with status 0. New tests name each
   platform's config path, known user data location, and notification backend, and send a real notification on macOS
   and Windows; they run on the CI runners, which need the branch pushed.
+- Tail mode's input, used again with a busy log: the grey suggestion was drawn with Hex1b's inline hints, which are
+  inlay hints placed before the character at their position, so the editor's drawn cursor sat after the suggestion and
+  jumped as it changed. The input is now Hex1b's single-line `TextBox`, whose own predictions draw the suggestion after
+  the caret and whose caret is the terminal's cursor, placed at the caret at the end of every synchronized frame. The
+  shell line keys work on either input through a small line interface. `q` typed in the input is text; the Python
+  release's quit-on-`q`-when-empty is gone, since `q` and Enter runs the `q` command. A complete word such as `level`
+  no longer suggests the longer `levels` alias.
