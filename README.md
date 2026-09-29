@@ -960,6 +960,10 @@ level all        # Clear level filter (show all)
 | Ctrl+C | Abandon the line; while streaming, pause output |
 | Ctrl+L | Clear the screen |
 | Ctrl+R | Search history backward (Ctrl+R again for older; Enter runs, Escape edits, Ctrl+G cancels) |
+| Ctrl+A / Ctrl+E | Start / end of the line (also in tail mode's command input) |
+| Ctrl+B / Ctrl+F, Alt+B / Alt+F | Back / forward a character, a word |
+| Ctrl+K / Ctrl+U / Ctrl+W / Alt+D | Cut to the end, to the start, the word before, the word after |
+| Ctrl+Y | Paste the last cut text |
 | Ctrl+D | Exit pgtail |
 
 ## REPL Bottom Toolbar

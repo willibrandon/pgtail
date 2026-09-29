@@ -164,6 +164,25 @@ internal sealed class ReplHarness : IAsyncDisposable
     }
 
     /// <summary>
+    /// The row with the prompt being edited: the last one that starts with <c>pgtail&gt;</c>.
+    /// </summary>
+    /// <param name="screen">The screen.</param>
+    /// <returns>The row, trimmed.</returns>
+    public static string EditedLine(IHex1bTerminalRegion screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        for (var row = screen.Height - 2; row >= 0; row--)
+        {
+            if (screen.GetLineTrimmed(row) is var line && line.StartsWith("pgtail>", StringComparison.Ordinal))
+            {
+                return line;
+            }
+        }
+
+        return "";
+    }
+
+    /// <summary>
     /// The toolbar: the screen's last row.
     /// </summary>
     /// <param name="screen">The screen.</param>

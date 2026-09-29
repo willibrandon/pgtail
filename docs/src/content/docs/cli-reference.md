@@ -289,6 +289,11 @@ An unknown command prints `Unknown command: <name>` and points to `help`.
 | `Ctrl+C` | Abandon the line |
 | `Ctrl+D` | Leave pgtail on an empty line |
 | `Ctrl+L` | Clear the screen |
+| `Ctrl+A` / `Ctrl+E` | Move to the start or end of the line |
+| `Ctrl+B` / `Ctrl+F`, `Alt+B` / `Alt+F` | Move back or forward a character, or a word |
+| `Ctrl+K` / `Ctrl+U` | Cut to the end or the start of the line |
+| `Ctrl+W` / `Alt+D` | Cut the word before or after the caret |
+| `Ctrl+Y` | Paste the last cut text |
 | `Ctrl+R` | Search the history backward: type part of a command, `Ctrl+R` again for an older one; `Enter` runs it, `Escape` or an arrow key keeps it for editing, `Ctrl+G` cancels |
 
 Completions appear as you type, with a description of each command, subcommand, flag, and value. The REPL history is

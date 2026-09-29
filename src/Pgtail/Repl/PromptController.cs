@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Hex1b.Input;
 using Hex1b.Widgets;
 using Pgtail.Commands;
+using Pgtail.Editing;
 
 namespace Pgtail.Repl;
 
@@ -41,6 +42,8 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
         get => shellMode.Value;
         set => shellMode.Value = value;
     }
+
+    private LineEditingKeys? _lineKeys;
 
     /// <summary>
     /// The history search in progress, or null.
@@ -110,6 +113,9 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
             BindSearch(bindings);
             return;
         }
+
+        _lineKeys ??= new LineEditingKeys(State.Editor, TextChanged);
+        _lineKeys.Bind(bindings);
 
         bindings.Remove(EditorWidget.InsertNewline);
         bindings.Remove(EditorWidget.InsertTab);

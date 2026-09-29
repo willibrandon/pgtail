@@ -1,6 +1,7 @@
 using Hex1b.Documents;
 using Hex1b.Input;
 using Hex1b.Widgets;
+using Pgtail.Editing;
 
 namespace Pgtail.Tail;
 
@@ -19,6 +20,7 @@ internal sealed class TailInput
     private long _seenVersion;
     private string? _suffix;
     private bool _programmatic;
+    private LineEditingKeys? _lineKeys;
 
     /// <summary>
     /// Creates the input for a screen.
@@ -103,6 +105,8 @@ internal sealed class TailInput
         bindings.Remove(EditorWidget.MoveDown);
         bindings.Remove(EditorWidget.AddCursorAtNextMatch);
         bindings.Remove(Hex1bKey.Escape);
+        _lineKeys ??= new LineEditingKeys(Editor);
+        _lineKeys.Bind(bindings);
         bindings.Key(Hex1bKey.Enter).Action(SubmitAsync, "Run the command");
         bindings.Key(Hex1bKey.Escape).Action(context =>
         {

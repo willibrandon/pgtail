@@ -672,4 +672,34 @@ public sealed class ReplCommandTests
         await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.PromptLine(snapshot) == "pgtail> levels",
             description: "the line given back");
     }
+
+    /// <summary>
+    /// The shell's line keys edit the prompt.
+    /// </summary>
+    /// <remarks>
+    /// Ctrl+W cuts a word, Ctrl+A moves to the start, Ctrl+K and Ctrl+U cut to the ends, and Ctrl+Y pastes the last cut.
+    /// </remarks>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LineKeys_CutMoveAndPaste()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.Automator.TypeAsync("levels error warning", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("pgtail> levels error warning");
+        await repl.Automator.EscapeAsync(TestContext.CancellationToken);
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.W, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.EditedLine(snapshot) == "pgtail> levels error",
+            description: "the last word cut");
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.A, TestContext.CancellationToken);
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.K, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.EditedLine(snapshot) == "pgtail>",
+            description: "the whole line cut from the start");
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.Y, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.EditedLine(snapshot) == "pgtail> levels error",
+            description: "the cut text pasted back");
+        await repl.Automator.Ctrl().KeyAsync(Hex1bKey.U, TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(snapshot => ReplHarness.EditedLine(snapshot) == "pgtail>",
+            description: "the line cut back to the start");
+    }
 }
