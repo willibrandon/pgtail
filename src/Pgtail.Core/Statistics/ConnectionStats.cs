@@ -5,17 +5,16 @@ namespace Pgtail.Statistics;
 /// <summary>
 /// The connections and disconnections of a session, with the connections still open.
 /// </summary>
-/// <param name="capacity">How many events to keep; the oldest are dropped first.</param>
-public sealed class ConnectionStats(int capacity = 10_000)
+public sealed class ConnectionStats
 {
     private readonly Queue<ConnectionEvent> _events = new();
     private readonly Dictionary<int, ConnectionEvent> _active = [];
     private readonly List<int> _activeOrder = [];
 
     /// <summary>
-    /// How many events are kept.
+    /// How many events are kept; the oldest are dropped first.
     /// </summary>
-    public int Capacity { get; set; } = Math.Max(1, capacity);
+    public const int Capacity = 10_000;
 
     /// <summary>
     /// When tracking started, or was last cleared.

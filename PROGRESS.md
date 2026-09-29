@@ -26,3 +26,18 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   Items are checked only after they are ported and verified.
 - Copied ilrepl's `.editorconfig` verbatim and its layout/documentation analyzers into `src/Pgtail.Analyzers`
   (rules renamed `PGTAIL0001`-`PGTAIL0007`).
+
+## Decisions
+
+- Settings the Python release validated and stored but never read are not ported: `default.follow`,
+  `display.timestamp_format`, `display.show_pid`, `display.show_level`, and `buffer.*`. The statistics and tail buffers
+  keep the fixed 10,000 entry limits the Python release actually used.
+- Timestamps keep Python's aware/naive distinction as `DateTime` kinds (`Utc` / `Unspecified`); comparisons always
+  normalize to UTC, which fixes Python's naive/aware comparison errors in `errors --trend` and time windows.
+- Regular expressions are .NET regular expressions; Python-only syntax such as `(?P<name>...)` is not translated.
+- JSON output is compact standard JSON without escaping non-ASCII characters.
+- Ported the log model and parsers (text, csvlog, jsonlog, format detection, timestamps), the level/regex/field/time
+  filters, and the slow query, duration, error, and connection statistics.
+- Wrote our own TOML 1.0 reader and comment-preserving editor (`src/Pgtail.Core/Toml`). It passes all 709 cases of the
+  official toml-test 1.0 corpus (checked with a scratch harness outside the repository).
+- Program.cs uses top-level statements. System.CommandLine is dropped in favor of our own argument parsing.

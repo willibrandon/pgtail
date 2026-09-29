@@ -5,15 +5,14 @@ namespace Pgtail.Statistics;
 /// <summary>
 /// The errors and warnings of a session.
 /// </summary>
-/// <param name="capacity">How many events to keep; the oldest are dropped first.</param>
-public sealed class ErrorStats(int capacity = 10_000)
+public sealed class ErrorStats
 {
     private readonly Queue<ErrorEvent> _events = new();
 
     /// <summary>
-    /// How many events are kept.
+    /// How many events are kept; the oldest are dropped first.
     /// </summary>
-    public int Capacity { get; set; } = Math.Max(1, capacity);
+    public const int Capacity = 10_000;
 
     /// <summary>
     /// When statistics started, or were last cleared.

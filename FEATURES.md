@@ -150,8 +150,9 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 ## Configuration
 
 - [ ] Platform config paths (macOS Application Support, XDG on Linux, `%APPDATA%` on Windows)
-- [ ] TOML settings: `default.*`, `slow.*`, `display.*`, `theme.*`, `notifications.*`, `highlighting.*`, `buffer.*`,
-      `updates.*`; validation with warnings; comments preserved on `set`/`unset`
+- [ ] TOML settings: `default.levels`, `slow.*`, `theme.*`, `notifications.*`, `highlighting.*`, `updates.*`;
+      validation with warnings; comments preserved on `set`/`unset` (the never-applied `default.follow`, `display.*`, and
+      `buffer.*` settings are dropped as dead code)
 - [ ] `config` shows TOML, `config path`, `config edit` (`$EDITOR`), `config reset` (backup)
 - [ ] History file locations (REPL history and tail history)
 

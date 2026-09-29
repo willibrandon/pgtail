@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <PackageReference Include="Hex1b" />
-    <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 
   <ItemGroup>
