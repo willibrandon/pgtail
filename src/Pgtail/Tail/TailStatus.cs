@@ -108,6 +108,11 @@ internal sealed class TailStatus
     }
 
     /// <summary>
+    /// The entries read so far while the log's backlog loads, or null once it has.
+    /// </summary>
+    public int? Loading { get; set; } = 0;
+
+    /// <summary>
     /// Clears the error and warning counts.
     /// </summary>
     public void ResetCounts()
@@ -134,7 +139,11 @@ internal sealed class TailStatus
     public StyledText FormatStatus()
     {
         var text = new StyledText(" ");
-        if (Following)
+        if (Loading is { } loaded)
+        {
+            text.Append(loaded > 0 ? string.Create(CultureInfo.InvariantCulture, $"LOADING {loaded:N0}") : "LOADING", Paused);
+        }
+        else if (Following)
         {
             text.Append("FOLLOW", Follow);
         }

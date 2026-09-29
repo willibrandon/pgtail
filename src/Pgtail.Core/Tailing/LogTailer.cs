@@ -16,7 +16,14 @@ namespace Pgtail.Tailing;
 /// <param name="dataDirectory">The instance's data directory, or null when tailing a file on its own.</param>
 /// <param name="logDirectory">The directory PostgreSQL logs to, or null.</param>
 /// <param name="interval">How often to poll.</param>
-public sealed class LogTailer(string path, bool fromStart, string? dataDirectory, string? logDirectory, TimeSpan interval)
+/// <param name="lastLines">With <paramref name="fromStart"/>, how many of the file's last lines to read, or null for all.</param>
+public sealed class LogTailer(
+    string path,
+    bool fromStart,
+    string? dataDirectory,
+    string? logDirectory,
+    TimeSpan interval,
+    int? lastLines = null)
     : PollingLogSource(interval)
 {
     private readonly List<ReadOnlyMemory<byte>> _lines = [];
@@ -26,7 +33,7 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
     private bool _caughtUp;
 
     /// <inheritdoc />
-    protected override void Prepare() => _cursor.Open(fromStart);
+    protected override void Prepare() => _cursor.Open(fromStart, lastLines);
 
     /// <inheritdoc />
     protected override void Poll()
@@ -53,6 +60,7 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
             Post(new LogSourceEvent(LogSourceEventKind.CaughtUp));
         }
 
+        Behind = outcome == ReadOutcome.Read && !_cursor.AtEnd;
         IsUnavailable = outcome != ReadOutcome.Read;
         IsPermissionDenied = outcome == ReadOutcome.PermissionDenied;
         if (outcome != ReadOutcome.Read || _lines.Count == 0)

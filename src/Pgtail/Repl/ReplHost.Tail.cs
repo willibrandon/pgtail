@@ -12,7 +12,7 @@ internal sealed partial class ReplHost
     private async Task RunTailScreenAsync(TailRequest request)
     {
         Session.Buffer.Clear();
-        var source = LogSources.Create(request, Session, CurrentDirectory, StandardInput);
+        var source = LogSources.Create(request, Session, CurrentDirectory, StandardInput, TailScreen.BacklogLines);
         var screen = new TailScreen(Session, request, source, CurrentDirectory);
         try
         {

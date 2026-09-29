@@ -201,3 +201,11 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
 - The tail prompt's suggestion now comes from pgtail each frame and is drawn after a content-width text box: the text
   box's own predictions run on a thread pool task, and one computed for an earlier keystroke could land after Enter had
   emptied the line, leaving a stale grey suggestion on an empty prompt.
+- `tail 0 --since 1d` scrolled through the day before settling at the tail: the file was read a megabyte per 100 ms
+  poll, tail mode drew 2,000 entries a frame, and a filter change redrew 500 a frame. Now a source reads a backlog back
+  to back, tail mode reads it without drawing (the status bar reads `LOADING n`) and then shows the newest entries at
+  once, a filter change redraws in one pass, and rows get their semantic highlighting when first drawn, from a quick
+  formatting with the same text. Tail mode also reads only the log's last 20,000 lines, found by counting line endings
+  back from the end and moving on to the first line that starts an entry, since it keeps 10,000; streaming still reads
+  the whole range. A day of the test server's log (142,000 lines) opens at the tail 0.28 s after the screen appears in
+  the Native AOT build, against about 5 s of scrolling before; the Debug build spends another second compiling.

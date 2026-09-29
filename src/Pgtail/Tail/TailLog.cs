@@ -1,5 +1,4 @@
 using System.Text;
-using Pgtail.Styling;
 
 namespace Pgtail.Tail;
 
@@ -26,17 +25,14 @@ internal sealed class TailLog
     public int Count => _lines.Count;
 
     /// <summary>
-    /// Appends rows made from styled lines, dropping the oldest past the limit.
+    /// Appends rows, dropping the oldest past the limit.
     /// </summary>
-    /// <param name="lines">The styled lines; embedded newlines start more rows.</param>
+    /// <param name="rows">The rows.</param>
     /// <returns>The number of old rows dropped.</returns>
-    public int Append(IEnumerable<StyledText> lines)
+    public int Append(IEnumerable<TailLine> rows)
     {
-        ArgumentNullException.ThrowIfNull(lines);
-        foreach (var line in lines)
-        {
-            _lines.AddRange(TailLine.From(line));
-        }
+        ArgumentNullException.ThrowIfNull(rows);
+        _lines.AddRange(rows);
 
         var excess = _lines.Count - MaxLines;
         if (excess <= 0)

@@ -57,6 +57,11 @@ public abstract class PollingLogSource(TimeSpan interval) : ILogSource
     }
 
     /// <summary>
+    /// Whether the last poll stopped before the end of what there is to read, so the next one should follow at once.
+    /// </summary>
+    protected bool Behind { get; set; }
+
+    /// <summary>
     /// Positions the source before its first poll.
     /// </summary>
     protected abstract void Prepare();
@@ -77,7 +82,12 @@ public abstract class PollingLogSource(TimeSpan interval) : ILogSource
         using var timer = new PeriodicTimer(interval);
         do
         {
-            Poll();
+            // A backlog, such as a time filter reads back, is read in one go; the interval only paces waiting for more.
+            do
+            {
+                Poll();
+            }
+            while (Behind && !_stop.IsCancellationRequested);
         }
         while (await timer.WaitForNextTickAsync(_stop.Token).ConfigureAwait(false));
     }

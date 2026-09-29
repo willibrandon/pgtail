@@ -358,7 +358,7 @@ internal static class PgtailCli
             piped = buffer;
         }
 
-        var source = LogSources.Create(request, session, Environment.CurrentDirectory, () => piped!);
+        var source = LogSources.Create(request, session, Environment.CurrentDirectory, () => piped!, TailScreen.BacklogLines);
         var screen = new TailScreen(session, request, source, Environment.CurrentDirectory);
         try
         {

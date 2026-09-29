@@ -27,6 +27,7 @@ public sealed class FileCursor(string path)
     private FileIdentity? _identity;
     private DateTime? _modified;
     private long _lastSize;
+    private byte[]? _formatSample;
 
     /// <summary>
     /// The file.
@@ -44,10 +45,16 @@ public sealed class FileCursor(string path)
     public LogFormat? Format { get; private set; }
 
     /// <summary>
-    /// Positions the cursor at the start or the end of the file.
+    /// Positions the cursor at the start or the end of the file, or at the first entry of its last lines.
     /// </summary>
+    /// <remarks>
+    /// Reading the last lines finds where they start by counting line endings back from the end, then moves on to the
+    /// first line that starts an entry, so no entry is read from its middle. The format is still detected from the first
+    /// line of the file.
+    /// </remarks>
     /// <param name="fromStart">True to read existing lines; false to read only lines written from now on.</param>
-    public void Open(bool fromStart)
+    /// <param name="lastLines">With <paramref name="fromStart"/>, how many of the last lines to read, or null for all.</param>
+    public void Open(bool fromStart, int? lastLines = null)
     {
         var info = new FileInfo(Path);
         if (!info.Exists)
@@ -56,7 +63,7 @@ public sealed class FileCursor(string path)
             return;
         }
 
-        Position = fromStart ? 0 : info.Length;
+        Position = !fromStart ? info.Length : lastLines is { } count ? StartOfLastLines(count, info.Length) : 0;
         _identity = FileIdentity.FromPath(Path);
         _modified = info.LastWriteTimeUtc;
         _lastSize = info.Length;
@@ -176,11 +183,75 @@ public sealed class FileCursor(string path)
 
         if (Format is null)
         {
-            Format = LogFormatDetector.Detect(line);
+            Format = LogFormatDetector.Detect(_formatSample ?? line);
             formatDetected(Format.Value);
         }
 
         lines.Add(line.ToArray());
+    }
+
+    private long StartOfLastLines(int count, long length)
+    {
+        try
+        {
+            using var stream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var buffer = new byte[64 * 1024];
+            var seen = 0;
+            for (var end = length; end > 0;)
+            {
+                var start = Math.Max(0, end - buffer.Length);
+                stream.Seek(start, SeekOrigin.Begin);
+                stream.ReadExactly(buffer, 0, (int)(end - start));
+                for (var i = (int)(end - start) - 1; i >= 0; i--)
+                {
+                    // The file's last line ending closes its last line rather than starting another.
+                    if (buffer[i] == (byte)'\n' && start + i != length - 1 && ++seen >= count)
+                    {
+                        return EntryStartFrom(stream, start + i + 1, length);
+                    }
+                }
+
+                end = start;
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Reading from the start reports the problem as usual.
+        }
+
+        return 0;
+    }
+
+    // The first line from an offset that starts an entry, judged in the format of the file's first line.
+    private long EntryStartFrom(FileStream stream, long offset, long length)
+    {
+        stream.Seek(0, SeekOrigin.Begin);
+        var head = new byte[(int)Math.Min(length, 64 * 1024)];
+        stream.ReadExactly(head);
+        var firstEnd = Array.IndexOf(head, (byte)'\n');
+        _formatSample = head[..(firstEnd < 0 ? head.Length : firstEnd)];
+        var format = LogFormatDetector.Detect(_formatSample);
+        stream.Seek(offset, SeekOrigin.Begin);
+        var window = new byte[(int)Math.Min(length - offset, 1024 * 1024)];
+        stream.ReadExactly(window);
+        for (var start = 0; start < window.Length;)
+        {
+            var end = Array.IndexOf(window, (byte)'\n', start);
+            if (end < 0)
+            {
+                break;
+            }
+
+            var line = window.AsMemory(start, end - start);
+            if (LogLineParser.Parse(line, format) is { Timestamp: not null, Continues: false })
+            {
+                return offset + start;
+            }
+
+            start = end + 1;
+        }
+
+        return offset;
     }
 
     private void CheckRotation(FileInfo info)

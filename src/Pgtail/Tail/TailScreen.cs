@@ -12,15 +12,24 @@ namespace Pgtail.Tail;
 /// The full screen tail view: the log, the command output, the command input, the status bar, and the help overlay.
 /// </summary>
 /// <remarks>
-/// All state changes happen on Hex1b's app loop: entries are taken from the source while the screen is built, a
-/// filter change redraws the log a batch at a time across frames, and entries that arrive meanwhile wait in the
-/// source until the redraw finishes, so the log stays in order. A command's output shows in a panel above the input
+/// All state changes happen on Hex1b's app loop: entries are taken from the source while the screen is built. What the
+/// log held when tailing started, as a time filter reads back, is read without being drawn, and the view opens at its
+/// newest entries once it is all read. A filter change redraws the log at once; both draw only the newest entries the log
+/// keeps, the rest being counted in the status bar. A command's output shows in a panel above the input
 /// until the next command or Escape, so a busy log does not scroll it away.
 /// </remarks>
 internal sealed partial class TailScreen : ITailHost
 {
+    /// <summary>
+    /// How many of a log's last lines tail mode reads back for a time filter, enough for the entries it keeps.
+    /// </summary>
+    /// <remarks>
+    /// A long log opens as fast as a short one; streaming reads the whole range.
+    /// </remarks>
+    public const int BacklogLines = 20_000;
+
     private const int EntriesPerFrame = 2_000;
-    private const int RebuildBatch = 500;
+    private const int LoadPerFrame = 20_000;
     private readonly TailRequest _request;
     private readonly ILogSource _source;
     private readonly List<LogEntry> _entries = [];
@@ -33,8 +42,7 @@ internal sealed partial class TailScreen : ITailHost
     private int _resultTop;
     private int _resultRows;
     private Hex1bApp? _app;
-    private List<LogEntry>? _rebuildSnapshot;
-    private int _rebuildIndex;
+    private int _loaded;
     private bool _paused;
     private int _detectionScanned;
     private bool _versionDetected;
@@ -169,12 +177,11 @@ internal sealed partial class TailScreen : ITailHost
     /// <inheritdoc/>
     public void Rebuild()
     {
-        _rebuildSnapshot = [.. _entries];
-        _rebuildIndex = 0;
         _log.Clear();
         _view.Reset();
         Status.ResetCounts();
         Status.TotalLines = 0;
+        ShowEntries();
         _app?.Invalidate();
     }
 
@@ -196,7 +203,6 @@ internal sealed partial class TailScreen : ITailHost
         Session.Time = Filtering.TimeFilter.Empty;
         Session.Fields.Clear();
         _entries.Clear();
-        _rebuildSnapshot = null;
         _log.Clear();
         _view.Reset();
         Status.ResetCounts();
@@ -262,13 +268,13 @@ internal sealed partial class TailScreen : ITailHost
 
     private void WriteLines(IReadOnlyList<StyledText> lines)
     {
-        Append(lines);
+        Append(lines.SelectMany(TailLine.From));
         _view.ShowEnd();
     }
 
-    private void Append(IReadOnlyList<StyledText> lines)
+    private void Append(IEnumerable<TailLine> rows)
     {
-        _view.Dropped(_log.Append(lines));
+        _view.Dropped(_log.Append(rows));
         Status.TotalLines = _log.Count;
     }
 
@@ -282,35 +288,17 @@ internal sealed partial class TailScreen : ITailHost
     }
 
     /// <summary>
-    /// Takes entries from the source, or continues a redraw, for one frame.
+    /// Takes entries from the source for one frame.
     /// </summary>
     private void Pump()
     {
-        if (_rebuildSnapshot is { } snapshot)
+        if (!_caughtUp)
         {
-            var end = Math.Min(snapshot.Count, _rebuildIndex + RebuildBatch);
-            var lines = new List<StyledText>();
-            for (; _rebuildIndex < end; _rebuildIndex++)
-            {
-                var entry = snapshot[_rebuildIndex];
-                if (Session.ShouldShow(entry))
-                {
-                    lines.Add(Formatted(entry));
-                    Status.Count(entry);
-                }
-            }
-
-            Append(lines);
-            if (_rebuildIndex < snapshot.Count)
-            {
-                _app?.Invalidate();
-                return;
-            }
-
-            _rebuildSnapshot = null;
+            Load();
+            return;
         }
 
-        var shown = new List<StyledText>();
+        var shown = new List<TailLine>();
         var taken = 0;
         while (taken < EntriesPerFrame && _source.Events.TryRead(out var item))
         {
@@ -318,11 +306,7 @@ internal sealed partial class TailScreen : ITailHost
             Handle(item, shown);
         }
 
-        // The oldest entries go once per frame rather than one at a time, which would shift the list for every entry.
-        if (_entries.Count > Sessions.LogBuffer.DefaultCapacity)
-        {
-            _entries.RemoveRange(0, _entries.Count - Sessions.LogBuffer.DefaultCapacity);
-        }
+        TrimEntries();
 
         if (shown.Count > 0)
         {
@@ -347,7 +331,7 @@ internal sealed partial class TailScreen : ITailHost
         Status.FilePermissionDenied = _source.IsPermissionDenied;
     }
 
-    private void Handle(LogSourceEvent item, List<StyledText> shown)
+    private void Handle(LogSourceEvent item, List<TailLine> shown)
     {
         switch (item.Kind)
         {
@@ -358,23 +342,86 @@ internal sealed partial class TailScreen : ITailHost
                 Format = format;
                 Session.DetectedFormat = format;
                 break;
-            case LogSourceEventKind.CaughtUp:
-                _caughtUp = true;
-                break;
             case LogSourceEventKind.EndOfInput:
-                shown.Add(Markup.Parse($"[dim]--- stdin complete ({item.LinesRead} lines loaded) - press 'q' to quit ---[/]"));
+                shown.AddRange(TailLine.From(
+                    Markup.Parse($"[dim]--- stdin complete ({item.LinesRead} lines loaded) - press 'q' to quit ---[/]")));
                 break;
         }
     }
 
-    private void AddEntry(LogEntry entry, List<StyledText> shown)
+    // Reads the log's backlog a frame's worth at a time without drawing it; when it is all read, the view opens at the
+    // newest entries.
+    private void Load()
+    {
+        var taken = 0;
+        while (taken < LoadPerFrame && _source.Events.TryRead(out var item))
+        {
+            taken++;
+            if (item.Kind == LogSourceEventKind.CaughtUp)
+            {
+                _caughtUp = true;
+                Status.Loading = null;
+                TrimEntries();
+                ShowEntries();
+                _app?.Invalidate();
+                return;
+            }
+
+            if (item is { Kind: LogSourceEventKind.Entry, Entry: { } entry })
+            {
+                Keep(entry, isNew: false);
+                _loaded++;
+            }
+            else
+            {
+                Handle(item, []);
+            }
+        }
+
+        TrimEntries();
+        Status.Loading = _loaded;
+        if (taken == LoadPerFrame)
+        {
+            _app?.Invalidate();
+        }
+    }
+
+    // Counts every entry the filters show and draws the newest of them, as many as the log keeps.
+    private void ShowEntries()
+    {
+        var shown = new List<LogEntry>();
+        foreach (var entry in _entries)
+        {
+            if (Session.ShouldShow(entry))
+            {
+                Status.Count(entry);
+                shown.Add(entry);
+            }
+        }
+
+        Append(shown.Skip(Math.Max(0, shown.Count - TailLog.MaxLines)).SelectMany(Rows));
+    }
+
+    // The oldest entries go once per frame rather than one at a time, which would shift the list for every entry.
+    private void TrimEntries()
+    {
+        if (_entries.Count > Sessions.LogBuffer.DefaultCapacity)
+        {
+            _entries.RemoveRange(0, _entries.Count - Sessions.LogBuffer.DefaultCapacity);
+        }
+    }
+
+    private void Keep(LogEntry entry, bool isNew)
     {
         _entries.Add(entry);
-
         Session.Buffer.Add(entry);
-        Session.Observe(entry, isNew: _caughtUp);
-
+        Session.Observe(entry, isNew);
         DetectInstance(entry);
+    }
+
+    private void AddEntry(LogEntry entry, List<TailLine> shown)
+    {
+        Keep(entry, isNew: true);
         if (!Session.ShouldShow(entry))
         {
             return;
@@ -387,8 +434,13 @@ internal sealed partial class TailScreen : ITailHost
             return;
         }
 
-        shown.Add(Formatted(entry));
+        shown.AddRange(Rows(entry));
     }
+
+    // An entry's rows, formatted at once without semantic highlighting, which comes when a row is first drawn.
+    private List<TailLine> Rows(LogEntry entry) => TailLine.From(
+        Display.EntryFormatter.TailLine(entry, Session.Theme, Highlighting.HighlighterChain.None, Session.SlowLevel(entry)),
+        () => Formatted(entry));
 
     private StyledText Formatted(LogEntry entry) =>
         Display.EntryFormatter.TailLine(entry, Session.Theme, Session.Chain, Session.SlowLevel(entry));

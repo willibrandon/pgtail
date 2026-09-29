@@ -18,7 +18,9 @@ pgtail> tail                # The only instance, if there is one
 `tail` also accepts an instance's data directory in place of its ID.
 
 Like `tail -f`, tail mode starts at the end of the log and shows entries as PostgreSQL writes them. With a time filter
-such as `--since 1h`, it first shows the entries already in the log from that time on.
+such as `--since 1d`, it first loads the entries already in the log from that time on (the status bar reads
+`LOADING` meanwhile) and opens at the newest of them, ready to scroll back. Tail mode keeps the newest 10,000 lines, so
+it reads only as much of a long log as that needs; `--stream` reads the whole range, for piping into other tools.
 
 ## Tailing files
 

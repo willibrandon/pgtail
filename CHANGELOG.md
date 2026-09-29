@@ -59,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `'%m [%p] %q%u@%d '`, whose lines were shown unparsed; its user and database show in the full display.
 
 ### Fixed
+- Tail mode with a time filter, such as `tail 0 --since 1d`, opens at the newest entries at once instead of scrolling
+  through the backlog: it reads only the end of the log it keeps (the newest 10,000 lines), reads it back to back
+  rather than a chunk per poll, and highlights rows as they are drawn. A filter change redraws the log at once too.
 - Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.
 - Alerts that arrive within 5 seconds of a notification are summarized in one notification when the 5 seconds are up
   instead of being dropped, and a message repeated within a minute, apart from its numbers, is counted instead of shown
