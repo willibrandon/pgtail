@@ -143,9 +143,12 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 
 ## Notifications
 
-- [ ] Rules by level, pattern, error rate, slow query; quiet hours (overnight spans); rate limit 1 per 5 seconds
+- [x] Rules by level, pattern, error rate, slow query; quiet hours (overnight spans); rate limit 1 per 5 seconds
+      (each verified in tail mode against a live PostgreSQL 18 workload, watching `Notify` calls on the session bus
+      with `dbus-monitor`; a pattern with spaces, split at the first space in the Python release, now works)
 - [x] `notify`, `notify on ...`, `notify off`, `notify test`, `notify quiet HH:MM-HH:MM|off`, `notify clear`
-- [ ] macOS `osascript`, Linux `notify-send`, Windows toast notifications (with Start menu shortcut/AUMID)
+- [x] Linux `notify-send` (verified on the desktop session bus)
+- [ ] macOS `osascript` and Windows toast notifications (with Start menu shortcut/AUMID): need those machines
 - [x] Persistence under `[notifications]`
 
 ## Export and pipe
@@ -156,7 +159,9 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 
 ## Configuration
 
-- [ ] Platform config paths (macOS Application Support, XDG on Linux, `%APPDATA%` on Windows)
+- [x] Linux config and history paths: `$XDG_CONFIG_HOME/pgtail` and `$XDG_DATA_HOME/pgtail`, defaulting to
+      `~/.config/pgtail` and `~/.local/share/pgtail` (verified with `config --path` both ways)
+- [ ] macOS `~/Library/Application Support/pgtail` and Windows `%APPDATA%\pgtail`: need those machines
 - [x] TOML settings: `default.levels`, `slow.*`, `theme.*`, `notifications.*`, `highlighting.*`, `updates.*`;
       validation with warnings; comments preserved on `set`/`unset` (the never-applied `default.follow`, `display.*`, and
       `buffer.*` settings are dropped as dead code)

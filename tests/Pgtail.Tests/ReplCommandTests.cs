@@ -425,6 +425,21 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
+    /// A notification pattern keeps the spaces typed in it and is saved as typed.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task NotifyOn_PatternWithSpaces_SavesWholePattern()
+    {
+        using var environment = new TestEnvironment();
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await repl.RunAsync("notify on /queue depth is \\d+/i", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilTextAsync("Notifications enabled for pattern: queue depth is \\d+ (case-insensitive)");
+        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        Assert.Contains("\"/queue depth is \\\\d+/i\"", text);
+    }
+
+    /// <summary>
     /// config prints the effective configuration as TOML.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

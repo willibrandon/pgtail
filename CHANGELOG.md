@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Text logs with a longer `log_line_prefix` that starts with the time are read, such as Debian and Ubuntu's
   `'%m [%p] %q%u@%d '`, whose lines were shown unparsed; its user and database show in the full display.
 
+### Fixed
+- `notify on /pattern with spaces/` keeps the whole pattern; it was cut at the first space.
+
 ### Removed
 - The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`,
   `updates.last_version`, and `buffer.*`,

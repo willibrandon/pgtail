@@ -161,3 +161,10 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   directory is closed to the user, suggests the `adm` group when the log is unreadable, and reads any prefix that starts
   with the time, keeping `user@database`. Homebrew, Postgres.app, RHEL, PGDG, and Arch layouts were each placed in a
   sandbox and detected. Advice text forms nothing used were removed.
+- Notifications on Linux, checked in tail mode against the live workload while `dbus-monitor` watched `Notify` calls on
+  the desktop session bus: level, pattern, slow query, and error rate rules each fire with the Python release's titles
+  and bodies, at most one every five seconds; quiet hours silence them, including an overnight window, and a window
+  that does not cover the current time does not; `notify test` always sends. A pattern with a space was cut at the
+  space, as in the Python release, and now takes the rest of the line. Linux config and history paths follow
+  `XDG_CONFIG_HOME` and `XDG_DATA_HOME`. What is left unchecked needs macOS or Windows: `osascript` and toast
+  notifications, their config paths, the Windows known data directories, and the Windows no-console exit.

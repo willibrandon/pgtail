@@ -32,7 +32,7 @@ internal static class NotifyCommands
         switch (args[0].ToLowerInvariant())
         {
             case "on":
-                On(session, [.. args.Skip(1)], output);
+                On(session, [.. args.Skip(1)], invocation.RawFrom(1), output);
                 break;
             case "off":
                 session.Notifications.Config.Enabled = false;
@@ -112,7 +112,8 @@ internal static class NotifyCommands
         }
     }
 
-    private static void On(PgtailSession session, IReadOnlyList<string> args, CommandOutput output)
+    // A pattern is the rest of the line as typed, so it can hold spaces; quoted, it is the one word.
+    private static void On(PgtailSession session, IReadOnlyList<string> args, string raw, CommandOutput output)
     {
         if (args.Count == 0)
         {
@@ -124,12 +125,13 @@ internal static class NotifyCommands
         var first = args[0];
         if (first.StartsWith('/'))
         {
-            var (pattern, caseSensitive) = first.EndsWith("/i", StringComparison.Ordinal) && first.Length >= 3
-                ? (first[1..^2], false)
-                : first.EndsWith('/') && first.Length >= 2 ? (first[1..^1], true) : (null, true);
+            var text = raw.StartsWith('/') ? raw : first;
+            var (pattern, caseSensitive) = text.EndsWith("/i", StringComparison.Ordinal) && text.Length >= 3
+                ? (text[1..^2], false)
+                : text.EndsWith('/') && text.Length >= 2 ? (text[1..^1], true) : (null, true);
             if (pattern is null)
             {
-                output.Line($"Invalid pattern format: {first}");
+                output.Line($"Invalid pattern format: {text}");
                 output.Line("Use: /pattern/ or /pattern/i");
                 return;
             }
