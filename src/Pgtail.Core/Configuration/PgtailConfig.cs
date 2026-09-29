@@ -102,8 +102,4 @@ public sealed class PgtailConfig
     /// </summary>
     public string LastUpdateCheck => (string)this["updates.last_check"]!;
 
-    /// <summary>
-    /// The latest version seen by the last update check, or empty.
-    /// </summary>
-    public string LastSeenVersion => (string)this["updates.last_version"]!;
 }

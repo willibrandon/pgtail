@@ -47,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   data directories.
 
 ### Removed
-- The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`, and `buffer.*`,
+- The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`,
+  `updates.last_version`, and `buffer.*`,
   which were validated and stored but never used.
 - Installing with pip, pipx, or uv.
 

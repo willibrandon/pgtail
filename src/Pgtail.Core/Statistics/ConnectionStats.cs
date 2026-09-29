@@ -140,12 +140,6 @@ public sealed class ConnectionStats
     public IReadOnlyList<KeyValuePair<string, int>> GetByUser() => Count(item => item.User);
 
     /// <summary>
-    /// Counts open connections by application.
-    /// </summary>
-    /// <returns>The counts in first-seen order.</returns>
-    public IReadOnlyList<KeyValuePair<string, int>> GetByApplication() => Count(item => item.Application);
-
-    /// <summary>
     /// The events logged at or after a time.
     /// </summary>
     /// <param name="since">The time.</param>

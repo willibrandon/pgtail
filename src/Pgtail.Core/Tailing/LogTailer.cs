@@ -24,11 +24,6 @@ public sealed class LogTailer(string path, bool fromStart, string? dataDirectory
     private FileCursor _cursor = new(path);
     private long _lastDirectoryScan;
 
-    /// <summary>
-    /// The file being read.
-    /// </summary>
-    public string CurrentPath => _cursor.Path;
-
     /// <inheritdoc />
     protected override void Prepare() => _cursor.Open(fromStart);
 

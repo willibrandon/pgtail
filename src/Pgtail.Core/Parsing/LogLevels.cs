@@ -84,12 +84,6 @@ public static class LogLevels
     };
 
     /// <summary>
-    /// A new set holding every level.
-    /// </summary>
-    /// <returns>The set.</returns>
-    public static HashSet<LogLevel> AllSet() => [.. All];
-
-    /// <summary>
     /// Parses a level name or abbreviation, ignoring case.
     /// </summary>
     /// <param name="name">A name such as <c>error</c>, or an abbreviation such as <c>e</c> or <c>warn</c>.</param>

@@ -59,11 +59,6 @@ internal sealed class TailLogView(TailLog log, bool color)
     public bool VisualLines { get; private set; }
 
     /// <summary>
-    /// Whether anything is selected: a visual selection or the highlighted cursor row.
-    /// </summary>
-    public bool HasSelection => (Visual || Navigating) && Log.Count > 0;
-
-    /// <summary>
     /// Called when the user asks to pause with <c>p</c>.
     /// </summary>
     public Action? PauseRequested { get; set; }

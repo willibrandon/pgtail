@@ -18,9 +18,4 @@ public sealed class TomlException(string message, int line, int column)
     /// The one-based column of the problem.
     /// </summary>
     public int Column { get; } = column;
-
-    /// <summary>
-    /// What is wrong, without the position.
-    /// </summary>
-    public string Reason { get; } = message;
 }

@@ -107,13 +107,6 @@ public sealed partial class Theme(
     }
 
     /// <summary>
-    /// The style of an element, empty when the theme does not define it.
-    /// </summary>
-    /// <param name="element">The element name.</param>
-    /// <returns>The style.</returns>
-    public ColorStyle GetUiStyle(string element) => Ui.TryGetValue(element, out var style) ? style : new ColorStyle();
-
-    /// <summary>
     /// The terminal style of an element, plain when the theme does not define it.
     /// </summary>
     /// <param name="element">The element name.</param>

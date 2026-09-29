@@ -25,12 +25,6 @@ public readonly record struct TextStyle(
         && Cleared == TextAttributes.None;
 
     /// <summary>
-    /// A bold style.
-    /// </summary>
-    /// <returns>The style with bold added.</returns>
-    public TextStyle WithBold() => this with { Attributes = Attributes | TextAttributes.Bold };
-
-    /// <summary>
     /// Applies another style on top of this one.
     /// </summary>
     /// <remarks>

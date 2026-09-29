@@ -40,7 +40,6 @@ public sealed class ConfigStore(PgtailPaths paths)
         [updates]
         # check = true                 # Enable startup update check (set to false to disable)
         # last_check = ""              # Timestamp of last update check (managed automatically)
-        # last_version = ""            # Latest version seen (managed automatically)
 
         [highlighting]
         # enabled = true              # Enable semantic highlighting (global toggle)

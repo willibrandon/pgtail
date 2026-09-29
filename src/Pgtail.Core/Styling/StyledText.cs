@@ -86,31 +86,6 @@ public sealed class StyledText
     }
 
     /// <summary>
-    /// Applies a style over part of the text, keeping the styles already there beneath it.
-    /// </summary>
-    /// <param name="start">The first character.</param>
-    /// <param name="end">The character just past the range.</param>
-    /// <param name="style">The style on top.</param>
-    /// <returns>New text with the style applied.</returns>
-    public StyledText Overlay(int start, int end, TextStyle style)
-    {
-        var result = new StyledText();
-        var position = 0;
-        foreach (var span in _spans)
-        {
-            var spanEnd = position + span.Text.Length;
-            var from = Math.Clamp(start - position, 0, span.Text.Length);
-            var to = Math.Clamp(end - position, 0, span.Text.Length);
-            result.Append(span.Text[..from], span.Style);
-            result.Append(span.Text[from..to], span.Style.Then(style));
-            result.Append(span.Text[to..], span.Style);
-            position = spanEnd;
-        }
-
-        return result;
-    }
-
-    /// <summary>
     /// Divides the text at line breaks.
     /// </summary>
     /// <returns>One styled text per line.</returns>

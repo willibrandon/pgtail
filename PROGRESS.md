@@ -30,7 +30,8 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
 ## Decisions
 
 - Settings the Python release validated and stored but never read are not ported: `default.follow`,
-  `display.timestamp_format`, `display.show_pid`, `display.show_level`, and `buffer.*`. The statistics and tail buffers
+  `display.timestamp_format`, `display.show_pid`, `display.show_level`, `updates.last_version`, and `buffer.*`. Nor are
+  helpers it defined but never called (the SQLSTATE class names, the jsonlog field map, connections by application). The statistics and tail buffers
   keep the fixed 10,000 entry limits the Python release actually used.
 - Timestamps keep Python's aware/naive distinction as `DateTime` kinds (`Utc` / `Unspecified`); comparisons always
   normalize to UTC, which fixes Python's naive/aware comparison errors in `errors --trend` and time windows.

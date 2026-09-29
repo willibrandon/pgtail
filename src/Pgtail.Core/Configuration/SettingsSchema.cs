@@ -48,7 +48,6 @@ public static partial class SettingsSchema
             new("notifications.quiet_hours", null, SettingType.Text, QuietHours),
             new("updates.check", true, SettingType.Boolean, value => Boolean(value)),
             new("updates.last_check", "", SettingType.Text, Iso8601),
-            new("updates.last_version", "", SettingType.Text, SemanticVersion),
             new("highlighting.enabled", true, SettingType.Boolean, value => Boolean(value)),
             new("highlighting.max_length", HighlightingConfig.DefaultMaxLength, SettingType.Integer, value => PositiveInteger(value)),
             new("highlighting.duration.slow", 100L, SettingType.Integer, value => PositiveInteger(value)),
@@ -173,24 +172,9 @@ public static partial class SettingsSchema
         return text.Length == 0 || IsoDateTime.TryParse(text, out _) ? text : throw new FormatException("invalid ISO 8601 datetime");
     }
 
-    private static string SemanticVersion(object value)
-    {
-        if (value is not string text)
-        {
-            throw new FormatException("must be a semver string");
-        }
-
-        return text.Length == 0 || SemverPattern().IsMatch(text)
-            ? text
-            : throw new FormatException("must be a valid semver string (e.g., 0.1.0)");
-    }
-
     [GeneratedRegex("^[A-Za-z0-9_-]+$")]
     private static partial Regex ThemeNamePattern();
 
     [GeneratedRegex("^[0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2}$")]
     private static partial Regex QuietHoursPattern();
-
-    [GeneratedRegex(@"^[0-9]+\.[0-9]+\.[0-9]+(-[\w.]+)?$")]
-    private static partial Regex SemverPattern();
 }

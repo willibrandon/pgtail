@@ -112,7 +112,6 @@ See [Notifications](/guide/notifications/).
 [updates]
 check = true       # Check for a newer release when the REPL starts (once a day)
 last_check = ""    # When it last checked (managed by pgtail)
-last_version = ""  # The newest version seen (managed by pgtail)
 ```
 
 ### Semantic highlighting
