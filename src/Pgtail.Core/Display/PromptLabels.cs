@@ -16,9 +16,15 @@ public static class PromptLabels
     public const string Tail = "tail> ";
 
     /// <summary>
-    /// The REPL's label.
+    /// The REPL's label, its name in the theme's <c>prompt</c> color.
     /// </summary>
-    public static StyledText Repl => Markup.Parse("[#00aa00]pgtail[/][#666666]>[/] ");
+    /// <param name="theme">The selected theme.</param>
+    /// <returns>The label.</returns>
+    public static StyledText Repl(Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return new StyledText("pgtail", theme.Style("prompt")).Append(Markup.Parse("[#666666]>[/] "));
+    }
 
     /// <summary>
     /// The REPL's label in shell mode, where a line is run by the shell.

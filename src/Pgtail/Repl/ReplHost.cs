@@ -442,5 +442,5 @@ internal sealed partial class ReplHost : IReplHost
     private StyledText PromptLabel(bool shell) =>
         shell ? PromptLabels.Shell
         : StreamLabel is { } label ? PromptLabels.Paused(label)
-        : PromptLabels.Repl;
+        : PromptLabels.Repl(Session.Theme);
 }

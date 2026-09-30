@@ -86,6 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of near the top of the screen, where it erased the lines below it.
 - A command's line at the prompt is always kept above its output; it was sometimes left blank, most often once the
   prompt had reached the bottom of the screen.
+- Ctrl+C stops `tail --stream` while it still has a backlog to print, or on a log busy enough that entries are always
+  waiting; it kept printing until it caught up, which on a busy log was never.
+- Text pasted at the REPL prompt goes into the line; the paste was ignored. Line breaks become spaces.
+- The `pgtail` of the REPL prompt is drawn in the selected theme's `prompt` color instead of a fixed green.
 - On Windows, `!` commands keep their quotes, so a quoted path with spaces reaches the command whole.
 - Counting query durations is about ten times faster, which shortens loading a log of statement durations.
 - Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.

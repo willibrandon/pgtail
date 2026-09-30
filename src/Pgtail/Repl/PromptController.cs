@@ -61,6 +61,19 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
     public Action? Changed { get; set; }
 
     /// <summary>
+    /// Inserts pasted text at the caret.
+    /// </summary>
+    /// <param name="text">The text; line breaks become spaces, since the prompt takes one line.</param>
+    public void Paste(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var line = new EditorLine(State.Editor);
+        line.Replace(line.Caret, line.Caret, text.ReplaceLineEndings(" ").TrimEnd());
+        TextChanged();
+        Changed?.Invoke();
+    }
+
+    /// <summary>
     /// Recomputes completions after the user edits the line, entering shell mode for <c>!</c> on an empty line.
     /// </summary>
     public void TextChanged()

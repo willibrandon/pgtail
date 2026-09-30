@@ -368,6 +368,45 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// Text pasted at the REPL prompt goes into the line at the caret, its line breaks as spaces.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ReplPasteGoesIntoTheLine()
+    {
+        using var environment = new TestEnvironment();
+        await using PgtailProcess pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        await pgtail.Automator.TypeAsync("levels ", TestContext.CancellationToken);
+        await pgtail.PasteAsync("error\nwarning\n", TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => ReplHarness.PromptLine(screen) == "pgtail> levels error warning",
+            description: "the pasted text on the line");
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("Filter set: ERROR WARNING");
+    }
+
+    /// <summary>
+    /// Ctrl+C stops a stream that still has a long backlog to print.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TailStreamWithBacklogStopsAtCtrlC()
+    {
+        using var environment = new TestEnvironment();
+        const int count = 400_000;
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
+        DateTime start = DateTime.UtcNow.AddMinutes(-30);
+        LogFiles.Append(log, Enumerable.Range(1, count).Select(i => LogFiles.Text(start.AddMilliseconds(i), 4700, "LOG", $"entry {i:D6}")));
+        await using PgtailProcess pgtail = PgtailProcess.Start(environment, 100, 30, TestContext.CancellationToken, "tail", "--file", log,
+            "--since", "1h", "--stream");
+        await pgtail.Automator.WaitUntilTextAsync("LOG    : entry 0");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
+        Assert.AreEqual(0, await pgtail.WaitForExitAsync());
+        using Hex1bTerminalSnapshot screen = pgtail.Automator.CreateSnapshot();
+        Assert.IsFalse(screen.ContainsText($"entry {count:D6}"), "the stream stopped before the end of the backlog");
+    }
+
+    /// <summary>
     /// stats counts each duration logged in milliseconds or seconds, in any case, and skips a label with no duration.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
