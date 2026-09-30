@@ -12,6 +12,24 @@ permissions:
   contents: read
 
 jobs:
+  secret-scan:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # v0 moves with Picket's releases. Findings that are not secrets are listed in .picketignore by fingerprint.
+      - name: Scan for secrets
+        uses: willibrandon/picket@v0
+        with:
+          ignore-path: .picketignore
+          cache-mode: secret-hash-only
+          fail-on: findings
+          redact: 100
+          timeout: 300
+
   test:
     name: tests (${{ matrix.name }})
     strategy:
@@ -61,6 +79,10 @@ jobs:
 
   native-aot:
     name: native build (${{ matrix.rid }})
+    # The size check reads the baseline that the branch's last good run stored.
+    permissions:
+      contents: read
+      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -90,3 +112,17 @@ jobs:
 
       - name: Publish, check, and pack
         run: dotnet run --file scripts/Publish-NativeAot.cs -- --rid ${{ matrix.rid }}
+
+      # v0 moves with Dotsider's releases. The cap is absolute; growth is measured against the branch's last good build.
+      - name: Check Native AOT size
+        uses: willibrandon/dotsider@v0
+        with:
+          # The size report the Native AOT compiler writes beside its object files.
+          target: src/Pgtail/obj/Release/net10.0/${{ matrix.rid }}/native/pgtail.mstat
+          baseline-key: pgtail-${{ matrix.rid }}
+          budgets: |
+            max=25mb
+            growth=5%
+          top: '20'
+          report-directory: ${{ runner.temp }}/dotsider-size-check-${{ matrix.rid }}
+          artifact-name: dotsider-size-check-${{ matrix.rid }}
