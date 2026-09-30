@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Version Condition="$(MSBuildProjectName.StartsWith('Pgtail'))">0.6.1</Version>
+    <Version Condition="$(MSBuildProjectName.StartsWith('Pgtail'))">0.7.0</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -38,12 +38,24 @@ internal static partial class ConsoleSupport
     }
 
     /// <summary>
+    /// Whether someone can type at the REPL and see what it draws.
+    /// </summary>
+    /// <remarks>
+    /// Not when input or output is redirected, and not when pgtail is alone in its console on Windows. Package
+    /// validation and installers start pgtail in those ways and expect it to end with status 0.
+    /// </remarks>
+    /// <returns>True when the REPL has a terminal and a user.</returns>
+    public static bool IsInteractive() => !Console.IsInputRedirected && !Console.IsOutputRedirected && !IsAloneInConsole();
+
+    /// <summary>
     /// Whether pgtail is the only process attached to a console no terminal hosts, on Windows.
     /// </summary>
     /// <remarks>
     /// That happens when it is started by a double click, <c>Start-Process</c>, or package validation, so there is
     /// no one to type at the prompt. A terminal that starts pgtail itself, such as a Windows Terminal profile or Hex1b,
-    /// hosts it in a pseudoconsole, whose window is a hidden stand-in of the class <c>PseudoConsoleWindow</c>.
+    /// hosts it in a pseudoconsole, whose window is a hidden stand-in of the class <c>PseudoConsoleWindow</c>, and
+    /// names itself in the environment (<c>WT_SESSION</c> or <c>TERM</c>). Windows can also hand a plain launch to a
+    /// pseudoconsole, without those names, and that is still no one typing.
     /// </remarks>
     /// <returns>True when neither a shell nor a terminal is there.</returns>
     public static bool IsAloneInConsole()
@@ -62,7 +74,10 @@ internal static partial class ConsoleSupport
         nint window = GetConsoleWindow();
         char[] name = new char[32];
         int length = window == 0 ? 0 : GetClassNameW(window, name, name.Length);
-        return !name.AsSpan(0, Math.Max(0, length)).SequenceEqual("PseudoConsoleWindow");
+        bool hosted = name.AsSpan(0, Math.Max(0, length)).SequenceEqual("PseudoConsoleWindow")
+            && (Environment.GetEnvironmentVariable("WT_SESSION") is { Length: > 0 }
+                || Environment.GetEnvironmentVariable("TERM") is { Length: > 0 });
+        return !hosted;
     }
 
     /// <summary>

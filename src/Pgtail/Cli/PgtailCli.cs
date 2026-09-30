@@ -53,6 +53,13 @@ internal static class PgtailCli
                 return ShellCompletion.Run(arguments);
         }
 
+        // Package validation and installers start pgtail with no arguments and no one to type; that must end at once with
+        // status 0, before anything is read or written that could fail.
+        if (arguments.Command == CliCommand.Repl && !ConsoleSupport.IsInteractive())
+        {
+            return 0;
+        }
+
         var session = PgtailSession.ForCurrentUser();
         return arguments.Command switch
         {
@@ -66,11 +73,6 @@ internal static class PgtailCli
 
     private static async Task<int> ReplAsync(PgtailSession session)
     {
-        if (Console.IsInputRedirected || ConsoleSupport.IsAloneInConsole())
-        {
-            return 0;
-        }
-
         string executable = Environment.ProcessPath ?? "";
         var updates = new UpdateChecker(PgtailVersion.Current,
             InstallMethods.UpgradeCommand(InstallMethods.Detect(executable, Environment.GetEnvironmentVariable)));
