@@ -13,11 +13,11 @@ namespace Pgtail.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class LineLengthAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly char[] s_blanks = { ' ', '\t' };
+    private static readonly char[] s_blanks = [' ', '\t'];
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(DiagnosticDescriptors.LineIsTooLong);
+        ImmutableArray.Create(DiagnosticDescriptors.s_lineIsTooLong);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -29,23 +29,23 @@ public sealed class LineLengthAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeTree(SyntaxTreeAnalysisContext context)
     {
-        var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Tree);
-        if (!options.TryGetValue("max_line_length", out var configured)
-            || !int.TryParse(configured, NumberStyles.None, CultureInfo.InvariantCulture, out var limit))
+        AnalyzerConfigOptions options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Tree);
+        if (!options.TryGetValue("max_line_length", out string? configured)
+            || !int.TryParse(configured, NumberStyles.None, CultureInfo.InvariantCulture, out int limit))
         {
             return;
         }
 
-        foreach (var line in context.Tree.GetText(context.CancellationToken).Lines)
+        foreach (TextLine line in context.Tree.GetText(context.CancellationToken).Lines)
         {
-            var length = line.Span.Length;
+            int length = line.Span.Length;
             if (length <= limit || IsUnbreakable(line))
             {
                 continue;
             }
 
             var overflow = TextSpan.FromBounds(line.Start + limit, line.End);
-            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.LineIsTooLong,
+            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_lineIsTooLong,
                 Location.Create(context.Tree, overflow), length, limit));
         }
     }
@@ -53,7 +53,7 @@ public sealed class LineLengthAnalyzer : DiagnosticAnalyzer
     // Only a comment can hold a single word with nowhere to break, such as a link. Code can always be wrapped.
     private static bool IsUnbreakable(TextLine line)
     {
-        var text = line.ToString().Trim();
+        string text = line.ToString().Trim();
         if (text.StartsWith("///", StringComparison.Ordinal))
         {
             text = text.Substring(3).TrimStart();

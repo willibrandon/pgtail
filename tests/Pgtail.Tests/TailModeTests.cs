@@ -21,12 +21,12 @@ public sealed class TailModeTests
     public async Task TailFile_Quit_ReturnsToPrompt()
     {
         using var environment = new TestEnvironment();
-        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 100, "LOG", "database system is ready to accept connections"));
         // Wide enough for the command on one line, with the long temp directories of macOS and Windows.
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
         await repl.RunAsync($"tail --file {log}", TestContext.CancellationToken);
-        var screen = await repl.WaitForScreenAsync();
+        Hex1bTerminalAutomator screen = await repl.WaitForScreenAsync();
         await screen.WaitUntilTextAsync("FOLLOW");
         await screen.TypeAsync("q", TestContext.CancellationToken);
         await screen.WaitUntilAsync(snapshot => TailHarness.Input(snapshot) == "tail> q", description: "q typed at the prompt");

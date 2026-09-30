@@ -20,9 +20,9 @@ internal static class FilterCommands
     /// <returns>A completed task.</returns>
     public static Task Levels(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var available = $"Available levels: {string.Join(' ', LogLevels.Names)}";
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        string available = $"Available levels: {string.Join(' ', LogLevels.Names)}";
         if (invocation.Args.Count == 0)
         {
             output.Line(session.ActiveLevels is { } active ? $"Filter: {Names(active, ' ')}" : "Filter: ALL (showing all levels)");
@@ -34,7 +34,7 @@ internal static class FilterCommands
             return Task.CompletedTask;
         }
 
-        var (levels, invalid) = LogLevels.ParseArguments(SplitCommas(invocation.Args));
+        (HashSet<LogLevel>? levels, List<string>? invalid) = LogLevels.ParseArguments(SplitCommas(invocation.Args));
         if (invalid.Count > 0)
         {
             output.Line($"Unknown level(s): {string.Join(", ", invalid)}");
@@ -55,7 +55,7 @@ internal static class FilterCommands
     public static Task TailLevel(CommandInvocation invocation)
     {
         var host = (ITailHost)invocation.Host;
-        var (levels, invalid) = LogLevels.ParseArguments(SplitCommas(invocation.Args));
+        (HashSet<LogLevel>? levels, List<string>? invalid) = LogLevels.ParseArguments(SplitCommas(invocation.Args));
         if (invalid.Count > 0)
         {
             invocation.Output.Markup($"[bold red]✗[/] Unknown level(s): {Markup.Escape(string.Join(", ", invalid))}");
@@ -75,15 +75,15 @@ internal static class FilterCommands
     /// <returns>A completed task.</returns>
     public static Task Filter(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         if (invocation.Args.Count == 0)
         {
             ShowFilters(session, output);
             return Task.CompletedTask;
         }
 
-        var argument = invocation.Args[0];
+        string argument = invocation.Args[0];
         if (argument.Equals("clear", StringComparison.OrdinalIgnoreCase))
         {
             session.Regex.ClearFilters();
@@ -101,7 +101,7 @@ internal static class FilterCommands
                 output.Line();
             }
 
-            var (field, value) = SplitField(argument);
+            (string? field, string? value) = SplitField(argument);
             if (value.Length == 0)
             {
                 output.Line($"Empty value for field filter: {argument}");
@@ -135,8 +135,8 @@ internal static class FilterCommands
             return Task.CompletedTask;
         }
 
-        var filter = parsed.Filter!;
-        var sensitivity = filter.CaseSensitive ? " (case-sensitive)" : "";
+        RegexFilter filter = parsed.Filter!;
+        string sensitivity = filter.CaseSensitive ? " (case-sensitive)" : "";
         if (parsed.Replace)
         {
             session.Regex.SetInclude(filter);
@@ -158,8 +158,8 @@ internal static class FilterCommands
     /// <returns>A completed task.</returns>
     public static Task TailFilter(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         var host = (ITailHost)invocation.Host;
         if (invocation.Args.Count == 0)
         {
@@ -169,7 +169,8 @@ internal static class FilterCommands
                 return Task.CompletedTask;
             }
 
-            foreach (var (filter, label, color, prefix) in session.Regex.Includes.Select(f => (f, "include", "cyan", ""))
+            foreach ((RegexFilter filter, string label, string color, string prefix) in session.Regex.Includes
+                .Select(f => (f, "include", "cyan", ""))
                 .Concat(session.Regex.Excludes.Select(f => (f, "exclude", "yellow", "-")))
                 .Concat(session.Regex.Ands.Select(f => (f, "and", "green", "&"))))
             {
@@ -184,7 +185,7 @@ internal static class FilterCommands
             return Task.CompletedTask;
         }
 
-        var argument = invocation.Args[0];
+        string argument = invocation.Args[0];
         if (argument.Equals("clear", StringComparison.OrdinalIgnoreCase))
         {
             session.Regex.ClearFilters();
@@ -202,7 +203,7 @@ internal static class FilterCommands
                 output.Markup("[yellow]Warning:[/] Field filtering only works for CSV/JSON logs");
             }
 
-            var (field, value) = SplitField(argument);
+            (string? field, string? value) = SplitField(argument);
             if (value.Length > 0)
             {
                 try
@@ -233,7 +234,7 @@ internal static class FilterCommands
             return Task.CompletedTask;
         }
 
-        var added = parsed.Filter!;
+        RegexFilter added = parsed.Filter!;
         if (parsed.Replace)
         {
             session.Regex.SetInclude(added);
@@ -243,7 +244,7 @@ internal static class FilterCommands
             session.Regex.Add(added);
         }
 
-        var pattern = $"/{added.Pattern}/{(added.CaseSensitive ? "c" : "")}";
+        string pattern = $"/{added.Pattern}/{(added.CaseSensitive ? "c" : "")}";
         output.Markup($"[bold green]✓[/] Filter {TypeName(added.Type)}: [cyan]{Markup.Escape(pattern)}[/]");
         host.RefreshStatus();
         host.Rebuild();
@@ -269,7 +270,7 @@ internal static class FilterCommands
             if (session.Regex.HasFilters)
             {
                 output.Line("Active regex filters:");
-                foreach (var (filter, label) in session.Regex.Includes.Select(f => (f, "include"))
+                foreach ((RegexFilter filter, string label) in session.Regex.Includes.Select(f => (f, "include"))
                     .Concat(session.Regex.Excludes.Select(f => (f, "exclude")))
                     .Concat(session.Regex.Ands.Select(f => (f, "and"))))
                 {
@@ -300,19 +301,19 @@ internal static class FilterCommands
 
     private static bool IsFieldFilter(string argument)
     {
-        var equals = argument.IndexOf('=', StringComparison.Ordinal);
+        int equals = argument.IndexOf('=', StringComparison.Ordinal);
         return equals > 0 && FieldNames.Aliases.ContainsKey(argument[..equals].ToLowerInvariant());
     }
 
     private static (string Field, string Value) SplitField(string argument)
     {
-        var equals = argument.IndexOf('=', StringComparison.Ordinal);
+        int equals = argument.IndexOf('=', StringComparison.Ordinal);
         return (argument[..equals], argument[(equals + 1)..].Trim());
     }
 
     private static (RegexFilter? Filter, bool Replace, string? Error)? Parse(string argument)
     {
-        var (type, pattern, replace) = argument switch
+        (FilterType type, string? pattern, bool replace) = argument switch
         {
             ['-', '/', ..] => (FilterType.Exclude, argument[1..], false),
             ['+', '/', ..] => (FilterType.Include, argument[1..], false),

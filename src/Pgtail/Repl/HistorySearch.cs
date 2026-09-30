@@ -57,9 +57,9 @@ internal sealed class HistorySearch(string saved)
         }
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        for (var index = history.Count - 1; index >= 0; index--)
+        for (int index = history.Count - 1; index >= 0; index--)
         {
-            var entry = history[index];
+            string entry = history[index];
             if (entry.Contains(query, StringComparison.Ordinal) && seen.Add(entry) && skip-- == 0)
             {
                 return entry;

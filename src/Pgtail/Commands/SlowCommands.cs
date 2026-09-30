@@ -1,4 +1,5 @@
 using System.Globalization;
+using Pgtail.Sessions;
 using Pgtail.Statistics;
 
 namespace Pgtail.Commands;
@@ -18,9 +19,9 @@ internal static class SlowCommands
     /// <returns>A completed task.</returns>
     public static Task Slow(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             if (session.Slow.Enabled)
@@ -59,7 +60,7 @@ internal static class SlowCommands
             return Task.CompletedTask;
         }
 
-        if (!TryNumber(args[0], out var warning) || !TryNumber(args[1], out var slow) || !TryNumber(args[2], out var critical))
+        if (!TryNumber(args[0], out double warning) || !TryNumber(args[1], out double slow) || !TryNumber(args[2], out double critical))
         {
             output.Line("Error: Thresholds must be numbers");
             output.Line(Usage);
@@ -102,8 +103,8 @@ internal static class SlowCommands
     public static Task TailSlow(CommandInvocation invocation)
     {
         var host = (ITailHost)invocation.Host;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             invocation.Output.Markup("[bold red]✗[/] Usage: slow <milliseconds>");
@@ -118,7 +119,7 @@ internal static class SlowCommands
             return Task.CompletedTask;
         }
 
-        if (!int.TryParse(args[0], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var threshold) || threshold <= 0)
+        if (!int.TryParse(args[0], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int threshold) || threshold <= 0)
         {
             invocation.Output.Markup("[bold red]✗[/] Threshold must be a positive number of milliseconds");
             return Task.CompletedTask;
@@ -137,8 +138,8 @@ internal static class SlowCommands
     /// <returns>A completed task.</returns>
     public static Task Stats(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var durations = invocation.Session.Durations;
+        CommandOutput output = invocation.Output;
+        DurationStats durations = invocation.Session.Durations;
         if (durations.IsEmpty)
         {
             output.Line("No query duration data collected yet.");

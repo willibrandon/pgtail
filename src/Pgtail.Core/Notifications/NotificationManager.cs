@@ -21,8 +21,8 @@ namespace Pgtail.Notifications;
 /// <param name="clock">Returns the current local time.</param>
 public sealed class NotificationManager(INotifier notifier, ErrorStats errorStats, Func<DateTime> clock)
 {
-    private static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan RepeatWindow = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan s_cooldown = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan s_repeatWindow = TimeSpan.FromMinutes(1);
     private const int RememberedAlerts = 256;
     private readonly Lock _gate = new();
     private readonly Dictionary<string, Shown> _shown = new(StringComparer.Ordinal);
@@ -48,16 +48,16 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
     public void Consider(LogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        var now = clock();
+        DateTime now = clock();
         if (!IsOn(now) || Match(entry, now) is not { } matched)
         {
             return;
         }
 
-        var (alert, key) = matched;
+        (Notification? alert, string? key) = matched;
         lock (_gate)
         {
-            if (_shown.TryGetValue(key, out var shown) && now - shown.At < RepeatWindow)
+            if (_shown.TryGetValue(key, out Shown? shown) && now - shown.At < s_repeatWindow)
             {
                 shown.Repeats++;
                 return;
@@ -69,14 +69,14 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
             }
 
             Remember(key, now);
-            if (_held.Count == 0 && (_lastShown is not { } last || now - last >= Cooldown))
+            if (_held.Count == 0 && (_lastShown is not { } last || now - last >= s_cooldown))
             {
                 Show(alert, now);
                 return;
             }
 
             _held.Add(alert);
-            var wait = (_lastShown ?? now) + Cooldown - now;
+            TimeSpan wait = (_lastShown ?? now) + s_cooldown - now;
             _release ??= new Timer(_ => Release(), null, wait < TimeSpan.Zero ? TimeSpan.Zero : wait, Timeout.InfiniteTimeSpan);
         }
     }
@@ -105,7 +105,7 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
 
         if (Config.PatternRules().Any(rule => rule.Pattern!.IsMatch(entry.Message)))
         {
-            var start = entry.Message.Length > 10 ? entry.Message[..10] : entry.Message;
+            string start = entry.Message.Length > 10 ? entry.Message[..10] : entry.Message;
             return (EntryNotification(entry, "Pattern Match", "pat:" + start), "pattern:" + Shape(entry.Message));
         }
 
@@ -122,7 +122,7 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
         if (Config.SlowQueryThreshold() is { } threshold && DurationExtractor.Extract(entry.Message) is { } duration
             && duration > threshold)
         {
-            var message = entry.Message.Length > 100 ? entry.Message[..97] + "..." : entry.Message;
+            string message = entry.Message.Length > 100 ? entry.Message[..97] + "..." : entry.Message;
             return (new Notification(
                 "pgtail: Slow Query",
                 $"Duration: {FormatMs(duration)}ms (threshold: {threshold}ms)\n{message}",
@@ -146,7 +146,7 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
         {
             _release?.Dispose();
             _release = null;
-            var now = clock();
+            DateTime now = clock();
             if (_held.Count > 0 && IsOn(now))
             {
                 Show(_held.Count == 1 ? _held[0] : Summary(_held), now);
@@ -158,10 +158,10 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
 
     private static Notification Summary(List<Notification> held)
     {
-        var counts = held.GroupBy(alert => alert.Subtitle ?? alert.Title["pgtail: ".Length..], StringComparer.Ordinal)
+        IEnumerable<string> counts = held.GroupBy(alert => alert.Subtitle ?? alert.Title["pgtail: ".Length..], StringComparer.Ordinal)
             .Select(group => $"{group.Count()} {group.Key}");
         // The detail is the most severe alert, the newest of those.
-        var worst = held.Where(alert => alert.Severity == held.Max(other => other.Severity)).Last();
+        Notification worst = held.Where(alert => alert.Severity == held.Max(other => other.Severity)).Last();
         return new Notification(
             $"pgtail: {held.Count} more alerts",
             $"{string.Join(" · ", counts)}\n{worst.Body.Split('\n')[0]}",
@@ -173,7 +173,7 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
     {
         if (_shown.Count >= RememberedAlerts)
         {
-            foreach (var old in _shown.Where(pair => now - pair.Value.At >= RepeatWindow).Select(pair => pair.Key).ToList())
+            foreach (string? old in _shown.Where(pair => now - pair.Value.At >= s_repeatWindow).Select(pair => pair.Key).ToList())
             {
                 _ = _shown.Remove(old);
             }
@@ -186,7 +186,7 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
     private static string Shape(string message)
     {
         var shape = new StringBuilder(Math.Min(message.Length, 120));
-        foreach (var character in message)
+        foreach (char character in message)
         {
             if (shape.Length >= 120)
             {
@@ -213,7 +213,7 @@ public sealed class NotificationManager(INotifier notifier, ErrorStats errorStat
             return null;
         }
 
-        var buckets = errorStats.GetTrendBuckets(1);
+        IReadOnlyList<int> buckets = errorStats.GetTrendBuckets(1);
         if (buckets.Count == 0 || buckets[^1] <= threshold)
         {
             return null;

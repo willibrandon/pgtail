@@ -1,7 +1,7 @@
 using System.Threading.Channels;
-using Hex1b.Widgets;
 using Hex1b;
 using Hex1b.Automation;
+using Hex1b.Widgets;
 using Pgtail.Commands;
 using Pgtail.Repl;
 using Pgtail.Sessions;
@@ -45,7 +45,7 @@ internal sealed class ReplHarness : IAsyncDisposable
             {
                 while (true)
                 {
-                    var request = await Host.RunAsync(flow);
+                    ReplRequest request = await Host.RunAsync(flow);
                     _exited = request.Kind == ReplRequestKind.Exit;
                     await _requests.Writer.WriteAsync(request, cancellationToken);
                     switch (request)
@@ -101,7 +101,7 @@ internal sealed class ReplHarness : IAsyncDisposable
         int width = 100,
         int height = 30)
     {
-        var session = environment.CreateSession();
+        PgtailSession session = environment.CreateSession();
         session.Refresh();
         var harness = new ReplHarness(environment, session, width, height, cancellationToken);
         await harness.Automator.WaitUntilTextAsync("pgtail>");
@@ -128,7 +128,7 @@ internal sealed class ReplHarness : IAsyncDisposable
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         while (true)
         {
-            var request = await _requests.Reader.ReadAsync(timeout.Token);
+            ReplRequest request = await _requests.Reader.ReadAsync(timeout.Token);
             if (request.Kind == kind)
             {
                 return request;
@@ -157,7 +157,7 @@ internal sealed class ReplHarness : IAsyncDisposable
     public static string? LineAfter(IHex1bTerminalRegion screen, string text)
     {
         ArgumentNullException.ThrowIfNull(screen);
-        for (var row = 0; row < screen.Height - 1; row++)
+        for (int row = 0; row < screen.Height - 1; row++)
         {
             if (screen.GetLine(row).Contains(text, StringComparison.Ordinal))
             {
@@ -176,7 +176,7 @@ internal sealed class ReplHarness : IAsyncDisposable
     public static string PromptLine(IHex1bTerminalRegion screen)
     {
         ArgumentNullException.ThrowIfNull(screen);
-        for (var row = screen.Height - 2; row >= 0; row--)
+        for (int row = screen.Height - 2; row >= 0; row--)
         {
             if (screen.GetLineTrimmed(row) is { Length: > 0 } line)
             {
@@ -195,7 +195,7 @@ internal sealed class ReplHarness : IAsyncDisposable
     public static string EditedLine(IHex1bTerminalRegion screen)
     {
         ArgumentNullException.ThrowIfNull(screen);
-        for (var row = screen.Height - 2; row >= 0; row--)
+        for (int row = screen.Height - 2; row >= 0; row--)
         {
             if (screen.GetLineTrimmed(row) is var line && line.StartsWith("pgtail>", StringComparison.Ordinal))
             {
@@ -230,7 +230,7 @@ internal sealed class ReplHarness : IAsyncDisposable
     /// <returns>The rows.</returns>
     public IReadOnlyList<string> Screen()
     {
-        using var snapshot = _terminal.CreateSnapshot();
+        using Hex1bTerminalSnapshot snapshot = _terminal.CreateSnapshot();
         return [.. Enumerable.Range(0, snapshot.Height).Select(snapshot.GetLineTrimmed)];
     }
 
@@ -241,12 +241,12 @@ internal sealed class ReplHarness : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         Hex1bAppOptions? options = null;
-        await using var terminal = Hex1bTerminal.CreateBuilder()
+        await using Hex1bTerminal terminal = Hex1bTerminal.CreateBuilder()
             .WithHex1bApp(configure => options = configure, app => screen(app, options!))
             .WithHeadless()
             .WithDimensions(width, height)
             .Build();
-        var run = terminal.RunAsync(cancellationToken);
+        Task<int> run = terminal.RunAsync(cancellationToken);
         await _screens.Writer.WriteAsync(new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(15)), cancellationToken);
         _ = await run;
     }

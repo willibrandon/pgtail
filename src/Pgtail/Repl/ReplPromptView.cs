@@ -2,6 +2,7 @@ using Hex1b;
 using Hex1b.Composition;
 using Hex1b.Surfaces;
 using Hex1b.Widgets;
+using Pgtail.Commands;
 using Pgtail.Rendering;
 using Pgtail.Styling;
 
@@ -28,11 +29,11 @@ internal sealed record ReplPromptView(
     int Height,
     bool Color) : Hex1bWidget
 {
-    private static readonly TextStyle Item = StyleParser.Parse("fg:#000000 bg:#bbbbbb");
-    private static readonly TextStyle CurrentItem = StyleParser.Parse("fg:#888888 bg:#ffffff reverse");
-    private static readonly TextStyle Meta = StyleParser.Parse("fg:#000000 bg:#999999");
-    private static readonly TextStyle CurrentMeta = StyleParser.Parse("fg:#000000 bg:#aaaaaa");
-    private static readonly TextStyle SearchLabel = StyleParser.Parse("fg:#888888");
+    private static readonly TextStyle s_item = StyleParser.Parse("fg:#000000 bg:#bbbbbb");
+    private static readonly TextStyle s_currentItem = StyleParser.Parse("fg:#888888 bg:#ffffff reverse");
+    private static readonly TextStyle s_meta = StyleParser.Parse("fg:#000000 bg:#999999");
+    private static readonly TextStyle s_currentMeta = StyleParser.Parse("fg:#000000 bg:#aaaaaa");
+    private static readonly TextStyle s_searchLabel = StyleParser.Parse("fg:#888888");
 
     /// <summary>
     /// The most rows the line wraps onto before scrolling.
@@ -47,19 +48,19 @@ internal sealed record ReplPromptView(
     protected override Hex1bWidget Build(CompositionContext ctx)
     {
         ArgumentNullException.ThrowIfNull(ctx);
-        var state = Controller.State;
+        PromptState state = Controller.State;
         if (Controller.Search is { } search)
         {
             return BuildSearch(ctx, state, search);
         }
 
-        var labelRow = StyledTextFolder.Fold(Label, 0)[0];
-        var labelWidth = StyledTextFolder.Width(labelRow);
-        var editorWidth = Math.Max(1, Width - labelWidth);
-        var textWidth = DisplayWidth.GetStringWidth(state.Text) + 1;
-        var editorRows = Math.Clamp((textWidth + editorWidth - 1) / editorWidth, 1, MaxEditorRows);
-        var menuRows = state.MenuVisible ? Math.Min(PromptState.MenuRows, state.Candidates.Count) : 0;
-        var height = Math.Max(Height, editorRows + menuRows + 1);
+        List<StyledSpan> labelRow = StyledTextFolder.Fold(Label, 0)[0];
+        int labelWidth = StyledTextFolder.Width(labelRow);
+        int editorWidth = Math.Max(1, Width - labelWidth);
+        int textWidth = DisplayWidth.GetStringWidth(state.Text) + 1;
+        int editorRows = Math.Clamp((textWidth + editorWidth - 1) / editorWidth, 1, MaxEditorRows);
+        int menuRows = state.MenuVisible ? Math.Min(PromptState.MenuRows, state.Candidates.Count) : 0;
+        int height = Math.Max(Height, editorRows + menuRows + 1);
         return ctx.VStack(v =>
         {
             var children = new List<Hex1bWidget>
@@ -79,12 +80,12 @@ internal sealed record ReplPromptView(
 
             if (menuRows > 0)
             {
-                var anchor = labelWidth + DisplayWidth.GetStringWidth(state.Text[..Math.Min(state.CompletionStart, state.Text.Length)]);
+                int anchor = labelWidth + DisplayWidth.GetStringWidth(state.Text[..Math.Min(state.CompletionStart, state.Text.Length)]);
                 children.Add(v.Surface(s => [s.Layer(surface => DrawMenu(surface, state, anchor, menuRows))]).Size(Width, menuRows));
             }
 
             children.Add(v.Text("").FillHeight());
-            var toolbarRow = StyledTextFolder.Fold(Toolbar, 0)[0];
+            List<StyledSpan> toolbarRow = StyledTextFolder.Fold(Toolbar, 0)[0];
             children.Add(v.Surface(s => [s.Layer(surface => DrawToolbar(surface, toolbarRow))]).Size(Width, 1));
             return [.. children];
         }).FixedHeight(height);
@@ -93,13 +94,13 @@ internal sealed record ReplPromptView(
     // The search reads as it does in a shell: (reverse-i-search)`text': command found
     private VStackWidget BuildSearch(CompositionContext ctx, PromptState state, HistorySearch search)
     {
-        var label = new StyledText().Append("(reverse-i-search)`", SearchLabel);
-        var labelRow = StyledTextFolder.Fold(label, 0)[0];
-        var labelWidth = StyledTextFolder.Width(labelRow);
-        var queryWidth = Math.Min(Math.Max(1, Width - labelWidth - 3), DisplayWidth.GetStringWidth(state.Text) + 1);
-        var found = new StyledText().Append("': ", SearchLabel).Append(search.Match ?? "");
-        var foundRow = StyledTextFolder.Fold(found, 0)[0];
-        var toolbarRow = StyledTextFolder.Fold(Toolbar, 0)[0];
+        StyledText label = new StyledText().Append("(reverse-i-search)`", s_searchLabel);
+        List<StyledSpan> labelRow = StyledTextFolder.Fold(label, 0)[0];
+        int labelWidth = StyledTextFolder.Width(labelRow);
+        int queryWidth = Math.Min(Math.Max(1, Width - labelWidth - 3), DisplayWidth.GetStringWidth(state.Text) + 1);
+        StyledText found = new StyledText().Append("': ", s_searchLabel).Append(search.Match ?? "");
+        List<StyledSpan> foundRow = StyledTextFolder.Fold(found, 0)[0];
+        List<StyledSpan> toolbarRow = StyledTextFolder.Fold(Toolbar, 0)[0];
         return ctx.VStack(v =>
         [
             v.HStack(h =>
@@ -121,34 +122,34 @@ internal sealed record ReplPromptView(
     private void DrawMenu(Surface surface, PromptState state, int anchor, int rows)
     {
         var shown = state.Candidates.Skip(state.MenuTop).Take(rows).ToList();
-        var labelColumn = shown.Max(item => DisplayWidth.GetStringWidth(item.Label));
-        var metaColumn = shown.Max(item => DisplayWidth.GetStringWidth(item.Description));
-        var menuWidth = labelColumn + 2 + (metaColumn > 0 ? metaColumn + 2 : 0);
+        int labelColumn = shown.Max(item => DisplayWidth.GetStringWidth(item.Label));
+        int metaColumn = shown.Max(item => DisplayWidth.GetStringWidth(item.Description));
+        int menuWidth = labelColumn + 2 + (metaColumn > 0 ? metaColumn + 2 : 0);
         if (menuWidth > Width)
         {
             metaColumn = Math.Max(0, metaColumn - (menuWidth - Width));
             menuWidth = Math.Min(Width, labelColumn + 2 + (metaColumn > 0 ? metaColumn + 2 : 0));
         }
 
-        var x = Math.Clamp(anchor, 0, Math.Max(0, Width - menuWidth));
-        for (var row = 0; row < shown.Count; row++)
+        int x = Math.Clamp(anchor, 0, Math.Max(0, Width - menuWidth));
+        for (int row = 0; row < shown.Count; row++)
         {
-            var item = shown[row];
-            var current = state.MenuTop + row == state.Selected;
-            var label = Pad(" " + item.Label, labelColumn + 2);
-            var column = StyledBlock.DrawRow(surface, x, row, [new StyledSpan(label, current ? CurrentItem : Item)], Color);
+            CompletionItem item = shown[row];
+            bool current = state.MenuTop + row == state.Selected;
+            string label = Pad(" " + item.Label, labelColumn + 2);
+            int column = StyledBlock.DrawRow(surface, x, row, [new StyledSpan(label, current ? s_currentItem : s_item)], Color);
             if (metaColumn > 0)
             {
-                var meta = Pad(" " + Truncate(item.Description, metaColumn), metaColumn + 2);
-                _ = StyledBlock.DrawRow(surface, column, row, [new StyledSpan(meta, current ? CurrentMeta : Meta)], Color);
+                string meta = Pad(" " + Truncate(item.Description, metaColumn), metaColumn + 2);
+                _ = StyledBlock.DrawRow(surface, column, row, [new StyledSpan(meta, current ? s_currentMeta : s_meta)], Color);
             }
         }
     }
 
     private void DrawToolbar(Surface surface, List<StyledSpan> row)
     {
-        var end = StyledBlock.DrawRow(surface, 0, 0, row, Color);
-        var fill = row.Count > 0 ? row[^1].Style with { Attributes = TextAttributes.None } : TextStyle.Plain;
+        int end = StyledBlock.DrawRow(surface, 0, 0, row, Color);
+        TextStyle fill = row.Count > 0 ? row[^1].Style with { Attributes = TextAttributes.None } : TextStyle.Plain;
         if (end < Width)
         {
             _ = StyledBlock.DrawRow(surface, end, 0, [new StyledSpan(new string(' ', Width - end), fill)], Color);
@@ -157,7 +158,7 @@ internal sealed record ReplPromptView(
 
     private static string Pad(string text, int width)
     {
-        var textWidth = DisplayWidth.GetStringWidth(text);
+        int textWidth = DisplayWidth.GetStringWidth(text);
         return textWidth >= width ? text : text + new string(' ', width - textWidth);
     }
 
@@ -168,7 +169,7 @@ internal sealed record ReplPromptView(
             return text;
         }
 
-        var (slice, _, _, _) = DisplayWidth.SliceByDisplayWidth(text, 0, Math.Max(0, width - 1));
+        (string? slice, int _, int _, int _) = DisplayWidth.SliceByDisplayWidth(text, 0, Math.Max(0, width - 1));
         return slice + "…";
     }
 }

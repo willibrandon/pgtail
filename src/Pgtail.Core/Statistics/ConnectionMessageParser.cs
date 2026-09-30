@@ -10,14 +10,14 @@ namespace Pgtail.Statistics;
 public static class ConnectionMessageParser
 {
     // Groups: user, database, application.
-    private static readonly ByteRegex Authorized =
+    private static readonly ByteRegex s_authorized =
         ByteRegex.Compile(@"connection authorized:\s+user=(\S+)\s+database=(\S+)(?:\s+application_name=(\S+))?");
 
     // Groups: duration, user, database, host, port.
-    private static readonly ByteRegex Disconnection = ByteRegex.Compile(
+    private static readonly ByteRegex s_disconnection = ByteRegex.Compile(
         @"disconnection:\s+session time:\s+([0-9:\.]+)\s+user=(\S+)\s+database=(\S+)\s+host=(\S+)(?:\s+port=([0-9]+))?");
 
-    private static readonly ByteRegex FatalConnection = ByteRegex.Compile(
+    private static readonly ByteRegex s_fatalConnection = ByteRegex.Compile(
         "(?i)too many connections|too many clients already|connection limit exceeded|password authentication failed"
         + "|no pg_hba\\.conf entry|database .* does not exist|role .* does not exist|authentication failed");
 
@@ -38,29 +38,29 @@ public static class ConnectionMessageParser
         }
 
         // Most lines are neither, and looking for the words each pattern starts with is much cheaper than matching it.
-        var connect = message.Contains("connection authorized:", StringComparison.Ordinal);
-        var disconnect = message.Contains("disconnection:", StringComparison.Ordinal);
+        bool connect = message.Contains("connection authorized:", StringComparison.Ordinal);
+        bool disconnect = message.Contains("disconnection:", StringComparison.Ordinal);
         if (!connect && !disconnect && !isFatal)
         {
             return null;
         }
 
         using var text = new Utf8Text(message);
-        var bytes = text.Bytes;
-        if (connect && Authorized.FindCaptures(bytes) is { } authorized)
+        ReadOnlySpan<byte> bytes = text.Bytes;
+        if (connect && s_authorized.FindCaptures(bytes) is { } authorized)
         {
             return new ConnectionMessage(ConnectionEventType.Connect, Group(bytes, authorized, 1), Group(bytes, authorized, 2),
                 Group(bytes, authorized, 3));
         }
 
-        if (disconnect && Disconnection.FindCaptures(bytes) is { } ended)
+        if (disconnect && s_disconnection.FindCaptures(bytes) is { } ended)
         {
             return new ConnectionMessage(ConnectionEventType.Disconnect, Group(bytes, ended, 2), Group(bytes, ended, 3),
                 Host: Group(bytes, ended, 4), Port: Group(bytes, ended, 5), Duration: Group(bytes, ended, 1));
         }
 
         // The failure phrases are matched without regard to case, as they are written in lower case by PostgreSQL.
-        return isFatal && FatalConnection.IsMatch(bytes) ? new ConnectionMessage(ConnectionEventType.ConnectionFailed) : null;
+        return isFatal && s_fatalConnection.IsMatch(bytes) ? new ConnectionMessage(ConnectionEventType.ConnectionFailed) : null;
     }
 
     private static string? Group(ReadOnlySpan<byte> bytes, ByteRegexCaptures captures, int index) =>

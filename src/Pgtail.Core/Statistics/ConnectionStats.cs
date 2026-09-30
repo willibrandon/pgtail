@@ -123,7 +123,7 @@ public sealed class ConnectionStats
     /// <returns>The connections in the order they opened.</returns>
     public IReadOnlyList<ConnectionEvent> GetActiveConnections(ConnectionFilter? filter = null)
     {
-        var active = _activeOrder.Select(pid => _active[pid]);
+        IEnumerable<ConnectionEvent> active = _activeOrder.Select(pid => _active[pid]);
         return filter is null || filter.IsEmpty ? [.. active] : [.. active.Where(filter.Matches)];
     }
 
@@ -146,7 +146,7 @@ public sealed class ConnectionStats
     /// <returns>The events, oldest first.</returns>
     public IReadOnlyList<ConnectionEvent> GetEventsSince(DateTime since)
     {
-        var bound = LogTimestamps.ToUtc(since);
+        DateTime bound = LogTimestamps.ToUtc(since);
         return [.. _events.Where(item => LogTimestamps.ToUtc(item.Timestamp) >= bound)];
     }
 
@@ -159,18 +159,18 @@ public sealed class ConnectionStats
     /// <returns>The connects and disconnects of each bucket, oldest first.</returns>
     public IReadOnlyList<(int Connects, int Disconnects)> GetTrendBuckets(int minutes = 60, int bucketSize = 15, DateTime? now = null)
     {
-        var current = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
-        var count = Math.Max(1, minutes / bucketSize);
+        DateTime current = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
+        int count = Math.Max(1, minutes / bucketSize);
         var buckets = new (int Connects, int Disconnects)[count];
-        foreach (var item in _events)
+        foreach (ConnectionEvent item in _events)
         {
-            var ago = (current - LogTimestamps.ToUtc(item.Timestamp)).TotalSeconds / 60;
+            double ago = (current - LogTimestamps.ToUtc(item.Timestamp)).TotalSeconds / 60;
             if (ago < 0 || ago >= minutes)
             {
                 continue;
             }
 
-            var index = Math.Clamp(count - 1 - (int)Math.Floor(ago / bucketSize), 0, count - 1);
+            int index = Math.Clamp(count - 1 - (int)Math.Floor(ago / bucketSize), 0, count - 1);
             if (item.Type == ConnectionEventType.Connect)
             {
                 buckets[index].Connects++;
@@ -188,15 +188,15 @@ public sealed class ConnectionStats
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         var order = new List<string>();
-        foreach (var pid in _activeOrder)
+        foreach (int pid in _activeOrder)
         {
-            var name = key(_active[pid]);
+            string? name = key(_active[pid]);
             if (string.IsNullOrEmpty(name))
             {
                 name = "unknown";
             }
 
-            if (!counts.TryGetValue(name, out var value))
+            if (!counts.TryGetValue(name, out int value))
             {
                 order.Add(name);
             }

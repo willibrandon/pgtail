@@ -18,9 +18,9 @@ internal static class ConfigCommands
     /// <returns>A completed task.</returns>
     public static Task Set(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             output.Line("Usage: set <key> [value]");
@@ -39,7 +39,7 @@ internal static class ConfigCommands
 
         if (args.Count == 1)
         {
-            var current = session.Config[setting.Key];
+            object? current = session.Config[setting.Key];
             output.Line($"{setting.Key} = {Show(current)}");
             if (!Equal(current, setting.Default))
             {
@@ -49,7 +49,7 @@ internal static class ConfigCommands
             return Task.CompletedTask;
         }
 
-        if (Save(invocation, setting, [.. args.Skip(1)], out var error) is not { } value)
+        if (Save(invocation, setting, [.. args.Skip(1)], out string? error) is not { } value)
         {
             output.Line(error!);
             return Task.CompletedTask;
@@ -67,15 +67,15 @@ internal static class ConfigCommands
     /// <returns>A completed task.</returns>
     public static Task TailSet(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             output.Markup("[dim]Usage: set <key> [value][/dim]");
             output.Line();
             output.Markup("[bold]Available settings:[/bold]");
-            foreach (var key in SettingsSchema.Keys)
+            foreach (string key in SettingsSchema.Keys)
             {
                 output.Markup($"  [cyan]{key}[/cyan]");
             }
@@ -91,8 +91,8 @@ internal static class ConfigCommands
 
         if (args.Count == 1)
         {
-            var current = session.Config[setting.Key];
-            var line = $"[cyan]{setting.Key}[/cyan] = [magenta]{Markup.Escape(Show(current))}[/magenta]";
+            object? current = session.Config[setting.Key];
+            string line = $"[cyan]{setting.Key}[/cyan] = [magenta]{Markup.Escape(Show(current))}[/magenta]";
             if (!Equal(current, setting.Default))
             {
                 line += $" [dim](default: {Markup.Escape(Show(setting.Default))})[/dim]";
@@ -102,9 +102,9 @@ internal static class ConfigCommands
             return Task.CompletedTask;
         }
 
-        var version = session.Highlighting.Version;
-        var theme = session.Theme;
-        if (Save(invocation, setting, [.. args.Skip(1)], out var error) is not { } value)
+        long version = session.Highlighting.Version;
+        Theme theme = session.Theme;
+        if (Save(invocation, setting, [.. args.Skip(1)], out string? error) is not { } value)
         {
             output.Markup($"[red]{Markup.Escape(error!)}[/red]");
             return Task.CompletedTask;
@@ -128,9 +128,9 @@ internal static class ConfigCommands
     /// <returns>A completed task.</returns>
     public static Task Unset(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             output.Line("Usage: unset <key>");
@@ -176,9 +176,9 @@ internal static class ConfigCommands
     /// <returns>A task that completes when the command has finished.</returns>
     public static async Task Config(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var store = session.Store;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        ConfigStore store = session.Store;
         if (invocation.Args.Count > 0)
         {
             switch (invocation.Args[0].ToLowerInvariant())
@@ -250,8 +250,8 @@ internal static class ConfigCommands
     /// <returns>A completed task.</returns>
     public static Task EnableLogging(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         if (invocation.Args.Count == 0)
         {
             output.Line("Usage: enable-logging <id|path>");
@@ -277,11 +277,11 @@ internal static class ConfigCommands
         output.Line($"Enabling logging for instance {instance.Id}...");
         output.Line($"Data directory: {instance.DataDirectory}");
         output.Line();
-        var result = LoggingEnabler.Enable(instance.DataDirectory, instance.ConfigPath);
+        ConfigUpdate result = LoggingEnabler.Enable(instance.DataDirectory, instance.ConfigPath);
         if (result.Changes.Count > 0)
         {
             output.Line("Changes made:");
-            foreach (var change in result.Changes)
+            foreach (string change in result.Changes)
             {
                 output.Line($"  • {change}");
             }
@@ -312,11 +312,11 @@ internal static class ConfigCommands
     public static void InstanceNotFound(CommandInvocation invocation, string argument)
     {
         ArgumentNullException.ThrowIfNull(invocation);
-        var output = invocation.Output;
+        CommandOutput output = invocation.Output;
         output.Line($"Instance not found: {argument}");
         output.Line();
         output.Line("Available instances:");
-        foreach (var instance in invocation.Session.Instances)
+        foreach (PostgresInstance instance in invocation.Session.Instances)
         {
             output.Line($"  {instance.Id}: {instance.DataDirectory}");
         }
@@ -331,7 +331,7 @@ internal static class ConfigCommands
 
     private static object? Save(CommandInvocation invocation, SettingDefinition setting, IReadOnlyList<string> words, out string? error)
     {
-        var session = invocation.Session;
+        PgtailSession session = invocation.Session;
         object value;
         try
         {
@@ -363,23 +363,23 @@ internal static class ConfigCommands
     public static EditRequest ConfigEditRequest(PgtailSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        var file = session.Store.ConfigFile;
+        string file = session.Store.ConfigFile;
         return new EditRequest(file, $"Editing {PathDisplay.Shorten(file, session.Home)}", ConfigStore.DefaultTemplate,
             ConfigStore.Problems);
     }
 
     private static async Task EditAsync(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var store = session.Store;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        ConfigStore store = session.Store;
         if (!store.Exists)
         {
             output.Line($"Creating config file: {store.ConfigFile}");
             store.CreateDefault();
         }
 
-        var saved = await CoreCommands.Repl(invocation).EditAsync(ConfigEditRequest(session));
+        bool saved = await CoreCommands.Repl(invocation).EditAsync(ConfigEditRequest(session));
         if (!saved)
         {
             output.Line("No changes saved.");
@@ -388,7 +388,7 @@ internal static class ConfigCommands
 
         output.Line("Reloading configuration...");
         session.Reload();
-        foreach (var warning in session.TakeWarnings())
+        foreach (string warning in session.TakeWarnings())
         {
             output.Line($"Warning: {warning}");
         }
@@ -398,8 +398,8 @@ internal static class ConfigCommands
 
     private static void Reset(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         if (!session.Store.Exists)
         {
             output.Line("No config file to reset.");
@@ -429,7 +429,7 @@ internal static class ConfigCommands
     private static void ListSettings(CommandOutput output, bool withDefaults)
     {
         output.Line("Available settings:");
-        foreach (var setting in SettingsSchema.All)
+        foreach (SettingDefinition setting in SettingsSchema.All)
         {
             output.Line(withDefaults ? $"  {setting.Key} (default: {Show(setting.Default)})" : $"  {setting.Key}");
         }

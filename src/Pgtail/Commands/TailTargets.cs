@@ -26,11 +26,11 @@ internal static class TailTargets
         ArgumentNullException.ThrowIfNull(warn);
         var files = new List<string>();
         string? glob = null;
-        foreach (var argument in arguments)
+        foreach (string argument in arguments)
         {
             if (GlobPattern.IsGlob(argument))
             {
-                var matches = GlobPattern.FromPath(argument, home, currentDirectory).Expand();
+                IReadOnlyList<string> matches = GlobPattern.FromPath(argument, home, currentDirectory).Expand();
                 if (matches.Count == 0)
                 {
                     return ([], null, $"No files match pattern: {argument}");
@@ -46,7 +46,7 @@ internal static class TailTargets
                 continue;
             }
 
-            var (path, error) = ValidateFile(argument, home, currentDirectory);
+            (string? path, string? error) = ValidateFile(argument, home, currentDirectory);
             if (error is not null)
             {
                 return ([], null, error);
@@ -67,7 +67,7 @@ internal static class TailTargets
     /// <returns>The resolved path, and the error, if any.</returns>
     public static (string Path, string? Error) ValidateFile(string argument, string home, string currentDirectory)
     {
-        var path = PathResolver.Resolve(PathDisplay.Resolve(argument, home, currentDirectory), home);
+        string path = PathResolver.Resolve(PathDisplay.Resolve(argument, home, currentDirectory), home);
         if (Directory.Exists(path))
         {
             return (path, $"Not a file: {path} (is a directory)");

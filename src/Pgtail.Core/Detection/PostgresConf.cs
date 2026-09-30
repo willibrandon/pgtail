@@ -20,7 +20,7 @@ public static partial class PostgresConf
     public static string? FindConfFile(string dataDirectory)
     {
         ArgumentNullException.ThrowIfNull(dataDirectory);
-        var standard = Path.Combine(dataDirectory, "postgresql.conf");
+        string standard = Path.Combine(dataDirectory, "postgresql.conf");
         if (File.Exists(standard))
         {
             return standard;
@@ -37,7 +37,7 @@ public static partial class PostgresConf
     public static string? DebianConfFile(string dataDirectory)
     {
         ArgumentNullException.ThrowIfNull(dataDirectory);
-        var match = DebianDataDirectory().Match(dataDirectory);
+        Match match = DebianDataDirectory().Match(dataDirectory);
         return match.Success ? $"/etc/postgresql/{match.Groups[1].Value}/{match.Groups[2].Value}/postgresql.conf" : null;
     }
 
@@ -58,9 +58,9 @@ public static partial class PostgresConf
         ArgumentNullException.ThrowIfNull(key);
         var pattern = new Regex($@"^\s*{Regex.Escape(key)}\s*=\s*['""]?([^'""#\n]+)['""]?",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        foreach (var line in content.Split('\n'))
+        foreach (string line in content.Split('\n'))
         {
-            var match = pattern.Match(line.TrimEnd('\r'));
+            Match match = pattern.Match(line.TrimEnd('\r'));
             if (match.Success)
             {
                 return match.Groups[1].Value.Trim();
@@ -84,7 +84,7 @@ public static partial class PostgresConf
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            var match = DebianVersion().Match(dataDirectory);
+            Match match = DebianVersion().Match(dataDirectory);
             return match.Success ? match.Groups[1].Value : "unknown";
         }
     }
@@ -98,14 +98,14 @@ public static partial class PostgresConf
     {
         ArgumentNullException.ThrowIfNull(dataDirectory);
         if (FindConfFile(dataDirectory) is { } conf && ReadText(conf) is { } content && GetValue(content, "port") is { } configured
-            && int.TryParse(configured, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port))
+            && int.TryParse(configured, NumberStyles.Integer, CultureInfo.InvariantCulture, out int port))
         {
             return port;
         }
 
-        var lines = ReadText(Path.Combine(dataDirectory, "postmaster.pid"))?.Split('\n');
+        string[]? lines = ReadText(Path.Combine(dataDirectory, "postmaster.pid"))?.Split('\n');
         return lines is { Length: >= 4 }
-            && int.TryParse(lines[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var running)
+            && int.TryParse(lines[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int running)
                 ? running
                 : null;
     }
@@ -130,15 +130,15 @@ public static partial class PostgresConf
             return (null, null, false);
         }
 
-        var collector = GetValue(content, "logging_collector");
+        string? collector = GetValue(content, "logging_collector");
         if (collector is null || collector.ToLowerInvariant() is not ("on" or "true" or "yes" or "1"))
         {
             return DebianServerLog(dataDirectory) is { } serverLog ? (serverLog, null, true) : (null, null, false);
         }
 
-        var configured = GetValue(content, "log_directory") ?? "log";
-        var directory = configured.StartsWith('/') ? configured : Path.Combine(dataDirectory, configured);
-        var accessible = false;
+        string configured = GetValue(content, "log_directory") ?? "log";
+        string directory = configured.StartsWith('/') ? configured : Path.Combine(dataDirectory, configured);
+        bool accessible = false;
         try
         {
             if (Directory.Exists(directory))
@@ -178,13 +178,13 @@ public static partial class PostgresConf
             return null;
         }
 
-        foreach (var line in content.Split('\n'))
+        foreach (string line in content.Split('\n'))
         {
-            var parts = line.Trim().Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = line.Trim().Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 2 && parts[0] is "stderr" or "csvlog" or "jsonlog")
             {
-                var path = parts[1];
-                var absolute = path.StartsWith('/') || (path.Length >= 2 && path[1] == ':');
+                string path = parts[1];
+                bool absolute = path.StartsWith('/') || (path.Length >= 2 && path[1] == ':');
                 return absolute ? path : Path.Combine(dataDirectory, path);
             }
         }
@@ -229,11 +229,11 @@ public static partial class PostgresConf
             return null;
         }
 
-        var (version, cluster) = (match.Groups[1].Value, match.Groups[2].Value);
+        (string? version, string? cluster) = (match.Groups[1].Value, match.Groups[2].Value);
         try
         {
             var link = new FileInfo($"/etc/postgresql/{version}/{cluster}/log");
-            var log = (link.LinkTarget is null ? null : link.ResolveLinkTarget(returnFinalTarget: false)?.FullName)
+            string log = (link.LinkTarget is null ? null : link.ResolveLinkTarget(returnFinalTarget: false)?.FullName)
                 ?? $"{DebianLogDirectory}/postgresql-{version}-{cluster}.log";
             return File.Exists(log) ? log : null;
         }

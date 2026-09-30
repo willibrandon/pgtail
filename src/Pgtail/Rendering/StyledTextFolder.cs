@@ -27,8 +27,8 @@ internal static class StyledTextFolder
         var rows = new List<List<StyledSpan>>();
         var row = new List<StyledSpan>();
         var run = new StringBuilder();
-        var runStyle = TextStyle.Plain;
-        var column = 0;
+        TextStyle runStyle = TextStyle.Plain;
+        int column = 0;
 
         void FlushRun()
         {
@@ -47,7 +47,7 @@ internal static class StyledTextFolder
             column = 0;
         }
 
-        foreach (var span in text.Spans)
+        foreach (StyledSpan span in text.Spans)
         {
             if (run.Length > 0 && span.Style != runStyle)
             {
@@ -55,17 +55,17 @@ internal static class StyledTextFolder
             }
 
             runStyle = span.Style;
-            var value = span.Text;
-            var index = 0;
+            string value = span.Text;
+            int index = 0;
             while (index < value.Length)
             {
-                var next = GraphemeHelper.GetNextClusterBoundary(value, index);
+                int next = GraphemeHelper.GetNextClusterBoundary(value, index);
                 if (next <= index)
                 {
                     next = index + 1;
                 }
 
-                var cluster = value[index..next];
+                string cluster = value[index..next];
                 index = next;
                 if (cluster == "\n" || cluster == "\r\n")
                 {
@@ -75,8 +75,8 @@ internal static class StyledTextFolder
 
                 if (cluster == "\t")
                 {
-                    var spaces = TabWidth - (column % TabWidth);
-                    for (var i = 0; i < spaces; i++)
+                    int spaces = TabWidth - (column % TabWidth);
+                    for (int i = 0; i < spaces; i++)
                     {
                         if (width > 0 && column >= width)
                         {
@@ -96,7 +96,7 @@ internal static class StyledTextFolder
                     continue;
                 }
 
-                var clusterWidth = GraphemeHelper.GetClusterDisplayWidth(cluster);
+                int clusterWidth = GraphemeHelper.GetClusterDisplayWidth(cluster);
                 if (width > 0 && column + clusterWidth > width && column > 0)
                 {
                     NewRow();
@@ -120,8 +120,8 @@ internal static class StyledTextFolder
     public static int Width(IReadOnlyList<StyledSpan> row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        var width = 0;
-        foreach (var span in row)
+        int width = 0;
+        foreach (StyledSpan span in row)
         {
             width += DisplayWidth.GetStringWidth(span.Text);
         }

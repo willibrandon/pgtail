@@ -101,7 +101,7 @@ public sealed class ErrorStats
     public IReadOnlyDictionary<LogLevel, int> GetByLevel()
     {
         var counts = new Dictionary<LogLevel, int>();
-        foreach (var item in _events)
+        foreach (ErrorEvent item in _events)
         {
             counts[item.Level] = counts.GetValueOrDefault(item.Level) + 1;
         }
@@ -120,10 +120,10 @@ public sealed class ErrorStats
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         var order = new List<string>();
-        foreach (var item in _events)
+        foreach (ErrorEvent item in _events)
         {
-            var code = item.SqlState ?? "UNKNOWN";
-            if (!counts.TryGetValue(code, out var count))
+            string code = item.SqlState ?? "UNKNOWN";
+            if (!counts.TryGetValue(code, out int count))
             {
                 order.Add(code);
             }
@@ -141,7 +141,7 @@ public sealed class ErrorStats
     /// <returns>The events, oldest first.</returns>
     public IReadOnlyList<ErrorEvent> GetEventsSince(DateTime since)
     {
-        var bound = LogTimestamps.ToUtc(since);
+        DateTime bound = LogTimestamps.ToUtc(since);
         return [.. _events.Where(item => LogTimestamps.ToUtc(item.Timestamp) >= bound)];
     }
 

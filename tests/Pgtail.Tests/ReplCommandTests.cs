@@ -23,7 +23,7 @@ public sealed class ReplCommandTests
     public async Task UnknownCommand_PrintsHelpHint()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("bogus", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Unknown command: bogus") && snapshot.ContainsText("Type 'help' for available commands."),
@@ -38,7 +38,7 @@ public sealed class ReplCommandTests
     public async Task Levels_ErrorWarning_ShowsFilterInToolbar()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("levels error warning", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Filter set: ERROR WARNING")
@@ -54,7 +54,7 @@ public sealed class ReplCommandTests
     public async Task Levels_UnknownLevel_ListsValidLevels()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("levels loud", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Unknown level(s): loud") && snapshot.ContainsText("Valid levels:"),
@@ -69,7 +69,7 @@ public sealed class ReplCommandTests
     public async Task Filter_Pattern_ShowsCaseInsensitiveFilterInToolbar()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("filter /deadlock/", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Filter set: /deadlock/")
@@ -85,7 +85,7 @@ public sealed class ReplCommandTests
     public async Task Since_FiveMinutes_ShowsStartTimeInToolbar()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("since 5m", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Showing logs since ")
@@ -101,7 +101,7 @@ public sealed class ReplCommandTests
     public async Task Slow_Thresholds_ShowsEachThreshold()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("slow 50 200 900", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Slow query highlighting enabled")
@@ -119,12 +119,12 @@ public sealed class ReplCommandTests
     public async Task Set_SlowWarn_SavesConfigurationFile()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("set slow.warn 250", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("slow.warn = 250") && snapshot.ContainsText("Saved to"),
             description: "setting confirmed");
-        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        string text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.Contains("[slow]", text);
         Assert.Contains("warn = 250", text);
     }
@@ -137,7 +137,7 @@ public sealed class ReplCommandTests
     public async Task Set_InvalidValue_IsRejected()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("set slow.warn -5", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("must be a positive integer");
         Assert.IsFalse(File.Exists(environment.Paths.ConfigFile));
@@ -151,12 +151,12 @@ public sealed class ReplCommandTests
     public async Task Theme_Monokai_UpdatesToolbarAndSaves()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("theme monokai", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => ReplHarness.Toolbar(snapshot).Contains("Theme: monokai", StringComparison.Ordinal),
             description: "toolbar shows the new theme");
-        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        string text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.Contains("name = \"monokai\"", text);
     }
 
@@ -168,7 +168,7 @@ public sealed class ReplCommandTests
     public async Task Typing_CommandPrefix_ShowsCompletionMenu()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("th", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("theme") && snapshot.ContainsText("Switch color theme"),
@@ -183,7 +183,7 @@ public sealed class ReplCommandTests
     public async Task Tab_LoneCompletion_CompletesCommand()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("hig", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("highlight");
         await repl.Automator.TabAsync(TestContext.CancellationToken);
@@ -202,7 +202,7 @@ public sealed class ReplCommandTests
     public async Task Backspace_ToEmptyLine_ClosesMenu()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("th", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Switch color theme");
         await repl.Automator.BackspaceAsync(TestContext.CancellationToken);
@@ -223,7 +223,7 @@ public sealed class ReplCommandTests
     public async Task Level_IsLevelsAtThePrompt()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("level error+", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Filter set: ERROR FATAL PANIC")
@@ -239,7 +239,7 @@ public sealed class ReplCommandTests
     public async Task Typing_CommandAndSpace_ShowsSubcommands()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("notify ", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("on") && snapshot.ContainsText("off") && snapshot.ContainsText("quiet"),
@@ -254,14 +254,14 @@ public sealed class ReplCommandTests
     public async Task UpArrow_AfterCommand_RecallsIt()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("display", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Display: compact, Output: text");
         await repl.Automator.UpAsync(TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => ReplHarness.PromptLine(snapshot) == "pgtail> display",
             description: "the previous command recalled");
-        var history = await File.ReadAllTextAsync(environment.Paths.HistoryFile, TestContext.CancellationToken);
+        string history = await File.ReadAllTextAsync(environment.Paths.HistoryFile, TestContext.CancellationToken);
         Assert.Contains("+display", history);
     }
 
@@ -273,13 +273,13 @@ public sealed class ReplCommandTests
     public async Task UpArrow_AfterRestart_RecallsEarlierSession()
     {
         using var environment = new TestEnvironment();
-        await using (var first = await ReplHarness.StartAsync(environment, TestContext.CancellationToken))
+        await using (ReplHarness first = await ReplHarness.StartAsync(environment, TestContext.CancellationToken))
         {
             await first.RunAsync("output", TestContext.CancellationToken);
             await first.Automator.WaitUntilTextAsync("Output format: text");
         }
 
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.UpAsync(TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => ReplHarness.PromptLine(snapshot) == "pgtail> output",
@@ -294,7 +294,7 @@ public sealed class ReplCommandTests
     public async Task CtrlC_WithText_AbandonsLine()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("levels error", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("pgtail> levels error");
         await repl.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
@@ -312,7 +312,7 @@ public sealed class ReplCommandTests
     public async Task CtrlD_OnEmptyLine_Exits()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.Ctrl().KeyAsync(Hex1bKey.D, TestContext.CancellationToken);
         _ = await repl.WaitForRequestAsync(ReplRequestKind.Exit);
         await repl.Automator.WaitUntilTextAsync("Goodbye!");
@@ -326,7 +326,7 @@ public sealed class ReplCommandTests
     public async Task Quit_SaysGoodbyeAndExits()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("quit", TestContext.CancellationToken);
         _ = await repl.WaitForRequestAsync(ReplRequestKind.Exit);
         await repl.Automator.WaitUntilTextAsync("Goodbye!");
@@ -340,9 +340,9 @@ public sealed class ReplCommandTests
     public async Task Bang_WithCommand_RequestsShell()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("!echo hello", TestContext.CancellationToken);
-        var request = await repl.WaitForRequestAsync(ReplRequestKind.Shell);
+        ReplRequest request = await repl.WaitForRequestAsync(ReplRequestKind.Shell);
         Assert.AreEqual("echo hello", request.Command);
     }
 
@@ -354,7 +354,7 @@ public sealed class ReplCommandTests
     public async Task Bang_OnEmptyLine_EntersShellMode()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("!", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => ReplHarness.Toolbar(snapshot).Contains("SHELL", StringComparison.Ordinal)
@@ -375,7 +375,7 @@ public sealed class ReplCommandTests
     public async Task Clear_RequestsClearScreen()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("clear", TestContext.CancellationToken);
         _ = await repl.WaitForRequestAsync(ReplRequestKind.ClearScreen);
         await repl.Automator.WaitUntilTextAsync("pgtail>");
@@ -389,9 +389,9 @@ public sealed class ReplCommandTests
     public async Task List_WithPgdata_ShowsInstance()
     {
         using var environment = new TestEnvironment();
-        var (data, _) = DataDirectories.Create(environment.Root, "16", 5499);
+        (string? data, string _) = DataDirectories.Create(environment.Root, "16", 5499);
         environment.Set("PGDATA", data);
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 140);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 140);
         await repl.RunAsync("list", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("VERSION") && snapshot.ContainsText("5499") && snapshot.ContainsText("pgdata"),
@@ -406,8 +406,8 @@ public sealed class ReplCommandTests
     public async Task Tail_MissingFile_PrintsError()
     {
         using var environment = new TestEnvironment();
-        var missing = Path.Combine(environment.Root, "missing.log");
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
+        string missing = Path.Combine(environment.Root, "missing.log");
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
         await repl.RunAsync($"tail --file {missing}", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync($"File not found: {missing}");
     }
@@ -420,7 +420,7 @@ public sealed class ReplCommandTests
     public async Task Statistics_BeforeTailing_ExplainNoData()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
         await repl.RunAsync("errors", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("No errors recorded in this session.");
         await repl.RunAsync("stats", TestContext.CancellationToken);
@@ -441,7 +441,7 @@ public sealed class ReplCommandTests
     public async Task Notify_Status_ShowsStatusAndPlatform()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("notify", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText(PlatformNotifier.Status) && snapshot.ContainsText(PlatformNotifier.Platform),
@@ -462,7 +462,7 @@ public sealed class ReplCommandTests
     public async Task NotifyTest_SendsThroughPlatformNotifier()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("notify test", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Test notification sent (INFO)");
     }
@@ -475,10 +475,10 @@ public sealed class ReplCommandTests
     public async Task NotifyOn_Levels_SavesConfiguration()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("notify on error fatal", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Notifications enabled");
-        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        string text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.Contains("[notifications]", text);
         Assert.Contains("enabled = true", text);
         Assert.Contains("\"ERROR\"", text);
@@ -492,10 +492,10 @@ public sealed class ReplCommandTests
     public async Task NotifyOn_PatternWithSpaces_SavesWholePattern()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("notify on /queue depth is \\d+/i", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Notifications enabled for pattern: queue depth is \\d+ (case-insensitive)");
-        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        string text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.Contains("\"/queue depth is \\\\d+/i\"", text);
     }
 
@@ -507,7 +507,7 @@ public sealed class ReplCommandTests
     public async Task Config_Show_PrintsToml()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 60);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 60);
         await repl.RunAsync("config", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("[slow]") && snapshot.ContainsText("[theme]"),
@@ -522,7 +522,7 @@ public sealed class ReplCommandTests
     public async Task ThemeList_ShowsBuiltInThemes()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
         await repl.RunAsync("theme list", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("dark") && snapshot.ContainsText("monokai") && snapshot.ContainsText("solarized-dark"),
@@ -537,7 +537,7 @@ public sealed class ReplCommandTests
     public async Task HighlightList_ShowsBuiltInHighlighters()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 60);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 60);
         await repl.RunAsync("highlight list", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("timestamp") && snapshot.ContainsText("sqlstate") && snapshot.ContainsText("duration"),
@@ -552,7 +552,7 @@ public sealed class ReplCommandTests
     public async Task Filter_EveryKind_IsListed()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
         await repl.RunAsync("filter /error/", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Filter set: /error/");
         await repl.RunAsync("filter -/debug/", TestContext.CancellationToken);
@@ -578,7 +578,7 @@ public sealed class ReplCommandTests
     public async Task TimeFilters_UntilBetweenClear()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("until 23:59", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("Showing logs until 23:59:00 today")
@@ -601,7 +601,7 @@ public sealed class ReplCommandTests
     public async Task DisplayAndOutput_SwitchModes()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
         await repl.RunAsync("display full", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Display mode: full");
         await repl.RunAsync("display fields timestamp,level,message", TestContext.CancellationToken);
@@ -623,9 +623,9 @@ public sealed class ReplCommandTests
     public async Task LsAndRefresh_ListAndRescan()
     {
         using var environment = new TestEnvironment();
-        var (data, _) = DataDirectories.Create(environment.Root, "15", 5497);
+        (string? data, string _) = DataDirectories.Create(environment.Root, "15", 5497);
         environment.Set("PGDATA", data);
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
         await repl.RunAsync("ls", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
             snapshot => snapshot.ContainsText("DATA DIRECTORY") && snapshot.ContainsText("5497"),
@@ -644,12 +644,12 @@ public sealed class ReplCommandTests
     public async Task Unset_AfterSet_RestoresDefault()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("set slow.warn 250", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("slow.warn = 250");
         await repl.RunAsync("unset slow.warn", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("slow.warn reset to default: 100");
-        var text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        string text = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.DoesNotContain("warn = 250", text);
     }
 
@@ -661,13 +661,13 @@ public sealed class ReplCommandTests
     public async Task Export_AfterTail_WritesQuotedPath()
     {
         using var environment = new TestEnvironment();
-        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-2), 700, "ERROR", "exported error line"));
-        var output = Path.Combine(environment.Root, "with space", "out.log");
+        string output = Path.Combine(environment.Root, "with space", "out.log");
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 200);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 200);
         await repl.RunAsync($"tail --file {log} --since 1h", TestContext.CancellationToken);
-        var screen = await repl.WaitForScreenAsync();
+        Hex1bTerminalAutomator screen = await repl.WaitForScreenAsync();
         await screen.WaitUntilTextAsync("exported error line");
         await screen.TabAsync(TestContext.CancellationToken);
         await screen.TypeAsync("q", TestContext.CancellationToken);
@@ -685,13 +685,13 @@ public sealed class ReplCommandTests
     public async Task LongCommand_AfterRunning_KeepsEveryCharacter()
     {
         using var environment = new TestEnvironment();
-        var pattern = string.Concat(Enumerable.Range(0, 8).Select(i => "abcdefghij"));
-        var command = $"filter /{pattern}/";
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 60);
+        string pattern = string.Concat(Enumerable.Range(0, 8).Select(i => "abcdefghij"));
+        string command = $"filter /{pattern}/";
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 60);
         await repl.RunAsync(command, TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Filter set:");
-        var rows = repl.Screen();
-        var first = rows.ToList().FindIndex(row => row.StartsWith("pgtail> filter", StringComparison.Ordinal));
+        IReadOnlyList<string> rows = repl.Screen();
+        int first = rows.ToList().FindIndex(row => row.StartsWith("pgtail> filter", StringComparison.Ordinal));
         Assert.AreEqual("pgtail> " + command, rows[first] + rows[first + 1]);
     }
 
@@ -703,7 +703,7 @@ public sealed class ReplCommandTests
     public async Task CtrlR_SearchesHistoryAndRunsMatch()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("display full", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Display mode: full");
         await repl.RunAsync("display compact", TestContext.CancellationToken);
@@ -732,7 +732,7 @@ public sealed class ReplCommandTests
     public async Task CtrlG_DuringSearch_RestoresLine()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("output text", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Output format: text");
         await repl.Automator.TypeAsync("levels", TestContext.CancellationToken);
@@ -759,7 +759,7 @@ public sealed class ReplCommandTests
     public async Task LineKeys_CutMoveAndPaste()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.TypeAsync("levels error warning", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("pgtail> levels error warning");
         await repl.Automator.EscapeAsync(TestContext.CancellationToken);
@@ -786,7 +786,7 @@ public sealed class ReplCommandTests
     public async Task Resize_WhileTyping_KeepsLineAndMovesToolbar()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 100, height: 24);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 100, height: 24);
         await repl.Automator.TypeAsync("levels err", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("pgtail> levels err");
         repl.Resize(110, 32);

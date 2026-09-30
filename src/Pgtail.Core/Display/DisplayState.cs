@@ -54,7 +54,7 @@ public sealed class DisplayState
     /// <returns>The description.</returns>
     public string FormatStatus()
     {
-        var mode = Mode switch
+        string mode = Mode switch
         {
             DisplayMode.Full => "full",
             DisplayMode.Custom when CustomFields.Count > 0 => $"custom({string.Join(',', CustomFields)})",
@@ -62,7 +62,7 @@ public sealed class DisplayState
             _ => "compact",
         };
 
-        var output = OutputFormat == OutputFormat.Json ? "json" : "text";
+        string output = OutputFormat == OutputFormat.Json ? "json" : "text";
         return $"Display: {mode}, Output: {output}";
     }
 }

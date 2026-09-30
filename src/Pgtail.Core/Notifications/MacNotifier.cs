@@ -27,7 +27,7 @@ public sealed class MacNotifier(string osascript) : INotifier
     public static string Script(Notification notification)
     {
         ArgumentNullException.ThrowIfNull(notification);
-        var script = $"display notification \"{Escape(notification.Body)}\"";
+        string script = $"display notification \"{Escape(notification.Body)}\"";
         if (!string.IsNullOrEmpty(notification.Subtitle))
         {
             script += $" subtitle \"{Escape(notification.Subtitle)}\"";

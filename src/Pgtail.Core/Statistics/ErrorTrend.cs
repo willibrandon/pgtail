@@ -25,7 +25,7 @@ public static class ErrorTrend
             return "";
         }
 
-        var max = values.Max();
+        int max = values.Max();
         if (max == 0)
         {
             max = 1;
@@ -44,18 +44,18 @@ public static class ErrorTrend
     public static IReadOnlyList<int> Bucket(IEnumerable<ErrorEvent> events, int minutes = 60, DateTime? now = null)
     {
         ArgumentNullException.ThrowIfNull(events);
-        var current = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
-        var buckets = new int[Math.Max(0, minutes)];
-        var cutoff = current.AddMinutes(-minutes);
-        foreach (var item in events)
+        DateTime current = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
+        int[] buckets = new int[Math.Max(0, minutes)];
+        DateTime cutoff = current.AddMinutes(-minutes);
+        foreach (ErrorEvent item in events)
         {
-            var timestamp = LogTimestamps.ToUtc(item.Timestamp);
+            DateTime timestamp = LogTimestamps.ToUtc(item.Timestamp);
             if (timestamp < cutoff)
             {
                 continue;
             }
 
-            var age = (int)((current - timestamp).TotalSeconds / 60);
+            int age = (int)((current - timestamp).TotalSeconds / 60);
             if (age >= 0 && age < minutes)
             {
                 buckets[minutes - 1 - age]++;

@@ -21,7 +21,7 @@ public sealed class AhoCorasick
     public AhoCorasick(IEnumerable<string> keywords)
     {
         ArgumentNullException.ThrowIfNull(keywords);
-        foreach (var keyword in keywords)
+        foreach (string keyword in keywords)
         {
             if (keyword.Length > 0)
             {
@@ -40,17 +40,17 @@ public sealed class AhoCorasick
     public IEnumerable<(int Keyword, int End)> Find(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var state = 0;
-        for (var i = 0; i < text.Length; i++)
+        int state = 0;
+        for (int i = 0; i < text.Length; i++)
         {
-            var c = text[i];
+            char c = text[i];
             while (state != 0 && !_next[state].ContainsKey(c))
             {
                 state = _fail[state];
             }
 
-            state = _next[state].TryGetValue(c, out var target) ? target : 0;
-            for (var node = _keyword[state] >= 0 ? state : _output[state]; node > 0; node = _output[node])
+            state = _next[state].TryGetValue(c, out int target) ? target : 0;
+            for (int node = _keyword[state] >= 0 ? state : _output[state]; node > 0; node = _output[node])
             {
                 yield return (_keyword[node], i + 1);
             }
@@ -66,10 +66,10 @@ public sealed class AhoCorasick
 
     private void Add(string keyword)
     {
-        var state = 0;
-        foreach (var c in keyword)
+        int state = 0;
+        foreach (char c in keyword)
         {
-            if (!_next[state].TryGetValue(c, out var target))
+            if (!_next[state].TryGetValue(c, out int target))
             {
                 target = _next.Count;
                 _next.Add([]);
@@ -92,7 +92,7 @@ public sealed class AhoCorasick
     private void Link()
     {
         var queue = new Queue<int>();
-        foreach (var child in _next[0].Values)
+        foreach (int child in _next[0].Values)
         {
             _fail[child] = 0;
             queue.Enqueue(child);
@@ -100,17 +100,17 @@ public sealed class AhoCorasick
 
         while (queue.Count > 0)
         {
-            var state = queue.Dequeue();
-            foreach (var (c, child) in _next[state])
+            int state = queue.Dequeue();
+            foreach ((char c, int child) in _next[state])
             {
-                var fail = _fail[state];
+                int fail = _fail[state];
                 while (fail != 0 && !_next[fail].ContainsKey(c))
                 {
                     fail = _fail[fail];
                 }
 
-                _fail[child] = _next[fail].TryGetValue(c, out var target) && target != child ? target : 0;
-                var suffix = _fail[child];
+                _fail[child] = _next[fail].TryGetValue(c, out int target) && target != child ? target : 0;
+                int suffix = _fail[child];
                 _output[child] = _keyword[suffix] >= 0 ? suffix : _output[suffix];
                 queue.Enqueue(child);
             }

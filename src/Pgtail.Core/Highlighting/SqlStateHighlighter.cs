@@ -11,14 +11,14 @@ public sealed class SqlStateHighlighter() : RegexHighlighter("sqlstate", 200, "S
     /// <inheritdoc />
     public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (var groups in LogPattern.Captures(Regex, text))
+        foreach ((int Start, int End)?[] groups in LogPattern.Captures(Regex, text))
         {
             if (groups[1] is not { } code)
             {
                 continue;
             }
 
-            var style = text.Text.Substring(code.Start, 2) switch
+            string style = text.Text.Substring(code.Start, 2) switch
             {
                 "00" => "hl_sqlstate_success",
                 "01" or "02" => "hl_sqlstate_warning",

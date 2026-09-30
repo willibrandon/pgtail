@@ -16,7 +16,7 @@ public sealed class LinuxNotifier(string notifySend) : INotifier
     public bool Send(Notification notification)
     {
         ArgumentNullException.ThrowIfNull(notification);
-        var body = string.IsNullOrEmpty(notification.Subtitle) ? notification.Body : $"{notification.Subtitle}\n{notification.Body}";
+        string body = string.IsNullOrEmpty(notification.Subtitle) ? notification.Body : $"{notification.Subtitle}\n{notification.Body}";
         return CommandNotifier.Run(notifySend, ["-u", "normal", "-a", "pgtail", notification.Title, body]);
     }
 }

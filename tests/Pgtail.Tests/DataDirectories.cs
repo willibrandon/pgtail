@@ -24,7 +24,7 @@ internal static class DataDirectories
     /// <returns>The data directory and its log file.</returns>
     public static (string DataDirectory, string LogFile) CreateAt(string data, string version, int port)
     {
-        var logs = Path.Combine(data, "log");
+        string logs = Path.Combine(data, "log");
         Directory.CreateDirectory(logs);
         File.WriteAllText(Path.Combine(data, "PG_VERSION"), version + "\n");
         File.WriteAllText(Path.Combine(data, "postgresql.conf"), $"""
@@ -34,7 +34,7 @@ internal static class DataDirectories
             log_filename = 'postgresql.log'
 
             """);
-        var log = Path.Combine(logs, "postgresql.log");
+        string log = Path.Combine(logs, "postgresql.log");
         File.WriteAllText(log, "");
         return (data, log);
     }

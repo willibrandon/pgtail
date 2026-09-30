@@ -1,4 +1,5 @@
 using System.Globalization;
+using Pgtail.Configuration;
 using Pgtail.Filtering;
 using Pgtail.Highlighting;
 using Pgtail.Matching;
@@ -21,10 +22,10 @@ internal static partial class HighlightCommands
     /// <returns>A completed task.</returns>
     public static Task Repl(CommandInvocation invocation)
     {
-        var args = invocation.Args;
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var sub = args.Count == 0 ? "list" : args[0].ToLowerInvariant();
+        IReadOnlyList<string> args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        string sub = args.Count == 0 ? "list" : args[0].ToLowerInvariant();
         switch (sub)
         {
             case "clear":
@@ -38,11 +39,11 @@ internal static partial class HighlightCommands
                 List(session, output);
                 return Task.CompletedTask;
             case "export":
-                var (_, exported) = Export(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory);
+                (bool _, string? exported) = Export(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory);
                 output.Line(exported);
                 return Task.CompletedTask;
             case "import":
-                var (_, imported) = Import(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory, output);
+                (bool _, string? imported) = Import(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory, output);
                 output.Line(imported);
                 return Task.CompletedTask;
         }
@@ -87,11 +88,11 @@ internal static partial class HighlightCommands
     /// <returns>A completed task.</returns>
     public static Task Tail(CommandInvocation invocation)
     {
-        var args = invocation.Args;
-        var output = invocation.Output;
-        var session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         var host = (ITailHost)invocation.Host;
-        var sub = args.Count == 0 ? "list" : args[0].ToLowerInvariant();
+        string sub = args.Count == 0 ? "list" : args[0].ToLowerInvariant();
         switch (sub)
         {
             case "list":
@@ -101,28 +102,28 @@ internal static partial class HighlightCommands
                 Preview(session, output);
                 return Task.CompletedTask;
             case "export":
-                var (exportedOk, exported) = Export(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory);
+                (bool exportedOk, string? exported) = Export(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory);
                 if (!exportedOk)
                 {
-                    output.Line(exported, Red);
+                    output.Line(exported, s_red);
                 }
                 else if (exported.StartsWith('#') || exported.StartsWith('['))
                 {
-                    foreach (var line in exported.TrimEnd('\n').Split('\n'))
+                    foreach (string line in exported.TrimEnd('\n').Split('\n'))
                     {
-                        output.Line(line, Dim);
+                        output.Line(line, s_dim);
                     }
                 }
                 else
                 {
-                    output.Line(exported, Green);
+                    output.Line(exported, s_green);
                 }
 
                 return Task.CompletedTask;
             case "import":
-                var version = session.Highlighting.Version;
-                var (importedOk, imported) = Import(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory, output);
-                output.Line(imported, importedOk ? Green : Red);
+                long version = session.Highlighting.Version;
+                (bool importedOk, string? imported) = Import(session, [.. args.Skip(1)], invocation.Host.CurrentDirectory, output);
+                output.Line(imported, importedOk ? s_green : s_red);
                 if (session.Highlighting.Version != version)
                 {
                     host.Rebuild();
@@ -131,15 +132,15 @@ internal static partial class HighlightCommands
                 return Task.CompletedTask;
         }
 
-        var before = session.Highlighting.Version;
+        long before = session.Highlighting.Version;
         if (Change(session, sub, args, output) is not { } result)
         {
             output.Line($"Unknown subcommand: {sub}. Use: list, on, off, enable, disable, add, remove, export, import, preview, reset",
-                Red);
+                s_red);
             return Task.CompletedTask;
         }
 
-        output.Line(result.Message, !result.Success ? Red : sub == "off" ? Yellow : Green);
+        output.Line(result.Message, !result.Success ? s_red : sub == "off" ? s_yellow : s_green);
         if (session.Highlighting.Version != before)
         {
             host.Rebuild();
@@ -148,10 +149,10 @@ internal static partial class HighlightCommands
         return Task.CompletedTask;
     }
 
-    private static readonly TextStyle Green = StyleParser.Parse("green");
-    private static readonly TextStyle Red = StyleParser.Parse("red");
-    private static readonly TextStyle Yellow = StyleParser.Parse("yellow");
-    private static readonly TextStyle Dim = StyleParser.Parse("dim");
+    private static readonly TextStyle s_green = StyleParser.Parse("green");
+    private static readonly TextStyle s_red = StyleParser.Parse("red");
+    private static readonly TextStyle s_yellow = StyleParser.Parse("yellow");
+    private static readonly TextStyle s_dim = StyleParser.Parse("dim");
 
     private static (bool Success, string Message)? Change(
         PgtailSession session,
@@ -159,7 +160,7 @@ internal static partial class HighlightCommands
         IReadOnlyList<string> args,
         CommandOutput output)
     {
-        var config = session.Highlighting;
+        HighlightingConfig config = session.Highlighting;
         return sub switch
         {
             "on" => SetGlobal(session, true, output),
@@ -178,7 +179,7 @@ internal static partial class HighlightCommands
 
     private static (bool, string) SetGlobal(PgtailSession session, bool enabled, CommandOutput output)
     {
-        var config = session.Highlighting;
+        HighlightingConfig config = session.Highlighting;
         if (config.Enabled == enabled)
         {
             return (true, enabled ? "Highlighting is already enabled." : "Highlighting is already disabled.");
@@ -191,8 +192,8 @@ internal static partial class HighlightCommands
 
     private static (bool, string) SetHighlighter(PgtailSession session, string name, bool enabled, CommandOutput output)
     {
-        var config = session.Highlighting;
-        var verb = enabled ? "Enabled" : "Disabled";
+        HighlightingConfig config = session.Highlighting;
+        string verb = enabled ? "Enabled" : "Disabled";
         if (!BuiltInHighlighters.Names.Contains(name))
         {
             if (config.SetCustomEnabled(name, enabled))
@@ -219,10 +220,10 @@ internal static partial class HighlightCommands
             return (false, Usage);
         }
 
-        var (name, pattern) = (args[0], args[1]);
-        var style = "yellow";
+        (string? name, string? pattern) = (args[0], args[1]);
+        string style = "yellow";
         int? priority = null;
-        for (var i = 2; i < args.Count; i++)
+        for (int i = 2; i < args.Count; i++)
         {
             if (args[i] == "--style" && i + 1 < args.Count)
             {
@@ -230,14 +231,14 @@ internal static partial class HighlightCommands
             }
             else if (args[i] == "--priority" && i + 1 < args.Count)
             {
-                if (int.TryParse(args[++i], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value))
+                if (int.TryParse(args[++i], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value))
                 {
                     priority = value;
                 }
             }
         }
 
-        var config = session.Highlighting;
+        HighlightingConfig config = session.Highlighting;
         if (!CustomName().IsMatch(name))
         {
             return (false, "Name must start with a letter and contain only lowercase letters, numbers, and underscores");
@@ -258,7 +259,7 @@ internal static partial class HighlightCommands
             return (false, error);
         }
 
-        if (!StyleParser.TryParse(style, out _, out var styleError))
+        if (!StyleParser.TryParse(style, out _, out string? styleError))
         {
             return (false, $"Invalid style '{style}': {styleError}");
         }
@@ -270,7 +271,7 @@ internal static partial class HighlightCommands
 
     private static (bool, string) Remove(PgtailSession session, string name, CommandOutput output)
     {
-        var config = session.Highlighting;
+        HighlightingConfig config = session.Highlighting;
         if (BuiltInHighlighters.Names.Contains(name))
         {
             return (false, $"Cannot remove built-in highlighter '{name}'. Use 'highlight disable {name}' instead.");
@@ -337,14 +338,14 @@ internal static partial class HighlightCommands
     public static void SyncConfig(PgtailSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        var config = session.Config;
-        var highlighting = session.Highlighting;
+        PgtailConfig config = session.Config;
+        HighlightingConfig highlighting = session.Highlighting;
         config["highlighting.enabled"] = highlighting.Enabled;
         config["highlighting.max_length"] = highlighting.MaxLength;
         config["highlighting.duration.slow"] = highlighting.DurationSlow;
         config["highlighting.duration.very_slow"] = highlighting.DurationVerySlow;
         config["highlighting.duration.critical"] = highlighting.DurationCritical;
-        foreach (var name in BuiltInHighlighters.Names)
+        foreach (string name in BuiltInHighlighters.Names)
         {
             config[$"highlighting.enabled_highlighters.{name}"] = highlighting.IsSwitchedOn(name);
         }

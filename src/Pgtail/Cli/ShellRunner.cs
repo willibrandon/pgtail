@@ -21,7 +21,7 @@ internal static class ShellRunner
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(error);
-        var start = OperatingSystem.IsWindows() ? WindowsShell(command)
+        ProcessStartInfo start = OperatingSystem.IsWindows() ? WindowsShell(command)
             : new ProcessStartInfo("/bin/sh") { ArgumentList = { "-c", command } };
         start.UseShellExecute = false;
         ConsoleCancelEventHandler ignore = (_, e) => e.Cancel = true;
@@ -56,7 +56,7 @@ internal static class ShellRunner
 
     private static bool StartedFromPowerShell()
     {
-        var shell = Environment.GetEnvironmentVariable("PSModulePath");
+        string? shell = Environment.GetEnvironmentVariable("PSModulePath");
         return shell is not null && Environment.GetEnvironmentVariable("PROMPT") is null;
     }
 }

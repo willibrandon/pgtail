@@ -33,7 +33,7 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
         {
             while (await source.Events.WaitToReadAsync(cancellationToken))
             {
-                while (source.Events.TryRead(out var item))
+                while (source.Events.TryRead(out LogSourceEvent? item))
                 {
                     Write(item);
                 }

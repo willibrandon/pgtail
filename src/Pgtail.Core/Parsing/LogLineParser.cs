@@ -18,20 +18,20 @@ public static class LogLineParser
     /// <returns>The entry.</returns>
     public static LogEntry Parse(ReadOnlyMemory<byte> utf8, LogFormat format = LogFormat.Text)
     {
-        var span = utf8.Span;
-        var length = span.Length;
+        ReadOnlySpan<byte> span = utf8.Span;
+        int length = span.Length;
         while (length > 0 && span[length - 1] is (byte)'\n' or (byte)'\r')
         {
             length--;
         }
 
-        var line = utf8[..length];
+        ReadOnlyMemory<byte> line = utf8[..length];
         switch (format)
         {
             case LogFormat.Csv:
-                return CsvLogParser.TryParse(line, out var csv) ? csv : Unparsed(line, format);
+                return CsvLogParser.TryParse(line, out LogEntry? csv) ? csv : Unparsed(line, format);
             case LogFormat.Json:
-                return JsonLogParser.TryParse(line, out var json) ? json : Unparsed(line, format);
+                return JsonLogParser.TryParse(line, out LogEntry? json) ? json : Unparsed(line, format);
             default:
                 return TextLogParser.Parse(line);
         }
@@ -39,7 +39,7 @@ public static class LogLineParser
 
     private static LogEntry Unparsed(ReadOnlyMemory<byte> line, LogFormat format)
     {
-        var raw = Encoding.UTF8.GetString(line.Span);
+        string raw = Encoding.UTF8.GetString(line.Span);
         return new LogEntry { Level = LogLevel.Log, Message = raw, Raw = raw, RawUtf8 = line, Format = format };
     }
 }

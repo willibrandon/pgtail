@@ -23,7 +23,7 @@ namespace Pgtail.Repl;
 internal sealed class PromptController(PromptState state, CommandCatalog catalog, ICommandHost host, StrongBox<bool> shellMode)
 {
     // The keys that end a history search and keep the command found for editing.
-    private static readonly Hex1bKey[] SearchExitKeys =
+    private static readonly Hex1bKey[] s_searchExitKeys =
     [
         Hex1bKey.Escape, Hex1bKey.Tab, Hex1bKey.LeftArrow, Hex1bKey.RightArrow, Hex1bKey.Home, Hex1bKey.End, Hex1bKey.UpArrow,
         Hex1bKey.DownArrow,
@@ -65,7 +65,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
     /// </summary>
     public void TextChanged()
     {
-        var version = State.Editor.Document.Version;
+        long version = State.Editor.Document.Version;
         if (version == State.SeenVersion)
         {
             return;
@@ -98,8 +98,8 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
             return;
         }
 
-        var (start, items) = Complete();
-        var partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
+        (int start, List<CompletionItem>? items) = Complete();
+        string partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
         if (items is [var only] && only.Text.Equals(partial, StringComparison.OrdinalIgnoreCase))
         {
             items = [];
@@ -159,7 +159,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
         bindings.Ctrl().Key(Hex1bKey.R).Action(_ => Update(() => Search?.Older(State.History.Entries, State.Text)),
             "Find an older command");
 
-        foreach (var key in SearchExitKeys)
+        foreach (Hex1bKey key in s_searchExitKeys)
         {
             bindings.Remove(key);
             bindings.Key(key).Action(_ => Update(FinishSearch), "Edit the command found");
@@ -201,7 +201,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
 
     private (int Start, List<CompletionItem> Items) Complete()
     {
-        var caret = Math.Min(State.Caret, State.Text.Length);
+        int caret = Math.Min(State.Caret, State.Text.Length);
         return catalog.Complete(State.Text[..caret], host, CompletionStyle.Menu);
     }
 
@@ -218,7 +218,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
             return;
         }
 
-        var (start, items) = Complete();
+        (int start, List<CompletionItem>? items) = Complete();
         Update(() =>
         {
             switch (items.Count)
@@ -231,8 +231,8 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
                     return;
             }
 
-            var partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
-            var common = CommonPrefix(items.Select(item => item.Text));
+            string partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
+            string common = CommonPrefix(items.Select(item => item.Text));
             State.ShowCompletions(start, items);
             if (common.Length > partial.Length)
             {
@@ -319,7 +319,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
     private static string CommonPrefix(IEnumerable<string> values)
     {
         string? prefix = null;
-        foreach (var value in values)
+        foreach (string value in values)
         {
             if (prefix is null)
             {
@@ -327,7 +327,7 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
                 continue;
             }
 
-            var length = 0;
+            int length = 0;
             while (length < prefix.Length && length < value.Length
                 && char.ToLowerInvariant(prefix[length]) == char.ToLowerInvariant(value[length]))
             {

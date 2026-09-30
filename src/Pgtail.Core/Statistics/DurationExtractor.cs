@@ -22,7 +22,7 @@ public static class DurationExtractor
     public static double? Extract(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        for (var at = text.IndexOf(Label, StringComparison.OrdinalIgnoreCase); at >= 0;
+        for (int at = text.IndexOf(Label, StringComparison.OrdinalIgnoreCase); at >= 0;
             at = text.IndexOf(Label, at + Label.Length, StringComparison.OrdinalIgnoreCase))
         {
             if (Read(text.AsSpan(at + Label.Length)) is { } duration)
@@ -38,7 +38,7 @@ public static class DurationExtractor
     private static double? Read(ReadOnlySpan<char> rest)
     {
         rest = rest.TrimStart();
-        var length = Digits(rest, 0);
+        int length = Digits(rest, 0);
         if (length == 0)
         {
             return null;
@@ -49,10 +49,10 @@ public static class DurationExtractor
             length = Digits(rest, length + 1);
         }
 
-        var unit = rest[length..].TrimStart();
-        var milliseconds = unit.StartsWith("ms", StringComparison.OrdinalIgnoreCase);
+        ReadOnlySpan<char> unit = rest[length..].TrimStart();
+        bool milliseconds = unit.StartsWith("ms", StringComparison.OrdinalIgnoreCase);
         if ((!milliseconds && !unit.StartsWith("s", StringComparison.OrdinalIgnoreCase))
-            || !double.TryParse(rest[..length], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+            || !double.TryParse(rest[..length], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double value))
         {
             return null;
         }
@@ -63,7 +63,7 @@ public static class DurationExtractor
     // Where the run of digits starting at an index ends.
     private static int Digits(ReadOnlySpan<char> text, int start)
     {
-        var end = start;
+        int end = start;
         while (end < text.Length && char.IsAsciiDigit(text[end]))
         {
             end++;

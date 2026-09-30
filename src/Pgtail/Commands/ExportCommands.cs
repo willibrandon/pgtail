@@ -26,20 +26,20 @@ internal static class ExportCommands
     /// <returns>A task that completes when the export has finished.</returns>
     public static async Task Export(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         if (session.LastSource is not { } source)
         {
             output.Line(NoLog);
             return;
         }
 
-        var (append, follow, highlighted) = (false, false, false);
-        var format = ExportFormat.Text;
+        (bool append, bool follow, bool highlighted) = (false, false, false);
+        ExportFormat format = ExportFormat.Text;
         DateTime? since = null;
         string? file = null;
-        var args = invocation.Args;
-        for (var i = 0; i < args.Count; i++)
+        IReadOnlyList<string> args = invocation.Args;
+        for (int i = 0; i < args.Count; i++)
         {
             switch (args[i])
             {
@@ -115,8 +115,8 @@ internal static class ExportCommands
             return;
         }
 
-        var path = PathDisplay.Resolve(file, session.Home, invocation.Host.CurrentDirectory);
-        var host = CoreCommands.Repl(invocation);
+        string path = PathDisplay.Resolve(file, session.Home, invocation.Host.CurrentDirectory);
+        IReplHost host = CoreCommands.Repl(invocation);
         if (!append && File.Exists(path) && !await host.ConfirmAsync($"File {file} exists. Overwrite? [y/N] "))
         {
             output.Line("Export cancelled.");
@@ -126,8 +126,8 @@ internal static class ExportCommands
         if (follow)
         {
             // The log is opened before the header shows, so every entry written after it is exported.
-            var logPath = source.Instance?.LogPath ?? (source.Files is [var first, ..] ? first : null);
-            var tail = LogSources.Create(new TailRequest(source, logPath, Stream: true), session, invocation.Host.CurrentDirectory,
+            string? logPath = source.Instance?.LogPath ?? (source.Files is [var first, ..] ? first : null);
+            ILogSource tail = LogSources.Create(new TailRequest(source, logPath, Stream: true), session, invocation.Host.CurrentDirectory,
                 Console.OpenStandardInput);
             tail.Start();
             output.Line($"Exporting to {file} (Ctrl+C to stop)");
@@ -136,10 +136,10 @@ internal static class ExportCommands
             return;
         }
 
-        var entries = Filtered(session, session.Buffer.Snapshot(), since);
+        IEnumerable<LogEntry> entries = Filtered(session, session.Buffer.Snapshot(), since);
         try
         {
-            var count = EntryExporter.WriteFile(entries, path, format, append, Highlighter(session, highlighted));
+            int count = EntryExporter.WriteFile(entries, path, format, append, Highlighter(session, highlighted));
             output.Line(count == 0 ? "No entries to export (buffer is empty or all filtered out)." : $"Exported {count} entries to {file}");
         }
         catch (UnauthorizedAccessException)
@@ -160,10 +160,10 @@ internal static class ExportCommands
     /// <returns>A completed task.</returns>
     public static Task TailExport(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         var host = (ITailHost)invocation.Host;
-        var args = invocation.Args;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             output.Markup("[bold red]✗[/] Usage: export <path> [--format text|json|csv] [--highlighted]");
@@ -171,9 +171,9 @@ internal static class ExportCommands
         }
 
         string? file = null;
-        var format = ExportFormat.Text;
-        var highlighted = false;
-        for (var i = 0; i < args.Count; i++)
+        ExportFormat format = ExportFormat.Text;
+        bool highlighted = false;
+        for (int i = 0; i < args.Count; i++)
         {
             switch (args[i])
             {
@@ -214,14 +214,14 @@ internal static class ExportCommands
             return Task.CompletedTask;
         }
 
-        var path = PathDisplay.Resolve(file, session.Home, invocation.Host.CurrentDirectory);
+        string path = PathDisplay.Resolve(file, session.Home, invocation.Host.CurrentDirectory);
         try
         {
             Func<LogEntry, string>? line = highlighted
                 ? entry => AnsiText.Render(Display.EntryFormatter.TailLine(entry, session.Theme, session.Chain, session.SlowLevel(entry)),
                     session.ColorEnabled)
                 : null;
-            var count = EntryExporter.WriteFile(entries, path, format, append: false, line);
+            int count = EntryExporter.WriteFile(entries, path, format, append: false, line);
             output.Markup($"[bold green]✓[/] Exported {count} entries to [cyan]{Markup.Escape(path)}[/]");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -239,18 +239,18 @@ internal static class ExportCommands
     /// <returns>A task that completes when the command has exited.</returns>
     public static async Task Pipe(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
         if (session.LastSource is null)
         {
             output.Line(NoLog);
             return;
         }
 
-        var format = ExportFormat.Text;
-        var args = invocation.Args;
-        var start = args.Count;
-        for (var i = 0; i < args.Count; i++)
+        ExportFormat format = ExportFormat.Text;
+        IReadOnlyList<string> args = invocation.Args;
+        int start = args.Count;
+        for (int i = 0; i < args.Count; i++)
         {
             if (args[i] == "--format" && i + 1 < args.Count)
             {
@@ -277,7 +277,7 @@ internal static class ExportCommands
             break;
         }
 
-        var command = invocation.RawFrom(start);
+        string command = invocation.RawFrom(start);
         if (command.Length == 0)
         {
             output.Lines(
@@ -312,9 +312,9 @@ internal static class ExportCommands
         start2.ArgumentList.Add(command);
         try
         {
-            using var process = Process.Start(start2)!;
-            var stdout = process.StandardOutput.ReadToEndAsync();
-            var stderr = process.StandardError.ReadToEndAsync();
+            using Process process = Process.Start(start2)!;
+            Task<string> stdout = process.StandardOutput.ReadToEndAsync();
+            Task<string> stderr = process.StandardError.ReadToEndAsync();
             try
             {
                 if (format == ExportFormat.Csv)
@@ -322,7 +322,7 @@ internal static class ExportCommands
                     await process.StandardInput.WriteAsync(EntryExporter.CsvHeader + "\n");
                 }
 
-                foreach (var entry in entries)
+                foreach (LogEntry? entry in entries)
                 {
                     await process.StandardInput.WriteAsync(EntryExporter.Format(entry, format) + "\n");
                 }
@@ -335,7 +335,7 @@ internal static class ExportCommands
             }
 
             await process.WaitForExitAsync();
-            var (text, errors) = (await stdout, await stderr);
+            (string? text, string? errors) = (await stdout, await stderr);
             if (text.TrimEnd().Length > 0)
             {
                 output.Line(text.TrimEnd());
@@ -359,7 +359,7 @@ internal static class ExportCommands
 
     private static IEnumerable<LogEntry> Filtered(PgtailSession session, IEnumerable<LogEntry> entries, DateTime? since)
     {
-        var bound = since is { } time ? LogTimestamps.ToUtc(time) : (DateTime?)null;
+        DateTime? bound = since is { } time ? LogTimestamps.ToUtc(time) : null;
         return entries.Where(entry => session.ShouldShow(entry)
             && (bound is null || entry.Timestamp is not { } stamp || LogTimestamps.ToUtc(stamp) >= bound));
     }
@@ -376,7 +376,7 @@ internal static class ExportCommands
         bool highlighted,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var count = 0;
+        int count = 0;
         await using (tail)
         {
             await using var writer = new StreamWriter(path, append: false, new UTF8Encoding(false)) { NewLine = "\n" };
@@ -385,7 +385,7 @@ internal static class ExportCommands
                 await writer.WriteLineAsync(EntryExporter.CsvHeader);
             }
 
-            var line = Highlighter(session, highlighted);
+            Func<LogEntry, string>? line = Highlighter(session, highlighted);
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
@@ -397,14 +397,14 @@ internal static class ExportCommands
                     break;
                 }
 
-                while (tail.Events.TryRead(out var item))
+                while (tail.Events.TryRead(out LogSourceEvent? item))
                 {
                     if (item.Entry is not { } entry || !session.ShouldShow(entry))
                     {
                         continue;
                     }
 
-                    var text = format == ExportFormat.Text && line is not null ? line(entry) : EntryExporter.Format(entry, format);
+                    string text = format == ExportFormat.Text && line is not null ? line(entry) : EntryExporter.Format(entry, format);
                     await writer.WriteLineAsync(text);
                     await writer.FlushAsync(CancellationToken.None);
                     count++;

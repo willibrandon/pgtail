@@ -30,9 +30,9 @@ public sealed class GroupedRegexHighlighter(
     /// <inheritdoc />
     public IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (var groups in LogPattern.Captures(regex, text))
+        foreach ((int Start, int End)?[] groups in LogPattern.Captures(regex, text))
         {
-            foreach (var (group, style) in groupStyles)
+            foreach ((int group, string style) in groupStyles)
             {
                 if (group < groups.Length && groups[group] is { } span)
                 {

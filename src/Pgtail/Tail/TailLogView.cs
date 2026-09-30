@@ -22,8 +22,8 @@ namespace Pgtail.Tail;
 internal sealed class TailLogView(TailLog log, bool color)
 {
     private const int WheelLines = 3;
-    private static readonly Hex1bColor SelectionBackground = Hex1bColor.FromRgb(38, 79, 120);
-    private static readonly Hex1bColor ScrollTrack = Hex1bColor.FromBright(0, 128, 128, 128);
+    private static readonly Hex1bColor s_selectionBackground = Hex1bColor.FromRgb(38, 79, 120);
+    private static readonly Hex1bColor s_scrollTrack = Hex1bColor.FromBright(0, 128, 128, 128);
     private int _top;
     private int _left;
     private int _viewport = 20;
@@ -215,14 +215,14 @@ internal sealed class TailLogView(TailLog log, bool color)
             ['y'] = _ => Yank(),
         };
 
-        foreach (var (key, action) in screenKeys)
+        foreach ((char key, Action<InputBindingActionContext> action) in screenKeys)
         {
             keys[key] = action;
         }
 
         bindings.Character(text => text.All(keys.ContainsKey)).Action((text, context) =>
         {
-            foreach (var key in text)
+            foreach (char key in text)
             {
                 keys[key](context);
             }
@@ -261,19 +261,19 @@ internal sealed class TailLogView(TailLog log, bool color)
     {
         _viewport = Math.Max(1, surface.Height);
         _width = Math.Max(1, surface.Width - 1);
-        var count = Log.Count;
-        var maxTop = Math.Max(0, count - _viewport);
+        int count = Log.Count;
+        int maxTop = Math.Max(0, count - _viewport);
         _top = Following ? maxTop : Math.Clamp(_top, 0, maxTop);
-        var selection = Selection();
-        for (var row = 0; row < _viewport && _top + row < count; row++)
+        (int StartLine, int StartColumn, int EndLine, int EndColumn)? selection = Selection();
+        for (int row = 0; row < _viewport && _top + row < count; row++)
         {
-            var index = _top + row;
+            int index = _top + row;
             DrawLine(surface, row, Log.Row(index));
             if (selection is { } range && index >= range.StartLine && index <= range.EndLine)
             {
-                var text = Log.Row(index).Text;
-                var start = index == range.StartLine ? range.StartColumn : 0;
-                var end = index == range.EndLine ? Math.Min(range.EndColumn, text.Length) : text.Length;
+                string text = Log.Row(index).Text;
+                int start = index == range.StartLine ? range.StartColumn : 0;
+                int end = index == range.EndLine ? Math.Min(range.EndColumn, text.Length) : text.Length;
                 Highlight(surface, row, text, start, end, fullWidth: VisualLines || !Visual, lineBreak: index != range.EndLine);
             }
         }
@@ -288,28 +288,28 @@ internal sealed class TailLogView(TailLog log, bool color)
 
     private void DrawLine(Surface surface, int row, TailLine line)
     {
-        var text = line.Text;
-        var styles = line.Styles;
-        var styleIndex = 0;
-        var column = 0;
-        var index = 0;
+        string text = line.Text;
+        IReadOnlyList<(int Start, int End, TextStyle Style)> styles = line.Styles;
+        int styleIndex = 0;
+        int column = 0;
+        int index = 0;
         while (index < text.Length)
         {
-            var next = GraphemeHelper.GetNextClusterBoundary(text, index);
+            int next = GraphemeHelper.GetNextClusterBoundary(text, index);
             if (next <= index)
             {
                 next = index + 1;
             }
 
-            var cluster = text[index..next];
-            var width = Math.Max(1, GraphemeHelper.GetClusterDisplayWidth(cluster));
+            string cluster = text[index..next];
+            int width = Math.Max(1, GraphemeHelper.GetClusterDisplayWidth(cluster));
             while (styleIndex < styles.Count && styles[styleIndex].End <= index)
             {
                 styleIndex++;
             }
 
-            var style = styleIndex < styles.Count && styles[styleIndex].Start <= index ? styles[styleIndex].Style : TextStyle.Plain;
-            var x = column - _left;
+            TextStyle style = styleIndex < styles.Count && styles[styleIndex].Start <= index ? styles[styleIndex].Style : TextStyle.Plain;
+            int x = column - _left;
             if (x >= _width)
             {
                 break;
@@ -317,8 +317,8 @@ internal sealed class TailLogView(TailLog log, bool color)
 
             if (x >= 0)
             {
-                var foreground = color ? style.Foreground?.ToHex1b() : null;
-                var background = color ? style.Background?.ToHex1b() : null;
+                Hex1bColor? foreground = color ? style.Foreground?.ToHex1b() : null;
+                Hex1bColor? background = color ? style.Background?.ToHex1b() : null;
                 _ = surface.WriteText(x, row, cluster, foreground, background, style.Attributes.ToCellAttributes());
             }
 
@@ -329,16 +329,16 @@ internal sealed class TailLogView(TailLog log, bool color)
 
     private void Highlight(Surface surface, int row, string text, int start, int end, bool fullWidth, bool lineBreak)
     {
-        var from = GraphemeHelper.IndexToDisplayColumn(text, Math.Clamp(start, 0, text.Length)) - _left;
-        var to = fullWidth ? _width : GraphemeHelper.IndexToDisplayColumn(text, Math.Clamp(end, 0, text.Length)) - _left;
+        int from = GraphemeHelper.IndexToDisplayColumn(text, Math.Clamp(start, 0, text.Length)) - _left;
+        int to = fullWidth ? _width : GraphemeHelper.IndexToDisplayColumn(text, Math.Clamp(end, 0, text.Length)) - _left;
         if (!fullWidth && (lineBreak || end > text.Length))
         {
             to++;
         }
 
-        for (var x = Math.Max(0, from); x < Math.Min(_width, to); x++)
+        for (int x = Math.Max(0, from); x < Math.Min(_width, to); x++)
         {
-            var cell = surface[x, row];
+            SurfaceCell cell = surface[x, row];
             if (cell.IsContinuation)
             {
                 continue;
@@ -350,20 +350,20 @@ internal sealed class TailLogView(TailLog log, bool color)
             }
 
             surface[x, row] = color
-                ? cell.WithBackground(SelectionBackground)
+                ? cell.WithBackground(s_selectionBackground)
                 : cell.WithAddedAttributes(CellAttributes.Reverse);
         }
     }
 
     private void DrawCaret(Surface surface, int row, string text)
     {
-        var x = GraphemeHelper.IndexToDisplayColumn(text, Math.Min(_column, text.Length)) - _left;
+        int x = GraphemeHelper.IndexToDisplayColumn(text, Math.Min(_column, text.Length)) - _left;
         if (x < 0 || x >= _width)
         {
             return;
         }
 
-        var cell = surface[x, row];
+        SurfaceCell cell = surface[x, row];
         if (cell == SurfaceCells.Empty)
         {
             cell = cell with { Character = " " };
@@ -379,14 +379,14 @@ internal sealed class TailLogView(TailLog log, bool color)
             return;
         }
 
-        var x = surface.Width - 1;
-        var thumb = Math.Max(1, _viewport * _viewport / count);
-        var travel = _viewport - thumb;
-        var position = travel * _top / Math.Max(1, count - _viewport);
-        for (var row = 0; row < _viewport; row++)
+        int x = surface.Width - 1;
+        int thumb = Math.Max(1, _viewport * _viewport / count);
+        int travel = _viewport - thumb;
+        int position = travel * _top / Math.Max(1, count - _viewport);
+        for (int row = 0; row < _viewport; row++)
         {
-            var inThumb = row >= position && row < position + thumb;
-            _ = surface.WriteText(x, row, inThumb ? "▉" : "│", color ? ScrollTrack : null, null);
+            bool inThumb = row >= position && row < position + thumb;
+            _ = surface.WriteText(x, row, inThumb ? "▉" : "│", color ? s_scrollTrack : null, null);
         }
     }
 
@@ -399,13 +399,13 @@ internal sealed class TailLogView(TailLog log, bool color)
 
         if (Visual && VisualLines)
         {
-            var (first, last) = (Math.Min(_anchorLine, _line), Math.Max(_anchorLine, _line));
+            (int first, int last) = (Math.Min(_anchorLine, _line), Math.Max(_anchorLine, _line));
             return (first, 0, last, Length(last));
         }
 
         if (Visual)
         {
-            var anchorFirst = _anchorLine < _line || (_anchorLine == _line && _anchorColumn <= _column);
+            bool anchorFirst = _anchorLine < _line || (_anchorLine == _line && _anchorColumn <= _column);
             return anchorFirst
                 ? (_anchorLine, _anchorColumn, _line, _column + 1)
                 : (_line, _column, _anchorLine, _anchorColumn + 1);
@@ -459,9 +459,9 @@ internal sealed class TailLogView(TailLog log, bool color)
         }
 
         BeginNavigation();
-        var maxTop = Math.Max(0, Log.Count - _viewport);
-        var top = Following ? maxTop : _top;
-        var target = Math.Clamp(top + delta, 0, maxTop);
+        int maxTop = Math.Max(0, Log.Count - _viewport);
+        int top = Following ? maxTop : _top;
+        int target = Math.Clamp(top + delta, 0, maxTop);
         Following = false;
         _top = target;
         _line = Math.Clamp(_line + (target != top ? target - top : delta), 0, Log.Count - 1);
@@ -592,7 +592,7 @@ internal sealed class TailLogView(TailLog log, bool color)
 
     private void Scroll(int delta)
     {
-        var maxTop = Math.Max(0, Log.Count - _viewport);
+        int maxTop = Math.Max(0, Log.Count - _viewport);
         _top = Math.Clamp((Following ? maxTop : _top) + delta, 0, maxTop);
         Following = _top >= maxTop;
     }
@@ -611,8 +611,8 @@ internal sealed class TailLogView(TailLog log, bool color)
             return new DragHandler(onMove: (_, _, deltaY) => ScrollTo(y + deltaY));
         }
 
-        var anchor = Hit(x, y);
-        var dragged = false;
+        (int Line, int Column) anchor = Hit(x, y);
+        bool dragged = false;
         return new DragHandler(
             onMove: (_, deltaX, deltaY) =>
             {
@@ -647,24 +647,24 @@ internal sealed class TailLogView(TailLog log, bool color)
 
     private void ScrollTo(int row)
     {
-        var maxTop = Math.Max(0, Log.Count - _viewport);
+        int maxTop = Math.Max(0, Log.Count - _viewport);
         _top = (int)((long)Math.Clamp(row, 0, _viewport - 1) * maxTop / Math.Max(1, _viewport - 1));
         Following = _top >= maxTop;
     }
 
     private (int Line, int Column) Hit(int x, int y)
     {
-        var maxTop = Math.Max(0, Log.Count - _viewport);
+        int maxTop = Math.Max(0, Log.Count - _viewport);
         _top = Following ? maxTop : _top;
         Following = false;
-        var line = Math.Clamp(_top + y, 0, Log.Count - 1);
-        var text = Log.Row(line).Text;
+        int line = Math.Clamp(_top + y, 0, Log.Count - 1);
+        string text = Log.Row(line).Text;
         return (line, Math.Clamp(GraphemeHelper.DisplayColumnToIndex(text, Math.Max(0, _left + x)), 0, text.Length));
     }
 
     private void Reveal()
     {
-        var maxTop = Math.Max(0, Log.Count - _viewport);
+        int maxTop = Math.Max(0, Log.Count - _viewport);
         if (Following)
         {
             _top = maxTop;
@@ -680,7 +680,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         }
 
         _top = Math.Clamp(_top, 0, maxTop);
-        var column = GraphemeHelper.IndexToDisplayColumn(Log.Row(_line).Text, Math.Min(_column, Length(_line)));
+        int column = GraphemeHelper.IndexToDisplayColumn(Log.Row(_line).Text, Math.Min(_column, Length(_line)));
         if (column < _left)
         {
             _left = column;

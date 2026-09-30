@@ -39,7 +39,7 @@ internal static class TailClipboard
     /// <returns>True when a command accepted it.</returns>
     public static bool CopyWithCommand(string text)
     {
-        foreach (var (program, arguments) in Commands())
+        foreach ((string program, string[] arguments) in Commands())
         {
             try
             {
@@ -55,7 +55,7 @@ internal static class TailClipboard
                         : new UTF8Encoding(false),
                 };
 
-                foreach (var argument in arguments)
+                foreach (string argument in arguments)
                 {
                     start.ArgumentList.Add(argument);
                 }

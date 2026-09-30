@@ -15,7 +15,7 @@ public static class SqlDetector
 {
     // The prefixes that introduce SQL, tried in this order; the SQL runs from the end of the first one found to the end
     // of the message. Plain searches without captures keep this cheap for the many lines that have no SQL.
-    private static readonly ByteRegex[] Prefixes =
+    private static readonly ByteRegex[] s_prefixes =
     [
         ByteRegex.Compile(@"(?i)duration:\s*[\d.]+\s*ms\s+(?:statement|parse|bind|execute)\s*(?:\S+)?:\s*"),
         ByteRegex.Compile(@"(?i)statement:\s*"),
@@ -50,17 +50,17 @@ public static class SqlDetector
             return null;
         }
 
-        var bytes = text.Bytes;
-        foreach (var prefix in Prefixes)
+        ReadOnlySpan<byte> bytes = text.Bytes;
+        foreach (ByteRegex prefix in s_prefixes)
         {
             if (prefix.Find(bytes) is not { } match)
             {
                 continue;
             }
 
-            var sqlStart = text.ToCharOffset(match.End);
-            var rest = text.Text[sqlStart..];
-            var sql = rest.TrimEnd();
+            int sqlStart = text.ToCharOffset(match.End);
+            string rest = text.Text[sqlStart..];
+            string sql = rest.TrimEnd();
             if (sql.Length > 0)
             {
                 return new SqlDetection(text.Text[..sqlStart], sql, rest[sql.Length..]);

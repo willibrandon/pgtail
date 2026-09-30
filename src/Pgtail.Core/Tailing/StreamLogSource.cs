@@ -14,7 +14,7 @@ namespace Pgtail.Tailing;
 /// <param name="input">The piped input.</param>
 public sealed class StreamLogSource(Stream input) : ILogSource
 {
-    private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan s_quiet = TimeSpan.FromMilliseconds(100);
     private readonly Channel<LogSourceEvent> _events = Channel.CreateUnbounded<LogSourceEvent>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
 
@@ -69,27 +69,27 @@ public sealed class StreamLogSource(Stream input) : ILogSource
     private async Task ReadAsync()
     {
         _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.CaughtUp));
-        var buffer = new byte[64 * 1024];
+        byte[] buffer = new byte[64 * 1024];
         var pending = new List<byte>();
         LogFormat? format = null;
         try
         {
             while (true)
             {
-                var reading = input.ReadAsync(buffer, _stop.Token).AsTask();
-                if (_grouper.IsHolding && await Task.WhenAny(reading, Task.Delay(Quiet, _stop.Token)).ConfigureAwait(false) != reading)
+                Task<int> reading = input.ReadAsync(buffer, _stop.Token).AsTask();
+                if (_grouper.IsHolding && await Task.WhenAny(reading, Task.Delay(s_quiet, _stop.Token)).ConfigureAwait(false) != reading)
                 {
                     Flush();
                 }
 
-                var read = await reading.ConfigureAwait(false);
+                int read = await reading.ConfigureAwait(false);
                 if (read == 0)
                 {
                     break;
                 }
 
-                var start = 0;
-                for (var i = 0; i < read; i++)
+                int start = 0;
+                for (int i = 0; i < read; i++)
                 {
                     if (buffer[i] == (byte)'\n')
                     {
@@ -121,8 +121,8 @@ public sealed class StreamLogSource(Stream input) : ILogSource
 
     private void Emit(byte[] line, ref LogFormat? format)
     {
-        var length = line.Length > 0 && line[^1] == (byte)'\r' ? line.Length - 1 : line.Length;
-        var memory = line.AsMemory(0, length);
+        int length = line.Length > 0 && line[^1] == (byte)'\r' ? line.Length - 1 : line.Length;
+        Memory<byte> memory = line.AsMemory(0, length);
         if (memory.Span.Trim(" \t\r\n\v\f"u8).IsEmpty)
         {
             return;
@@ -135,7 +135,7 @@ public sealed class StreamLogSource(Stream input) : ILogSource
             _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format, Path: "stdin"));
         }
 
-        var entry = LogLineParser.Parse(memory, format.Value);
+        LogEntry entry = LogLineParser.Parse(memory, format.Value);
         entry.SourceFile = "stdin";
         if (_grouper.Add(entry) is { } complete)
         {

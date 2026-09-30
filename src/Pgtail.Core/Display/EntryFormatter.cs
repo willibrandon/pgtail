@@ -14,7 +14,7 @@ namespace Pgtail.Display;
 /// </summary>
 public static class EntryFormatter
 {
-    private static readonly JsonWriterOptions JsonOptions = new()
+    private static readonly JsonWriterOptions s_jsonOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
@@ -70,8 +70,8 @@ public static class EntryFormatter
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(chain);
-        var text = Prefix(entry, theme);
-        var levelStyle = LevelStyle(entry.Level, theme);
+        StyledText text = Prefix(entry, theme);
+        TextStyle levelStyle = LevelStyle(entry.Level, theme);
         text.Append(entry.SqlState is { } state ? $"{PadLevel(entry.Level)} {state}: " : $"{PadLevel(entry.Level)}: ", levelStyle);
         return text.Append(chain.Apply(entry.Message, theme));
     }
@@ -85,9 +85,9 @@ public static class EntryFormatter
     /// <returns>The formatted entry, which may span lines.</returns>
     public static StyledText Full(LogEntry entry, Theme theme, HighlighterChain chain)
     {
-        var text = Compact(entry, theme, chain);
-        var detailStyle = theme.Style("detail");
-        foreach (var (field, label) in DisplayFields.Secondary)
+        StyledText text = Compact(entry, theme, chain);
+        TextStyle detailStyle = theme.Style("detail");
+        foreach ((string field, string label) in DisplayFields.Secondary)
         {
             if (entry.GetField(field) is not { } value)
             {
@@ -95,7 +95,7 @@ public static class EntryFormatter
             }
 
             text.Append($"\n  {label}: ");
-            var valueText = FieldText(value);
+            string valueText = FieldText(value);
             if (field is "query" or "detail")
             {
                 text.Append(chain.Apply(valueText, theme));
@@ -124,9 +124,9 @@ public static class EntryFormatter
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(chain);
         var text = new StyledText();
-        var levelStyle = LevelStyle(entry.Level, theme);
-        var first = true;
-        foreach (var field in fields)
+        TextStyle levelStyle = LevelStyle(entry.Level, theme);
+        bool first = true;
+        foreach (string field in fields)
         {
             if (entry.GetField(field) is not { } value)
             {
@@ -198,19 +198,19 @@ public static class EntryFormatter
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(spans);
         ArgumentNullException.ThrowIfNull(theme);
-        var levelStyle = LevelStyle(entry.Level, theme);
-        var highlight = theme.Style("highlight");
-        var text = Prefix(entry, theme).Append($"{PadLevel(entry.Level)}: ", levelStyle);
-        var message = entry.Message;
-        var position = 0;
-        foreach (var (start, spanEnd) in spans.OrderBy(span => span.Start))
+        TextStyle levelStyle = LevelStyle(entry.Level, theme);
+        TextStyle highlight = theme.Style("highlight");
+        StyledText text = Prefix(entry, theme).Append($"{PadLevel(entry.Level)}: ", levelStyle);
+        string message = entry.Message;
+        int position = 0;
+        foreach ((int start, int spanEnd) in spans.OrderBy(span => span.Start))
         {
             if (start < position || start >= message.Length)
             {
                 continue;
             }
 
-            var end = Math.Min(spanEnd, message.Length);
+            int end = Math.Min(spanEnd, message.Length);
             if (start > position)
             {
                 text.Append(message[position..start], levelStyle);
@@ -287,12 +287,12 @@ public static class EntryFormatter
     {
         ArgumentNullException.ThrowIfNull(entry);
         using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, JsonOptions))
+        using (var writer = new Utf8JsonWriter(stream, s_jsonOptions))
         {
             writer.WriteStartObject();
-            foreach (var field in entry.AvailableFields())
+            foreach (string field in entry.AvailableFields())
             {
-                var value = entry.GetField(field)!;
+                object value = entry.GetField(field)!;
                 switch (value)
                 {
                     case DateTime when field == "timestamp":

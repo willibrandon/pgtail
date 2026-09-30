@@ -16,14 +16,14 @@ internal static class TailCommand
     /// <returns>A task that completes when tailing ends or pauses.</returns>
     public static async Task Run(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         DateTime? since = null;
-        var stream = false;
+        bool stream = false;
         var files = new List<string>();
         string? instanceArgument = null;
-        for (var i = 0; i < args.Count; i++)
+        for (int i = 0; i < args.Count; i++)
         {
             switch (args[i])
             {
@@ -64,10 +64,13 @@ internal static class TailCommand
             return;
         }
 
-        var host = CoreCommands.Repl(invocation);
+        IReplHost host = CoreCommands.Repl(invocation);
         if (files.Count > 0)
         {
-            var (resolved, glob, error) = TailTargets.ResolveFiles(files, session.Home, invocation.Host.CurrentDirectory,
+            (List<string> resolved, string? glob, string? error) = TailTargets.ResolveFiles(
+                files,
+                session.Home,
+                invocation.Host.CurrentDirectory,
                 warning => output.Line($"Warning: {warning}"));
             if (error is not null)
             {

@@ -15,7 +15,7 @@ public sealed class DocumentedMembersAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(DiagnosticDescriptors.MemberIsNotDocumented);
+        ImmutableArray.Create(DiagnosticDescriptors.s_memberIsNotDocumented);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -28,7 +28,7 @@ public sealed class DocumentedMembersAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeSymbol(SymbolAnalysisContext context)
     {
-        var symbol = context.Symbol;
+        ISymbol symbol = context.Symbol;
         if (symbol.IsImplicitlyDeclared || !IsVisible(symbol) || !IsWritten(symbol))
         {
             return;
@@ -36,24 +36,24 @@ public sealed class DocumentedMembersAnalyzer : DiagnosticAnalyzer
 
         // A partial type is documented once, on whichever part carries the comment, and the symbol sees all of its parts.
         // The comment is a triple slash one: a "/** */" block also yields XML, and the convention does not take it.
-        var xml = symbol.GetDocumentationCommentXml(cancellationToken: context.CancellationToken);
+        string? xml = symbol.GetDocumentationCommentXml(cancellationToken: context.CancellationToken);
         if (string.IsNullOrWhiteSpace(xml) || !symbol.DeclaringSyntaxReferences.Any(reference => HasTripleSlash(reference.GetSyntax())))
         {
-            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.MemberIsNotDocumented, symbol.Locations[0], symbol.Name));
+            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_memberIsNotDocumented, symbol.Locations[0], symbol.Name));
         }
     }
 
     // A field or an event is declared by its variable, and the comment stands on the declaration around it.
     private static bool HasTripleSlash(SyntaxNode node)
     {
-        var owner = node is VariableDeclaratorSyntax { Parent.Parent: { } declaration } ? declaration : node;
+        SyntaxNode owner = node is VariableDeclaratorSyntax { Parent.Parent: { } declaration } ? declaration : node;
         return owner.GetLeadingTrivia().Any(trivia => trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia));
     }
 
     // Public or internal all the way out: a member is no more visible than the types that hold it.
     private static bool IsVisible(ISymbol symbol)
     {
-        for (var current = symbol; current is not null and not INamespaceSymbol; current = current.ContainingSymbol)
+        for (ISymbol? current = symbol; current is not null and not INamespaceSymbol; current = current.ContainingSymbol)
         {
             if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal))
             {

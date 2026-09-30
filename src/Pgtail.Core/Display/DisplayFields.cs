@@ -33,12 +33,12 @@ public static class DisplayFields
         ("session_id", "Session"),
     ];
 
-    private static readonly FrozenSet<string> ValidSet = Valid.ToFrozenSet(StringComparer.Ordinal);
+    private static readonly FrozenSet<string> s_validSet = Valid.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>
     /// Whether a name is accepted by <c>display fields</c>.
     /// </summary>
     /// <param name="name">The field name.</param>
     /// <returns>True when it is valid.</returns>
-    public static bool IsValid(string name) => ValidSet.Contains(name);
+    public static bool IsValid(string name) => s_validSet.Contains(name);
 }

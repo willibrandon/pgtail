@@ -24,9 +24,9 @@ internal static class AnsiText
         }
 
         var builder = new StringBuilder();
-        foreach (var span in text.Spans)
+        foreach (StyledSpan span in text.Spans)
         {
-            var sgr = Sgr(span.Style, color);
+            string sgr = Sgr(span.Style, color);
             if (sgr.Length == 0)
             {
                 builder.Append(span.Text);
@@ -34,8 +34,8 @@ internal static class AnsiText
             }
 
             // Styles end before each newline so a pager or the next prompt never inherits them.
-            var lines = span.Text.Split('\n');
-            for (var i = 0; i < lines.Length; i++)
+            string[] lines = span.Text.Split('\n');
+            for (int i = 0; i < lines.Length; i++)
             {
                 if (i > 0)
                 {
@@ -61,7 +61,7 @@ internal static class AnsiText
     public static string Sgr(TextStyle style, bool color)
     {
         var parts = new List<string>();
-        var attributes = style.Attributes;
+        TextAttributes attributes = style.Attributes;
         (TextAttributes Flag, string Code)[] codes =
         [
             (TextAttributes.Bold, "1"),
@@ -74,7 +74,7 @@ internal static class AnsiText
             (TextAttributes.Strikethrough, "9"),
             (TextAttributes.Overline, "53"),
         ];
-        foreach (var (flag, code) in codes)
+        foreach ((TextAttributes flag, string code) in codes)
         {
             if (attributes.HasFlag(flag))
             {

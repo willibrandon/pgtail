@@ -100,7 +100,7 @@ internal sealed partial class ReplHost : IReplHost
             await FlushAsync();
             while (true)
             {
-                var result = await PromptAsync();
+                PromptResult result = await PromptAsync();
                 Task execution;
                 switch (result.Outcome)
                 {
@@ -158,7 +158,7 @@ internal sealed partial class ReplHost : IReplHost
 
     private async Task<ReplRequest?> ContinueAsync(Task execution)
     {
-        var requested = _screenRequests.Task;
+        Task<ReplRequest> requested = _screenRequests.Task;
         if (await Task.WhenAny(execution, requested) != execution)
         {
             _suspended = execution;
@@ -188,7 +188,7 @@ internal sealed partial class ReplHost : IReplHost
     public async Task ExecuteAsync(PromptResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
-        var line = result.Text.Trim();
+        string line = result.Text.Trim();
         if (line.Length == 0)
         {
             _shellMode.Value = false;
@@ -204,7 +204,7 @@ internal sealed partial class ReplHost : IReplHost
 
         if (line.StartsWith('!'))
         {
-            var command = line[1..].Trim();
+            string command = line[1..].Trim();
             if (command.Length > 0)
             {
                 RunShell(command);
@@ -217,8 +217,8 @@ internal sealed partial class ReplHost : IReplHost
             return;
         }
 
-        var tokens = CommandLineSplitter.Split(line);
-        var name = tokens[0].Text;
+        List<CommandToken> tokens = CommandLineSplitter.Split(line);
+        string name = tokens[0].Text;
         if (_catalog.Find(name) is not { } info)
         {
             Output.Line($"Unknown command: {name.ToLowerInvariant()}");
@@ -235,8 +235,8 @@ internal sealed partial class ReplHost : IReplHost
     /// <returns>A task that completes when the output has been drawn.</returns>
     public async Task FlushAsync()
     {
-        var flow = Flow;
-        while (_posted.TryDequeue(out var notice))
+        Hex1bFlowContext flow = Flow;
+        while (_posted.TryDequeue(out StyledText? notice))
         {
             Output.Line(notice);
         }
@@ -247,12 +247,12 @@ internal sealed partial class ReplHost : IReplHost
         }
 
         // A row that fills the last column would lose that column when the line is erased to its end.
-        var width = FrozenWidth(flow);
-        var rows = StyledBlock.Fold(Output.Take(), width);
-        var chunk = Math.Max(1, flow.TerminalHeight - 1);
-        for (var start = 0; start < rows.Count; start += chunk)
+        int width = FrozenWidth(flow);
+        List<List<StyledSpan>> rows = StyledBlock.Fold(Output.Take(), width);
+        int chunk = Math.Max(1, flow.TerminalHeight - 1);
+        for (int start = 0; start < rows.Count; start += chunk)
         {
-            var slice = rows.GetRange(start, Math.Min(chunk, rows.Count - start));
+            List<List<StyledSpan>> slice = rows.GetRange(start, Math.Min(chunk, rows.Count - start));
             await flow.ShowAsync(ctx => StyledBlock.BuildRows(ctx, slice, width, Session.ColorEnabled));
         }
     }
@@ -281,11 +281,11 @@ internal sealed partial class ReplHost : IReplHost
     {
         ArgumentNullException.ThrowIfNull(question);
         await FlushAsync();
-        var flow = Flow;
+        Hex1bFlowContext flow = Flow;
         var answer = new TextBoxState();
         var label = new StyledText(question);
-        var width = FrozenWidth(flow);
-        var step = flow.Step(ctx => ctx.HStack(h =>
+        int width = FrozenWidth(flow);
+        FlowStep step = flow.Step(ctx => ctx.HStack(h =>
             [
                 StyledBlock.Build(h, [label], Math.Max(1, DisplayWidth.GetStringWidth(question)), Session.ColorEnabled),
                 h.TextBox().State(answer).OnSubmit(_ => ctx.Step.Complete(y => StyledBlock.Build(
@@ -305,11 +305,11 @@ internal sealed partial class ReplHost : IReplHost
     {
         ArgumentNullException.ThrowIfNull(render);
         await FlushAsync();
-        var flow = Flow;
-        var width = FrozenWidth(flow);
-        var height = Math.Max(1, flow.TerminalHeight - 1);
+        Hex1bFlowContext flow = Flow;
+        int width = FrozenWidth(flow);
+        int height = Math.Max(1, flow.TerminalHeight - 1);
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var step = flow.Step(ctx => StyledBlock.BuildRows(ctx, Rows(), width, Session.ColorEnabled)
+        FlowStep step = flow.Step(ctx => StyledBlock.BuildRows(ctx, Rows(), width, Session.ColorEnabled)
             .InputBindings(b =>
             {
                 b.Ctrl().Key(Hex1bKey.C).Action(_ => stopped.TrySetResult(), "Stop");
@@ -319,7 +319,7 @@ internal sealed partial class ReplHost : IReplHost
         using var timer = new PeriodicTimer(interval);
         while (!stopped.Task.IsCompleted)
         {
-            var tick = timer.WaitForNextTickAsync(flow.CancellationToken).AsTask();
+            Task<bool> tick = timer.WaitForNextTickAsync(flow.CancellationToken).AsTask();
             _ = await Task.WhenAny(tick, stopped.Task);
             step.Invalidate();
         }
@@ -328,7 +328,7 @@ internal sealed partial class ReplHost : IReplHost
 
         List<List<StyledSpan>> Rows()
         {
-            var rows = StyledBlock.Fold(render(), width);
+            List<List<StyledSpan>> rows = StyledBlock.Fold(render(), width);
             return rows.Count > height ? rows.GetRange(0, height) : rows;
         }
     }
@@ -363,7 +363,7 @@ internal sealed partial class ReplHost : IReplHost
 
         banner.Add(new StyledText("Type 'help' for available commands, 'quit' to exit."));
         banner.Add(new StyledText());
-        foreach (var line in banner)
+        foreach (StyledText line in banner)
         {
             Output.Line(line);
         }
@@ -382,14 +382,14 @@ internal sealed partial class ReplHost : IReplHost
 
     private async Task<PromptResult> PromptAsync()
     {
-        var flow = Flow;
+        Hex1bFlowContext flow = Flow;
         var controller = new PromptController(_prompt, _catalog, this, _shellMode);
         var completed = new TaskCompletionSource<PromptResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var height = Math.Min(flow.TerminalHeight, Math.Max(flow.AvailableHeight, PromptState.MenuRows + 2));
-        var width = Math.Max(1, flow.TerminalWidth);
-        var terminalHeight = flow.TerminalHeight;
-        var resized = false;
-        var step = flow.Step(
+        int height = Math.Min(flow.TerminalHeight, Math.Max(flow.AvailableHeight, PromptState.MenuRows + 2));
+        int width = Math.Max(1, flow.TerminalWidth);
+        int terminalHeight = flow.TerminalHeight;
+        bool resized = false;
+        FlowStep step = flow.Step(
             ctx =>
             {
                 // The prompt fills the rows down to the toolbar at the bottom, which a resized terminal moves, so it
@@ -414,7 +414,7 @@ internal sealed partial class ReplHost : IReplHost
                         return;
                     }
 
-                    var tombstone = PromptLabel(result.Shell).Append(result.Text);
+                    StyledText tombstone = PromptLabel(result.Shell).Append(result.Text);
                     ctx.Step.Complete(y => StyledBlock.Build(y, [tombstone], FrozenWidth(flow), Session.ColorEnabled));
                 };
 
@@ -424,7 +424,7 @@ internal sealed partial class ReplHost : IReplHost
             options => options.MaxHeight = height);
         step.RequestFocus(node => node is EditorNode);
         await step.WaitForCompletionAsync(flow.CancellationToken);
-        var result = await completed.Task;
+        PromptResult result = await completed.Task;
         if (result.Outcome is not (PromptOutcome.ClearScreen or PromptOutcome.Resized))
         {
             if (result.Outcome == PromptOutcome.Submitted)

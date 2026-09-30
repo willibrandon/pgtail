@@ -1,7 +1,7 @@
-using Hex1b;
-using Hex1b.Widgets;
 using System.Globalization;
 using System.Text;
+using Hex1b;
+using Hex1b.Widgets;
 using Pgtail.Commands;
 using Pgtail.Repl;
 using Pgtail.Sessions;
@@ -33,7 +33,7 @@ internal static class ReplRunner
         history.Load();
         session.Refresh();
         var host = new ReplHost(session, ReplCatalog.Catalog, history, Environment.CurrentDirectory);
-        foreach (var warning in session.TakeWarnings())
+        foreach (string warning in session.TakeWarnings())
         {
             host.StartupNotices.Add(new StyledText($"Warning: {warning}"));
         }
@@ -63,14 +63,14 @@ internal static class ReplRunner
         while (true)
         {
             ReplRequest? request = null;
-            var startRow = resumeRow;
+            int? startRow = resumeRow;
             resumeRow = null;
             if (startRow is null)
             {
                 Terminals.ForgetCursorPosition();
             }
 
-            await using (var terminal = Terminals.Builder()
+            await using (Hex1bTerminal terminal = Terminals.Builder()
                 .WithHex1bFlow(
                     async flow =>
                     {
@@ -157,7 +157,7 @@ internal static class ReplRunner
     {
         ArgumentNullException.ThrowIfNull(screen);
         Hex1bAppOptions? options = null;
-        await using (var terminal = Terminals.Builder()
+        await using (Hex1bTerminal terminal = Terminals.Builder()
             .WithMouse()
             .WithHex1bApp(configure => options = configure, app => screen(app, options!))
             .Build())
@@ -180,7 +180,7 @@ internal static class ReplRunner
             host.Post(updates.Notice(latest));
         }
 
-        var now = DateTimeOffset.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        string now = DateTimeOffset.UtcNow.ToString("o", CultureInfo.InvariantCulture);
         _ = session.Store.Save("updates.last_check", now);
     }
 }

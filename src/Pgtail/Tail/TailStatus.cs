@@ -9,15 +9,15 @@ namespace Pgtail.Tail;
 /// </summary>
 internal sealed class TailStatus
 {
-    private static readonly TextStyle Follow = StyleParser.Parse("bold bright_green");
-    private static readonly TextStyle Paused = StyleParser.Parse("bold bright_yellow");
-    private static readonly TextStyle Dim = StyleParser.Parse("dim");
-    private static readonly TextStyle Errors = StyleParser.Parse("bold bright_red");
-    private static readonly TextStyle Warnings = StyleParser.Parse("bold bright_yellow");
-    private static readonly TextStyle Filters = StyleParser.Parse("bright_cyan");
-    private static readonly TextStyle Instance = StyleParser.Parse("bright_white");
-    private static readonly TextStyle Unavailable = StyleParser.Parse("bright_yellow");
-    private static readonly TextStyle Key = StyleParser.Parse("bold bright_white");
+    private static readonly TextStyle s_follow = StyleParser.Parse("bold bright_green");
+    private static readonly TextStyle s_paused = StyleParser.Parse("bold bright_yellow");
+    private static readonly TextStyle s_dim = StyleParser.Parse("dim");
+    private static readonly TextStyle s_errors = StyleParser.Parse("bold bright_red");
+    private static readonly TextStyle s_warnings = StyleParser.Parse("bold bright_yellow");
+    private static readonly TextStyle s_filters = StyleParser.Parse("bright_cyan");
+    private static readonly TextStyle s_instance = StyleParser.Parse("bright_white");
+    private static readonly TextStyle s_unavailable = StyleParser.Parse("bright_yellow");
+    private static readonly TextStyle s_key = StyleParser.Parse("bold bright_white");
 
     /// <summary>
     /// The number of ERROR, FATAL, and PANIC entries shown.
@@ -151,52 +151,52 @@ internal sealed class TailStatus
         var text = new StyledText(" ");
         if (Loading is { } loaded)
         {
-            text.Append(loaded > 0 ? string.Create(CultureInfo.InvariantCulture, $"LOADING {loaded:N0}") : "LOADING", Paused);
+            text.Append(loaded > 0 ? string.Create(CultureInfo.InvariantCulture, $"LOADING {loaded:N0}") : "LOADING", s_paused);
         }
         else if (Following)
         {
-            text.Append("FOLLOW", Follow);
+            text.Append("FOLLOW", s_follow);
         }
         else
         {
-            text.Append(NewSincePause > 0 ? $"PAUSED +{NewSincePause} new" : "PAUSED", Paused);
+            text.Append(NewSincePause > 0 ? $"PAUSED +{NewSincePause} new" : "PAUSED", s_paused);
         }
 
-        text.Append(" | ", Dim).Append($"E:{ErrorCount}", Errors).Append(" ", Dim).Append($"W:{WarningCount}", Warnings);
-        text.Append(" | ", Dim).Append($"{TotalLines.ToString("N0", CultureInfo.InvariantCulture)} lines");
+        text.Append(" | ", s_dim).Append($"E:{ErrorCount}", s_errors).Append(" ", s_dim).Append($"W:{WarningCount}", s_warnings);
+        text.Append(" | ", s_dim).Append($"{TotalLines.ToString("N0", CultureInfo.InvariantCulture)} lines");
         if (LoadingOlder)
         {
-            text.Append(" (loading older)", Dim);
+            text.Append(" (loading older)", s_dim);
         }
         else if (OlderNotLoaded)
         {
-            text.Append(" (older not loaded)", Dim);
+            text.Append(" (older not loaded)", s_dim);
         }
 
-        text.Append(" | ", Dim).Append(string.Join(' ', FilterParts()), Filters).Append(" | ", Dim);
-        var unavailable = FilePermissionDenied ? "(permission denied)" : "(unavailable)";
+        text.Append(" | ", s_dim).Append(string.Join(' ', FilterParts()), s_filters).Append(" | ", s_dim);
+        string unavailable = FilePermissionDenied ? "(permission denied)" : "(unavailable)";
         if (PgVersion.Length > 0)
         {
-            text.Append($"PG{PgVersion}:{PgPort}", Instance);
+            text.Append($"PG{PgVersion}:{PgPort}", s_instance);
             if (FileUnavailable)
             {
-                text.Append(" ").Append(unavailable, Unavailable);
+                text.Append(" ").Append(unavailable, s_unavailable);
             }
         }
         else if (FileName is { } file)
         {
             if (FileUnavailable)
             {
-                text.Append(file + " ", Instance).Append(unavailable, Unavailable);
+                text.Append(file + " ", s_instance).Append(unavailable, s_unavailable);
             }
             else
             {
-                text.Append(file, Instance);
+                text.Append(file, s_instance);
             }
         }
         else
         {
-            text.Append($":{PgPort}", Instance);
+            text.Append($":{PgPort}", s_instance);
         }
 
         return text;
@@ -210,18 +210,18 @@ internal sealed class TailStatus
     {
         (string Key, string Description)[] hints =
         [
-            ("q", "Quit"), ("?", "Help"), ("/", "Cmd"), ("v", "Visual"), ("y", "Yank"), ("p", "Pause"), ("f", "Follow"),
+            ("q", "Quit"), ("?", "Help"), ("/", "Cmd"), ("v", "Visual"), ("y", "Yank"), ("p", "Pause"), ("f", "s_follow"),
             ("g/G", "Top/End"),
         ];
         var text = new StyledText(" ");
-        for (var i = 0; i < hints.Length; i++)
+        for (int i = 0; i < hints.Length; i++)
         {
             if (i > 0)
             {
-                text.Append("  ", Dim);
+                text.Append("  ", s_dim);
             }
 
-            text.Append(hints[i].Key, Key).Append(" ", Dim).Append(hints[i].Description, Dim);
+            text.Append(hints[i].Key, s_key).Append(" ", s_dim).Append(hints[i].Description, s_dim);
         }
 
         return text;

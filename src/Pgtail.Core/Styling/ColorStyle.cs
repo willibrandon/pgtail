@@ -26,7 +26,7 @@ public sealed record ColorStyle(
     /// <returns>The style.</returns>
     public TextStyle ToTextStyle()
     {
-        var attributes = (Bold ? TextAttributes.Bold : TextAttributes.None) | (Dim ? TextAttributes.Dim : TextAttributes.None)
+        TextAttributes attributes = (Bold ? TextAttributes.Bold : TextAttributes.None) | (Dim ? TextAttributes.Dim : TextAttributes.None)
             | (Italic ? TextAttributes.Italic : TextAttributes.None) | (Underline ? TextAttributes.Underline : TextAttributes.None);
         return new TextStyle(Color(Fg), Color(Bg), attributes);
     }
@@ -67,12 +67,12 @@ public sealed record ColorStyle(
     }
 
     private static TerminalColor? Color(string? name) =>
-        !string.IsNullOrEmpty(name) && ColorParser.TryParse(name, out var color) ? color : null;
+        !string.IsNullOrEmpty(name) && ColorParser.TryParse(name, out TerminalColor color) ? color : null;
 
     private static string? Text(TomlTable table, string key) =>
-        table.TryGetValue(key, out var value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : null;
+        table.TryGetValue(key, out object? value) ? Convert.ToString(value, CultureInfo.InvariantCulture) : null;
 
-    private static bool Flag(TomlTable table, string key) => table.TryGetValue(key, out var value) && value switch
+    private static bool Flag(TomlTable table, string key) => table.TryGetValue(key, out object? value) && value switch
     {
         bool flag => flag,
         long number => number != 0,

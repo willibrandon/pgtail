@@ -34,7 +34,7 @@ public static class NotificationSeverities
     public static bool TryParse(string name, out NotificationSeverity severity)
     {
         ArgumentNullException.ThrowIfNull(name);
-        (var found, severity) = name.ToLowerInvariant() switch
+        (bool found, severity) = name.ToLowerInvariant() switch
         {
             "info" => (true, NotificationSeverity.Info),
             "warning" => (true, NotificationSeverity.Warning),

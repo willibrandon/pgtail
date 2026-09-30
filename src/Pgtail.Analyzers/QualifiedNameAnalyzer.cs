@@ -15,7 +15,7 @@ public sealed class QualifiedNameAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(DiagnosticDescriptors.NameIsQualified);
+        ImmutableArray.Create(DiagnosticDescriptors.s_nameIsQualified);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -28,7 +28,7 @@ public sealed class QualifiedNameAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeName(SyntaxNodeAnalysisContext context)
     {
-        var node = context.Node;
+        SyntaxNode node = context.Node;
         if (!StartsAtSystem(node) || node.Ancestors().Any(ancestor => ancestor is UsingDirectiveSyntax))
         {
             return;
@@ -41,9 +41,9 @@ public sealed class QualifiedNameAnalyzer : DiagnosticAnalyzer
             _ => (((QualifiedCrefSyntax)node).Container, ((QualifiedCrefSyntax)node).Member),
         };
 
-        var (left, written) = parts;
-        var model = context.SemanticModel;
-        var symbol = model.GetSymbolInfo(node, context.CancellationToken).Symbol;
+        (SyntaxNode? left, SyntaxNode? written) = parts;
+        SemanticModel model = context.SemanticModel;
+        ISymbol? symbol = model.GetSymbolInfo(node, context.CancellationToken).Symbol;
 
         // An attribute's name binds to the constructor it calls rather than to the type.
         if (symbol is IMethodSymbol { MethodKind: MethodKind.Constructor } constructor && node.Parent is AttributeSyntax)
@@ -56,7 +56,7 @@ public sealed class QualifiedNameAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var root = type.ContainingNamespace;
+        INamespaceSymbol root = type.ContainingNamespace;
         while (root.ContainingNamespace is { IsGlobalNamespace: false } outer)
         {
             root = outer;
@@ -69,9 +69,9 @@ public sealed class QualifiedNameAnalyzer : DiagnosticAnalyzer
 
         // The full name stays where the short one already means something else, such as a Mono.Cecil type or a member.
         // An attribute is looked up under both of its names, because "Flags" is written for FlagsAttribute.
-        var simple = written is NameMemberCrefSyntax member ? member.Name : written;
-        var spelled = simple is SimpleNameSyntax { Identifier.ValueText: var text } ? text : type.Name;
-        foreach (var candidate in new[] { type.Name, spelled }.Distinct())
+        SyntaxNode simple = written is NameMemberCrefSyntax member ? member.Name : written;
+        string spelled = simple is SimpleNameSyntax { Identifier.ValueText: var text } ? text : type.Name;
+        foreach (string? candidate in new[] { type.Name, spelled }.Distinct())
         {
             if (model.LookupSymbols(node.SpanStart, name: candidate).Any(other => IsRival(other, type)))
             {
@@ -79,7 +79,7 @@ public sealed class QualifiedNameAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.NameIsQualified, node.GetLocation(),
+        context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_nameIsQualified, node.GetLocation(),
             type.ContainingNamespace.ToDisplayString(), written.ToString()));
     }
 

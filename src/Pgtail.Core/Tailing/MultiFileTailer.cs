@@ -39,7 +39,7 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
     /// <inheritdoc />
     protected override void Prepare()
     {
-        foreach (var path in paths)
+        foreach (string path in paths)
         {
             Add(path, fromStart);
         }
@@ -53,12 +53,12 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
         ScanPattern();
         var entries = new List<LogEntry>();
         var unavailable = new List<string>();
-        foreach (var cursor in _cursors.Values)
+        foreach (FileCursor cursor in _cursors.Values)
         {
             _lines.Clear();
-            var outcome = cursor.Read(_lines, format => Post(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format,
+            ReadOutcome outcome = cursor.Read(_lines, format => Post(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format,
                 Path: cursor.Path)));
-            var grouper = _groupers[cursor];
+            EntryGrouper grouper = _groupers[cursor];
             if (outcome != ReadOutcome.Read)
             {
                 unavailable.Add(cursor.Path);
@@ -70,10 +70,10 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
                 continue;
             }
 
-            var name = Path.GetFileName(cursor.Path);
-            foreach (var line in _lines)
+            string name = Path.GetFileName(cursor.Path);
+            foreach (ReadOnlyMemory<byte> line in _lines)
             {
-                var entry = LogLineParser.Parse(line, cursor.Format ?? LogFormat.Text);
+                LogEntry entry = LogLineParser.Parse(line, cursor.Format ?? LogFormat.Text);
                 entry.SourceFile = name;
                 if (grouper.Add(entry) is { } complete)
                 {
@@ -92,7 +92,7 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
         Behind = _cursors.Values.Any(cursor => !cursor.AtEnd);
         UnavailablePaths = unavailable;
         IsUnavailable = unavailable.Count > 0;
-        foreach (var entry in entries
+        foreach (LogEntry? entry in entries
             .OrderBy(entry => entry.Timestamp is { } time ? LogTimestamps.ToUtc(time) : DateTime.MinValue)
             .ThenBy(entry => entry.SourceFile, StringComparer.Ordinal))
         {
@@ -108,14 +108,14 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
 
     private void ScanPattern()
     {
-        var now = Environment.TickCount64;
+        long now = Environment.TickCount64;
         if (pattern is null || now - _lastScan < 5000)
         {
             return;
         }
 
         _lastScan = now;
-        foreach (var path in pattern.Expand())
+        foreach (string path in pattern.Expand())
         {
             if (!_cursors.ContainsKey(path))
             {

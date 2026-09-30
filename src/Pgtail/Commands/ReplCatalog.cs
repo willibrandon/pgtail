@@ -9,16 +9,16 @@ namespace Pgtail.Commands;
 /// </summary>
 internal static class ReplCatalog
 {
-    private static readonly ArgumentSpec Since = ArgumentSpec.Of(
+    private static readonly ArgumentSpec s_since = ArgumentSpec.Of(
         ("clear", "Remove time filter"), ("5m", "Last 5 minutes"), ("30m", "Last 30 minutes"), ("1h", "Last hour"),
         ("2h", "Last 2 hours"), ("1d", "Last day"));
 
-    private static readonly ArgumentSpec Formats = ArgumentSpec.Of(
+    private static readonly ArgumentSpec s_formats = ArgumentSpec.Of(
         ("text", "Raw log lines"), ("json", "JSON Lines format"), ("csv", "CSV with headers"));
 
-    private static readonly ArgumentSpec Paths = ArgumentSpec.From(CompletionSources.Paths);
+    private static readonly ArgumentSpec s_paths = ArgumentSpec.From(CompletionSources.Paths);
 
-    private static readonly ArgumentSpec Instances = ArgumentSpec.From(CompletionSources.Instances);
+    private static readonly ArgumentSpec s_instances = ArgumentSpec.From(CompletionSources.Instances);
 
     /// <summary>
     /// The catalog.
@@ -30,12 +30,12 @@ internal static class ReplCatalog
         {
             Flags =
             [
-                new("--file", "Tail arbitrary log file (e.g., ./test.log)", Paths) { Repeatable = true },
-                new("-f", "Short for --file", Paths) { Repeatable = true },
-                new("--since", "Filter from time (e.g., 5m, 14:30)", Since),
+                new("--file", "Tail arbitrary log file (e.g., ./test.log)", s_paths) { Repeatable = true },
+                new("-f", "Short for --file", s_paths) { Repeatable = true },
+                new("--since", "Filter from time (e.g., 5m, 14:30)", s_since),
                 new("--stream", "Stream entries to the terminal"),
             ],
-            Positionals = [Instances],
+            Positionals = [s_instances],
         }, TailCommand.Run),
         new("levels", "Set log level filter (e.g., 'levels ERROR WARNING')",
             new ArgumentSpec
@@ -53,7 +53,7 @@ internal static class ReplCatalog
                     .Select(field => new CompletionItem(field + "=", $"Filter by {field}", Continues: true)),
         }), FilterCommands.Filter),
         new("highlight", "Highlight text matching regex (e.g., 'highlight /pattern/')", HighlightSpec(), HighlightCommands.Repl),
-        new("since", "Filter logs since time (e.g., 'since 5m', 'since 14:30')", ArgumentSpec.Positional(Since), TimeCommands.Since),
+        new("since", "Filter logs since time (e.g., 'since 5m', 'since 14:30')", ArgumentSpec.Positional(s_since), TimeCommands.Since),
         new("until", "Filter logs until time (e.g., 'until 15:00', 'until 30m')", ArgumentSpec.Positional(ArgumentSpec.Of(
             ("clear", "Remove time filter"), ("15:00", "3 PM today"), ("15:30", "3:30 PM today"), ("16:00", "4 PM today"),
             ("17:00", "5 PM today"))), TimeCommands.Until),
@@ -99,7 +99,7 @@ internal static class ReplCatalog
                     ("23505", "unique_violation"), ("23503", "foreign_key_violation"), ("42P01", "undefined_table"),
                     ("42601", "syntax_error"), ("42703", "undefined_column"), ("57014", "query_canceled"),
                     ("53300", "too_many_connections"))),
-                new("--since", "Filter by time window", Since),
+                new("--since", "Filter by time window", s_since),
             ],
             Rest = ArgumentSpec.Of(("clear", "Reset all error statistics")),
         }, ErrorsCommands.Repl),
@@ -123,19 +123,20 @@ internal static class ReplCatalog
             [
                 new("--append", "Append to existing file"),
                 new("--follow", "Continuous export (like tail -f | tee)"),
-                new("--format", "Output format (text, json, csv)", Formats),
-                new("--since", "Only entries after time (1h, 30m, 2d)", Since),
+                new("--format", "Output format (text, json, csv)", s_formats),
+                new("--since", "Only entries after time (1h, 30m, 2d)", s_since),
                 new("--highlighted", "Keep colors (ANSI escapes) in text output"),
             ],
-            Positionals = [Paths],
+            Positionals = [s_paths],
         }, ExportCommands.Export),
         new("pipe", "Pipe filtered logs to command (e.g., 'pipe wc -l')", new ArgumentSpec
         {
-            Flags = [new("--format", "Output format (text, json, csv)", Formats)],
+            Flags = [new("--format", "Output format (text, json, csv)", s_formats)],
         }, ExportCommands.Pipe),
         new("stop", "Stop current tail and return to prompt", ArgumentSpec.None, CoreCommands.Stop),
         new("refresh", "Re-scan for PostgreSQL instances", ArgumentSpec.None, CoreCommands.Refresh),
-        new("enable-logging", "Enable logging_collector for an instance", ArgumentSpec.Positional(Instances), ConfigCommands.EnableLogging),
+        new("enable-logging", "Enable logging_collector for an instance", ArgumentSpec.Positional(s_instances),
+            ConfigCommands.EnableLogging),
         new("clear", "Clear the screen", ArgumentSpec.None, CoreCommands.Clear),
         new("help", "Show help message", ArgumentSpec.None, CoreCommands.Help),
         new("quit", "Exit pgtail", ArgumentSpec.None, CoreCommands.Quit) { Aliases = ["exit", "q"] },
@@ -165,9 +166,9 @@ internal static class ReplCatalog
                     ArgumentSpec.Positional(ArgumentSpec.From(CompletionSources.CustomHighlighters))),
                 new("export", "Export highlighting config as TOML", new ArgumentSpec
                 {
-                    Flags = [new("--file", "Export to file path", Paths)],
+                    Flags = [new("--file", "Export to file path", s_paths)],
                 }),
-                new("import", "Import highlighting config from TOML file", ArgumentSpec.Positional(Paths)),
+                new("import", "Import highlighting config from TOML file", ArgumentSpec.Positional(s_paths)),
                 new("preview", "Preview highlighting with sample log lines", ArgumentSpec.None),
                 new("reset", "Reset all highlighting settings to defaults", ArgumentSpec.None),
                 new("clear", "Clear all regex highlight patterns (legacy)", ArgumentSpec.None),
@@ -180,7 +181,7 @@ internal static class ReplCatalog
     {
         var levels = ArgumentSpec.From(context =>
         {
-            var partial = context.Partial.ToLowerInvariant();
+            string partial = context.Partial.ToLowerInvariant();
             var items = new List<CompletionItem>();
             if (partial.StartsWith("error", StringComparison.Ordinal))
             {
@@ -254,12 +255,12 @@ internal static class ReplCatalog
 
     private static IEnumerable<CompletionItem> DisplayFieldCompletions(CompletionContext context)
     {
-        var partial = context.Partial;
-        var comma = partial.LastIndexOf(',');
-        var prefix = comma >= 0 ? partial[..(comma + 1)] : "";
+        string partial = context.Partial;
+        int comma = partial.LastIndexOf(',');
+        string prefix = comma >= 0 ? partial[..(comma + 1)] : "";
         var chosen = prefix.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(field => field.ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
-        foreach (var field in DisplayFields.Valid.Order(StringComparer.Ordinal))
+        foreach (string? field in DisplayFields.Valid.Order(StringComparer.Ordinal))
         {
             if (!chosen.Contains(field))
             {

@@ -46,6 +46,6 @@ public static class SqlStates
     public static string GetName(string code)
     {
         ArgumentNullException.ThrowIfNull(code);
-        return Names.TryGetValue(code, out var name) ? name : code;
+        return Names.TryGetValue(code, out string? name) ? name : code;
     }
 }

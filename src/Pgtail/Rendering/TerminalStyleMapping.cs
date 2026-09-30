@@ -30,7 +30,7 @@ internal static class TerminalStyleMapping
     /// <returns>The cell attributes.</returns>
     public static CellAttributes ToCellAttributes(this TextAttributes attributes)
     {
-        var result = CellAttributes.None;
+        CellAttributes result = CellAttributes.None;
         if (attributes.HasFlag(TextAttributes.Bold))
         {
             result |= CellAttributes.Bold;

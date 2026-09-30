@@ -1,6 +1,7 @@
 using Pgtail.Commands;
 using Pgtail.Rendering;
 using Pgtail.Sessions;
+using Pgtail.Styling;
 
 namespace Pgtail.Cli;
 
@@ -24,7 +25,7 @@ internal sealed class ConsoleCommandHost(PgtailSession session) : ICommandHost
     /// </summary>
     public void Flush()
     {
-        foreach (var line in Output.Take())
+        foreach (StyledText line in Output.Take())
         {
             Console.Out.WriteLine(AnsiText.Render(line, Session.ColorEnabled, styled: !Console.IsOutputRedirected));
         }

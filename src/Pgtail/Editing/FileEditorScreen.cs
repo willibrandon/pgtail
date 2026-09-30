@@ -32,7 +32,7 @@ internal sealed class FileEditorScreen
     {
         ArgumentNullException.ThrowIfNull(request);
         _request = request;
-        var text = File.Exists(request.Path) ? File.ReadAllText(request.Path, Encoding.UTF8) : request.InitialText;
+        string text = File.Exists(request.Path) ? File.ReadAllText(request.Path, Encoding.UTF8) : request.InitialText;
         _editor = new EditorState(new Hex1bDocument(text));
         _savedVersion = _editor.Document.Version;
         _savedText = text;
@@ -57,7 +57,7 @@ internal sealed class FileEditorScreen
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(close);
-        var title = $" {_request.Title}{(Dirty ? " [modified]" : "")}";
+        string title = $" {_request.Title}{(Dirty ? " [modified]" : "")}";
         return context.VStack(v =>
         [
             v.InfoBar(b => [b.Section(title), b.Spacer(), b.Section("Ctrl+S save · Esc close ")]),
@@ -89,8 +89,8 @@ internal sealed class FileEditorScreen
 
     private void Save()
     {
-        var text = _editor.Document.GetText();
-        var problems = _request.Validate(text);
+        string text = _editor.Document.GetText();
+        IReadOnlyList<string> problems = _request.Validate(text);
         if (problems.Count > 0)
         {
             _status = "Not saved: " + string.Join("; ", problems);

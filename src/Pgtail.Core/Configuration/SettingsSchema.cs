@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Pgtail.Filtering;
-using Pgtail.Matching;
 using Pgtail.Highlighting;
+using Pgtail.Matching;
 using Pgtail.Styling;
 
 namespace Pgtail.Configuration;
@@ -11,7 +11,7 @@ namespace Pgtail.Configuration;
 /// </summary>
 public static partial class SettingsSchema
 {
-    private static readonly string[] ValidLevels =
+    private static readonly string[] s_validLevels =
         ["DEBUG", "DEBUG1", "DEBUG2", "DEBUG3", "DEBUG4", "DEBUG5", "ERROR", "FATAL", "INFO", "LOG", "NOTICE", "PANIC", "WARNING"];
 
     /// <summary>
@@ -74,17 +74,17 @@ public static partial class SettingsSchema
         }
 
         var levels = new List<string>();
-        foreach (var item in items)
+        foreach (object item in items)
         {
             if (item is not string text)
             {
                 throw new FormatException($"invalid log level: {item}");
             }
 
-            var level = text.ToUpperInvariant();
-            if (!ValidLevels.Contains(level))
+            string level = text.ToUpperInvariant();
+            if (!s_validLevels.Contains(level))
             {
-                throw new FormatException($"invalid log level: {text}. Valid: {string.Join(", ", ValidLevels)}");
+                throw new FormatException($"invalid log level: {text}. Valid: {string.Join(", ", s_validLevels)}");
             }
 
             levels.Add(level);
@@ -101,15 +101,15 @@ public static partial class SettingsSchema
         }
 
         var patterns = new List<string>();
-        foreach (var item in items)
+        foreach (object item in items)
         {
             if (item is not string text)
             {
                 throw new FormatException($"invalid pattern: {item}");
             }
 
-            var (pattern, _) = NotificationPattern(text);
-            if (!LogPattern.TryCompile(pattern, caseSensitive: true, out _, out var error))
+            (string? pattern, bool _) = NotificationPattern(text);
+            if (!LogPattern.TryCompile(pattern, caseSensitive: true, out _, out string? error))
             {
                 throw new FormatException($"invalid regex pattern '{text}': {error}");
             }

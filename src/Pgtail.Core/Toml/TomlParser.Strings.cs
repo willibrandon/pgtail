@@ -10,7 +10,7 @@ internal sealed partial class TomlParser
 {
     private string ParseString()
     {
-        var rest = _text.AsSpan(_position);
+        ReadOnlySpan<char> rest = _text.AsSpan(_position);
         if (rest.StartsWith("\"\"\""))
         {
             return ParseMultilineBasicString();
@@ -35,7 +35,7 @@ internal sealed partial class TomlParser
                 throw Error("Unterminated string");
             }
 
-            var c = Current;
+            char c = Current;
             if (c == '"')
             {
                 _position++;
@@ -57,7 +57,7 @@ internal sealed partial class TomlParser
     private string ParseLiteralString()
     {
         _position++;
-        var start = _position;
+        int start = _position;
         while (true)
         {
             if (AtEnd || Current is '\n' or '\r')
@@ -67,7 +67,7 @@ internal sealed partial class TomlParser
 
             if (Current == '\'')
             {
-                var value = _text[start.._position];
+                string value = _text[start.._position];
                 _position++;
                 return value;
             }
@@ -89,11 +89,11 @@ internal sealed partial class TomlParser
                 throw Error("Unterminated multi-line string");
             }
 
-            var c = Current;
+            char c = Current;
             if (c == '"' && _text.AsSpan(_position).StartsWith("\"\"\""))
             {
                 // Up to two quotes may end the content just before the closing delimiter.
-                var quotes = 3;
+                int quotes = 3;
                 while (quotes < 5 && _position + quotes < _text.Length && _text[_position + quotes] == '"')
                 {
                     quotes++;
@@ -106,7 +106,7 @@ internal sealed partial class TomlParser
 
             if (c == '\\')
             {
-                var save = _position;
+                int save = _position;
                 _position++;
                 SkipWhitespace();
                 if (!AtEnd && Current is '\n' or '\r')
@@ -161,10 +161,10 @@ internal sealed partial class TomlParser
                 throw Error("Unterminated multi-line literal string");
             }
 
-            var c = Current;
+            char c = Current;
             if (c == '\'' && _text.AsSpan(_position).StartsWith("'''"))
             {
-                var quotes = 3;
+                int quotes = 3;
                 while (quotes < 5 && _position + quotes < _text.Length && _text[_position + quotes] == '\'')
                 {
                     quotes++;
@@ -220,7 +220,7 @@ internal sealed partial class TomlParser
             throw Error("Unterminated escape sequence");
         }
 
-        var c = Current;
+        char c = Current;
         _position++;
         switch (c)
         {
@@ -259,7 +259,7 @@ internal sealed partial class TomlParser
     private void AppendCodePoint(StringBuilder result, int digits)
     {
         if (_position + digits > _text.Length
-            || !uint.TryParse(_text.AsSpan(_position, digits), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value)
+            || !uint.TryParse(_text.AsSpan(_position, digits), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out uint value)
             || _text.AsSpan(_position, digits).ContainsAny('+', '-'))
         {
             throw Error($"Expected {digits} hexadecimal digits in a Unicode escape");

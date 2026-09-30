@@ -39,12 +39,12 @@ internal sealed class TailLog
     /// <returns>The row.</returns>
     public TailLine Row(int index)
     {
-        var position = _first + index;
-        var low = 0;
-        var high = _segments.Count - 1;
+        long position = _first + index;
+        int low = 0;
+        int high = _segments.Count - 1;
         while (low < high)
         {
-            var middle = (low + high + 1) / 2;
+            int middle = (low + high + 1) / 2;
             if (_segments[middle].Start <= position)
             {
                 low = middle;
@@ -55,7 +55,7 @@ internal sealed class TailLog
             }
         }
 
-        var segment = _segments[low];
+        TailSegment segment = _segments[low];
         if (!segment.IsMade)
         {
             _made.Enqueue(segment);
@@ -76,7 +76,7 @@ internal sealed class TailLog
     public int Append(IEnumerable<TailSegment> segments)
     {
         ArgumentNullException.ThrowIfNull(segments);
-        foreach (var segment in segments)
+        foreach (TailSegment segment in segments)
         {
             segment.Start = _next;
             _next += segment.RowCount;
@@ -84,11 +84,11 @@ internal sealed class TailLog
             _segments.Add(segment);
         }
 
-        var dropped = 0;
-        var remove = 0;
+        int dropped = 0;
+        int remove = 0;
         while (Count - dropped > MaxLines && remove < _segments.Count)
         {
-            var segment = _segments[remove++];
+            TailSegment segment = _segments[remove++];
             dropped += segment.RowCount;
             EntryRows -= segment.IsEntry ? segment.RowCount : 0;
         }
@@ -106,17 +106,17 @@ internal sealed class TailLog
     public int Prepend(IReadOnlyList<TailSegment> segments)
     {
         ArgumentNullException.ThrowIfNull(segments);
-        var added = 0;
-        var take = 0;
-        for (var i = segments.Count - 1; i >= 0 && Count + added + segments[i].RowCount <= MaxLines; i--)
+        int added = 0;
+        int take = 0;
+        for (int i = segments.Count - 1; i >= 0 && Count + added + segments[i].RowCount <= MaxLines; i--)
         {
             added += segments[i].RowCount;
             take++;
         }
 
-        var start = _first - added;
+        long start = _first - added;
         var kept = segments.Skip(segments.Count - take).ToList();
-        foreach (var segment in kept)
+        foreach (TailSegment? segment in kept)
         {
             segment.Start = start;
             start += segment.RowCount;
@@ -159,20 +159,20 @@ internal sealed class TailLog
         endLine = Math.Clamp(endLine, 0, Count - 1);
         if (startLine == endLine)
         {
-            var text = Row(startLine).Text;
-            var from = Math.Clamp(startColumn, 0, text.Length);
+            string text = Row(startLine).Text;
+            int from = Math.Clamp(startColumn, 0, text.Length);
             return text[from..Math.Clamp(endColumn, from, text.Length)];
         }
 
         var builder = new StringBuilder();
-        var first = Row(startLine).Text;
+        string first = Row(startLine).Text;
         builder.Append(first[Math.Clamp(startColumn, 0, first.Length)..]);
-        for (var line = startLine + 1; line < endLine; line++)
+        for (int line = startLine + 1; line < endLine; line++)
         {
             builder.Append('\n').Append(Row(line).Text);
         }
 
-        var last = Row(endLine).Text;
+        string last = Row(endLine).Text;
         return builder.Append('\n').Append(last[..Math.Clamp(endColumn, 0, last.Length)]).ToString();
     }
 }

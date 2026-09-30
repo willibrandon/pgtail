@@ -2,11 +2,13 @@ using System.Globalization;
 using System.Text;
 using Hex1b;
 using Pgtail.Commands;
+using Pgtail.Configuration;
 using Pgtail.Detection;
 using Pgtail.Editing;
 using Pgtail.Filtering;
 using Pgtail.Rendering;
 using Pgtail.Sessions;
+using Pgtail.Styling;
 using Pgtail.Tail;
 using Pgtail.Tailing;
 using Pgtail.Updates;
@@ -69,7 +71,7 @@ internal static class PgtailCli
             return 0;
         }
 
-        var executable = Environment.ProcessPath ?? "";
+        string executable = Environment.ProcessPath ?? "";
         var updates = new UpdateChecker(PgtailVersion.Current,
             InstallMethods.UpgradeCommand(InstallMethods.Detect(executable, Environment.GetEnvironmentVariable)));
         return await ReplRunner.RunAsync(session, updates);
@@ -77,11 +79,11 @@ internal static class PgtailCli
 
     private static async Task<int> CheckUpdateAsync()
     {
-        var executable = Environment.ProcessPath ?? "";
+        string executable = Environment.ProcessPath ?? "";
         var checker = new UpdateChecker(PgtailVersion.Current,
             InstallMethods.UpgradeCommand(InstallMethods.Detect(executable, Environment.GetEnvironmentVariable)));
-        var latest = await checker.FetchLatestAsync(CancellationToken.None);
-        var color = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"));
+        string? latest = await checker.FetchLatestAsync(CancellationToken.None);
+        bool color = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"));
         Console.Out.WriteLine(AnsiText.Render(checker.Report(latest), color, styled: !Console.IsOutputRedirected && color));
         return 0;
     }
@@ -89,7 +91,7 @@ internal static class PgtailCli
     private static int ListInstances(PgtailSession session, bool verbose)
     {
         session.Refresh();
-        var instances = session.Instances;
+        IReadOnlyList<PostgresInstance> instances = session.Instances;
         if (instances.Count == 0)
         {
             Console.Out.WriteLine("No PostgreSQL instances found.");
@@ -100,7 +102,7 @@ internal static class PgtailCli
         Console.Out.WriteLine();
         Console.Out.WriteLine($"{"ID",-4} {"Version",-10} {"Port",-6} {"Status",-8} Source");
         Console.Out.WriteLine(new string('-', 50));
-        foreach (var instance in instances)
+        foreach (PostgresInstance instance in instances)
         {
             Console.Out.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"{instance.Id,-4} {instance.Version,-10} {instance.PortText,-6} {instance.StatusText,-8} {instance.Source.ToName()}"));
@@ -109,7 +111,7 @@ internal static class PgtailCli
         if (verbose)
         {
             Console.Out.WriteLine();
-            foreach (var instance in instances)
+            foreach (PostgresInstance instance in instances)
             {
                 Console.Out.WriteLine();
                 Console.Out.WriteLine($"[Instance {instance.Id}]");
@@ -126,11 +128,11 @@ internal static class PgtailCli
     {
         session.Refresh();
         var host = new ConsoleCommandHost(session);
-        var command = ReplCatalog.Catalog.Find("enable-logging")!;
+        CommandInfo command = ReplCatalog.Catalog.Find("enable-logging")!;
         command.Handler(new CommandInvocation(command, "enable-logging", "enable-logging " + instance,
             [new CommandToken(instance, 15, 15 + instance.Length)], host)).GetAwaiter().GetResult();
-        var failed = host.Output.Take();
-        foreach (var line in failed)
+        List<StyledText> failed = host.Output.Take();
+        foreach (StyledText line in failed)
         {
             Console.Out.WriteLine(AnsiText.Render(line, session.ColorEnabled, styled: !Console.IsOutputRedirected));
         }
@@ -141,7 +143,7 @@ internal static class PgtailCli
 
     private static async Task<int> ConfigAsync(PgtailSession session, CliArguments arguments)
     {
-        var store = session.Store;
+        ConfigStore store = session.Store;
         if (arguments.ConfigPath)
         {
             Console.Out.WriteLine(store.ConfigFile);
@@ -153,7 +155,7 @@ internal static class PgtailCli
             store.CreateDefault();
             var screen = new FileEditorScreen(ConfigCommands.ConfigEditRequest(session));
 
-            await using var terminal = Terminals.Builder()
+            await using Hex1bTerminal terminal = Terminals.Builder()
                 .WithMouse()
                 .WithHex1bApp(options => options.EnableDefaultCtrlCExit = false, app =>
                 {
@@ -167,17 +169,17 @@ internal static class PgtailCli
 
         if (arguments.ConfigReset)
         {
-            var backup = store.Reset(DateTime.Now);
+            string? backup = store.Reset(DateTime.Now);
             Console.Out.WriteLine(backup is null ? "No config file to reset." : $"Config reset. Backup saved to: {backup}");
             return 0;
         }
 
-        foreach (var warning in session.TakeWarnings())
+        foreach (string warning in session.TakeWarnings())
         {
             await Console.Error.WriteLineAsync($"Warning: {warning}");
         }
 
-        foreach (var line in ConfigCommands.Show(session.Config, store))
+        foreach (string line in ConfigCommands.Show(session.Config, store))
         {
             Console.Out.WriteLine(line);
         }
@@ -187,7 +189,7 @@ internal static class PgtailCli
 
     private static async Task<int> TailAsync(PgtailSession session, CliArguments arguments)
     {
-        var error = Console.Error;
+        TextWriter error = Console.Error;
         if (arguments.Stdin)
         {
             if (arguments.Files.Count > 0)
@@ -234,7 +236,10 @@ internal static class PgtailCli
         }
         else if (arguments.Files.Count > 0)
         {
-            var (files, glob, problem) = TailTargets.ResolveFiles(arguments.Files, session.Home, Environment.CurrentDirectory,
+            (List<string> files, string? glob, string? problem) = TailTargets.ResolveFiles(
+                arguments.Files,
+                session.Home,
+                Environment.CurrentDirectory,
                 warning => error.WriteLine($"Warning: {warning}"));
             if (problem is not null)
             {
@@ -265,16 +270,16 @@ internal static class PgtailCli
 
     private static async Task<PostgresInstance?> ResolveInstanceAsync(PgtailSession session, string? argument)
     {
-        var error = Console.Error;
+        TextWriter error = Console.Error;
         session.Refresh();
-        var instances = session.Instances;
+        IReadOnlyList<PostgresInstance> instances = session.Instances;
         if (instances.Count == 0)
         {
             await error.WriteLineAsync("No PostgreSQL instances found.");
             return null;
         }
 
-        var id = 0;
+        int id = 0;
         if (argument is null)
         {
             if (instances.Count > 1)
@@ -295,7 +300,7 @@ internal static class PgtailCli
             return null;
         }
 
-        var instance = instances[id];
+        PostgresInstance instance = instances[id];
         if (!instance.LoggingEnabled)
         {
             await error.WriteLineAsync($"Logging not enabled for instance {id}.");
@@ -314,8 +319,8 @@ internal static class PgtailCli
 
     private static async Task<int> StreamAsync(PgtailSession session, TailRequest request)
     {
-        var styled = !Console.IsOutputRedirected;
-        var output = Console.Out;
+        bool styled = !Console.IsOutputRedirected;
+        TextWriter output = Console.Out;
         if (styled)
         {
             output.WriteLine($"Tailing {(request.Source.Stdin ? "stdin" : request.LogPath)}");
@@ -328,7 +333,7 @@ internal static class PgtailCli
             output.WriteLine();
         }
 
-        await using var source = LogSources.Create(request, session, Environment.CurrentDirectory, Console.OpenStandardInput);
+        await using ILogSource source = LogSources.Create(request, session, Environment.CurrentDirectory, Console.OpenStandardInput);
         source.Start();
         await ReplRunner.StreamAsync((writer, cancellationToken) =>
             new EntryStreamer(session, writer, styled).RunAsync(source, cancellationToken));
@@ -359,12 +364,12 @@ internal static class PgtailCli
             piped = buffer;
         }
 
-        var source = LogSources.Create(request, session, Environment.CurrentDirectory, () => piped!, TailScreen.BacklogLines);
+        ILogSource source = LogSources.Create(request, session, Environment.CurrentDirectory, () => piped!, TailScreen.BacklogLines);
         var screen = new TailScreen(session, request, source, Environment.CurrentDirectory);
         try
         {
             Hex1bAppOptions? options = null;
-            await using var terminal = Terminals.Builder()
+            await using Hex1bTerminal terminal = Terminals.Builder()
                 .WithMouse()
                 .WithHex1bApp(configure => options = configure, app => screen.Configure(app, options!))
                 .Build();

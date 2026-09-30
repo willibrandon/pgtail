@@ -19,7 +19,7 @@ namespace Pgtail.Files;
 /// <param name="Original">The pattern as the user wrote it.</param>
 public sealed record GlobPattern(string Directory, string Pattern, string Original)
 {
-    private static readonly char[] Wildcards = ['*', '?', '[', '{'];
+    private static readonly char[] s_wildcards = ['*', '?', '[', '{'];
 
     /// <summary>
     /// Whether a path contains wildcard characters.
@@ -29,7 +29,7 @@ public sealed record GlobPattern(string Directory, string Pattern, string Origin
     public static bool IsGlob(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
-        return path.IndexOfAny(Wildcards) >= 0;
+        return path.IndexOfAny(s_wildcards) >= 0;
     }
 
     /// <summary>
@@ -44,12 +44,12 @@ public sealed record GlobPattern(string Directory, string Pattern, string Origin
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(home);
         ArgumentNullException.ThrowIfNull(currentDirectory);
-        var expanded = path == "~" || path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith("~\\", StringComparison.Ordinal)
+        string expanded = path == "~" || path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith("~\\", StringComparison.Ordinal)
             ? home + path[1..]
             : path;
-        var root = Path.IsPathRooted(expanded) ? Path.GetPathRoot(expanded) ?? "" : "";
-        var parts = expanded[root.Length..].Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
-        var first = Array.FindIndex(parts, part => part.IndexOfAny(Wildcards) >= 0);
+        string root = Path.IsPathRooted(expanded) ? Path.GetPathRoot(expanded) ?? "" : "";
+        string[] parts = expanded[root.Length..].Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+        int first = Array.FindIndex(parts, part => part.IndexOfAny(s_wildcards) >= 0);
         string directory;
         string pattern;
         if (first < 0)
@@ -87,7 +87,7 @@ public sealed record GlobPattern(string Directory, string Pattern, string Origin
             yield break;
         }
 
-        var globOptions = OperatingSystem.IsWindows()
+        GlobOptions globOptions = OperatingSystem.IsWindows()
             ? new GlobOptions(literalSeparator: true, backslashEscapes: false, asciiCaseInsensitive: true,
                 pathSeparators: "/\\"u8.ToArray())
             : GlobOptions.UnixLiteralSeparator;
@@ -101,7 +101,7 @@ public sealed record GlobPattern(string Directory, string Pattern, string Origin
             yield break;
         }
 
-        var segments = Pattern.Split('/');
+        string[] segments = Pattern.Split('/');
         var options = new FileWalkerOptions
         {
             MaxDepth = segments.Contains("**") ? null : segments.Length,
@@ -114,16 +114,16 @@ public sealed record GlobPattern(string Directory, string Pattern, string Origin
             FollowSymbolicLinks = false,
         };
 
-        foreach (var entry in new FileWalker(options).Enumerate(Directory))
+        foreach (FileWalkEntry entry in new FileWalker(options).Enumerate(Directory))
         {
-            var isDirectory = entry.IsDirectory || (entry.IsSymbolicLink && System.IO.Directory.Exists(entry.FullPath));
-            var isFile = entry.IsFile || (entry.IsSymbolicLink && File.Exists(entry.FullPath));
+            bool isDirectory = entry.IsDirectory || (entry.IsSymbolicLink && System.IO.Directory.Exists(entry.FullPath));
+            bool isFile = entry.IsFile || (entry.IsSymbolicLink && File.Exists(entry.FullPath));
             if ((directories ? !isDirectory : !isFile) || entry.IsStdin)
             {
                 continue;
             }
 
-            var relative = Path.GetRelativePath(Directory, entry.FullPath).Replace('\\', '/');
+            string relative = Path.GetRelativePath(Directory, entry.FullPath).Replace('\\', '/');
             if (glob.IsMatch(Encoding.UTF8.GetBytes(relative)))
             {
                 yield return entry.FullPath;

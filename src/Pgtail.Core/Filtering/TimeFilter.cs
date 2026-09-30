@@ -74,7 +74,7 @@ public sealed class TimeFilter
             return false;
         }
 
-        var value = LogTimestamps.ToUtc(timestamp);
+        DateTime value = LogTimestamps.ToUtc(timestamp);
         if (Since is { } since && value < LogTimestamps.ToUtc(since))
         {
             return false;

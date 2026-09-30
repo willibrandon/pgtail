@@ -14,7 +14,7 @@ internal static class Terminals
     /// <returns>The builder.</returns>
     public static Hex1bTerminalBuilder Builder()
     {
-        var builder = Hex1bTerminal.CreateBuilder();
+        Hex1bTerminalBuilder builder = Hex1bTerminal.CreateBuilder();
         return Environment.GetEnvironmentVariable("PGTAIL_DIAGNOSTICS") is { Length: > 0 }
             ? builder.WithDiagnostics("pgtail", forceEnable: true)
             : builder;

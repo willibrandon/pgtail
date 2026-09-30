@@ -201,7 +201,7 @@ public sealed class PgtailSession
     /// <returns>The warnings, which are then forgotten.</returns>
     public IReadOnlyList<string> TakeWarnings()
     {
-        var warnings = _warnings.ToArray();
+        string[] warnings = [.. _warnings];
         _warnings.Clear();
         return warnings;
     }
@@ -364,9 +364,9 @@ public sealed class PgtailSession
     private static HashSet<LogLevel>? ParseLevels(IEnumerable<string> names)
     {
         var levels = new HashSet<LogLevel>();
-        foreach (var name in names)
+        foreach (string name in names)
         {
-            if (LogLevels.TryParse(name, out var level))
+            if (LogLevels.TryParse(name, out LogLevel level))
             {
                 _ = levels.Add(level);
             }
@@ -396,13 +396,13 @@ public sealed class PgtailSession
 
     private void ApplyNotifications()
     {
-        var config = Notifications.Config;
+        NotificationConfig config = Notifications.Config;
         config.Clear();
         config.Enabled = Config.NotificationsEnabled;
         var levels = new HashSet<LogLevel>();
-        foreach (var name in Config.NotificationLevels)
+        foreach (string name in Config.NotificationLevels)
         {
-            if (LogLevels.TryParse(name, out var level))
+            if (LogLevels.TryParse(name, out LogLevel level))
             {
                 _ = levels.Add(level);
             }
@@ -413,9 +413,9 @@ public sealed class PgtailSession
             config.Add(NotificationRule.ForLevels(levels));
         }
 
-        foreach (var text in Config.NotificationPatterns)
+        foreach (string text in Config.NotificationPatterns)
         {
-            var (pattern, caseSensitive) = SettingsSchema.NotificationPattern(text);
+            (string? pattern, bool caseSensitive) = SettingsSchema.NotificationPattern(text);
             try
             {
                 config.Add(NotificationRule.ForPattern(pattern, caseSensitive));

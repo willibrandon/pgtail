@@ -20,7 +20,7 @@ namespace Pgtail.Styling;
 /// </remarks>
 public static partial class ColorParser
 {
-    private static readonly string[] AnsiNames = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
+    private static readonly string[] s_ansiNames = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
 
     /// <summary>
     /// Parses a color.
@@ -32,7 +32,7 @@ public static partial class ColorParser
     {
         ArgumentNullException.ThrowIfNull(text);
         color = default;
-        var name = text.Trim().ToLowerInvariant();
+        string name = text.Trim().ToLowerInvariant();
         if (name.Length == 0)
         {
             return false;
@@ -49,31 +49,31 @@ public static partial class ColorParser
             return true;
         }
 
-        if (ColorTables.PaletteNames.TryGetValue(name, out var index))
+        if (ColorTables.PaletteNames.TryGetValue(name, out int index))
         {
             color = TerminalColor.FromPalette(index);
             return true;
         }
 
-        if (ColorTables.CssNames.TryGetValue(name, out var hex))
+        if (ColorTables.CssNames.TryGetValue(name, out string? hex))
         {
             color = FromHex(hex);
             return true;
         }
 
-        var hexMatch = Hex().Match(name);
+        Match hexMatch = Hex().Match(name);
         if (hexMatch.Success)
         {
-            var digits = hexMatch.Groups[1].Value;
+            string digits = hexMatch.Groups[1].Value;
             color = FromHex(digits.Length == 3 ? string.Concat(digits.Select(c => $"{c}{c}")) : digits);
             return true;
         }
 
-        var rgb = Rgb().Match(name);
+        Match rgb = Rgb().Match(name);
         if (rgb.Success)
         {
-            var parts = new int[3];
-            for (var i = 0; i < 3; i++)
+            int[] parts = new int[3];
+            for (int i = 0; i < 3; i++)
             {
                 parts[i] = int.Parse(rgb.Groups[i + 1].ValueSpan, CultureInfo.InvariantCulture);
                 if (parts[i] > 255)
@@ -86,8 +86,8 @@ public static partial class ColorParser
             return true;
         }
 
-        var palette = Palette().Match(name);
-        if (palette.Success && int.TryParse(palette.Groups[1].ValueSpan, CultureInfo.InvariantCulture, out var number) && number <= 255)
+        Match palette = Palette().Match(name);
+        if (palette.Success && int.TryParse(palette.Groups[1].ValueSpan, CultureInfo.InvariantCulture, out int number) && number <= 255)
         {
             color = TerminalColor.FromPalette(number);
             return true;
@@ -106,8 +106,8 @@ public static partial class ColorParser
     private static bool TryAnsi(string name, out TerminalColor color)
     {
         color = default;
-        var bright = name.StartsWith("bright", StringComparison.Ordinal);
-        var basic = bright ? name[6..] : name;
+        bool bright = name.StartsWith("bright", StringComparison.Ordinal);
+        string basic = bright ? name[6..] : name;
         basic = basic switch
         {
             "gray" or "grey" or "lightgray" => "white",
@@ -129,7 +129,7 @@ public static partial class ColorParser
             basic = basic[6..];
         }
 
-        var index = Array.IndexOf(AnsiNames, basic);
+        int index = Array.IndexOf(s_ansiNames, basic);
         if (index < 0)
         {
             return false;

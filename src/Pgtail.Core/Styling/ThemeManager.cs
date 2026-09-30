@@ -46,9 +46,9 @@ public sealed class ThemeManager(string themesDirectory)
             return;
         }
 
-        var root = Path.GetFullPath(ThemesDirectory);
-        var resolvedRoot = ResolvePath(root);
-        foreach (var file in Directory.EnumerateFiles(root, "*.toml"))
+        string root = Path.GetFullPath(ThemesDirectory);
+        string resolvedRoot = ResolvePath(root);
+        foreach (string file in Directory.EnumerateFiles(root, "*.toml"))
         {
             if (!ResolvePath(file).StartsWith(resolvedRoot, StringComparison.Ordinal))
             {
@@ -78,7 +78,7 @@ public sealed class ThemeManager(string themesDirectory)
     /// <param name="name">The theme name.</param>
     /// <returns>The theme, or null.</returns>
     public Theme? GetTheme(string name) =>
-        _custom.TryGetValue(name, out var custom) ? custom : BuiltInThemes.All.GetValueOrDefault(name);
+        _custom.TryGetValue(name, out Theme? custom) ? custom : BuiltInThemes.All.GetValueOrDefault(name);
 
     /// <summary>
     /// Switches to a theme, reading custom themes again first.
@@ -103,20 +103,20 @@ public sealed class ThemeManager(string themesDirectory)
     /// <returns>Whether it was reloaded, and the message to show.</returns>
     public (bool Success, string Message) ReloadCurrent()
     {
-        var name = Current.Name;
+        string name = Current.Name;
         if (IsBuiltIn(name) && !File.Exists(ThemeFile(name)))
         {
             return (true, $"Theme '{name}' reloaded.");
         }
 
-        var file = ThemeFile(name);
+        string file = ThemeFile(name);
         if (!File.Exists(file))
         {
             Current = BuiltInThemes.Dark;
             return (false, $"Theme file not found: {file}\nSwitched to the default theme: {BuiltInThemes.DefaultName}");
         }
 
-        var (theme, errors) = ThemeLoader.Load(file);
+        (Theme? theme, IReadOnlyList<string>? errors) = ThemeLoader.Load(file);
         if (theme is null)
         {
             return (false, $"Failed to reload theme '{name}':\n  {string.Join("\n  ", errors)}\n\nKeeping previous theme active.");
@@ -129,7 +129,7 @@ public sealed class ThemeManager(string themesDirectory)
 
     private static string ResolvePath(string path)
     {
-        var full = Path.GetFullPath(path);
+        string full = Path.GetFullPath(path);
         var info = new FileInfo(full);
         return info.LinkTarget is not null && info.ResolveLinkTarget(returnFinalTarget: true) is { } target ? target.FullName : full;
     }

@@ -20,9 +20,9 @@ internal static class NotifyCommands
     /// <returns>A task that completes when the command has finished.</returns>
     public static async Task Run(CommandInvocation invocation)
     {
-        var args = invocation.Args;
-        var session = invocation.Session;
-        var output = invocation.Output;
+        IReadOnlyList<string> args = invocation.Args;
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
         if (args.Count == 0)
         {
             Status(session, output);
@@ -58,8 +58,8 @@ internal static class NotifyCommands
 
     private static void Status(PgtailSession session, CommandOutput output)
     {
-        var notifier = session.Notifications.Notifier;
-        var config = session.Notifications.Config;
+        INotifier notifier = session.Notifications.Notifier;
+        NotificationConfig config = session.Notifications.Config;
         if (!notifier.IsAvailable)
         {
             output.Line("Notifications: unavailable");
@@ -121,12 +121,12 @@ internal static class NotifyCommands
             return;
         }
 
-        var config = session.Notifications.Config;
-        var first = args[0];
+        NotificationConfig config = session.Notifications.Config;
+        string first = args[0];
         if (first.StartsWith('/'))
         {
-            var text = raw.StartsWith('/') ? raw : first;
-            var (pattern, caseSensitive) = text.EndsWith("/i", StringComparison.Ordinal) && text.Length >= 3
+            string text = raw.StartsWith('/') ? raw : first;
+            (string? pattern, bool caseSensitive) = text.EndsWith("/i", StringComparison.Ordinal) && text.Length >= 3
                 ? (text[1..^2], false)
                 : text.EndsWith('/') && text.Length >= 2 ? (text[1..^1], true) : (null, true);
             if (pattern is null)
@@ -165,7 +165,7 @@ internal static class NotifyCommands
                 return;
             }
 
-            if (!int.TryParse(args[2][..^4], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var threshold))
+            if (!int.TryParse(args[2][..^4], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int threshold))
             {
                 output.Line($"Invalid threshold: {args[2][..^4]}");
                 return;
@@ -191,8 +191,8 @@ internal static class NotifyCommands
                 return;
             }
 
-            var text = args[2].ToLowerInvariant();
-            var (digits, scale) = text.EndsWith("ms", StringComparison.Ordinal) ? (text[..^2], 1)
+            string text = args[2].ToLowerInvariant();
+            (string? digits, int scale) = text.EndsWith("ms", StringComparison.Ordinal) ? (text[..^2], 1)
                 : text.EndsWith('s') ? (text[..^1], 1000) : (null, 0);
             if (digits is null)
             {
@@ -200,13 +200,13 @@ internal static class NotifyCommands
                 return;
             }
 
-            if (!int.TryParse(digits, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value))
+            if (!int.TryParse(digits, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value))
             {
                 output.Line($"Invalid duration: {args[2]}");
                 return;
             }
 
-            var milliseconds = value * scale;
+            int milliseconds = value * scale;
             if (milliseconds < 1)
             {
                 output.Line("Threshold must be at least 1ms");
@@ -219,10 +219,10 @@ internal static class NotifyCommands
             return;
         }
 
-        var (levels, invalid) = LogLevels.ParseArguments(FilterCommands.SplitCommas(args));
+        (HashSet<LogLevel>? levels, List<string>? invalid) = LogLevels.ParseArguments(FilterCommands.SplitCommas(args));
         if (invalid.Count > 0)
         {
-            foreach (var name in invalid)
+            foreach (string name in invalid)
             {
                 output.Line($"Unknown log level: {name}");
             }
@@ -250,7 +250,7 @@ internal static class NotifyCommands
 
     private static async Task TestAsync(PgtailSession session, IReadOnlyList<string> args, CommandOutput output)
     {
-        var notifier = session.Notifications.Notifier;
+        INotifier notifier = session.Notifications.Notifier;
         if (!notifier.IsAvailable)
         {
             output.Line("Test notification failed");
@@ -259,7 +259,7 @@ internal static class NotifyCommands
             return;
         }
 
-        var severity = NotificationSeverity.Info;
+        NotificationSeverity severity = NotificationSeverity.Info;
         if (args.Count > 0 && !NotificationSeverities.TryParse(args[0], out severity))
         {
             output.Line($"Unknown severity: {args[0]}");
@@ -267,14 +267,14 @@ internal static class NotifyCommands
             return;
         }
 
-        var sent = await Task.Run(() => session.Notifications.SendTest(severity));
+        bool sent = await Task.Run(() => session.Notifications.SendTest(severity));
         output.Line(sent ? $"Test notification sent ({severity.ToName().ToUpperInvariant()})" : "Test notification failed");
         output.Line($"Platform: {notifier.PlatformInfo}");
     }
 
     private static void Quiet(PgtailSession session, IReadOnlyList<string> args, CommandOutput output)
     {
-        var config = session.Notifications.Config;
+        NotificationConfig config = session.Notifications.Config;
         if (args.Count == 0)
         {
             output.Line("Usage: notify quiet HH:MM-HH:MM | off");
@@ -305,7 +305,7 @@ internal static class NotifyCommands
 
     private static void Persist(PgtailSession session, CommandOutput output)
     {
-        var config = session.Notifications.Config;
+        NotificationConfig config = session.Notifications.Config;
         var values = new List<(string Key, object? Value)>
         {
             ("notifications.enabled", config.Enabled),
@@ -316,7 +316,7 @@ internal static class NotifyCommands
             ("notifications.quiet_hours", config.QuietHours?.ToString()),
         };
 
-        foreach (var (key, value) in values)
+        foreach ((string key, object? value) in values)
         {
             if (value is null)
             {

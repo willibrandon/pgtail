@@ -13,7 +13,7 @@ namespace Pgtail.Configuration;
 public sealed class ConfigStore(PgtailPaths paths)
 {
     // Settings earlier releases wrote or documented that pgtail no longer reads; a file that has them is still valid.
-    private static readonly FrozenSet<string> RetiredKeys =
+    private static readonly FrozenSet<string> s_retiredKeys =
         ["default.follow", "display.timestamp_format", "display.show_pid", "display.show_level", "updates.last_version", "buffer"];
 
     /// <summary>
@@ -142,12 +142,12 @@ public sealed class ConfigStore(PgtailPaths paths)
             return (config, highlighting);
         }
 
-        foreach (var key in UnknownKeys(document.Root))
+        foreach (string key in UnknownKeys(document.Root))
         {
             warn($"Unknown setting {key}, ignored.");
         }
 
-        foreach (var setting in SettingsSchema.All)
+        foreach (SettingDefinition setting in SettingsSchema.All)
         {
             if (document.Root.GetPath(setting.Path) is not { } raw)
             {
@@ -184,7 +184,7 @@ public sealed class ConfigStore(PgtailPaths paths)
         highlighting.DurationSlow = (long)config["highlighting.duration.slow"]!;
         highlighting.DurationVerySlow = (long)config["highlighting.duration.very_slow"]!;
         highlighting.DurationCritical = (long)config["highlighting.duration.critical"]!;
-        foreach (var name in BuiltInHighlighters.Names)
+        foreach (string name in BuiltInHighlighters.Names)
         {
             highlighting.SetHighlighter(name, (bool)config[$"highlighting.enabled_highlighters.{name}"]!);
         }
@@ -210,7 +210,7 @@ public sealed class ConfigStore(PgtailPaths paths)
             return false;
         }
 
-        var removed = false;
+        bool removed = false;
         return Edit(document => removed = document.Remove(key.Split('.'))) is null && removed;
     }
 
@@ -243,7 +243,7 @@ public sealed class ConfigStore(PgtailPaths paths)
             return null;
         }
 
-        var backup = ConfigFile + ".bak." + now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        string backup = ConfigFile + ".bak." + now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         File.Move(ConfigFile, backup, overwrite: false);
         return backup;
     }
@@ -267,7 +267,7 @@ public sealed class ConfigStore(PgtailPaths paths)
     {
         ArgumentNullException.ThrowIfNull(text);
         Directory.CreateDirectory(Paths.ConfigDirectory);
-        var temporary = ConfigFile + ".tmp";
+        string temporary = ConfigFile + ".tmp";
         File.WriteAllText(temporary, text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         File.Move(temporary, ConfigFile, overwrite: true);
     }
@@ -327,7 +327,7 @@ public sealed class ConfigStore(PgtailPaths paths)
 
         var problems = UnknownKeys(document.Root).Select(key => $"Unknown setting {key}").ToList();
         var config = new PgtailConfig();
-        foreach (var setting in SettingsSchema.All)
+        foreach (SettingDefinition setting in SettingsSchema.All)
         {
             if (document.Root.GetPath(setting.Path) is not { } raw)
             {
@@ -356,17 +356,17 @@ public sealed class ConfigStore(PgtailPaths paths)
     // when they load, and a highlighter switch must name a built-in highlighter.
     private static IEnumerable<string> UnknownKeys(TomlTable table, string prefix = "")
     {
-        foreach (var (name, value) in table)
+        foreach ((string name, object value) in table)
         {
-            var key = prefix.Length == 0 ? name : $"{prefix}.{name}";
-            if (key == "highlighting.custom" || RetiredKeys.Contains(key) || SettingsSchema.Find(key) is not null)
+            string key = prefix.Length == 0 ? name : $"{prefix}.{name}";
+            if (key == "highlighting.custom" || s_retiredKeys.Contains(key) || SettingsSchema.Find(key) is not null)
             {
                 continue;
             }
 
             if (key == "highlighting.enabled_highlighters" && value is TomlTable switches)
             {
-                foreach (var highlighter in switches.Keys.Where(highlighter => !BuiltInHighlighters.Names.Contains(highlighter)))
+                foreach (string? highlighter in switches.Keys.Where(highlighter => !BuiltInHighlighters.Names.Contains(highlighter)))
                 {
                     yield return $"{key}.{highlighter}";
                 }
@@ -380,7 +380,7 @@ public sealed class ConfigStore(PgtailPaths paths)
                 continue;
             }
 
-            foreach (var inner in UnknownKeys(child, key))
+            foreach (string inner in UnknownKeys(child, key))
             {
                 yield return inner;
             }
@@ -402,7 +402,7 @@ public sealed class ConfigStore(PgtailPaths paths)
         }
 
         warn($"{problem}. Using defaults.");
-        foreach (var key in new[] { "slow.warn", "slow.error", "slow.critical" })
+        foreach (string? key in new[] { "slow.warn", "slow.error", "slow.critical" })
         {
             config[key] = SettingsSchema.Find(key)!.Default;
         }

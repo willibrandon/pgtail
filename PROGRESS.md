@@ -288,3 +288,8 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   the correction after the terminal stops comes before the wait. The PowerShell run of the new several-commands test
   then failed in CI with a command line missing though the 50 ms wait had passed: the prompt's redraw after Enter saw
   a size change and completed the step again with nothing, replacing the submitted line. A prompt now completes once.
+- The `.editorconfig` is now Ankus's, plus the pgtail rules it lacks (no embedded statements, no doubled blank lines,
+  unused values and parameters). It found 1,917 issues in the code as it was: 1,790 `var` declarations that must
+  name their type (IDE0008; the old config required `var`), 120 static fields without the `s_` prefix (IDE1006), and
+  seven collection expressions. `dotnet format` fixed most of the types in two passes; the renames, the file-based
+  publish script, lines pushed past 140 columns, and tuple elements it marked nullable were fixed by hand.

@@ -38,8 +38,8 @@ public static class CsvLine
         }
 
         var field = new StringBuilder();
-        var state = State.StartRecord;
-        foreach (var c in line)
+        State state = State.StartRecord;
+        foreach (char c in line)
         {
             switch (state)
             {

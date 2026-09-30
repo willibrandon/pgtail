@@ -77,7 +77,7 @@ public sealed class StyledText
     public StyledText Append(StyledText other)
     {
         ArgumentNullException.ThrowIfNull(other);
-        foreach (var span in other._spans)
+        foreach (StyledSpan span in other._spans)
         {
             Append(span.Text, span.Style);
         }
@@ -92,10 +92,10 @@ public sealed class StyledText
     public IReadOnlyList<StyledText> SplitLines()
     {
         var lines = new List<StyledText> { new() };
-        foreach (var span in _spans)
+        foreach (StyledSpan span in _spans)
         {
-            var parts = span.Text.Split('\n');
-            for (var i = 0; i < parts.Length; i++)
+            string[] parts = span.Text.Split('\n');
+            for (int i = 0; i < parts.Length; i++)
             {
                 if (i > 0)
                 {

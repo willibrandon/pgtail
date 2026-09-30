@@ -114,10 +114,10 @@ internal sealed class PgtailProcess : IAsyncDisposable
     /// <returns>The running shell.</returns>
     public static PgtailProcess Shell(TestEnvironment environment, string commandLine, CancellationToken cancellationToken)
     {
-        var command = commandLine.Replace("{pgtail}", $"\"{Executable}\"", StringComparison.Ordinal);
+        string command = commandLine.Replace("{pgtail}", $"\"{Executable}\"", StringComparison.Ordinal);
         // cmd reads its command line itself instead of by the C runtime's rules, which would escape the quotes around the
         // executable with backslashes; with /s it runs what is between the first and last quotes as written.
-        var info = OperatingSystem.IsWindows()
+        ProcessStartInfo info = OperatingSystem.IsWindows()
             ? StartInfo(environment, new ProcessStartInfo("cmd.exe", $"/d /s /c \"{command}\""))
             : StartInfo(environment, new ProcessStartInfo("/bin/sh", ["-c", command]));
         return new(environment, builder => builder.WithProcess(info), 160, 40, cancellationToken);
@@ -163,9 +163,9 @@ internal sealed class PgtailProcess : IAsyncDisposable
     private static string FindExecutable()
     {
         var output = new DirectoryInfo(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
-        var configuration = output.Parent!;
-        var repository = configuration.Parent!.Parent!.Parent!.Parent!.FullName;
-        var executable = Path.Combine(repository, "src", "Pgtail", "bin", configuration.Name, output.Name,
+        DirectoryInfo configuration = output.Parent!;
+        string repository = configuration.Parent!.Parent!.Parent!.Parent!.FullName;
+        string executable = Path.Combine(repository, "src", "Pgtail", "bin", configuration.Name, output.Name,
             OperatingSystem.IsWindows() ? "pgtail.exe" : "pgtail");
         return File.Exists(executable) ? executable : throw new FileNotFoundException("pgtail has not been built", executable);
     }
@@ -174,7 +174,7 @@ internal sealed class PgtailProcess : IAsyncDisposable
     {
         info.WorkingDirectory = environment.Root;
         info.Environment.Clear();
-        foreach (var (name, value) in Variables(environment))
+        foreach ((string name, string value) in Variables(environment))
         {
             info.Environment[name] = value;
         }
@@ -184,13 +184,13 @@ internal sealed class PgtailProcess : IAsyncDisposable
 
     private static Dictionary<string, string> Variables(TestEnvironment environment)
     {
-        var variables = environment.ProcessVariables();
+        Dictionary<string, string> variables = environment.ProcessVariables();
         variables["TERM"] = "xterm-256color";
         variables["DOTNET_ROOT"] = Path.GetFullPath(Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
         variables["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
         if (OperatingSystem.IsWindows())
         {
-            foreach (var name in new[] { "SystemRoot", "SystemDrive", "ComSpec", "PATHEXT", "TEMP", "TMP", "WINDIR" })
+            foreach (string? name in new[] { "SystemRoot", "SystemDrive", "ComSpec", "PATHEXT", "TEMP", "TMP", "WINDIR" })
             {
                 if (Environment.GetEnvironmentVariable(name) is { } value)
                 {

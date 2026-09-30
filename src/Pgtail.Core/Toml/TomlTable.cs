@@ -63,7 +63,7 @@ public sealed class TomlTable(TomlTableKind kind = TomlTableKind.Root) : IEnumer
     /// <returns>True when the key holds a table.</returns>
     public bool TryGetTable(string key, [MaybeNullWhen(false)] out TomlTable table)
     {
-        if (_values.TryGetValue(key, out var value) && value is TomlTable found)
+        if (_values.TryGetValue(key, out object? value) && value is TomlTable found)
         {
             table = found;
             return true;
@@ -82,9 +82,9 @@ public sealed class TomlTable(TomlTableKind kind = TomlTableKind.Root) : IEnumer
     {
         ArgumentNullException.ThrowIfNull(path);
         object current = this;
-        foreach (var key in path)
+        foreach (string key in path)
         {
-            if (current is not TomlTable table || !table.TryGetValue(key, out var next))
+            if (current is not TomlTable table || !table.TryGetValue(key, out object? next))
             {
                 return null;
             }

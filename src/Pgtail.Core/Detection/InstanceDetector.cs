@@ -33,21 +33,21 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         var instances = new List<PostgresInstance>();
         var seen = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         var running = new Dictionary<string, int>(seen.Comparer);
-        foreach (var (directory, pid) in FromProcesses())
+        foreach ((string directory, int pid) in FromProcesses())
         {
             running.TryAdd(PathResolver.Resolve(directory, home), pid);
         }
 
         void Add(string directory, DetectionSource source)
         {
-            var resolved = PathResolver.Resolve(directory, home);
+            string resolved = PathResolver.Resolve(directory, home);
             if (!seen.Add(resolved))
             {
                 return;
             }
 
-            var (isRunning, pid) = IsRunning(resolved, running);
-            var (logPath, logDirectory, loggingEnabled) = PostgresConf.GetLogInfo(directory);
+            (bool isRunning, int? pid) = IsRunning(resolved, running);
+            (string? logPath, string? logDirectory, bool loggingEnabled) = PostgresConf.GetLogInfo(directory);
             instances.Add(new PostgresInstance(
                 instances.Count,
                 PostgresConf.GetVersion(directory),
@@ -62,12 +62,12 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
                 PostgresConf.FindConfFile(directory)));
         }
 
-        foreach (var directory in running.Keys)
+        foreach (string directory in running.Keys)
         {
             Add(directory, DetectionSource.Process);
         }
 
-        foreach (var directory in FromPgrx())
+        foreach (string directory in FromPgrx())
         {
             Add(directory, DetectionSource.Pgrx);
         }
@@ -77,7 +77,7 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
             Add(pgdata, DetectionSource.Pgdata);
         }
 
-        foreach (var directory in KnownPaths().Where(IsDataDirectory))
+        foreach (string? directory in KnownPaths().Where(IsDataDirectory))
         {
             Add(directory, DetectionSource.KnownPath);
         }
@@ -93,9 +93,9 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
     public static string? DataDirectoryArgument(IReadOnlyList<string> arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        for (var i = 0; i < arguments.Count; i++)
+        for (int i = 0; i < arguments.Count; i++)
         {
-            var argument = arguments[i];
+            string argument = arguments[i];
             if (argument == "-D" && i + 1 < arguments.Count)
             {
                 return arguments[i + 1];
@@ -117,9 +117,9 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
 
     private IEnumerable<(string Directory, int Pid)> FromProcesses()
     {
-        foreach (var process in processes())
+        foreach (ProcessEntry process in processes())
         {
-            var postgres = OperatingSystem.IsWindows()
+            bool postgres = OperatingSystem.IsWindows()
                 ? process.Name.Equals("postgres", StringComparison.OrdinalIgnoreCase)
                     || process.Name.Equals("pg_ctl", StringComparison.OrdinalIgnoreCase)
                 : process.Name is "postgres" or "postmaster";
@@ -132,10 +132,10 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
 
     private IEnumerable<string> FromPgrx()
     {
-        var pgrx = Path.Combine(home, ".pgrx");
-        foreach (var directory in Matching(Path.Combine(pgrx, "data-*")))
+        string pgrx = Path.Combine(home, ".pgrx");
+        foreach (string directory in Matching(Path.Combine(pgrx, "data-*")))
         {
-            var suffix = Path.GetFileName(directory)[5..];
+            string suffix = Path.GetFileName(directory)[5..];
             if ((OperatingSystem.IsWindows() || (suffix.Length > 0 && suffix.All(char.IsAsciiDigit)))
                 && File.Exists(Path.Combine(directory, "PG_VERSION")))
             {
@@ -148,9 +148,9 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
     {
         if (OperatingSystem.IsWindows())
         {
-            var programFiles = environment("ProgramFiles") ?? @"C:\Program Files";
-            var programFilesX86 = environment("ProgramFiles(x86)") ?? @"C:\Program Files (x86)";
-            foreach (var directory in Matching(Path.Combine(programFiles, "PostgreSQL", "*", "data"))
+            string programFiles = environment("ProgramFiles") ?? @"C:\Program Files";
+            string programFilesX86 = environment("ProgramFiles(x86)") ?? @"C:\Program Files (x86)";
+            foreach (string? directory in Matching(Path.Combine(programFiles, "PostgreSQL", "*", "data"))
                 .Concat(Matching(Path.Combine(programFilesX86, "PostgreSQL", "*", "data"))))
             {
                 yield return directory;
@@ -191,9 +191,9 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
             Path.Combine(home, ".postgres"),
         ];
 
-        foreach (var pattern in patterns)
+        foreach (string pattern in patterns)
         {
-            foreach (var directory in GlobPattern.IsGlob(pattern) ? Matching(pattern) : [pattern])
+            foreach (string directory in GlobPattern.IsGlob(pattern) ? Matching(pattern) : [pattern])
             {
                 yield return directory;
             }
@@ -228,15 +228,15 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
 
     private static (bool Running, int? Pid) IsRunning(string resolved, Dictionary<string, int> running)
     {
-        if (running.TryGetValue(resolved, out var known))
+        if (running.TryGetValue(resolved, out int known))
         {
             return (true, known);
         }
 
         try
         {
-            var lines = File.ReadAllText(Path.Combine(resolved, "postmaster.pid")).Split('\n');
-            if (int.TryParse(lines[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var pid)
+            string[] lines = File.ReadAllText(Path.Combine(resolved, "postmaster.pid")).Split('\n');
+            if (int.TryParse(lines[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int pid)
                 && ProcessTable.NameOf(pid) is { } name && name.Contains("postgres", StringComparison.OrdinalIgnoreCase))
             {
                 return (true, pid);

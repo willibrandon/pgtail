@@ -11,7 +11,7 @@ public sealed class RelationHighlighter() : RegexHighlighter("relation", 410, "T
     /// <inheritdoc />
     public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (var groups in LogPattern.Captures(Regex, text))
+        foreach ((int Start, int End)?[] groups in LogPattern.Captures(Regex, text))
         {
             if (groups[2] is { } name)
             {

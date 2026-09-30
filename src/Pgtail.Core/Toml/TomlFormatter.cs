@@ -70,8 +70,8 @@ public static class TomlFormatter
     public static string Quote(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var result = new StringBuilder(text.Length + 2).Append('"');
-        foreach (var c in text)
+        StringBuilder result = new StringBuilder(text.Length + 2).Append('"');
+        foreach (char c in text)
         {
             switch (c)
             {
@@ -125,7 +125,7 @@ public static class TomlFormatter
             return value > 0 ? "inf" : "-inf";
         }
 
-        var text = value.ToString("R", CultureInfo.InvariantCulture);
+        string text = value.ToString("R", CultureInfo.InvariantCulture);
         return text.Contains('.', StringComparison.Ordinal) || text.Contains('E', StringComparison.Ordinal) ? text : text + ".0";
     }
 

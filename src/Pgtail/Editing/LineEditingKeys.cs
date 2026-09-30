@@ -23,7 +23,7 @@ internal sealed class LineEditingKeys(IEditableLine line, Action? changed = null
     public void Bind(InputBindingsBuilder bindings)
     {
         ArgumentNullException.ThrowIfNull(bindings);
-        foreach (var key in new[] { Hex1bKey.A, Hex1bKey.E, Hex1bKey.B, Hex1bKey.F, Hex1bKey.K, Hex1bKey.U, Hex1bKey.W, Hex1bKey.Y })
+        foreach (Hex1bKey key in new[] { Hex1bKey.A, Hex1bKey.E, Hex1bKey.B, Hex1bKey.F, Hex1bKey.K, Hex1bKey.U, Hex1bKey.W, Hex1bKey.Y })
         {
             bindings.Remove(key, Hex1bModifiers.Control);
         }
@@ -70,8 +70,8 @@ internal sealed class LineEditingKeys(IEditableLine line, Action? changed = null
     // As readline's Ctrl+W: back over spaces, then over the word before them.
     private int SpaceWordStartBefore(int caret)
     {
-        var text = line.Text;
-        var start = caret;
+        string text = line.Text;
+        int start = caret;
         while (start > 0 && char.IsWhiteSpace(text[start - 1]))
         {
             start--;
@@ -88,8 +88,8 @@ internal sealed class LineEditingKeys(IEditableLine line, Action? changed = null
     // As readline's Alt+B: back over anything else, then over letters and digits.
     private int WordStartBefore(int caret)
     {
-        var text = line.Text;
-        var start = caret;
+        string text = line.Text;
+        int start = caret;
         while (start > 0 && !char.IsLetterOrDigit(text[start - 1]))
         {
             start--;
@@ -106,8 +106,8 @@ internal sealed class LineEditingKeys(IEditableLine line, Action? changed = null
     // As readline's Alt+F and Alt+D: forward over anything else, then over letters and digits.
     private int WordEndAfter(int caret)
     {
-        var text = line.Text;
-        var end = caret;
+        string text = line.Text;
+        int end = caret;
         while (end < text.Length && !char.IsLetterOrDigit(text[end]))
         {
             end++;

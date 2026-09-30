@@ -105,10 +105,10 @@ public sealed class FileCursor(string path)
                 FileOptions.SequentialScan);
             stream.Seek(Position, SeekOrigin.Begin);
             data = new byte[(int)Math.Clamp(stream.Length - Position, 0, ChunkSize)];
-            var total = 0;
+            int total = 0;
             while (total < data.Length)
             {
-                var read = stream.Read(data, total, data.Length - total);
+                int read = stream.Read(data, total, data.Length - total);
                 if (read == 0)
                 {
                     break;
@@ -157,9 +157,9 @@ public sealed class FileCursor(string path)
             return;
         }
 
-        var buffer = _pending.Length == 0 ? data : [.. _pending, .. data];
-        var start = 0;
-        for (var i = 0; i < buffer.Length; i++)
+        byte[] buffer = _pending.Length == 0 ? data : [.. _pending, .. data];
+        int start = 0;
+        for (int i = 0; i < buffer.Length; i++)
         {
             if (buffer[i] == (byte)'\n')
             {
@@ -174,8 +174,8 @@ public sealed class FileCursor(string path)
 
     private void Emit(ReadOnlyMemory<byte> line, List<ReadOnlyMemory<byte>> lines, Action<LogFormat> formatDetected)
     {
-        var span = line.Span;
-        var length = span.Length;
+        ReadOnlySpan<byte> span = line.Span;
+        int length = span.Length;
         if (length > 0 && span[length - 1] == (byte)'\r')
         {
             length--;
@@ -201,14 +201,14 @@ public sealed class FileCursor(string path)
         try
         {
             using var stream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            var buffer = new byte[64 * 1024];
-            var seen = 0;
-            for (var end = length; end > 0;)
+            byte[] buffer = new byte[64 * 1024];
+            int seen = 0;
+            for (long end = length; end > 0;)
             {
-                var start = Math.Max(0, end - buffer.Length);
+                long start = Math.Max(0, end - buffer.Length);
                 stream.Seek(start, SeekOrigin.Begin);
                 stream.ReadExactly(buffer, 0, (int)(end - start));
-                for (var i = (int)(end - start) - 1; i >= 0; i--)
+                for (int i = (int)(end - start) - 1; i >= 0; i--)
                 {
                     // The file's last line ending closes its last line rather than starting another.
                     if (buffer[i] == (byte)'\n' && start + i != length - 1 && ++seen >= count)
@@ -232,12 +232,12 @@ public sealed class FileCursor(string path)
     private long EntryStartFrom(FileStream stream, long offset, long length)
     {
         stream.Seek(0, SeekOrigin.Begin);
-        var head = new byte[(int)Math.Min(length, 64 * 1024)];
+        byte[] head = new byte[(int)Math.Min(length, 64 * 1024)];
         stream.ReadExactly(head);
-        var firstEnd = Array.IndexOf(head, (byte)'\n');
+        int firstEnd = Array.IndexOf(head, (byte)'\n');
         _formatSample = head[..(firstEnd < 0 ? head.Length : firstEnd)];
         stream.Seek(offset, SeekOrigin.Begin);
-        var window = new byte[(int)Math.Min(length - offset, 1024 * 1024)];
+        byte[] window = new byte[(int)Math.Min(length - offset, 1024 * 1024)];
         stream.ReadExactly(window);
         return EntryStart(window, 0, LogFormatDetector.Detect(_formatSample)) is { } start ? offset + start : offset;
     }
@@ -254,30 +254,30 @@ public sealed class FileCursor(string path)
     public long ReadOlder(long end, List<ReadOnlyMemory<byte>> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
-        var format = Format ?? LogFormat.Text;
+        LogFormat format = Format ?? LogFormat.Text;
         try
         {
             using var stream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            for (var size = OlderChunkSize; ; size *= 2)
+            for (int size = OlderChunkSize; ; size *= 2)
             {
-                var start = Math.Max(0, end - size);
-                var data = new byte[end - start];
+                long start = Math.Max(0, end - size);
+                byte[] data = new byte[end - start];
                 stream.Seek(start, SeekOrigin.Begin);
                 stream.ReadExactly(data);
 
                 // Past the file's start, the chunk's first line may be the end of an entry the next chunk reads.
-                var skip = start == 0 ? 0 : Array.IndexOf(data, (byte)'\n') + 1;
+                int skip = start == 0 ? 0 : Array.IndexOf(data, (byte)'\n') + 1;
                 if (start > 0 && (skip == 0 || EntryStart(data, skip, format) is not { } first))
                 {
                     continue;
                 }
 
-                var from = start == 0 ? 0 : EntryStart(data, skip, format)!.Value;
-                for (var at = from; at < data.Length;)
+                int from = start == 0 ? 0 : EntryStart(data, skip, format)!.Value;
+                for (int at = from; at < data.Length;)
                 {
-                    var newline = Array.IndexOf(data, (byte)'\n', at);
-                    var stop = newline < 0 ? data.Length : newline;
-                    var length = stop > at && data[stop - 1] == (byte)'\r' ? stop - at - 1 : stop - at;
+                    int newline = Array.IndexOf(data, (byte)'\n', at);
+                    int stop = newline < 0 ? data.Length : newline;
+                    int length = stop > at && data[stop - 1] == (byte)'\r' ? stop - at - 1 : stop - at;
                     if (data.AsSpan(at, length).Trim(" \t\r\n\v\f"u8).Length > 0)
                     {
                         lines.Add(data.AsMemory(at, length));
@@ -298,9 +298,9 @@ public sealed class FileCursor(string path)
     // The offset of the first line at or after an offset in a buffer that starts an entry, or null when none does.
     private static int? EntryStart(byte[] data, int offset, LogFormat format)
     {
-        for (var start = offset; start < data.Length;)
+        for (int start = offset; start < data.Length;)
         {
-            var end = Array.IndexOf(data, (byte)'\n', start);
+            int end = Array.IndexOf(data, (byte)'\n', start);
             if (end < 0)
             {
                 return null;
@@ -319,12 +319,12 @@ public sealed class FileCursor(string path)
 
     private void CheckRotation(FileInfo info)
     {
-        var size = info.Length;
+        long size = info.Length;
         var identity = FileIdentity.FromPath(Path);
-        var modified = info.LastWriteTimeUtc;
-        var truncated = size < Position;
-        var recreated = _identity is { } before && identity != before;
-        var reused = !OperatingSystem.IsWindows() && _modified is { } last && modified != last && size == _lastSize && Position >= size
+        DateTime modified = info.LastWriteTimeUtc;
+        bool truncated = size < Position;
+        bool recreated = _identity is { } before && identity != before;
+        bool reused = !OperatingSystem.IsWindows() && _modified is { } last && modified != last && size == _lastSize && Position >= size
             && size > 0;
         _identity = identity;
         _modified = modified;

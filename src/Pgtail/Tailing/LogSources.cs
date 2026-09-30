@@ -38,8 +38,8 @@ internal static class LogSources
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(session);
-        var source = request.Source;
-        var fromStart = session.Time.IsActive;
+        TailSource source = request.Source;
+        bool fromStart = session.Time.IsActive;
         if (source.Stdin)
         {
             return new StreamLogSource(stdin());
@@ -51,8 +51,8 @@ internal static class LogSources
                 session.Time.Since);
         }
 
-        var files = source.Files ?? [];
-        var glob = source.GlobPattern is { } pattern ? GlobPattern.FromPath(pattern, session.Home, currentDirectory) : null;
+        IReadOnlyList<string> files = source.Files ?? [];
+        GlobPattern? glob = source.GlobPattern is { } pattern ? GlobPattern.FromPath(pattern, session.Home, currentDirectory) : null;
         if (files.Count == 1 && glob is null)
         {
             return new LogTailer(files[0], fromStart, null, Path.GetDirectoryName(files[0]), PollInterval, lastLines, session.Time.Since);

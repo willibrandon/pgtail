@@ -62,9 +62,9 @@ public sealed class LogTailer(
     protected override void Poll()
     {
         _lines.Clear();
-        var outcome = _cursor.Read(_lines, format => Post(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format,
+        ReadOutcome outcome = _cursor.Read(_lines, format => Post(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format,
             Path: _cursor.Path)));
-        foreach (var line in _lines)
+        foreach (ReadOnlyMemory<byte> line in _lines)
         {
             if (_grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)) is { } complete)
             {
@@ -112,7 +112,7 @@ public sealed class LogTailer(
         _olderEnd = _cursor.ReadOlder(_olderEnd, lines);
         var grouper = new EntryGrouper();
         var entries = new List<LogEntry>();
-        foreach (var line in lines)
+        foreach (ReadOnlyMemory<byte> line in lines)
         {
             if (grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)) is { } complete)
             {
@@ -130,8 +130,8 @@ public sealed class LogTailer(
             Post(new LogSourceEvent(LogSourceEventKind.Older, Entries: entries));
         }
 
-        var bound = since is { } start ? LogTimestamps.ToUtc(start) : (DateTime?)null;
-        var oldest = entries.Find(entry => entry.Timestamp is not null)?.Timestamp;
+        DateTime? bound = since is { } start ? LogTimestamps.ToUtc(start) : null;
+        DateTime? oldest = entries.Find(entry => entry.Timestamp is not null)?.Timestamp;
         if (_olderEnd == 0 || (bound is { } limit && oldest is { } time && LogTimestamps.ToUtc(time) < limit))
         {
             FinishOlder();
@@ -154,14 +154,14 @@ public sealed class LogTailer(
 
     private void CheckForNewFile()
     {
-        var now = Environment.TickCount64;
+        long now = Environment.TickCount64;
         if (now - _lastDirectoryScan < 1000)
         {
             return;
         }
 
         _lastDirectoryScan = now;
-        var current = PathResolver.Resolve(_cursor.Path);
+        string current = PathResolver.Resolve(_cursor.Path);
         if (dataDirectory is not null && PostgresConf.ReadCurrentLogfiles(dataDirectory) is { } listed && File.Exists(listed)
             && PathResolver.Resolve(listed) != current)
         {

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Pgtail.Filtering;
 using Pgtail.Parsing;
+using Pgtail.Sessions;
 using Pgtail.Styling;
 
 namespace Pgtail.Commands;
@@ -10,7 +11,7 @@ namespace Pgtail.Commands;
 /// </summary>
 internal static class TimeCommands
 {
-    private static readonly string[] Formats =
+    private static readonly string[] s_formats =
     [
         "Time formats:",
         "  5m, 30s, 2h, 1d       Relative (from now)",
@@ -25,9 +26,9 @@ internal static class TimeCommands
     /// <returns>A completed task.</returns>
     public static Task Since(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             output.Line(session.Time.IsActive ? $"Time filter: {session.Time.FormatDescription()}" : "No time filter active");
@@ -35,7 +36,7 @@ internal static class TimeCommands
             output.Line("Usage: since <time>     Show logs since time");
             output.Line("       since clear      Remove time filter");
             output.Line();
-            output.Lines(Formats);
+            output.Lines(s_formats);
             return Task.CompletedTask;
         }
 
@@ -46,7 +47,7 @@ internal static class TimeCommands
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[0], out var since, out var error))
+        if (!TryParse(args[0], out DateTime since, out string? error))
         {
             output.Line($"Error: {error}");
             return Task.CompletedTask;
@@ -69,15 +70,15 @@ internal static class TimeCommands
     /// <returns>A completed task.</returns>
     public static Task Until(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             ShowActive(invocation);
             output.Line("Usage: until <time>");
             output.Line();
-            output.Lines(Formats);
+            output.Lines(s_formats);
             output.Line();
             output.Line("Example: until 15:00");
             output.Line();
@@ -92,7 +93,7 @@ internal static class TimeCommands
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[0], out var until, out var error))
+        if (!TryParse(args[0], out DateTime until, out string? error))
         {
             output.Line($"Error: {error}");
             return Task.CompletedTask;
@@ -111,27 +112,27 @@ internal static class TimeCommands
     /// <returns>A completed task.</returns>
     public static Task Between(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var session = invocation.Session;
-        var args = WithoutAnd(invocation.Args);
+        CommandOutput output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        List<string> args = WithoutAnd(invocation.Args);
         if (args.Count < 2)
         {
             ShowActive(invocation);
             output.Line("Usage: between <start> <end>");
             output.Line();
-            output.Lines(Formats);
+            output.Lines(s_formats);
             output.Line();
             output.Line("Example: between 14:30 15:00");
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[0], out var start, out var startError))
+        if (!TryParse(args[0], out DateTime start, out string? startError))
         {
             output.Line($"Error parsing start time: {startError}");
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[1], out var end, out var endError))
+        if (!TryParse(args[1], out DateTime end, out string? endError))
         {
             output.Line($"Error parsing end time: {endError}");
             return Task.CompletedTask;
@@ -171,20 +172,20 @@ internal static class TimeCommands
     /// <returns>A completed task.</returns>
     public static Task TailBetween(CommandInvocation invocation)
     {
-        var args = WithoutAnd(invocation.Args);
+        List<string> args = WithoutAnd(invocation.Args);
         if (args.Count < 2)
         {
             invocation.Output.Markup("[bold red]✗[/] Usage: between <start> <end>");
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[0], out var start, out var startError))
+        if (!TryParse(args[0], out DateTime start, out string? startError))
         {
             invocation.Output.Markup($"[bold red]✗[/] Start time: {Markup.Escape(startError)}");
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[1], out var end, out var endError))
+        if (!TryParse(args[1], out DateTime end, out string? endError))
         {
             invocation.Output.Markup($"[bold red]✗[/] End time: {Markup.Escape(endError)}");
             return Task.CompletedTask;
@@ -202,7 +203,7 @@ internal static class TimeCommands
 
     private static Task TailSet(CommandInvocation invocation, bool until)
     {
-        var args = invocation.Args;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             invocation.Output.Markup($"[bold red]✗[/] Usage: {(until ? "until" : "since")} <time>");
@@ -215,13 +216,15 @@ internal static class TimeCommands
             return Task.CompletedTask;
         }
 
-        if (!TryParse(args[0], out var time, out var error))
+        if (!TryParse(args[0], out DateTime time, out string? error))
         {
             invocation.Output.Markup($"[bold red]✗[/] {Markup.Escape(error)}");
             return Task.CompletedTask;
         }
 
-        var filter = until ? new TimeFilter(until: time, originalInput: args[0]) : new TimeFilter(since: time, originalInput: args[0]);
+        TimeFilter filter = until
+            ? new TimeFilter(until: time, originalInput: args[0])
+            : new TimeFilter(since: time, originalInput: args[0]);
         Apply(invocation, filter);
         return Task.CompletedTask;
     }

@@ -17,16 +17,16 @@ public static class JsonLogParser
     public static bool TryParse(ReadOnlyMemory<byte> utf8, out LogEntry entry)
     {
         entry = null!;
-        if (!TryReadObject(utf8, out var data))
+        if (!TryReadObject(utf8, out Dictionary<string, JsonElement>? data))
         {
             return false;
         }
 
-        var severity = data.TryGetValue("error_severity", out var level) && level.ValueKind == JsonValueKind.String
+        string? severity = data.TryGetValue("error_severity", out JsonElement level) && level.ValueKind == JsonValueKind.String
             ? level.GetString()
             : "LOG";
-        var message = data.TryGetValue("message", out var text) ? AsText(text) ?? "" : "";
-        var timestamp = LogTimestamps.ParseStructured(StringOrNull(data, "timestamp"));
+        string message = data.TryGetValue("message", out JsonElement text) ? AsText(text) ?? "" : "";
+        (DateTime Time, TimeSpan Offset)? timestamp = LogTimestamps.ParseStructured(StringOrNull(data, "timestamp"));
         entry = new LogEntry
         {
             Timestamp = timestamp?.Time,
@@ -82,7 +82,7 @@ public static class JsonLogParser
                 return false;
             }
 
-            foreach (var property in document.RootElement.EnumerateObject())
+            foreach (JsonProperty property in document.RootElement.EnumerateObject())
             {
                 data[property.Name] = property.Value.Clone();
             }
@@ -113,14 +113,14 @@ public static class JsonLogParser
     };
 
     private static string? StringOrNull(Dictionary<string, JsonElement> data, string key) =>
-        data.TryGetValue(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        data.TryGetValue(key, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
     private static string? Text(Dictionary<string, JsonElement> data, string key) =>
-        data.TryGetValue(key, out var value) ? AsText(value) : null;
+        data.TryGetValue(key, out JsonElement value) ? AsText(value) : null;
 
     private static long? Integer(Dictionary<string, JsonElement> data, string key)
     {
-        if (!data.TryGetValue(key, out var value))
+        if (!data.TryGetValue(key, out JsonElement value))
         {
             return null;
         }
@@ -128,19 +128,19 @@ public static class JsonLogParser
         switch (value.ValueKind)
         {
             case JsonValueKind.Number:
-                if (value.TryGetInt64(out var whole))
+                if (value.TryGetInt64(out long whole))
                 {
                     return whole;
                 }
 
-                return value.TryGetDouble(out var real) && double.IsFinite(real) && Math.Abs(real) < 9.2e18 ? (long)real : null;
+                return value.TryGetDouble(out double real) && double.IsFinite(real) && Math.Abs(real) < 9.2e18 ? (long)real : null;
             case JsonValueKind.True:
                 return 1;
             case JsonValueKind.False:
                 return 0;
             case JsonValueKind.String:
-                var text = value.GetString()!.Trim().Replace("_", "", StringComparison.Ordinal);
-                return long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+                string text = value.GetString()!.Trim().Replace("_", "", StringComparison.Ordinal);
+                return long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed) ? parsed : null;
             default:
                 return null;
         }

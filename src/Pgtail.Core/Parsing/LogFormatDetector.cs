@@ -9,7 +9,7 @@ namespace Pgtail.Parsing;
 /// </summary>
 public static class LogFormatDetector
 {
-    private static readonly FrozenSet<string> Severities = new[]
+    private static readonly FrozenSet<string> s_severities = new[]
     {
         "DEBUG5", "DEBUG4", "DEBUG3", "DEBUG2", "DEBUG1", "DEBUG", "INFO", "NOTICE", "WARNING", "ERROR", "LOG", "FATAL", "PANIC",
     }
@@ -22,7 +22,7 @@ public static class LogFormatDetector
     /// <returns>The format.</returns>
     public static LogFormat Detect(ReadOnlyMemory<byte> utf8)
     {
-        var line = Trim(utf8);
+        ReadOnlyMemory<byte> line = Trim(utf8);
         if (line.IsEmpty)
         {
             return LogFormat.Text;
@@ -43,19 +43,19 @@ public static class LogFormatDetector
     /// <returns>True for a jsonlog line.</returns>
     public static bool IsJsonLog(ReadOnlyMemory<byte> utf8)
     {
-        var line = Trim(utf8);
-        if (line.IsEmpty || line.Span[0] != (byte)'{' || !JsonLogParser.TryReadObject(line, out var data))
+        ReadOnlyMemory<byte> line = Trim(utf8);
+        if (line.IsEmpty || line.Span[0] != (byte)'{' || !JsonLogParser.TryReadObject(line, out Dictionary<string, JsonElement>? data))
         {
             return false;
         }
 
-        if (!data.TryGetValue("error_severity", out var severity) || !data.ContainsKey("message"))
+        if (!data.TryGetValue("error_severity", out JsonElement severity) || !data.ContainsKey("message"))
         {
             return false;
         }
 
-        var name = severity.ValueKind == JsonValueKind.Null ? "None" : JsonLogParser.AsText(severity) ?? "";
-        return Severities.Contains(name.ToUpperInvariant());
+        string name = severity.ValueKind == JsonValueKind.Null ? "None" : JsonLogParser.AsText(severity) ?? "";
+        return s_severities.Contains(name.ToUpperInvariant());
     }
 
     /// <summary>
@@ -67,26 +67,26 @@ public static class LogFormatDetector
     {
         ArgumentNullException.ThrowIfNull(line);
         line = line.Trim();
-        if (line.Length == 0 || !CsvLine.TrySplit(line, out var fields) || fields.Count is < 22 or > 26)
+        if (line.Length == 0 || !CsvLine.TrySplit(line, out List<string>? fields) || fields.Count is < 22 or > 26)
         {
             return false;
         }
 
-        var timestamp = fields[0];
+        string timestamp = fields[0];
         if (timestamp.Length < 19 || timestamp[4] != '-' || timestamp[7] != '-' || timestamp[10] != ' ' || timestamp[13] != ':'
             || timestamp[16] != ':')
         {
             return false;
         }
 
-        return Severities.Contains(fields[11].ToUpperInvariant());
+        return s_severities.Contains(fields[11].ToUpperInvariant());
     }
 
     private static ReadOnlyMemory<byte> Trim(ReadOnlyMemory<byte> line)
     {
-        var span = line.Span;
-        var start = 0;
-        var end = span.Length;
+        ReadOnlySpan<byte> span = line.Span;
+        int start = 0;
+        int end = span.Length;
         while (start < end && IsWhite(span[start]))
         {
             start++;

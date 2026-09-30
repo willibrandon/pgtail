@@ -11,14 +11,14 @@ public sealed class BooleanHighlighter() : RegexHighlighter("boolean", 1000, "Bo
     /// <inheritdoc />
     public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (var groups in LogPattern.Captures(Regex, text))
+        foreach ((int Start, int End)?[] groups in LogPattern.Captures(Regex, text))
         {
             if (groups[1] is not { } value)
             {
                 continue;
             }
 
-            var word = text.Text[value.Start..value.End].ToLowerInvariant();
+            string word = text.Text[value.Start..value.End].ToLowerInvariant();
             yield return new HighlightMatch(value.Start, value.End, word is "on" or "true" or "yes" ? "hl_bool_true" : "hl_bool_false");
         }
     }

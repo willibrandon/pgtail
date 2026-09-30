@@ -9,7 +9,7 @@ namespace Pgtail.Parsing;
 /// </summary>
 public static partial class LogTimestamps
 {
-    private static readonly FrozenDictionary<string, int> ZoneOffsets = new Dictionary<string, int>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, int> s_zoneOffsets = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["UTC"] = 0,
         ["GMT"] = 0,
@@ -51,20 +51,20 @@ public static partial class LogTimestamps
     {
         ArgumentNullException.ThrowIfNull(text);
         value = default;
-        var match = NaivePattern().Match(text);
+        Match match = NaivePattern().Match(text);
         if (!match.Success)
         {
             return false;
         }
 
-        var year = int.Parse(match.Groups[1].ValueSpan, CultureInfo.InvariantCulture);
-        var month = int.Parse(match.Groups[2].ValueSpan, CultureInfo.InvariantCulture);
-        var day = int.Parse(match.Groups[3].ValueSpan, CultureInfo.InvariantCulture);
-        var hour = int.Parse(match.Groups[4].ValueSpan, CultureInfo.InvariantCulture);
-        var minute = int.Parse(match.Groups[5].ValueSpan, CultureInfo.InvariantCulture);
-        var second = int.Parse(match.Groups[6].ValueSpan, CultureInfo.InvariantCulture);
-        var fraction = match.Groups[7].Success ? match.Groups[7].Value.PadRight(6, '0') : "0";
-        var microseconds = int.Parse(fraction, CultureInfo.InvariantCulture);
+        int year = int.Parse(match.Groups[1].ValueSpan, CultureInfo.InvariantCulture);
+        int month = int.Parse(match.Groups[2].ValueSpan, CultureInfo.InvariantCulture);
+        int day = int.Parse(match.Groups[3].ValueSpan, CultureInfo.InvariantCulture);
+        int hour = int.Parse(match.Groups[4].ValueSpan, CultureInfo.InvariantCulture);
+        int minute = int.Parse(match.Groups[5].ValueSpan, CultureInfo.InvariantCulture);
+        int second = int.Parse(match.Groups[6].ValueSpan, CultureInfo.InvariantCulture);
+        string fraction = match.Groups[7].Success ? match.Groups[7].Value.PadRight(6, '0') : "0";
+        int microseconds = int.Parse(fraction, CultureInfo.InvariantCulture);
         if (year < 1 || month is < 1 or > 12 || hour > 23 || minute > 59 || second > 59)
         {
             return false;
@@ -88,7 +88,7 @@ public static partial class LogTimestamps
     public static bool TryGetZoneOffset(string zone, out TimeSpan offset)
     {
         ArgumentNullException.ThrowIfNull(zone);
-        var known = ZoneOffsets.TryGetValue(zone.ToUpperInvariant(), out var hours);
+        bool known = s_zoneOffsets.TryGetValue(zone.ToUpperInvariant(), out int hours);
         offset = TimeSpan.FromHours(hours);
         return known;
     }
@@ -110,9 +110,9 @@ public static partial class LogTimestamps
             return null;
         }
 
-        var value = text.Trim();
+        string value = text.Trim();
         TimeSpan? offset = null;
-        var isIso = IsoSeparator().IsMatch(value);
+        bool isIso = IsoSeparator().IsMatch(value);
         if (isIso && value.EndsWith('Z'))
         {
             value = value[..^1];
@@ -120,23 +120,23 @@ public static partial class LogTimestamps
         }
         else if (isIso || IsoOffset().IsMatch(value))
         {
-            var match = IsoOffset().Match(value);
+            Match match = IsoOffset().Match(value);
             if (match.Success)
             {
-                var sign = match.Groups[1].Value == "+" ? 1 : -1;
-                var hours = int.Parse(match.Groups[2].ValueSpan, CultureInfo.InvariantCulture);
-                var minutes = match.Groups[3].Success ? int.Parse(match.Groups[3].ValueSpan, CultureInfo.InvariantCulture) : 0;
+                int sign = match.Groups[1].Value == "+" ? 1 : -1;
+                int hours = int.Parse(match.Groups[2].ValueSpan, CultureInfo.InvariantCulture);
+                int minutes = match.Groups[3].Success ? int.Parse(match.Groups[3].ValueSpan, CultureInfo.InvariantCulture) : 0;
                 offset = new TimeSpan(sign * hours, sign * minutes, 0);
                 value = value[..match.Index].Trim();
             }
         }
         else
         {
-            var space = value.LastIndexOf(' ');
+            int space = value.LastIndexOf(' ');
             if (space >= 0 && value.Length - space - 1 <= 5)
             {
-                var zone = value[(space + 1)..];
-                if (ZoneOffsets.TryGetValue(zone.ToUpperInvariant(), out var hours))
+                string zone = value[(space + 1)..];
+                if (s_zoneOffsets.TryGetValue(zone.ToUpperInvariant(), out int hours))
                 {
                     offset = TimeSpan.FromHours(hours);
                     value = value[..space];
@@ -149,12 +149,12 @@ public static partial class LogTimestamps
             }
         }
 
-        if (!TryParseNaive(value.Replace('T', ' '), out var local))
+        if (!TryParseNaive(value.Replace('T', ' '), out DateTime local))
         {
             return null;
         }
 
-        var written = offset ?? TimeZoneInfo.Local.GetUtcOffset(local);
+        TimeSpan written = offset ?? TimeZoneInfo.Local.GetUtcOffset(local);
         return (DateTime.SpecifyKind(local - written, DateTimeKind.Utc), written);
     }
 
@@ -171,7 +171,7 @@ public static partial class LogTimestamps
         }
 
         // A local time skipped by a daylight saving change has no instant of its own; the offset in force is used.
-        var offset = TimeZoneInfo.Local.GetUtcOffset(DateTime.SpecifyKind(value, DateTimeKind.Unspecified));
+        TimeSpan offset = TimeZoneInfo.Local.GetUtcOffset(DateTime.SpecifyKind(value, DateTimeKind.Unspecified));
         return DateTime.SpecifyKind(value - offset, DateTimeKind.Utc);
     }
 
@@ -194,8 +194,8 @@ public static partial class LogTimestamps
     /// <returns>The text.</returns>
     public static string ToIsoFormat(DateTime value)
     {
-        var text = value.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
-        var microseconds = (int)(value.Ticks % TimeSpan.TicksPerSecond / 10);
+        string text = value.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
+        int microseconds = (int)(value.Ticks % TimeSpan.TicksPerSecond / 10);
         if (microseconds != 0)
         {
             text += "." + microseconds.ToString("D6", CultureInfo.InvariantCulture);
@@ -217,8 +217,8 @@ public static partial class LogTimestamps
             return entry.Timestamp is { } time ? ToIsoFormat(time) : null;
         }
 
-        var sign = offset < TimeSpan.Zero ? '-' : '+';
-        var magnitude = offset.Duration();
+        char sign = offset < TimeSpan.Zero ? '-' : '+';
+        TimeSpan magnitude = offset.Duration();
         return ToIsoFormat(written) + $"{sign}{magnitude.Hours:D2}:{magnitude.Minutes:D2}";
     }
 

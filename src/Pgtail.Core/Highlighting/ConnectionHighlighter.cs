@@ -11,14 +11,14 @@ public sealed class ConnectionHighlighter() : RegexHighlighter("connection", 600
     /// <inheritdoc />
     public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (var groups in LogPattern.Captures(Regex, text))
+        foreach ((int Start, int End)?[] groups in LogPattern.Captures(Regex, text))
         {
             if (groups[0] is not { } whole || groups[1] is not { } setting)
             {
                 continue;
             }
 
-            var style = text.Text[setting.Start..setting.End].ToLowerInvariant() switch
+            string style = text.Text[setting.Start..setting.End].ToLowerInvariant() switch
             {
                 "host" => "hl_host",
                 "port" => "hl_port",

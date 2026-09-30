@@ -260,7 +260,7 @@ public sealed class LogEntry
     public object? GetField(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        var canonical = name switch
+        string canonical = name switch
         {
             "app" or "application" => "application_name",
             "db" or "database" => "database_name",
@@ -317,9 +317,9 @@ public sealed class LogEntry
     public LogEntry Join(LogEntry continuation)
     {
         ArgumentNullException.ThrowIfNull(continuation);
-        var first = RawUtf8.Span;
-        var next = continuation.RawUtf8.Span;
-        var raw = new byte[first.Length + 1 + next.Length];
+        ReadOnlySpan<byte> first = RawUtf8.Span;
+        ReadOnlySpan<byte> next = continuation.RawUtf8.Span;
+        byte[] raw = new byte[first.Length + 1 + next.Length];
         first.CopyTo(raw);
         raw[first.Length] = (byte)'\n';
         next.CopyTo(raw.AsSpan(first.Length + 1));

@@ -23,7 +23,7 @@ public static partial class IsoDateTime
     {
         ArgumentNullException.ThrowIfNull(text);
         value = default;
-        if (!TryParseDate(text, out var date, out var consumed))
+        if (!TryParseDate(text, out DateTime date, out int consumed))
         {
             return false;
         }
@@ -35,28 +35,28 @@ public static partial class IsoDateTime
         }
 
         // Any single character may separate the date from the time.
-        var rest = text[(consumed + 1)..];
+        string rest = text[(consumed + 1)..];
         if (rest.Length == 0)
         {
             return false;
         }
 
-        var offsetStart = rest.IndexOfAny(['Z', '+', '-']);
-        var timeText = offsetStart < 0 ? rest : rest[..offsetStart];
-        var offsetText = offsetStart < 0 ? "" : rest[offsetStart..];
-        if (!TryParseTime(timeText, out var time))
+        int offsetStart = rest.IndexOfAny(['Z', '+', '-']);
+        string timeText = offsetStart < 0 ? rest : rest[..offsetStart];
+        string offsetText = offsetStart < 0 ? "" : rest[offsetStart..];
+        if (!TryParseTime(timeText, out TimeSpan time))
         {
             return false;
         }
 
-        var local = date + time;
+        DateTime local = date + time;
         if (offsetText.Length == 0)
         {
             value = local;
             return true;
         }
 
-        if (!TryParseOffset(offsetText, out var offset))
+        if (!TryParseOffset(offsetText, out TimeSpan offset))
         {
             return false;
         }
@@ -69,7 +69,7 @@ public static partial class IsoDateTime
     {
         date = default;
         consumed = 0;
-        var match = CalendarDate().Match(text);
+        Match match = CalendarDate().Match(text);
         if (match.Success)
         {
             consumed = match.Length;
@@ -90,9 +90,9 @@ public static partial class IsoDateTime
         }
 
         consumed = match.Length;
-        var year = Number(match.Groups[1].Value);
-        var week = Number(match.Groups[2].Value);
-        var day = match.Groups[3].Success ? Number(match.Groups[3].Value) : 1;
+        int year = Number(match.Groups[1].Value);
+        int week = Number(match.Groups[2].Value);
+        int day = match.Groups[3].Success ? Number(match.Groups[3].Value) : 1;
         if (year < 1 || week < 1 || week > ISOWeek.GetWeeksInYear(year) || day is < 1 or > 7)
         {
             return false;
@@ -105,9 +105,9 @@ public static partial class IsoDateTime
     private static bool TryDate(string yearText, string monthText, string dayText, out DateTime date)
     {
         date = default;
-        var year = Number(yearText);
-        var month = Number(monthText);
-        var day = Number(dayText);
+        int year = Number(yearText);
+        int month = Number(monthText);
+        int day = Number(dayText);
         if (year < 1 || month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(year, month))
         {
             return false;
@@ -120,7 +120,7 @@ public static partial class IsoDateTime
     private static bool TryParseTime(string text, out TimeSpan time)
     {
         time = default;
-        var match = ExtendedTime().Match(text);
+        Match match = ExtendedTime().Match(text);
         if (!match.Success)
         {
             match = BasicTime().Match(text);
@@ -131,10 +131,10 @@ public static partial class IsoDateTime
             return false;
         }
 
-        var hour = Number(match.Groups[1].Value);
-        var minute = match.Groups[2].Success ? Number(match.Groups[2].Value) : 0;
-        var second = match.Groups[3].Success ? Number(match.Groups[3].Value) : 0;
-        var fraction = match.Groups[4].Success ? match.Groups[4].Value : "";
+        int hour = Number(match.Groups[1].Value);
+        int minute = match.Groups[2].Success ? Number(match.Groups[2].Value) : 0;
+        int second = match.Groups[3].Success ? Number(match.Groups[3].Value) : 0;
+        string fraction = match.Groups[4].Success ? match.Groups[4].Value : "";
         if (fraction.Length > 0 && !match.Groups[3].Success)
         {
             return false;
@@ -146,7 +146,7 @@ public static partial class IsoDateTime
         }
 
         // Digits beyond microseconds are dropped.
-        var micro = fraction.Length == 0 ? 0 : Number(fraction.Length > 6 ? fraction[..6] : fraction.PadRight(6, '0'));
+        int micro = fraction.Length == 0 ? 0 : Number(fraction.Length > 6 ? fraction[..6] : fraction.PadRight(6, '0'));
         time = new TimeSpan(0, hour, minute, second) + TimeSpan.FromTicks(micro * 10L);
         return true;
     }
@@ -159,16 +159,16 @@ public static partial class IsoDateTime
             return true;
         }
 
-        var match = Offset().Match(text);
+        Match match = Offset().Match(text);
         if (!match.Success)
         {
             return false;
         }
 
-        var sign = match.Groups[1].Value == "-" ? -1 : 1;
-        var hours = Number(match.Groups[2].Value);
-        var minutes = match.Groups[3].Success ? Number(match.Groups[3].Value) : 0;
-        var seconds = match.Groups[4].Success ? Number(match.Groups[4].Value) : 0;
+        int sign = match.Groups[1].Value == "-" ? -1 : 1;
+        int hours = Number(match.Groups[2].Value);
+        int minutes = match.Groups[3].Success ? Number(match.Groups[3].Value) : 0;
+        int seconds = match.Groups[4].Success ? Number(match.Groups[4].Value) : 0;
         if (hours > 23 || minutes > 59 || seconds > 59)
         {
             return false;

@@ -17,10 +17,10 @@ namespace Pgtail.Parsing;
 public static class TextLogParser
 {
     // The labels of the lines PostgreSQL writes after a message's first line; they keep their label in the message.
-    private static readonly HashSet<string> ContinuationLabels = ["DETAIL", "HINT", "CONTEXT", "STATEMENT", "QUERY", "LOCATION"];
+    private static readonly HashSet<string> s_continuationLabels = ["DETAIL", "HINT", "CONTEXT", "STATEMENT", "QUERY", "LOCATION"];
 
     // The severities PostgreSQL writes, which mark where a longer prefix ends.
-    private static readonly byte[][] Severities =
+    private static readonly byte[][] s_severities =
     [
         "LOG"u8.ToArray(), "ERROR"u8.ToArray(), "WARNING"u8.ToArray(), "FATAL"u8.ToArray(), "PANIC"u8.ToArray(),
         "NOTICE"u8.ToArray(), "INFO"u8.ToArray(), "DEBUG"u8.ToArray(), "DEBUG1"u8.ToArray(), "DEBUG2"u8.ToArray(),
@@ -35,11 +35,11 @@ public static class TextLogParser
     /// <returns>The entry.</returns>
     public static LogEntry Parse(ReadOnlyMemory<byte> line)
     {
-        var bytes = line.Span;
-        if (!TryReadPrefix(bytes, out var prefix))
+        ReadOnlySpan<byte> bytes = line.Span;
+        if (!TryReadPrefix(bytes, out Prefix prefix))
         {
             // PostgreSQL indents the further lines of a multi-line message with a tab.
-            var raw = Encoding.UTF8.GetString(bytes);
+            string raw = Encoding.UTF8.GetString(bytes);
             return new LogEntry
             {
                 Level = LogLevel.Log,
@@ -51,21 +51,21 @@ public static class TextLogParser
             };
         }
 
-        var time = prefix.Time;
+        DateTime? time = prefix.Time;
         TimeSpan? offset = null;
-        var zone = Encoding.ASCII.GetString(bytes[prefix.Zone]);
-        if (time is { } parsed && LogTimestamps.TryGetZoneOffset(zone, out var known))
+        string zone = Encoding.ASCII.GetString(bytes[prefix.Zone]);
+        if (time is { } parsed && LogTimestamps.TryGetZoneOffset(zone, out TimeSpan known))
         {
             // A zone pgtail knows gives the instant; any other zone name is read as the local time it was written in.
             time = DateTime.SpecifyKind(parsed - known, DateTimeKind.Utc);
             offset = known;
         }
 
-        var level = Encoding.ASCII.GetString(bytes[prefix.Level]);
-        var message = Encoding.UTF8.GetString(bytes[prefix.Message..]);
-        var label = level.ToUpperInvariant();
-        var continues = ContinuationLabels.Contains(label);
-        var (user, database) = ReadSession(bytes[prefix.Session]);
+        string level = Encoding.ASCII.GetString(bytes[prefix.Level]);
+        string message = Encoding.UTF8.GetString(bytes[prefix.Message..]);
+        string label = level.ToUpperInvariant();
+        bool continues = s_continuationLabels.Contains(label);
+        (string? user, string? database) = ReadSession(bytes[prefix.Session]);
         return new LogEntry
         {
             Timestamp = time,
@@ -93,13 +93,13 @@ public static class TextLogParser
     // time [zone] [pid] LEVEL: message
     private static bool TryReadWithPid(ReadOnlySpan<byte> line, ref Prefix prefix)
     {
-        var position = 0;
+        int position = 0;
         if (!TryReadTime(line, ref position, out prefix.Time) || SkipSpaces(line, ref position) == 0)
         {
             return false;
         }
 
-        var zoneStart = position;
+        int zoneStart = position;
         _ = SkipWord(line, ref position);
         prefix.Zone = zoneStart..position;
         _ = SkipSpaces(line, ref position);
@@ -110,13 +110,13 @@ public static class TextLogParser
     // [time zone] [pid] [context] LEVEL: message
     private static bool TryReadBracketed(ReadOnlySpan<byte> line, ref Prefix prefix)
     {
-        var position = 1;
+        int position = 1;
         if (!TryReadTime(line, ref position, out prefix.Time) || SkipSpaces(line, ref position) == 0)
         {
             return false;
         }
 
-        var zoneStart = position;
+        int zoneStart = position;
         if (SkipWord(line, ref position) == 0)
         {
             return false;
@@ -132,7 +132,7 @@ public static class TextLogParser
         // An optional [context] follows the process ID.
         if (line[position..] is [(byte)'[', ..] && line[position..].IndexOf((byte)']') is var close and >= 0)
         {
-            var after = position + close + 1;
+            int after = position + close + 1;
             if (SkipSpaces(line, ref after) > 0)
             {
                 position = after;
@@ -145,13 +145,13 @@ public static class TextLogParser
     // time zone LEVEL: message, with at least one space after the colon
     private static bool TryReadWithoutPid(ReadOnlySpan<byte> line, ref Prefix prefix)
     {
-        var position = 0;
+        int position = 0;
         if (!TryReadTime(line, ref position, out prefix.Time) || SkipSpaces(line, ref position) == 0)
         {
             return false;
         }
 
-        var zoneStart = position;
+        int zoneStart = position;
         if (SkipWord(line, ref position) == 0)
         {
             return false;
@@ -166,13 +166,13 @@ public static class TextLogParser
     // time [zone] anything LEVEL: message, with at least one space after the colon
     private static bool TryReadLongPrefix(ReadOnlySpan<byte> line, ref Prefix prefix)
     {
-        var position = 0;
+        int position = 0;
         if (!TryReadTime(line, ref position, out prefix.Time) || SkipSpaces(line, ref position) == 0)
         {
             return false;
         }
 
-        var zoneStart = position;
+        int zoneStart = position;
         _ = SkipWord(line, ref position);
         prefix.Zone = zoneStart..position;
         if (!TryFindLevel(line, position, out prefix.Level, out prefix.Message))
@@ -182,17 +182,17 @@ public static class TextLogParser
 
         // The session part follows the first [digits], or the zone when there is none.
         prefix.Pid = null;
-        var levelStart = prefix.Level.Start.Value;
-        for (var open = line[position..levelStart].IndexOf((byte)'['); open >= 0;)
+        int levelStart = prefix.Level.Start.Value;
+        for (int open = line[position..levelStart].IndexOf((byte)'['); open >= 0;)
         {
-            var at = position + open;
+            int at = position + open;
             if (TryReadPid(line, ref at, out prefix.Pid))
             {
                 position = at;
                 break;
             }
 
-            var next = line[(position + open + 1)..levelStart].IndexOf((byte)'[');
+            int next = line[(position + open + 1)..levelStart].IndexOf((byte)'[');
             open = next < 0 ? -1 : open + 1 + next;
         }
 
@@ -205,20 +205,20 @@ public static class TextLogParser
     {
         level = default;
         message = 0;
-        for (var colon = start; colon < line.Length; colon++)
+        for (int colon = start; colon < line.Length; colon++)
         {
             if (line[colon] != (byte)':')
             {
                 continue;
             }
 
-            var word = colon;
+            int word = colon;
             while (word > start && char.IsAsciiLetterOrDigit((char)line[word - 1]))
             {
                 word--;
             }
 
-            var after = colon + 1;
+            int after = colon + 1;
             if (word == colon || (word > 0 && line[word - 1] == (byte)'_') || !IsSeverity(line[word..colon])
                 || SkipSpaces(line, ref after) == 0)
             {
@@ -235,7 +235,7 @@ public static class TextLogParser
 
     private static bool IsSeverity(ReadOnlySpan<byte> word)
     {
-        foreach (var severity in Severities)
+        foreach (byte[] severity in s_severities)
         {
             if (word.SequenceEqual(severity))
             {
@@ -250,7 +250,7 @@ public static class TextLogParser
     private static (string? User, string? Database) ReadSession(ReadOnlySpan<byte> session)
     {
         session = session.Trim(" \t:"u8);
-        var at = session.IndexOf((byte)'@');
+        int at = session.IndexOf((byte)'@');
         if (at < 0 || session.LastIndexOf((byte)'@') != at || session.IndexOfAny(" \t,="u8) >= 0)
         {
             return (null, null);
@@ -266,8 +266,8 @@ public static class TextLogParser
     private static bool TryReadPid(ReadOnlySpan<byte> line, ref int position, out int? pid)
     {
         pid = null;
-        var start = position + 1;
-        var end = start;
+        int start = position + 1;
+        int end = start;
         if (!TryRead(line, ref position, (byte)'['))
         {
             return false;
@@ -295,7 +295,7 @@ public static class TextLogParser
     {
         level = default;
         message = 0;
-        var start = position;
+        int start = position;
         if (SkipWord(line, ref position) == 0 || !TryRead(line, ref position, (byte)':'))
         {
             return false;
@@ -315,13 +315,13 @@ public static class TextLogParser
     private static bool TryReadTime(ReadOnlySpan<byte> line, ref int position, out DateTime? time)
     {
         time = null;
-        var p = position;
-        if (!TryReadNumber(line, ref p, 4, out var year) || !TryRead(line, ref p, (byte)'-')
-            || !TryReadNumber(line, ref p, 2, out var month) || !TryRead(line, ref p, (byte)'-')
-            || !TryReadNumber(line, ref p, 2, out var day) || SkipSpaces(line, ref p) == 0
-            || !TryReadNumber(line, ref p, 2, out var hour) || !TryRead(line, ref p, (byte)':')
-            || !TryReadNumber(line, ref p, 2, out var minute) || !TryRead(line, ref p, (byte)':')
-            || !TryReadNumber(line, ref p, 2, out var second))
+        int p = position;
+        if (!TryReadNumber(line, ref p, 4, out int year) || !TryRead(line, ref p, (byte)'-')
+            || !TryReadNumber(line, ref p, 2, out int month) || !TryRead(line, ref p, (byte)'-')
+            || !TryReadNumber(line, ref p, 2, out int day) || SkipSpaces(line, ref p) == 0
+            || !TryReadNumber(line, ref p, 2, out int hour) || !TryRead(line, ref p, (byte)':')
+            || !TryReadNumber(line, ref p, 2, out int minute) || !TryRead(line, ref p, (byte)':')
+            || !TryReadNumber(line, ref p, 2, out int second))
         {
             return false;
         }
@@ -330,7 +330,7 @@ public static class TextLogParser
         if (p < line.Length && line[p] == (byte)'.' && p + 1 < line.Length && char.IsAsciiDigit((char)line[p + 1]))
         {
             p++;
-            var scale = TimeSpan.TicksPerSecond;
+            long scale = TimeSpan.TicksPerSecond;
             while (p < line.Length && char.IsAsciiDigit((char)line[p]))
             {
                 scale /= 10;
@@ -357,9 +357,9 @@ public static class TextLogParser
             return false;
         }
 
-        for (var i = 0; i < digits; i++)
+        for (int i = 0; i < digits; i++)
         {
-            var digit = line[position + i];
+            byte digit = line[position + i];
             if (!char.IsAsciiDigit((char)digit))
             {
                 return false;
@@ -385,7 +385,7 @@ public static class TextLogParser
 
     private static int SkipSpaces(ReadOnlySpan<byte> line, ref int position)
     {
-        var start = position;
+        int start = position;
         while (position < line.Length && line[position] is (byte)' ' or (byte)'\t' or (byte)'\v' or (byte)'\f' or (byte)'\r')
         {
             position++;
@@ -396,7 +396,7 @@ public static class TextLogParser
 
     private static int SkipWord(ReadOnlySpan<byte> line, ref int position)
     {
-        var start = position;
+        int start = position;
         while (position < line.Length && (char.IsAsciiLetterOrDigit((char)line[position]) || line[position] == (byte)'_'))
         {
             position++;

@@ -57,7 +57,7 @@ internal sealed partial class ReplHost
         Output.Line("Press Ctrl+C to stop");
         Output.Line();
         Session.Buffer.Clear();
-        var source = LogSources.Create(request, Session, CurrentDirectory, StandardInput);
+        ILogSource source = LogSources.Create(request, Session, CurrentDirectory, StandardInput);
         source.Start();
         _stream = new PausedStream(source, request.Source.DisplayName);
         _pending = StreamRequest(async (writer, cancellationToken) =>
@@ -86,7 +86,7 @@ internal sealed partial class ReplHost
         {
             try
             {
-                await foreach (var line in lines(cancellationToken).WithCancellation(cancellationToken))
+                await foreach (StyledText? line in lines(cancellationToken).WithCancellation(cancellationToken))
                 {
                     await writer.WriteLineAsync(AnsiText.Render(line, Session.ColorEnabled));
                     await writer.FlushAsync(CancellationToken.None);
@@ -105,12 +105,12 @@ internal sealed partial class ReplHost
     // itself, once Ctrl+C stops it, so a Ctrl+C pressed as soon as they show is not lost.
     private ReplRequest StreamRequest(Func<TextWriter, CancellationToken, Task> stream)
     {
-        var header = Output.Take();
+        List<StyledText> header = Output.Take();
         return new ReplRequest(ReplRequestKind.Stream)
         {
             Stream = async (writer, cancellationToken) =>
             {
-                foreach (var line in header)
+                foreach (StyledText line in header)
                 {
                     await writer.WriteLineAsync(AnsiText.Render(line, Session.ColorEnabled));
                 }

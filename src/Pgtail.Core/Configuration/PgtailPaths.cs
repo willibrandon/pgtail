@@ -48,24 +48,24 @@ public sealed record PgtailPaths(string ConfigDirectory, string DataDirectory)
     public static PgtailPaths ForCurrentUser(Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(environment);
-        var home = environment(OperatingSystem.IsWindows() ? "USERPROFILE" : "HOME") is { Length: > 0 } profile
+        string home = environment(OperatingSystem.IsWindows() ? "USERPROFILE" : "HOME") is { Length: > 0 } profile
             ? profile
             : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (OperatingSystem.IsMacOS())
         {
-            var support = Path.Combine(home, "Library", "Application Support", ApplicationName);
+            string support = Path.Combine(home, "Library", "Application Support", ApplicationName);
             return new PgtailPaths(support, support);
         }
 
         if (OperatingSystem.IsWindows())
         {
-            var roaming = environment("APPDATA") is { Length: > 0 } appData ? appData : Path.Combine(home, "AppData", "Roaming");
-            var directory = Path.Combine(roaming, ApplicationName);
+            string roaming = environment("APPDATA") is { Length: > 0 } appData ? appData : Path.Combine(home, "AppData", "Roaming");
+            string directory = Path.Combine(roaming, ApplicationName);
             return new PgtailPaths(directory, directory);
         }
 
-        var config = environment("XDG_CONFIG_HOME") is { Length: > 0 } xdgConfig ? xdgConfig : Path.Combine(home, ".config");
-        var data = environment("XDG_DATA_HOME") is { Length: > 0 } xdgData ? xdgData : Path.Combine(home, ".local", "share");
+        string config = environment("XDG_CONFIG_HOME") is { Length: > 0 } xdgConfig ? xdgConfig : Path.Combine(home, ".config");
+        string data = environment("XDG_DATA_HOME") is { Length: > 0 } xdgData ? xdgData : Path.Combine(home, ".local", "share");
         return new PgtailPaths(Path.Combine(config, ApplicationName), Path.Combine(data, ApplicationName));
     }
 }

@@ -69,12 +69,12 @@ public sealed class KeywordHighlighter : IHighlighter
             yield break;
         }
 
-        var search = _caseSensitive ? text.Text : text.Text.ToLowerInvariant();
-        var matcher = _matcher.Value;
-        foreach (var (keyword, end) in matcher.Find(search))
+        string search = _caseSensitive ? text.Text : text.Text.ToLowerInvariant();
+        AhoCorasick matcher = _matcher.Value;
+        foreach ((int keyword, int end) in matcher.Find(search))
         {
-            var word = matcher.Keyword(keyword);
-            var start = end - word.Length;
+            string word = matcher.Keyword(keyword);
+            int start = end - word.Length;
             if (_wordBoundary && ((start > 0 && char.IsLetterOrDigit(search[start - 1]))
                 || (end < search.Length && char.IsLetterOrDigit(search[end]))))
             {

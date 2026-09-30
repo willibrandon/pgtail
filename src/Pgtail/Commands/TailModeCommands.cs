@@ -47,7 +47,7 @@ internal static class TailModeCommands
     /// <returns>A completed task.</returns>
     public static Task Clear(CommandInvocation invocation)
     {
-        var host = Host(invocation);
+        ITailHost host = Host(invocation);
         if (invocation.Args is [var force, ..] && force.Equals("force", StringComparison.OrdinalIgnoreCase))
         {
             host.ClearEverything();
@@ -67,8 +67,8 @@ internal static class TailModeCommands
     /// <returns>A completed task.</returns>
     public static Task Help(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count > 0 && args[0].Equals("keys", StringComparison.OrdinalIgnoreCase))
         {
             Keys(output);
@@ -82,7 +82,7 @@ internal static class TailModeCommands
         }
 
         output.Markup("[bold cyan]Navigation[/bold cyan]");
-        foreach (var (key, description) in new[]
+        foreach ((string key, string description) in new[]
         {
             ("Up/Down", "Scroll 1 line"),
             ("PgUp/PgDn", "Scroll full page"),
@@ -97,7 +97,7 @@ internal static class TailModeCommands
 
         output.Line();
         output.Markup("[bold cyan]Command Input[/bold cyan]");
-        foreach (var (key, description) in new[]
+        foreach ((string key, string description) in new[]
         {
             ("Enter", "Run the command"),
             ("PgUp/PgDn", "Scroll the log"),
@@ -111,7 +111,7 @@ internal static class TailModeCommands
 
         output.Line();
         output.Markup("[bold cyan]Utility Keys[/bold cyan]");
-        foreach (var (key, description) in new[]
+        foreach ((string key, string description) in new[]
         {
             ("Ctrl+C", "Copy the selection, or exit tail mode"),
             ("q", "Exit tail mode from the log; in the input, q and Enter"),
@@ -122,7 +122,7 @@ internal static class TailModeCommands
 
         output.Line();
         output.Markup("[bold cyan]Commands[/bold cyan]");
-        foreach (var (name, description) in new[]
+        foreach ((string name, string description) in new[]
         {
             ("help", "Show this help"),
             ("help keys", "Show keybinding reference"),
@@ -160,7 +160,7 @@ internal static class TailModeCommands
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(output);
-        var help = command.Help!;
+        CommandHelp help = command.Help!;
         output.Markup($"[bold cyan]{command.Name.ToUpperInvariant()}[/bold cyan]");
         output.Markup($"  [dim]{Markup.Escape(help.Short)}[/dim]");
         output.Line();
@@ -169,7 +169,7 @@ internal static class TailModeCommands
         output.Line($"  {help.Description}");
         output.Line();
         output.Markup("[bold]Examples:[/bold]");
-        foreach (var example in help.Examples)
+        foreach (string example in help.Examples)
         {
             output.Markup($"  [yellow]{Markup.Escape(example)}[/yellow]");
         }
@@ -188,10 +188,10 @@ internal static class TailModeCommands
 
     private static void Keys(CommandOutput output)
     {
-        foreach (var (category, keys) in Tail.TailHelpOverlay.Keybindings)
+        foreach ((string category, IReadOnlyList<(string Key, string Description)> keys) in Tail.TailHelpOverlay.Keybindings)
         {
             output.Markup($"[bold cyan]{category}[/bold cyan]");
-            foreach (var (key, description) in keys)
+            foreach ((string key, string description) in keys)
             {
                 output.Markup($"  [green]{Markup.Escape(key.PadRight(16))}[/green] [dim]{Markup.Escape(description)}[/dim]");
             }

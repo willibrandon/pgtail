@@ -16,7 +16,7 @@ public static class EntryExporter
     /// </summary>
     public const string CsvHeader = "timestamp,level,pid,message";
 
-    private static readonly JavaScriptEncoder Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+    private static readonly JavaScriptEncoder s_encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 
     /// <summary>
     /// One entry as a line in a format, without a line ending.
@@ -91,8 +91,8 @@ public static class EntryExporter
             writer.WriteLine(CsvHeader);
         }
 
-        var count = 0;
-        foreach (var entry in entries)
+        int count = 0;
+        foreach (LogEntry entry in entries)
         {
             writer.WriteLine(format == ExportFormat.Text && line is not null ? line(entry) : Format(entry, format));
             count++;
@@ -101,7 +101,7 @@ public static class EntryExporter
         return count;
     }
 
-    private static string Quote(string text) => "\"" + JsonEncodedText.Encode(text, Encoder).ToString() + "\"";
+    private static string Quote(string text) => "\"" + JsonEncodedText.Encode(text, s_encoder).ToString() + "\"";
 
     private static string CsvField(string value) =>
         value.AsSpan().IndexOfAny(",\"\r\n") >= 0 ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : value;

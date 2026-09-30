@@ -18,8 +18,8 @@ public sealed class UpdateChecker(string currentVersion, string upgradeCommand)
     /// </summary>
     public const string ReleasesUrl = "https://api.github.com/repos/willibrandon/pgtail/releases/latest";
 
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(24);
+    private static readonly TimeSpan s_timeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan s_interval = TimeSpan.FromHours(24);
 
     /// <summary>
     /// Fetches the latest release's version.
@@ -28,21 +28,21 @@ public sealed class UpdateChecker(string currentVersion, string upgradeCommand)
     /// <returns>The version without its <c>v</c> prefix, or null when GitHub could not be reached or answered oddly.</returns>
     public async Task<string?> FetchLatestAsync(CancellationToken cancellationToken)
     {
-        using var client = new HttpClient { Timeout = Timeout };
+        using var client = new HttpClient { Timeout = s_timeout };
         using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesUrl);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("pgtail", currentVersion));
         try
         {
-            using var response = await client.SendAsync(request, cancellationToken);
+            using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            return document.RootElement.TryGetProperty("tag_name", out var tag) && tag.GetString() is { Length: > 0 } name
+            await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            return document.RootElement.TryGetProperty("tag_name", out JsonElement tag) && tag.GetString() is { Length: > 0 } name
                 ? name.TrimStart('v')
                 : null;
         }
@@ -66,7 +66,7 @@ public sealed class UpdateChecker(string currentVersion, string upgradeCommand)
             return true;
         }
 
-        return Version.TryParse(Numeric(latest), out var next) && Version.TryParse(Numeric(currentVersion), out var current)
+        return Version.TryParse(Numeric(latest), out Version? next) && Version.TryParse(Numeric(currentVersion), out Version? current)
             ? next > current
             : string.CompareOrdinal(latest, currentVersion) > 0;
     }
@@ -85,8 +85,9 @@ public sealed class UpdateChecker(string currentVersion, string upgradeCommand)
             return false;
         }
 
-        return !DateTimeOffset.TryParse(config.LastUpdateCheck, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var last)
-            || now - last.UtcDateTime >= Interval;
+        return !DateTimeOffset.TryParse(config.LastUpdateCheck, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal,
+                out DateTimeOffset last)
+            || now - last.UtcDateTime >= s_interval;
     }
 
     /// <summary>
@@ -118,7 +119,7 @@ public sealed class UpdateChecker(string currentVersion, string upgradeCommand)
 
     private static string Numeric(string version)
     {
-        var end = version.IndexOfAny(['-', '+']);
+        int end = version.IndexOfAny(['-', '+']);
         return end >= 0 ? version[..end] : version;
     }
 }

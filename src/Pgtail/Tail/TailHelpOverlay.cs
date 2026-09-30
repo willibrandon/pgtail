@@ -93,7 +93,7 @@ internal sealed class TailHelpOverlay
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(close);
         var body = new List<StyledText>();
-        foreach (var (category, keys) in Keybindings)
+        foreach ((string category, IReadOnlyList<(string Key, string Description)> keys) in Keybindings)
         {
             if (body.Count > 0)
             {
@@ -101,17 +101,17 @@ internal sealed class TailHelpOverlay
             }
 
             body.Add(Markup.Parse($"[bold magenta]{category}[/]"));
-            foreach (var (key, description) in keys)
+            foreach ((string key, string description) in keys)
             {
                 body.Add(Markup.Parse($"[green]{Markup.Escape(key.PadRight(16))}[/] [dim]{Markup.Escape(description)}[/]"));
             }
         }
 
         // The border, the title and the blank line under it, and the blank line and footer below the keys.
-        var rows = Math.Max(1, Math.Min(body.Count, height - 6));
-        var page = Math.Max(1, rows - 1);
+        int rows = Math.Max(1, Math.Min(body.Count, height - 6));
+        int page = Math.Max(1, rows - 1);
         _top = Math.Clamp(_top, 0, body.Count - rows);
-        var scrolls = rows < body.Count;
+        bool scrolls = rows < body.Count;
         var lines = new List<StyledText> { Markup.Parse("[bold]pgtail Keybindings[/]"), new() };
         lines.AddRange(body.Skip(_top).Take(rows));
         lines.Add(new StyledText());

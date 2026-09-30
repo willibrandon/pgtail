@@ -103,7 +103,7 @@ public sealed class RegexFilterState
     /// <returns>True to show the line.</returns>
     public bool ShouldShow(ReadOnlySpan<byte> utf8)
     {
-        foreach (var filter in Excludes)
+        foreach (RegexFilter filter in Excludes)
         {
             if (filter.Matches(utf8))
             {
@@ -111,7 +111,7 @@ public sealed class RegexFilterState
             }
         }
 
-        foreach (var filter in Ands)
+        foreach (RegexFilter filter in Ands)
         {
             if (!filter.Matches(utf8))
             {
@@ -124,7 +124,7 @@ public sealed class RegexFilterState
             return true;
         }
 
-        foreach (var filter in Includes)
+        foreach (RegexFilter filter in Includes)
         {
             if (filter.Matches(utf8))
             {

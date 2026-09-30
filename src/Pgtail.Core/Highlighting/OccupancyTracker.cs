@@ -21,11 +21,11 @@ public sealed class OccupancyTracker(int length)
             return false;
         }
 
-        var low = 0;
-        var high = _ranges.Count;
+        int low = 0;
+        int high = _ranges.Count;
         while (low < high)
         {
-            var middle = (low + high) / 2;
+            int middle = (low + high) / 2;
             if (_ranges[middle].End <= start)
             {
                 low = middle + 1;
@@ -57,11 +57,11 @@ public sealed class OccupancyTracker(int length)
             return;
         }
 
-        var low = 0;
-        var high = _ranges.Count;
+        int low = 0;
+        int high = _ranges.Count;
         while (low < high)
         {
-            var middle = (low + high) / 2;
+            int middle = (low + high) / 2;
             if (_ranges[middle].Start < start)
             {
                 low = middle + 1;

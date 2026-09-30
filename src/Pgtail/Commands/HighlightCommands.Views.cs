@@ -13,21 +13,21 @@ namespace Pgtail.Commands;
 /// </content>
 internal static partial class HighlightCommands
 {
-    private static readonly TextStyle Bold = StyleParser.Parse("bold");
-    private static readonly TextStyle Cyan = StyleParser.Parse("cyan");
-    private static readonly TextStyle HeadingStyle = StyleParser.Parse("bold cyan");
-    private static readonly TextStyle Warning = StyleParser.Parse("bold yellow");
+    private static readonly TextStyle s_bold = StyleParser.Parse("bold");
+    private static readonly TextStyle s_cyan = StyleParser.Parse("cyan");
+    private static readonly TextStyle s_headingStyle = StyleParser.Parse("bold cyan");
+    private static readonly TextStyle s_warning = StyleParser.Parse("bold yellow");
 
     private static void List(PgtailSession session, CommandOutput output)
     {
-        var config = session.Highlighting;
-        var status = config.Enabled ? "enabled" : "disabled";
-        output.Line(new StyledText("Semantic Highlighting: ").Append(status, config.Enabled ? Green : Red));
+        HighlightingConfig config = session.Highlighting;
+        string status = config.Enabled ? "enabled" : "disabled";
+        output.Line(new StyledText("Semantic Highlighting: ").Append(status, config.Enabled ? s_green : s_red));
         output.Line();
-        foreach (var category in HighlighterCategories.Ordered)
+        foreach (string category in HighlighterCategories.Ordered)
         {
-            output.Line(HighlighterMetadata.Heading(category), Bold);
-            foreach (var (name, _, description) in HighlighterMetadata.All.Where(item => item.Category == category)
+            output.Line(HighlighterMetadata.Heading(category), s_bold);
+            foreach ((string name, string _, string description) in HighlighterMetadata.All.Where(item => item.Category == category)
                 .OrderBy(item => item.Name, StringComparer.Ordinal))
             {
                 output.Line(Row(config.IsHighlighterEnabled(name), name, description));
@@ -38,8 +38,8 @@ internal static partial class HighlightCommands
 
         if (config.CustomHighlighters.Count > 0)
         {
-            output.Line("Custom", Bold);
-            foreach (var custom in config.CustomHighlighters)
+            output.Line("Custom", s_bold);
+            foreach (CustomHighlighterDefinition custom in config.CustomHighlighters)
             {
                 output.Line(Row(custom.Enabled, custom.Name, $"Pattern: {custom.Pattern}"));
             }
@@ -49,26 +49,26 @@ internal static partial class HighlightCommands
     }
 
     private static StyledText Row(bool enabled, string name, string description) => new StyledText("  [")
-        .Append((enabled ? "on" : "off").PadRight(3), enabled ? Green : Red)
+        .Append((enabled ? "on" : "off").PadRight(3), enabled ? s_green : s_red)
         .Append("] ")
-        .Append(name.PadRight(20), Cyan)
-        .Append(" " + description, Dim);
+        .Append(name.PadRight(20), s_cyan)
+        .Append(" " + description, s_dim);
 
     private static void Preview(PgtailSession session, CommandOutput output)
     {
-        var config = session.Highlighting;
-        output.Line(new StyledText("Highlight Preview", HeadingStyle).Append(" (")
-            .Append(config.Enabled ? "enabled" : "disabled", config.Enabled ? Green : Red).Append(")"));
+        HighlightingConfig config = session.Highlighting;
+        output.Line(new StyledText("Highlight Preview", s_headingStyle).Append(" (")
+            .Append(config.Enabled ? "enabled" : "disabled", config.Enabled ? s_green : s_red).Append(")"));
         output.Line();
         if (!config.Enabled)
         {
-            output.Line("Highlighting is disabled. Run 'highlight on' to enable.", Dim);
+            output.Line("Highlighting is disabled. Run 'highlight on' to enable.", s_dim);
             output.Line();
         }
 
         var disabled = BuiltInHighlighters.Names.Where(name => !config.IsHighlighterEnabled(name)).ToHashSet(StringComparer.Ordinal);
-        var chain = session.Chain;
-        foreach (var category in HighlighterCategories.Ordered)
+        HighlighterChain chain = session.Chain;
+        foreach (string category in HighlighterCategories.Ordered)
         {
             var samples = HighlighterMetadata.PreviewSamples
                 .Where(sample => HighlighterMetadata.All.First(item => item.Name == sample.Highlighters[0]).Category == category)
@@ -78,14 +78,14 @@ internal static partial class HighlightCommands
                 continue;
             }
 
-            output.Line(HighlighterMetadata.Heading(category), Bold);
-            foreach (var (highlighters, line, description) in samples)
+            output.Line(HighlighterMetadata.Heading(category), s_bold);
+            foreach ((string[] highlighters, string line, string description) in samples)
             {
-                output.Line(new StyledText("  ").Append(description, Dim));
+                output.Line(new StyledText("  ").Append(description, s_dim));
                 var off = highlighters.Where(disabled.Contains).ToList();
                 if (off.Count > 0)
                 {
-                    output.Line(new StyledText("  ").Append("Disabled: ", Yellow).Append(string.Join(", ", off), Dim));
+                    output.Line(new StyledText("  ").Append("Disabled: ", s_yellow).Append(string.Join(", ", off), s_dim));
                 }
 
                 output.Line(new StyledText("  ").Append(chain.Apply(line, session.Theme)));
@@ -95,24 +95,24 @@ internal static partial class HighlightCommands
 
         if (disabled.Count > 0)
         {
-            output.Line("Disabled Highlighters", Warning);
-            foreach (var name in disabled.Order(StringComparer.Ordinal))
+            output.Line("Disabled Highlighters", s_warning);
+            foreach (string? name in disabled.Order(StringComparer.Ordinal))
             {
-                output.Line($"  - {name}", Dim);
+                output.Line($"  - {name}", s_dim);
             }
 
             output.Line();
-            output.Line("Use 'highlight enable <name>' to enable disabled highlighters.", Dim);
+            output.Line("Use 'highlight enable <name>' to enable disabled highlighters.", s_dim);
         }
 
         if (config.CustomHighlighters.Count > 0)
         {
             output.Line();
-            output.Line("Custom Highlighters", Bold);
-            foreach (var custom in config.CustomHighlighters)
+            output.Line("Custom Highlighters", s_bold);
+            foreach (CustomHighlighterDefinition custom in config.CustomHighlighters)
             {
-                output.Line(new StyledText("  ").Append(custom.Name, custom.Enabled ? Green : Red).Append($": {custom.Pattern} ")
-                    .Append($"(style: {custom.Style})", Dim));
+                output.Line(new StyledText("  ").Append(custom.Name, custom.Enabled ? s_green : s_red).Append($": {custom.Pattern} ")
+                    .Append($"(style: {custom.Style})", s_dim));
             }
         }
     }
@@ -120,7 +120,7 @@ internal static partial class HighlightCommands
     private static (bool Success, string Message) Export(PgtailSession session, IReadOnlyList<string> args, string currentDirectory)
     {
         string? file = null;
-        for (var i = 0; i < args.Count - 1; i++)
+        for (int i = 0; i < args.Count - 1; i++)
         {
             if (args[i] is "--file" or "-f")
             {
@@ -131,13 +131,13 @@ internal static partial class HighlightCommands
 
         var document = TomlDocument.Parse("# pgtail highlighting configuration\n# Export generated by: highlight export\n\n");
         session.Highlighting.SaveTo(document);
-        var text = document.ToString();
+        string text = document.ToString();
         if (file is null)
         {
             return (true, text);
         }
 
-        var path = PathDisplay.Resolve(file, session.Home, currentDirectory);
+        string path = PathDisplay.Resolve(file, session.Home, currentDirectory);
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -161,7 +161,7 @@ internal static partial class HighlightCommands
             return (false, "Usage: highlight import <path>");
         }
 
-        var path = PathDisplay.Resolve(args[0], session.Home, currentDirectory);
+        string path = PathDisplay.Resolve(args[0], session.Home, currentDirectory);
         if (Directory.Exists(path))
         {
             return (false, $"Not a file: {path}");
@@ -186,15 +186,15 @@ internal static partial class HighlightCommands
             return (false, $"Failed to read {path}: {exception.Message}");
         }
 
-        var (error, warnings) = Validate(document.Root);
+        (string? error, List<string>? warnings) = Validate(document.Root);
         if (error is not null)
         {
             return (false, $"Invalid configuration: {error}");
         }
 
-        foreach (var warning in warnings)
+        foreach (string warning in warnings)
         {
-            output.Line($"Warning: {warning}");
+            output.Line($"s_warning: {warning}");
         }
 
         Apply(session.Highlighting, document.Root);
@@ -205,7 +205,7 @@ internal static partial class HighlightCommands
     private static (string? Error, List<string> Warnings) Validate(TomlTable root)
     {
         var warnings = new List<string>();
-        if (!root.TryGetValue("highlighting", out var section))
+        if (!root.TryGetValue("highlighting", out object? section))
         {
             return ("Missing [highlighting] section", warnings);
         }
@@ -215,14 +215,14 @@ internal static partial class HighlightCommands
             return ("[highlighting] section must be a table", warnings);
         }
 
-        if (highlighting.TryGetValue("enabled_highlighters", out var switches))
+        if (highlighting.TryGetValue("enabled_highlighters", out object? switches))
         {
             if (switches is not TomlTable table)
             {
                 return ("[highlighting.enabled_highlighters] must be a table", warnings);
             }
 
-            foreach (var name in table.Keys.Where(name => !BuiltInHighlighters.Names.Contains(name)))
+            foreach (string? name in table.Keys.Where(name => !BuiltInHighlighters.Names.Contains(name)))
             {
                 warnings.Add(CloseMatches.Best(name, BuiltInHighlighters.Names) is { } suggestion
                     ? $"Unknown highlighter '{name}'. Did you mean '{suggestion}'?"
@@ -230,11 +230,11 @@ internal static partial class HighlightCommands
             }
         }
 
-        if (highlighting.TryGetValue("duration", out var durations) && durations is TomlTable thresholds)
+        if (highlighting.TryGetValue("duration", out object? durations) && durations is TomlTable thresholds)
         {
-            foreach (var key in new[] { "slow", "very_slow", "critical" })
+            foreach (string? key in new[] { "slow", "very_slow", "critical" })
             {
-                if (!thresholds.TryGetValue(key, out var value))
+                if (!thresholds.TryGetValue(key, out object? value))
                 {
                     continue;
                 }
@@ -251,7 +251,7 @@ internal static partial class HighlightCommands
             }
         }
 
-        if (!highlighting.TryGetValue("custom", out var custom))
+        if (!highlighting.TryGetValue("custom", out object? custom))
         {
             return (null, warnings);
         }
@@ -261,20 +261,20 @@ internal static partial class HighlightCommands
             return ("[highlighting.custom] must be an array", warnings);
         }
 
-        for (var i = 0; i < entries.Count; i++)
+        for (int i = 0; i < entries.Count; i++)
         {
             if (entries[i] is not TomlTable entry)
             {
                 return ($"Custom highlighter {i} must be a table", warnings);
             }
 
-            if (!entry.TryGetValue("name", out var nameValue))
+            if (!entry.TryGetValue("name", out object? nameValue))
             {
                 return ($"Custom highlighter {i} missing 'name'", warnings);
             }
 
-            var name = Convert.ToString(nameValue, CultureInfo.InvariantCulture) ?? "";
-            if (!entry.TryGetValue("pattern", out var patternValue))
+            string name = Convert.ToString(nameValue, CultureInfo.InvariantCulture) ?? "";
+            if (!entry.TryGetValue("pattern", out object? patternValue))
             {
                 return ($"Custom highlighter '{name}' missing 'pattern'", warnings);
             }
@@ -302,37 +302,37 @@ internal static partial class HighlightCommands
     private static void Apply(HighlightingConfig config, TomlTable root)
     {
         var highlighting = (TomlTable)root["highlighting"];
-        if (highlighting.TryGetValue("enabled", out var enabled) && enabled is bool on)
+        if (highlighting.TryGetValue("enabled", out object? enabled) && enabled is bool on)
         {
             config.Enabled = on;
         }
 
-        if (highlighting.TryGetValue("max_length", out var length) && length is long maxLength)
+        if (highlighting.TryGetValue("max_length", out object? length) && length is long maxLength)
         {
             config.MaxLength = maxLength;
         }
 
-        if (highlighting.TryGetValue("duration", out var durations) && durations is TomlTable thresholds)
+        if (highlighting.TryGetValue("duration", out object? durations) && durations is TomlTable thresholds)
         {
-            if (thresholds.TryGetValue("slow", out var slow))
+            if (thresholds.TryGetValue("slow", out object? slow))
             {
                 config.DurationSlow = (long)slow;
             }
 
-            if (thresholds.TryGetValue("very_slow", out var verySlow))
+            if (thresholds.TryGetValue("very_slow", out object? verySlow))
             {
                 config.DurationVerySlow = (long)verySlow;
             }
 
-            if (thresholds.TryGetValue("critical", out var critical))
+            if (thresholds.TryGetValue("critical", out object? critical))
             {
                 config.DurationCritical = (long)critical;
             }
         }
 
-        if (highlighting.TryGetValue("enabled_highlighters", out var switches) && switches is TomlTable table)
+        if (highlighting.TryGetValue("enabled_highlighters", out object? switches) && switches is TomlTable table)
         {
-            foreach (var (name, value) in table)
+            foreach ((string name, object value) in table)
             {
                 if (BuiltInHighlighters.Names.Contains(name) && value is bool state)
                 {

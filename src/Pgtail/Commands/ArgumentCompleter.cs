@@ -26,8 +26,8 @@ internal static class ArgumentCompleter
             return [];
         }
 
-        var arguments = context.Arguments;
-        var partial = context.Partial;
+        IReadOnlyList<string> arguments = context.Arguments;
+        string partial = context.Partial;
         if (spec.Subcommands.Count > 0)
         {
             if (arguments.Count == 0)
@@ -41,7 +41,8 @@ internal static class ArgumentCompleter
                 return Filter(items, partial);
             }
 
-            var chosen = spec.Subcommands.FirstOrDefault(sub => sub.Name.Equals(arguments[0], StringComparison.OrdinalIgnoreCase));
+            SubcommandSpec? chosen = spec.Subcommands.FirstOrDefault(
+                sub => sub.Name.Equals(arguments[0], StringComparison.OrdinalIgnoreCase));
             if (chosen is not null)
             {
                 return Complete(chosen.Arguments, context with { Arguments = [.. arguments.Skip(1)] }, style);
@@ -77,11 +78,11 @@ internal static class ArgumentCompleter
 
     private static List<CompletionItem> CompleteArguments(ArgumentSpec spec, CompletionContext context, CompletionStyle style)
     {
-        var partial = context.Partial;
+        string partial = context.Partial;
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         FlagSpec? pending = null;
-        var position = 0;
-        foreach (var word in context.Arguments)
+        int position = 0;
+        foreach (string word in context.Arguments)
         {
             if (pending is not null)
             {
@@ -109,14 +110,15 @@ internal static class ArgumentCompleter
             return Filter(Values(pending.Value!, context), partial);
         }
 
-        var equals = partial.IndexOf('=', StringComparison.Ordinal);
+        int equals = partial.IndexOf('=', StringComparison.Ordinal);
         if (partial.StartsWith('-') && equals > 0)
         {
-            var key = partial[..equals];
-            var attached = spec.Flags.FirstOrDefault(flag => flag.Attached && flag.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
+            string key = partial[..equals];
+            FlagSpec? attached = spec.Flags.FirstOrDefault(
+                flag => flag.Attached && flag.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
             if (attached is { Value: { } value })
             {
-                var prefixed = Values(value, context with { Partial = partial[(equals + 1)..] })
+                IEnumerable<CompletionItem> prefixed = Values(value, context with { Partial = partial[(equals + 1)..] })
                     .Select(item => item with { Text = key + "=" + item.Text, Display = item.Label });
                 return Filter(prefixed, partial);
             }
@@ -125,14 +127,14 @@ internal static class ArgumentCompleter
         }
 
         var results = new List<CompletionItem>();
-        var offerFlags = style == CompletionStyle.Inline
+        bool offerFlags = style == CompletionStyle.Inline
             ? partial.StartsWith("--", StringComparison.Ordinal)
             : partial.Length == 0 || partial.StartsWith('-');
         if (offerFlags)
         {
-            foreach (var flag in spec.Flags)
+            foreach (FlagSpec flag in spec.Flags)
             {
-                var shortFlag = !flag.Name.StartsWith("--", StringComparison.Ordinal);
+                bool shortFlag = !flag.Name.StartsWith("--", StringComparison.Ordinal);
                 if (shortFlag && (!partial.StartsWith('-') || partial.StartsWith("--", StringComparison.Ordinal)))
                 {
                     continue;
@@ -152,7 +154,7 @@ internal static class ArgumentCompleter
             }
         }
 
-        var slot = position < spec.Positionals.Count ? spec.Positionals[position] : spec.Rest;
+        ArgumentSpec? slot = position < spec.Positionals.Count ? spec.Positionals[position] : spec.Rest;
         if (slot is not null)
         {
             results.AddRange(Values(slot, context));
@@ -163,8 +165,8 @@ internal static class ArgumentCompleter
 
     private static FlagSpec? FindFlag(ArgumentSpec spec, string word)
     {
-        var equals = word.IndexOf('=', StringComparison.Ordinal);
-        var key = equals > 0 ? word[..equals] : word;
+        int equals = word.IndexOf('=', StringComparison.Ordinal);
+        string key = equals > 0 ? word[..equals] : word;
         return spec.Flags.FirstOrDefault(flag => flag.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
             && (equals > 0) == flag.Attached);
     }

@@ -110,11 +110,11 @@ public static class ThemeLoader
     private static (Theme? Theme, IReadOnlyList<string> Errors) FromDocument(string name, TomlDocument document)
     {
         var errors = new List<string>();
-        var description = document.Root.TryGetTable("meta", out var meta) && meta.TryGetValue("description", out var text)
+        string description = document.Root.TryGetTable("meta", out TomlTable? meta) && meta.TryGetValue("description", out object? text)
             ? Convert.ToString(text, CultureInfo.InvariantCulture) ?? ""
             : "";
-        var levels = ReadStyles(document.Root, "levels", errors, upperCase: true);
-        var ui = ReadStyles(document.Root, "ui", errors, upperCase: false);
+        Dictionary<string, ColorStyle> levels = ReadStyles(document.Root, "levels", errors, upperCase: true);
+        Dictionary<string, ColorStyle> ui = ReadStyles(document.Root, "ui", errors, upperCase: false);
         var theme = new Theme(name, description, levels, ui);
         errors.AddRange(theme.Validate());
         return (theme, errors);
@@ -123,12 +123,12 @@ public static class ThemeLoader
     private static Dictionary<string, ColorStyle> ReadStyles(TomlTable root, string section, List<string> errors, bool upperCase)
     {
         var styles = new Dictionary<string, ColorStyle>(StringComparer.Ordinal);
-        if (!root.TryGetTable(section, out var table))
+        if (!root.TryGetTable(section, out TomlTable? table))
         {
             return styles;
         }
 
-        foreach (var (name, value) in table)
+        foreach ((string name, object value) in table)
         {
             if (value is not TomlTable entry)
             {

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -15,7 +16,7 @@ public sealed class StackedParametersAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(DiagnosticDescriptors.ParametersAreNotStacked);
+        ImmutableArray.Create(DiagnosticDescriptors.s_parametersAreNotStacked);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -28,12 +29,12 @@ public sealed class StackedParametersAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeParameters(SyntaxNodeAnalysisContext context)
     {
-        var list = context.Node;
-        var parameters = list switch
+        SyntaxNode list = context.Node;
+        List<SyntaxNode> parameters = list switch
         {
-            FunctionPointerParameterListSyntax pointer => pointer.Parameters.Cast<SyntaxNode>().ToList(),
-            TypeParameterListSyntax types => types.Parameters.Cast<SyntaxNode>().ToList(),
-            _ => ((BaseParameterListSyntax)list).Parameters.Cast<SyntaxNode>().ToList(),
+            FunctionPointerParameterListSyntax pointer => [.. pointer.Parameters.Cast<SyntaxNode>()],
+            TypeParameterListSyntax types => [.. types.Parameters.Cast<SyntaxNode>()],
+            _ => [.. ((BaseParameterListSyntax)list).Parameters.Cast<SyntaxNode>()],
         };
 
         if (parameters.Count == 0)
@@ -41,28 +42,29 @@ public sealed class StackedParametersAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var tree = list.SyntaxTree;
-        var span = tree.GetLineSpan(list.Span);
+        SyntaxTree tree = list.SyntaxTree;
+        FileLinePositionSpan span = tree.GetLineSpan(list.Span);
         if (span.StartLinePosition.Line == span.EndLinePosition.Line)
         {
             return;
         }
 
-        foreach (var parameter in parameters)
+        foreach (SyntaxNode? parameter in parameters)
         {
-            var first = parameter.GetFirstToken();
-            var previous = first.GetPreviousToken();
-            var startsItsLine = tree.GetLineSpan(previous.Span).EndLinePosition.Line != tree.GetLineSpan(first.Span).StartLinePosition.Line;
+            SyntaxToken first = parameter.GetFirstToken();
+            SyntaxToken previous = first.GetPreviousToken();
+            bool startsItsLine = tree.GetLineSpan(previous.Span).EndLinePosition.Line
+                != tree.GetLineSpan(first.Span).StartLinePosition.Line;
             if (!startsItsLine)
             {
-                var name = parameter switch
+                string name = parameter switch
                 {
                     ParameterSyntax named => named.Identifier.ValueText,
                     TypeParameterSyntax generic => generic.Identifier.ValueText,
                     _ => parameter.ToString(),
                 };
 
-                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.ParametersAreNotStacked, parameter.GetLocation(), name));
+                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_parametersAreNotStacked, parameter.GetLocation(), name));
             }
         }
     }

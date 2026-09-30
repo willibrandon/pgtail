@@ -31,7 +31,7 @@ internal sealed class TailInput
     /// </summary>
     public static readonly TimeSpan BlinkInterval = TimeSpan.FromMilliseconds(530);
 
-    private static readonly Hex1bColor SuggestionColor = Hex1bColor.FromRgb(128, 128, 128);
+    private static readonly Hex1bColor s_suggestionColor = Hex1bColor.FromRgb(128, 128, 128);
     private readonly TailScreen _screen;
     private readonly TailHistory _history;
     private readonly TextLine _line = new();
@@ -138,23 +138,23 @@ internal sealed class TailInput
     // The prompt, the part of the line that fits, the suggestion, and the cursor, which blinks while the input has focus.
     private void Draw(Surface surface, bool focused, bool color)
     {
-        var text = _line.Text;
-        var start = Prompt.Length;
-        var room = Math.Max(1, surface.Width - start - 1);
-        var caretColumn = GraphemeHelper.IndexToDisplayColumn(text, _line.Caret);
+        string text = _line.Text;
+        int start = Prompt.Length;
+        int room = Math.Max(1, surface.Width - start - 1);
+        int caretColumn = GraphemeHelper.IndexToDisplayColumn(text, _line.Caret);
         _scroll = Math.Clamp(_scroll, Math.Max(0, caretColumn - room), caretColumn);
         _ = surface.WriteText(0, 0, Prompt);
-        var written = surface.WriteText(start, 0, text[GraphemeHelper.DisplayColumnToIndex(text, _scroll)..]);
+        int written = surface.WriteText(start, 0, text[GraphemeHelper.DisplayColumnToIndex(text, _scroll)..]);
         if (Suggestion is { } suggestion)
         {
-            _ = surface.WriteText(start + written, 0, suggestion, color ? SuggestionColor : null, null);
+            _ = surface.WriteText(start + written, 0, suggestion, color ? s_suggestionColor : null, null);
         }
 
-        var x = start + caretColumn - _scroll;
+        int x = start + caretColumn - _scroll;
         if ((!focused || BlinkPhase % 2 == 0) && x < surface.Width)
         {
             // Under the cursor, a suggested character is drawn like typed text, so the block looks the same everywhere.
-            var cell = surface[x, 0];
+            SurfaceCell cell = surface[x, 0];
             if (cell == SurfaceCells.Empty || _line.Caret == text.Length)
             {
                 cell = SurfaceCells.Empty with { Character = cell == SurfaceCells.Empty ? " " : cell.Character };
@@ -250,7 +250,7 @@ internal sealed class TailInput
 
     private async Task SubmitAsync()
     {
-        var text = Text;
+        string text = Text;
         SetText("");
         _history.ResetNavigation();
         await _screen.RunCommandAsync(text);

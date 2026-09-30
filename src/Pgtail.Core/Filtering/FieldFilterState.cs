@@ -28,7 +28,7 @@ public sealed class FieldFilterState
     /// <exception cref="ArgumentException">The field is not filterable.</exception>
     public void Add(string field, string value)
     {
-        var canonical = FieldNames.Resolve(field);
+        string canonical = FieldNames.Resolve(field);
         if (!_filters.ContainsKey(canonical))
         {
             _order.Add(canonical);

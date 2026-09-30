@@ -16,11 +16,11 @@ internal static unsafe partial class StartMenuShortcut
 
     private const uint ClsctxInprocServer = 1;
     private const ushort VtLpwstr = 31;
-    private static readonly Guid ClsidShellLink = new("00021401-0000-0000-C000-000000000046");
-    private static readonly Guid IidShellLinkW = new("000214F9-0000-0000-C000-000000000046");
-    private static readonly Guid IidPropertyStore = new("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
-    private static readonly Guid IidPersistFile = new("0000010B-0000-0000-C000-000000000046");
-    private static readonly Guid AppUserModelIdFormat = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
+    private static readonly Guid s_clsidShellLink = new("00021401-0000-0000-C000-000000000046");
+    private static readonly Guid s_iidShellLinkW = new("000214F9-0000-0000-C000-000000000046");
+    private static readonly Guid s_iidPropertyStore = new("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+    private static readonly Guid s_iidPersistFile = new("0000010B-0000-0000-C000-000000000046");
+    private static readonly Guid s_appUserModelIdFormat = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
 
     /// <summary>
     /// Creates the shortcut unless it already exists.
@@ -30,13 +30,13 @@ internal static unsafe partial class StartMenuShortcut
     public static bool Ensure(Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(environment);
-        var appData = environment("APPDATA");
+        string? appData = environment("APPDATA");
         if (string.IsNullOrEmpty(appData) || Environment.ProcessPath is not { } executable)
         {
             return false;
         }
 
-        var path = Path.Combine(appData, "Microsoft", "Windows", "Start Menu", "Programs", "pgtail.lnk");
+        string path = Path.Combine(appData, "Microsoft", "Windows", "Start Menu", "Programs", "pgtail.lnk");
         if (File.Exists(path))
         {
             return true;
@@ -61,14 +61,14 @@ internal static unsafe partial class StartMenuShortcut
         nint persist = 0;
         try
         {
-            var clsid = ClsidShellLink;
-            var iid = IidShellLinkW;
+            Guid clsid = s_clsidShellLink;
+            Guid iid = s_iidShellLinkW;
             WinRt.Check(CoCreateInstance(&clsid, 0, ClsctxInprocServer, &iid, out link), "CoCreateInstance(ShellLink)");
             CallString(link, 20, executable, "IShellLinkW.SetPath");
             CallString(link, 7, "pgtail - PostgreSQL log tailer", "IShellLinkW.SetDescription");
-            store = WinRt.QueryInterface(link, IidPropertyStore);
-            var key = new PropertyKey { FormatId = AppUserModelIdFormat, PropertyId = 5 };
-            var id = Marshal.StringToCoTaskMemUni(AppUserModelId);
+            store = WinRt.QueryInterface(link, s_iidPropertyStore);
+            var key = new PropertyKey { FormatId = s_appUserModelIdFormat, PropertyId = 5 };
+            nint id = Marshal.StringToCoTaskMemUni(AppUserModelId);
             try
             {
                 var value = new PropVariant { Type = VtLpwstr, Pointer = id };
@@ -82,7 +82,7 @@ internal static unsafe partial class StartMenuShortcut
 
             var commit = (delegate* unmanaged[Stdcall]<nint, int>)WinRt.VTable(store)[7];
             WinRt.Check(commit(store), "IPropertyStore.Commit");
-            persist = WinRt.QueryInterface(link, IidPersistFile);
+            persist = WinRt.QueryInterface(link, s_iidPersistFile);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             fixed (char* file = path)
             {

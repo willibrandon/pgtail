@@ -21,7 +21,7 @@ public static class WindowsCommandLine
     {
         ArgumentNullException.ThrowIfNull(commandLine);
         var arguments = new List<string>();
-        var i = 0;
+        int i = 0;
         if (commandLine.Length == 0)
         {
             return arguments;
@@ -60,10 +60,10 @@ public static class WindowsCommandLine
             }
 
             var argument = new StringBuilder();
-            var quoted = false;
+            bool quoted = false;
             while (i < commandLine.Length && (quoted || commandLine[i] is not (' ' or '\t')))
             {
-                var backslashes = 0;
+                int backslashes = 0;
                 while (i < commandLine.Length && commandLine[i] == '\\')
                 {
                     backslashes++;

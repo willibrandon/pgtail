@@ -13,9 +13,9 @@ namespace Pgtail.Tail;
 /// </content>
 internal sealed partial class TailScreen
 {
-    private static readonly TextStyle PanelText = StyleParser.Parse("fg:#c0c0c0 bg:#262626 bold");
-    private static readonly TextStyle HeaderText = StyleParser.Parse("fg:#8a8a8a bg:#262626");
-    private static readonly TextStyle Separator = StyleParser.Parse("fg:#5f5f5f");
+    private static readonly TextStyle s_panelText = StyleParser.Parse("fg:#c0c0c0 bg:#262626 bold");
+    private static readonly TextStyle s_headerText = StyleParser.Parse("fg:#8a8a8a bg:#262626");
+    private static readonly TextStyle s_separator = StyleParser.Parse("fg:#5f5f5f");
     private CancellationTokenSource? _watch;
     private Dictionary<char, Action<InputBindingActionContext>> _logKeys = [];
 
@@ -85,9 +85,9 @@ internal sealed partial class TailScreen
     private async Task WatchAsync(Hex1bApp app, CancellationToken cancellationToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
-        var unavailable = false;
-        var denied = false;
-        var blink = Input.BlinkPhase;
+        bool unavailable = false;
+        bool denied = false;
+        long blink = Input.BlinkPhase;
         try
         {
             while (await timer.WaitForNextTickAsync(cancellationToken))
@@ -146,15 +146,15 @@ internal sealed partial class TailScreen
             Pump();
         }
 
-        var main = context.VStack(v =>
+        VStackWidget main = context.VStack(v =>
         [
-            Bar(v, TailStatus.FormatHeader(), HeaderText),
+            Bar(v, TailStatus.FormatHeader(), s_headerText),
             Rule(v),
             _view.Build(v, _logKeys, TypeCommand, bindings => BindScreenKeys(bindings, logFocused: true)).Fill(),
             Rule(v),
             Input.Build(v, bindings => BindScreenKeys(bindings, logFocused: false), Session.ColorEnabled).FixedHeight(1),
             Rule(v),
-            Bar(v, Status.FormatStatus(), PanelText),
+            Bar(v, Status.FormatStatus(), s_panelText),
         ]);
 
         // Pasted text goes to the input, wherever the focus is.
@@ -201,7 +201,7 @@ internal sealed partial class TailScreen
     private SurfaceWidget Bar<TParent>(WidgetContext<TParent> context, StyledText text, TextStyle panel)
         where TParent : Hex1bWidget
     {
-        var row = StyledTextFolder.Fold(new StyledText().Append(text), 0)[0];
+        List<StyledSpan> row = StyledTextFolder.Fold(new StyledText().Append(text), 0)[0];
         return context.Surface(s =>
         [
             s.Layer(surface =>
@@ -216,7 +216,7 @@ internal sealed partial class TailScreen
     private SurfaceWidget Rule<TParent>(WidgetContext<TParent> context)
         where TParent : Hex1bWidget => context.Surface(s =>
         [
-            s.Layer(surface => StyledBlock.DrawRow(surface, 0, 0, [new StyledSpan(new string('─', surface.Width), Separator)],
+            s.Layer(surface => StyledBlock.DrawRow(surface, 0, 0, [new StyledSpan(new string('─', surface.Width), s_separator)],
                 Session.ColorEnabled)),
         ]).Height(Hex1b.Layout.SizeHint.Fixed(1));
 }

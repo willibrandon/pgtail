@@ -91,12 +91,12 @@ internal sealed partial class TomlParser
         while (true)
         {
             SkipWhitespace();
-            var keyStart = _position;
-            var key = ParseKey();
+            int keyStart = _position;
+            List<string> key = ParseKey();
             SkipWhitespace();
             Expect('=', "Expected '=' after the key");
             SkipWhitespace();
-            var value = ParseValue();
+            object value = ParseValue();
             Insert(table, key, value, keyStart);
             SkipWhitespace();
             if (AtEnd || Current is '\n' or '\r')
@@ -123,7 +123,7 @@ internal sealed partial class TomlParser
     private static void FreezeInline(TomlTable table)
     {
         table.Kind = TomlTableKind.Inline;
-        foreach (var (_, value) in table)
+        foreach ((string _, object value) in table)
         {
             if (value is TomlTable nested)
             {
@@ -134,7 +134,7 @@ internal sealed partial class TomlParser
 
     private object ParseScalar()
     {
-        var start = _position;
+        int start = _position;
         while (!AtEnd && IsScalarCharacter(Current))
         {
             _position++;
@@ -151,7 +151,7 @@ internal sealed partial class TomlParser
             }
         }
 
-        var token = _text[start.._position];
+        string token = _text[start.._position];
         if (token.Length == 0)
         {
             throw Error($"Unexpected '{Current}' where a value was expected");
@@ -165,7 +165,7 @@ internal sealed partial class TomlParser
         if (DecimalInteger().IsMatch(token))
         {
             return long.TryParse(token.Replace("_", "", StringComparison.Ordinal), NumberStyles.AllowLeadingSign,
-                CultureInfo.InvariantCulture, out var value) ? value : throw Error($"Integer '{token}' is out of range");
+                CultureInfo.InvariantCulture, out long value) ? value : throw Error($"Integer '{token}' is out of range");
         }
 
         if (token.Length > 2 && token[0] == '0' && token[1] is 'x' or 'o' or 'b')
@@ -180,7 +180,7 @@ internal sealed partial class TomlParser
 
         if (SpecialFloat().Match(token) is { Success: true } special)
         {
-            var negative = token.StartsWith('-');
+            bool negative = token.StartsWith('-');
             return special.Groups[1].Value == "inf"
                 ? negative ? double.NegativeInfinity : double.PositiveInfinity
                 : double.NaN;
@@ -191,7 +191,7 @@ internal sealed partial class TomlParser
 
     private long? ReadPrefixedInteger(string token)
     {
-        var (pattern, radix) = token[1] switch
+        (Regex? pattern, int radix) = token[1] switch
         {
             'x' => (HexInteger(), 16),
             'o' => (OctalInteger(), 8),
@@ -204,14 +204,14 @@ internal sealed partial class TomlParser
         }
 
         ulong value = 0;
-        foreach (var c in token[2..])
+        foreach (char c in token[2..])
         {
             if (c == '_')
             {
                 continue;
             }
 
-            var digit = (ulong)Convert.ToInt32(c.ToString(), 16);
+            ulong digit = (ulong)Convert.ToInt32(c.ToString(), 16);
             if (value > (ulong.MaxValue - digit) / (ulong)radix)
             {
                 throw Error($"Integer '{token}' is out of range");
@@ -225,11 +225,11 @@ internal sealed partial class TomlParser
 
     private static object? ReadDateTime(string token)
     {
-        var match = DateTimePattern().Match(token);
+        Match match = DateTimePattern().Match(token);
         if (match.Success)
         {
-            var date = ReadDate(match.Groups[1].Value, match.Groups[2].Value, match.Groups[3].Value);
-            var time = ReadTime(match.Groups[4].Value, match.Groups[5].Value, match.Groups[6].Value, match.Groups[7].Value);
+            DateOnly? date = ReadDate(match.Groups[1].Value, match.Groups[2].Value, match.Groups[3].Value);
+            TimeOnly? time = ReadTime(match.Groups[4].Value, match.Groups[5].Value, match.Groups[6].Value, match.Groups[7].Value);
             if (date is null || time is null)
             {
                 return null;
@@ -241,14 +241,14 @@ internal sealed partial class TomlParser
                 return local;
             }
 
-            var zone = match.Groups[8].Value;
+            string zone = match.Groups[8].Value;
             if (zone is "Z" or "z")
             {
                 return new DateTimeOffset(local, TimeSpan.Zero);
             }
 
-            var hours = int.Parse(zone.AsSpan(1, 2), CultureInfo.InvariantCulture);
-            var minutes = int.Parse(zone.AsSpan(4, 2), CultureInfo.InvariantCulture);
+            int hours = int.Parse(zone.AsSpan(1, 2), CultureInfo.InvariantCulture);
+            int minutes = int.Parse(zone.AsSpan(4, 2), CultureInfo.InvariantCulture);
             if (hours > 23 || minutes > 59)
             {
                 return null;
@@ -272,23 +272,23 @@ internal sealed partial class TomlParser
 
     private static DateOnly? ReadDate(string year, string month, string day)
     {
-        var y = int.Parse(year, CultureInfo.InvariantCulture);
-        var m = int.Parse(month, CultureInfo.InvariantCulture);
-        var d = int.Parse(day, CultureInfo.InvariantCulture);
+        int y = int.Parse(year, CultureInfo.InvariantCulture);
+        int m = int.Parse(month, CultureInfo.InvariantCulture);
+        int d = int.Parse(day, CultureInfo.InvariantCulture);
         return y >= 1 && m is >= 1 and <= 12 && d >= 1 && d <= DateTime.DaysInMonth(y, m) ? new DateOnly(y, m, d) : null;
     }
 
     private static TimeOnly? ReadTime(string hour, string minute, string second, string fraction)
     {
-        var h = int.Parse(hour, CultureInfo.InvariantCulture);
-        var m = int.Parse(minute, CultureInfo.InvariantCulture);
-        var s = int.Parse(second, CultureInfo.InvariantCulture);
+        int h = int.Parse(hour, CultureInfo.InvariantCulture);
+        int m = int.Parse(minute, CultureInfo.InvariantCulture);
+        int s = int.Parse(second, CultureInfo.InvariantCulture);
         if (h > 23 || m > 59 || s > 59)
         {
             return null;
         }
 
-        var digits = fraction.Length == 0 ? "0" : fraction.Length > 7 ? fraction[..7] : fraction.PadRight(7, '0');
+        string digits = fraction.Length == 0 ? "0" : fraction.Length > 7 ? fraction[..7] : fraction.PadRight(7, '0');
         return new TimeOnly(h, m, s).Add(TimeSpan.FromTicks(long.Parse(digits, CultureInfo.InvariantCulture)));
     }
 

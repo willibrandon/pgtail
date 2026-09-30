@@ -29,12 +29,12 @@ public static partial class TimeParser
             throw new FormatException("Time value cannot be empty");
         }
 
-        var utcNow = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
-        var match = Relative().Match(value);
+        DateTime utcNow = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
+        Match match = Relative().Match(value);
         if (match.Success)
         {
-            var unit = char.ToLowerInvariant(match.Groups[2].Value[0]);
-            var ticks = unit switch
+            char unit = char.ToLowerInvariant(match.Groups[2].Value[0]);
+            long ticks = unit switch
             {
                 's' => TimeSpan.TicksPerSecond,
                 'm' => TimeSpan.TicksPerMinute,
@@ -44,7 +44,7 @@ public static partial class TimeParser
 
             try
             {
-                var amount = long.Parse(match.Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
+                long amount = long.Parse(match.Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
                 return DateTime.SpecifyKind(utcNow.AddTicks(checked(-amount * ticks)), DateTimeKind.Utc);
             }
             catch (Exception exception) when (exception is OverflowException or ArgumentOutOfRangeException)
@@ -56,20 +56,20 @@ public static partial class TimeParser
         match = TimeOnly().Match(value);
         if (match.Success)
         {
-            var hour = int.Parse(match.Groups[1].ValueSpan, CultureInfo.InvariantCulture);
-            var minute = int.Parse(match.Groups[2].ValueSpan, CultureInfo.InvariantCulture);
-            var second = match.Groups[3].Success ? int.Parse(match.Groups[3].ValueSpan, CultureInfo.InvariantCulture) : 0;
+            int hour = int.Parse(match.Groups[1].ValueSpan, CultureInfo.InvariantCulture);
+            int minute = int.Parse(match.Groups[2].ValueSpan, CultureInfo.InvariantCulture);
+            int second = match.Groups[3].Success ? int.Parse(match.Groups[3].ValueSpan, CultureInfo.InvariantCulture) : 0;
             if (hour > 23 || minute > 59 || second > 59)
             {
                 throw new FormatException(
                     $"Invalid time '{value}'. Hours must be 0-23, minutes and seconds must be 0-59.");
             }
 
-            var today = LogTimestamps.ToLocal(utcNow).Date;
+            DateTime today = LogTimestamps.ToLocal(utcNow).Date;
             return LogTimestamps.ToUtc(today + new TimeSpan(hour, minute, second));
         }
 
-        if (IsoDateTime.TryParse(value, out var absolute))
+        if (IsoDateTime.TryParse(value, out DateTime absolute))
         {
             return LogTimestamps.ToUtc(absolute);
         }
@@ -100,13 +100,13 @@ public static partial class TimeParser
     /// <returns>The description, or an empty string when neither bound is set.</returns>
     public static string FormatRange(DateTime? since, DateTime? until)
     {
-        var today = DateTime.Now.Date;
+        DateTime today = DateTime.Now.Date;
         string Format(DateTime value, bool includeToday)
         {
-            var local = LogTimestamps.ToLocal(value);
+            DateTime local = LogTimestamps.ToLocal(value);
             if (local.Date == today)
             {
-                var time = local.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+                string time = local.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
                 return includeToday ? time + " today" : time;
             }
 

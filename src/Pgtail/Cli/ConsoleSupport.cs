@@ -30,8 +30,8 @@ internal static partial class ConsoleSupport
             return;
         }
 
-        var handle = GetStdHandle(StdOutputHandle);
-        if (GetConsoleMode(handle, out var mode))
+        nint handle = GetStdHandle(StdOutputHandle);
+        if (GetConsoleMode(handle, out uint mode))
         {
             _ = SetConsoleMode(handle, mode | EnableVirtualTerminalProcessing);
         }
@@ -53,15 +53,15 @@ internal static partial class ConsoleSupport
             return false;
         }
 
-        var processes = new uint[16];
+        uint[] processes = new uint[16];
         if (GetConsoleProcessList(processes, (uint)processes.Length) != 1)
         {
             return false;
         }
 
-        var window = GetConsoleWindow();
-        var name = new char[32];
-        var length = window == 0 ? 0 : GetClassNameW(window, name, name.Length);
+        nint window = GetConsoleWindow();
+        char[] name = new char[32];
+        int length = window == 0 ? 0 : GetClassNameW(window, name, name.Length);
         return !name.AsSpan(0, Math.Max(0, length)).SequenceEqual("PseudoConsoleWindow");
     }
 
@@ -73,17 +73,17 @@ internal static partial class ConsoleSupport
     {
         if (OperatingSystem.IsWindows())
         {
-            var console = CreateFileW("CONIN$", GenericRead | GenericWrite, FileShareRead | FileShareWrite, 0, OpenExisting, 0, 0);
+            nint console = CreateFileW("CONIN$", GenericRead | GenericWrite, FileShareRead | FileShareWrite, 0, OpenExisting, 0, 0);
             return console != -1 && SetStdHandle(StdInputHandle, console);
         }
 
-        var terminal = open("/dev/tty", ORdwr);
+        int terminal = open("/dev/tty", ORdwr);
         if (terminal < 0)
         {
             return false;
         }
 
-        var result = dup2(terminal, 0);
+        int result = dup2(terminal, 0);
         _ = close(terminal);
         return result >= 0;
     }

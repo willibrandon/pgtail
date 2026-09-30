@@ -26,10 +26,10 @@ internal static class CliParser
     public static CliArguments Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
-        var index = 0;
+        int index = 0;
         while (index < args.Count)
         {
-            var argument = args[index];
+            string argument = args[index];
             switch (argument)
             {
                 case "--version" or "-V":
@@ -39,7 +39,7 @@ internal static class CliParser
                 case "--help" or "-h":
                     return new CliArguments { Command = CliCommand.Help };
                 case "--show-completion" or "--install-completion":
-                    var shell = index + 1 < args.Count && !args[index + 1].StartsWith('-') ? args[index + 1] : null;
+                    string? shell = index + 1 < args.Count && !args[index + 1].StartsWith('-') ? args[index + 1] : null;
                     return new CliArguments
                     {
                         Command = argument == "--show-completion" ? CliCommand.ShowCompletion : CliCommand.InstallCompletion,
@@ -92,8 +92,8 @@ internal static class CliParser
 
     private static CliArguments ParseList(List<string> args)
     {
-        var verbose = false;
-        foreach (var argument in args)
+        bool verbose = false;
+        foreach (string argument in args)
         {
             verbose = argument is "--verbose" or "-v" ? true : throw Unexpected(argument, "list-instances");
         }
@@ -104,12 +104,12 @@ internal static class CliParser
     private static CliArguments ParseTail(List<string> args)
     {
         var files = new List<string>();
-        var (stdin, stream) = (false, false);
+        (bool stdin, bool stream) = (false, false);
         string? since = null;
         string? instance = null;
-        for (var i = 0; i < args.Count; i++)
+        for (int i = 0; i < args.Count; i++)
         {
-            var argument = args[i];
+            string argument = args[i];
             switch (argument)
             {
                 case "--file" or "-f":
@@ -161,8 +161,8 @@ internal static class CliParser
 
     private static CliArguments ParseConfig(List<string> args)
     {
-        var (path, edit, reset) = (false, false, false);
-        foreach (var argument in args)
+        (bool path, bool edit, bool reset) = (false, false, false);
+        foreach (string argument in args)
         {
             switch (argument)
             {

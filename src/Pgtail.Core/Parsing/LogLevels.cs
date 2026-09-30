@@ -7,7 +7,7 @@ namespace Pgtail.Parsing;
 /// </summary>
 public static class LogLevels
 {
-    private static readonly FrozenDictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, string> s_aliases = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["ERR"] = "ERROR",
         ["WARN"] = "WARNING",
@@ -29,7 +29,7 @@ public static class LogLevels
     }
     .ToFrozenDictionary(StringComparer.Ordinal);
 
-    private static readonly FrozenDictionary<string, LogLevel> ParserMap = new Dictionary<string, LogLevel>(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, LogLevel> s_parserMap = new Dictionary<string, LogLevel>(StringComparer.Ordinal)
     {
         ["PANIC"] = LogLevel.Panic,
         ["FATAL"] = LogLevel.Fatal,
@@ -92,12 +92,12 @@ public static class LogLevels
     public static LogLevel Parse(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        if (TryParse(name, out var level))
+        if (TryParse(name, out LogLevel level))
         {
             return level;
         }
 
-        var abbreviations = string.Join(", ", Aliases.Keys.Order(StringComparer.Ordinal));
+        string abbreviations = string.Join(", ", s_aliases.Keys.Order(StringComparer.Ordinal));
         throw new FormatException(
             $"Unknown log level '{name}'. Valid levels: {string.Join(", ", Names)}. Abbreviations: {abbreviations}");
     }
@@ -111,13 +111,13 @@ public static class LogLevels
     public static bool TryParse(string name, out LogLevel level)
     {
         ArgumentNullException.ThrowIfNull(name);
-        var upper = name.ToUpperInvariant();
-        if (Aliases.TryGetValue(upper, out var canonical))
+        string upper = name.ToUpperInvariant();
+        if (s_aliases.TryGetValue(upper, out string? canonical))
         {
             upper = canonical;
         }
 
-        foreach (var candidate in All)
+        foreach (LogLevel candidate in All)
         {
             if (candidate.ToName() == upper)
             {
@@ -139,7 +139,7 @@ public static class LogLevels
     /// <param name="severity">The severity as written, in any case.</param>
     /// <returns>The level.</returns>
     public static LogLevel FromSeverity(string? severity) =>
-        severity is not null && ParserMap.TryGetValue(severity.ToUpperInvariant(), out var level) ? level : LogLevel.Log;
+        severity is not null && s_parserMap.TryGetValue(severity.ToUpperInvariant(), out LogLevel level) ? level : LogLevel.Log;
 
     /// <summary>
     /// Every level at least as severe as a threshold.
@@ -182,12 +182,12 @@ public static class LogLevels
         }
 
         var levels = new HashSet<LogLevel>();
-        foreach (var argument in arguments)
+        foreach (string argument in arguments)
         {
-            var upper = argument.ToUpperInvariant();
+            string upper = argument.ToUpperInvariant();
             if (upper.EndsWith('+'))
             {
-                if (TryParse(upper[..^1], out var level))
+                if (TryParse(upper[..^1], out LogLevel level))
                 {
                     levels.UnionWith(AtOrAbove(level));
                 }
@@ -198,7 +198,7 @@ public static class LogLevels
             }
             else if (upper.EndsWith('-'))
             {
-                if (TryParse(upper[..^1], out var level))
+                if (TryParse(upper[..^1], out LogLevel level))
                 {
                     levels.UnionWith(AtOrBelow(level));
                 }
@@ -207,7 +207,7 @@ public static class LogLevels
                     invalid.Add(argument);
                 }
             }
-            else if (TryParse(argument, out var level))
+            else if (TryParse(argument, out LogLevel level))
             {
                 levels.Add(level);
             }

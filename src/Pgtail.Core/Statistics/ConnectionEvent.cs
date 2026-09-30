@@ -42,9 +42,9 @@ public sealed record ConnectionEvent(
             return null;
         }
 
-        var port = entry.RemotePort;
+        int? port = entry.RemotePort;
         if (port is null && !string.IsNullOrEmpty(message.Port)
-            && int.TryParse(message.Port, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            && int.TryParse(message.Port, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed))
         {
             port = parsed;
         }
@@ -75,11 +75,11 @@ public sealed record ConnectionEvent(
     public static double? ParseDuration(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var parts = text.Split(':');
+        string[] parts = text.Split(':');
         if (parts.Length != 3
-            || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
-            || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes)
-            || !double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
+            || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int hours)
+            || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int minutes)
+            || !double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds))
         {
             return null;
         }

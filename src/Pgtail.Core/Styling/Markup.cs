@@ -31,9 +31,9 @@ public static class Markup
             text.Clear();
         }
 
-        for (var i = 0; i < markup.Length; i++)
+        for (int i = 0; i < markup.Length; i++)
         {
-            var c = markup[i];
+            char c = markup[i];
             if (c == '\\' && i + 1 < markup.Length && markup[i + 1] == '[')
             {
                 text.Append('[');
@@ -41,7 +41,7 @@ public static class Markup
                 continue;
             }
 
-            var close = c == '[' ? markup.IndexOf(']', i + 1) : -1;
+            int close = c == '[' ? markup.IndexOf(']', i + 1) : -1;
             if (close < 0 || close == i + 1 || !IsTagStart(markup[i + 1]) || markup.AsSpan(i + 1, close - i - 1).Contains('['))
             {
                 text.Append(c);
@@ -49,16 +49,16 @@ public static class Markup
             }
 
             Flush();
-            var tag = markup[(i + 1)..close];
+            string tag = markup[(i + 1)..close];
             if (tag.StartsWith('/'))
             {
-                var name = tag[1..].Trim();
+                string name = tag[1..].Trim();
                 if (stack.Count == 0)
                 {
                     throw new FormatException($"Closing tag '[{tag}]' has nothing to close");
                 }
 
-                var index = name.Length == 0 ? stack.Count - 1 : stack.FindLastIndex(entry => entry.Tag == name);
+                int index = name.Length == 0 ? stack.Count - 1 : stack.FindLastIndex(entry => entry.Tag == name);
                 if (index < 0)
                 {
                     throw new FormatException($"Closing tag '[{tag}]' does not match any open tag");

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Pgtail.Filtering;
 using Pgtail.Parsing;
 using Pgtail.Sessions;
 using Pgtail.Styling;
@@ -19,10 +20,10 @@ internal static class ReplToolbar
     public static StyledText Build(PgtailSession session, bool shellMode)
     {
         ArgumentNullException.ThrowIfNull(session);
-        var theme = session.Theme;
+        Theme theme = session.Theme;
         var text = new StyledText();
-        var normal = theme.Style("toolbar");
-        var dim = theme.Style("toolbar.dim");
+        TextStyle normal = theme.Style("toolbar");
+        TextStyle dim = theme.Style("toolbar.dim");
         if (shellMode)
         {
             return text.Append(" SHELL ", theme.Style("toolbar.shell")).Append("• Press Escape to exit ", dim);
@@ -41,13 +42,13 @@ internal static class ReplToolbar
                 break;
         }
 
-        var filters = FormatFilters(session);
+        string filters = FormatFilters(session);
         if (filters.Length > 0)
         {
             text.Append("• ", dim).Append(filters, theme.Style("toolbar.filter")).Append(" ", normal);
         }
 
-        var name = theme.Name.Length > 15 ? theme.Name[..14] + "…" : theme.Name;
+        string name = theme.Name.Length > 15 ? theme.Name[..14] + "…" : theme.Name;
         return text.Append("• ", dim).Append($"Theme: {name} ", normal);
     }
 
@@ -65,12 +66,12 @@ internal static class ReplToolbar
             parts.Add("levels:" + string.Join(',', levels.Select(level => level.ToName()).Order(StringComparer.Ordinal)));
         }
 
-        var regex = session.Regex;
+        RegexFilterState regex = session.Regex;
         if (regex.HasFilters)
         {
-            var first = regex.Includes.Concat(regex.Excludes).Concat(regex.Ands).First();
-            var extra = regex.Includes.Count + regex.Excludes.Count + regex.Ands.Count - 1;
-            var part = $"filter:/{first.Pattern}/{(first.CaseSensitive ? "" : "i")}";
+            RegexFilter first = regex.Includes.Concat(regex.Excludes).Concat(regex.Ands).First();
+            int extra = regex.Includes.Count + regex.Excludes.Count + regex.Ands.Count - 1;
+            string part = $"filter:/{first.Pattern}/{(first.CaseSensitive ? "" : "i")}";
             parts.Add(extra > 0 ? $"{part} +{extra} more" : part);
         }
 

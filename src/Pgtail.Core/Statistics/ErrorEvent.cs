@@ -29,7 +29,7 @@ public sealed record ErrorEvent(
     public static ErrorEvent FromEntry(LogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        var message = entry.Message.Length > 200 ? entry.Message[..200] : entry.Message;
+        string message = entry.Message.Length > 200 ? entry.Message[..200] : entry.Message;
         return new ErrorEvent(entry.Timestamp ?? LocalNow(), entry.Level, entry.SqlState, message, entry.Pid, entry.DatabaseName,
             entry.UserName);
     }

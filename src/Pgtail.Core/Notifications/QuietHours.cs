@@ -31,7 +31,7 @@ public sealed record QuietHours(TimeOnly Start, TimeOnly End)
     public static QuietHours Parse(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var parts = text.Split('-');
+        string[] parts = text.Split('-');
         if (parts.Length != 2)
         {
             throw new FormatException(FormatHint);
@@ -49,10 +49,10 @@ public sealed record QuietHours(TimeOnly Start, TimeOnly End)
 
     private static TimeOnly ParseTime(string text)
     {
-        var parts = text.Split(':');
+        string[] parts = text.Split(':');
         if (parts.Length != 2
-            || !int.TryParse(parts[0], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var hour)
-            || !int.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var minute))
+            || !int.TryParse(parts[0], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int hour)
+            || !int.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int minute))
         {
             throw new FormatException(FormatHint);
         }

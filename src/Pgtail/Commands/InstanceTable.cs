@@ -32,7 +32,7 @@ internal static class InstanceTable
         }
 
         var lines = new List<string> { "  #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY" };
-        foreach (var instance in instances)
+        foreach (PostgresInstance instance in instances)
         {
             lines.Add($"  {instance.Id}  {instance.Version,-8} {instance.PortText,-6} {instance.StatusText,-8} "
                 + $"{instance.LogStatus,-4} {instance.Source.ToName(),-7} {PathDisplay.Shorten(instance.DataDirectory, home)}");
@@ -52,12 +52,12 @@ internal static class InstanceTable
     {
         ArgumentNullException.ThrowIfNull(instances);
         ArgumentNullException.ThrowIfNull(argument);
-        if (int.TryParse(argument, NumberStyles.None, CultureInfo.InvariantCulture, out var id))
+        if (int.TryParse(argument, NumberStyles.None, CultureInfo.InvariantCulture, out int id))
         {
             return instances.FirstOrDefault(instance => instance.Id == id);
         }
 
-        var path = Path.GetFullPath(argument, currentDirectory).TrimEnd(Path.DirectorySeparatorChar);
+        string path = Path.GetFullPath(argument, currentDirectory).TrimEnd(Path.DirectorySeparatorChar);
         return instances.FirstOrDefault(instance =>
             Path.GetFullPath(instance.DataDirectory).TrimEnd(Path.DirectorySeparatorChar) == path);
     }

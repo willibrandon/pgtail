@@ -72,7 +72,7 @@ internal sealed class PromptState(ReplHistory history)
     public void SetText(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var document = Editor.Document;
+        IHex1bDocument document = Editor.Document;
         Editor.Cursor.ClearSelection();
         _ = document.Apply(new ReplaceOperation(new DocumentRange(DocumentOffset.Zero, new DocumentOffset(document.Length)), text));
         Editor.History.Clear();
@@ -88,12 +88,12 @@ internal sealed class PromptState(ReplHistory history)
     /// <param name="replacement">The new text.</param>
     public void Replace(int start, int end, string replacement)
     {
-        var document = Editor.Document;
+        IHex1bDocument document = Editor.Document;
         var range = new DocumentRange(new DocumentOffset(start), new DocumentOffset(end));
         var operation = new ReplaceOperation(range, replacement);
         var inverse = new ReplaceOperation(
             new DocumentRange(range.Start, new DocumentOffset(start + replacement.Length)), document.GetText(range));
-        var before = document.Version;
+        long before = document.Version;
         Editor.History.BeginGroup(Editor.Cursors, before);
         _ = document.Apply(operation, "prompt");
         Editor.History.RecordEdit(operation, inverse, Editor.Cursors, before, document.Version);
@@ -137,7 +137,7 @@ internal sealed class PromptState(ReplHistory history)
             return;
         }
 
-        var count = Candidates.Count;
+        int count = Candidates.Count;
         Selected = Selected < 0 ? (delta > 0 ? 0 : count - 1) : (Selected + delta + count) % count;
         if (Selected < MenuTop)
         {
@@ -174,8 +174,8 @@ internal sealed class PromptState(ReplHistory history)
 
     private int WordEnd()
     {
-        var text = Text;
-        var end = CompletionStart;
+        string text = Text;
+        int end = CompletionStart;
         while (end < text.Length && !char.IsWhiteSpace(text[end]))
         {
             end++;

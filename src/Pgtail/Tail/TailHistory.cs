@@ -40,7 +40,7 @@ internal sealed class TailHistory(string? path)
 
         try
         {
-            var lines = File.ReadAllLines(path, Encoding.UTF8);
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
             _entries.Clear();
             _entries.AddRange(lines.Where(line => line.Length > 0 && Encoding.UTF8.GetByteCount(line) <= MaxLineBytes)
                 .TakeLast(MaxEntries));
@@ -135,7 +135,7 @@ internal sealed class TailHistory(string? path)
             return _entries[_cursor];
         }
 
-        var saved = _saved;
+        string? saved = _saved;
         ResetNavigation();
         return saved ?? "";
     }
@@ -157,7 +157,7 @@ internal sealed class TailHistory(string? path)
     public string? SearchPrefix(string prefix)
     {
         ArgumentNullException.ThrowIfNull(prefix);
-        for (var i = _entries.Count - 1; i >= 0; i--)
+        for (int i = _entries.Count - 1; i >= 0; i--)
         {
             if (_entries[i].StartsWith(prefix, StringComparison.Ordinal) && _entries[i] != prefix)
             {

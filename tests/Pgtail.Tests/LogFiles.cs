@@ -31,12 +31,12 @@ internal static class LogFiles
     /// <returns>The file.</returns>
     public static string ErrorAtBoundary(string path, int read)
     {
-        var time = DateTime.UtcNow.AddMinutes(-5);
-        var error = Text(time, 2001, "ERROR", "relation \"nope\" does not exist");
-        var filler = Text(time, 2000, "LOG", "statement: select 1");
-        var room = read - (error.Length + 1);
-        var lines = room / (filler.Length + 1);
-        var last = Text(time, 2000, "LOG", "statement: select 1" + new string('-', room - (lines * (filler.Length + 1))));
+        DateTime time = DateTime.UtcNow.AddMinutes(-5);
+        string error = Text(time, 2001, "ERROR", "relation \"nope\" does not exist");
+        string filler = Text(time, 2000, "LOG", "statement: select 1");
+        int room = read - (error.Length + 1);
+        int lines = room / (filler.Length + 1);
+        string last = Text(time, 2000, "LOG", "statement: select 1" + new string('-', room - (lines * (filler.Length + 1))));
         Append(path, [.. Enumerable.Repeat(filler, lines - 1), last, error]);
         Assert.AreEqual(read, new FileInfo(path).Length, "the error ends the first read");
         Append(path,

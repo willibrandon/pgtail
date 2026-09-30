@@ -15,7 +15,7 @@ internal static unsafe partial class WinRt
     private const int RoInitMultithreaded = 1;
 
     [ThreadStatic]
-    private static bool t_initialized;
+    private static bool s_initialized;
 
     /// <summary>
     /// Initializes the Windows Runtime on this thread in the multithreaded apartment, once.
@@ -26,18 +26,18 @@ internal static unsafe partial class WinRt
     /// <exception cref="COMException">Initialization failed.</exception>
     public static void EnsureInitialized()
     {
-        if (t_initialized)
+        if (s_initialized)
         {
             return;
         }
 
-        var result = RoInitialize(RoInitMultithreaded);
+        int result = RoInitialize(RoInitMultithreaded);
         if (result is not (SOk or SFalse or RpcEChangedMode))
         {
             throw new COMException("RoInitialize failed", result);
         }
 
-        t_initialized = true;
+        s_initialized = true;
     }
 
     /// <summary>
@@ -48,10 +48,10 @@ internal static unsafe partial class WinRt
     /// <returns>The factory; release it when done.</returns>
     public static nint GetActivationFactory(string className, Guid iid)
     {
-        var name = CreateString(className);
+        nint name = CreateString(className);
         try
         {
-            Check(RoGetActivationFactory(name, &iid, out var factory), $"RoGetActivationFactory({className})");
+            Check(RoGetActivationFactory(name, &iid, out nint factory), $"RoGetActivationFactory({className})");
             return factory;
         }
         finally
@@ -67,10 +67,10 @@ internal static unsafe partial class WinRt
     /// <returns>The instance's <c>IInspectable</c>; release it when done.</returns>
     public static nint ActivateInstance(string className)
     {
-        var name = CreateString(className);
+        nint name = CreateString(className);
         try
         {
-            Check(RoActivateInstance(name, out var instance), $"RoActivateInstance({className})");
+            Check(RoActivateInstance(name, out nint instance), $"RoActivateInstance({className})");
             return instance;
         }
         finally
@@ -86,7 +86,7 @@ internal static unsafe partial class WinRt
     /// <returns>The <c>HSTRING</c>; delete it with <see cref="DeleteString"/>.</returns>
     public static nint CreateString(string text)
     {
-        Check(WindowsCreateString(text, (uint)text.Length, out var value), "WindowsCreateString");
+        Check(WindowsCreateString(text, (uint)text.Length, out nint value), "WindowsCreateString");
         return value;
     }
 

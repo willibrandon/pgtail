@@ -11,7 +11,7 @@ namespace Pgtail.Toml;
 /// </remarks>
 public sealed class TomlDocument
 {
-    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    private static readonly UTF8Encoding s_strictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
     private string _text;
     private IReadOnlyList<TomlStatement> _statements;
 
@@ -49,7 +49,7 @@ public sealed class TomlDocument
     {
         try
         {
-            return new TomlDocument(StrictUtf8.GetString(utf8));
+            return new TomlDocument(s_strictUtf8.GetString(utf8));
         }
         catch (DecoderFallbackException)
         {
@@ -80,7 +80,7 @@ public sealed class TomlDocument
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentOutOfRangeException.ThrowIfZero(path.Count);
-        var formatted = TomlFormatter.Format(value);
+        string formatted = TomlFormatter.Format(value);
         if (_statements.FirstOrDefault(s => s.Kind == TomlStatementKind.KeyValue && Same(s.Path, path)) is { } existing)
         {
             Replace(existing.ValueStart, existing.ValueEnd, formatted);
@@ -93,15 +93,15 @@ public sealed class TomlDocument
         }
 
         var tablePath = path.Take(path.Count - 1).ToList();
-        var key = path[^1];
-        var line = $"{TomlFormatter.FormatKey(key)} = {formatted}";
+        string key = path[^1];
+        string line = $"{TomlFormatter.FormatKey(key)} = {formatted}";
         if (tablePath.Count == 0)
         {
             InsertInSection(-1, line);
             return;
         }
 
-        var header = _statements
+        (TomlStatement statement, int index) header = _statements
             .Select((statement, index) => (statement, index))
             .FirstOrDefault(pair => pair.statement.Kind == TomlStatementKind.Table && Same(pair.statement.Path, tablePath));
         if (header.statement is not null)
@@ -116,8 +116,8 @@ public sealed class TomlDocument
                 AppendSection(tablePath, line);
                 break;
             case TomlTable { Kind: TomlTableKind.Dotted }:
-                var last = _statements.Last(s => s.Kind == TomlStatementKind.KeyValue && StartsWith(s.Path, tablePath));
-                var relative = path.Skip(last.TablePath.Count);
+                TomlStatement last = _statements.Last(s => s.Kind == TomlStatementKind.KeyValue && StartsWith(s.Path, tablePath));
+                IEnumerable<string> relative = path.Skip(last.TablePath.Count);
                 Insert(last.End, $"{TomlFormatter.FormatPath(relative)} = {formatted}\n");
                 break;
             default:
@@ -151,9 +151,9 @@ public sealed class TomlDocument
     {
         ArgumentNullException.ThrowIfNull(path);
         var spans = new List<(int Start, int End)>();
-        for (var i = 0; i < _statements.Count; i++)
+        for (int i = 0; i < _statements.Count; i++)
         {
-            var statement = _statements[i];
+            TomlStatement statement = _statements[i];
             if (!StartsWith(statement.Path, path))
             {
                 continue;
@@ -177,8 +177,8 @@ public sealed class TomlDocument
             return false;
         }
 
-        var text = _text;
-        foreach (var (start, end) in spans.OrderByDescending(span => span.Start))
+        string text = _text;
+        foreach ((int start, int end) in spans.OrderByDescending(span => span.Start))
         {
             text = text.Remove(start, end - start);
         }
@@ -195,7 +195,7 @@ public sealed class TomlDocument
 
     private int SectionEnd(int headerIndex)
     {
-        for (var i = headerIndex + 1; i < _statements.Count; i++)
+        for (int i = headerIndex + 1; i < _statements.Count; i++)
         {
             if (_statements[i].Kind != TomlStatementKind.KeyValue)
             {
@@ -208,19 +208,19 @@ public sealed class TomlDocument
 
     private void InsertInSection(int headerIndex, string line)
     {
-        var start = headerIndex < 0 ? 0 : _statements[headerIndex].End;
-        var end = headerIndex < 0
+        int start = headerIndex < 0 ? 0 : _statements[headerIndex].End;
+        int end = headerIndex < 0
             ? _statements.FirstOrDefault(s => s.Kind != TomlStatementKind.KeyValue)?.Start ?? _text.Length
             : SectionEnd(headerIndex);
-        var last = _statements.LastOrDefault(s => s.Kind == TomlStatementKind.KeyValue && s.Start >= start && s.End <= end);
-        var position = last?.End ?? start;
+        TomlStatement? last = _statements.LastOrDefault(s => s.Kind == TomlStatementKind.KeyValue && s.Start >= start && s.End <= end);
+        int position = last?.End ?? start;
         if (last is null)
         {
             // Without keys, the new line joins the comments written directly under the header, which usually document it.
             while (position < end)
             {
-                var newline = _text.IndexOf('\n', position, end - position);
-                var lineEnd = newline < 0 ? end : newline + 1;
+                int newline = _text.IndexOf('\n', position, end - position);
+                int lineEnd = newline < 0 ? end : newline + 1;
                 if (string.IsNullOrWhiteSpace(_text[position..lineEnd]))
                 {
                     break;
@@ -230,13 +230,13 @@ public sealed class TomlDocument
             }
         }
 
-        var prefix = position > 0 && _text[position - 1] != '\n' ? "\n" : "";
+        string prefix = position > 0 && _text[position - 1] != '\n' ? "\n" : "";
         Insert(position, prefix + line + "\n");
     }
 
     private void AppendSection(IReadOnlyList<string> tablePath, string line)
     {
-        var separator = _text.Length == 0 || _text.EndsWith("\n\n", StringComparison.Ordinal) ? ""
+        string separator = _text.Length == 0 || _text.EndsWith("\n\n", StringComparison.Ordinal) ? ""
             : _text.EndsWith('\n') ? "\n" : "\n\n";
         Insert(_text.Length, $"{separator}[{TomlFormatter.FormatPath(tablePath)}]\n{line}\n");
     }

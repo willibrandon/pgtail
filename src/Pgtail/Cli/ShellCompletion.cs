@@ -14,9 +14,9 @@ namespace Pgtail.Cli;
 /// </remarks>
 internal static class ShellCompletion
 {
-    private static readonly string[] Shells = ["bash", "zsh", "fish", "pwsh"];
+    private static readonly string[] s_shells = ["bash", "zsh", "fish", "pwsh"];
 
-    private static readonly (string Name, string Description)[] GlobalOptions =
+    private static readonly (string Name, string Description)[] s_globalOptions =
     [
         ("--version", "Show version and exit."),
         ("--check-update", "Check for updates and exit."),
@@ -35,7 +35,7 @@ internal static class ShellCompletion
         ArgumentNullException.ThrowIfNull(arguments);
         if (arguments.Command == CliCommand.Complete)
         {
-            foreach (var (value, description) in Candidates(arguments.Words))
+            foreach ((string value, string description) in Candidates(arguments.Words))
             {
                 Console.Out.WriteLine(description.Length > 0 ? $"{value}\t{description}" : value);
             }
@@ -43,10 +43,10 @@ internal static class ShellCompletion
             return 0;
         }
 
-        var shell = arguments.Shell ?? DetectShell();
-        if (shell is null || !Shells.Contains(shell))
+        string? shell = arguments.Shell ?? DetectShell();
+        if (shell is null || !s_shells.Contains(shell))
         {
-            Console.Error.WriteLine($"Shell {shell ?? "(unknown)"} is not supported. Use one of: {string.Join(", ", Shells)}");
+            Console.Error.WriteLine($"Shell {shell ?? "(unknown)"} is not supported. Use one of: {string.Join(", ", s_shells)}");
             return 1;
         }
 
@@ -56,7 +56,7 @@ internal static class ShellCompletion
             return 0;
         }
 
-        var path = Install(shell);
+        string path = Install(shell);
         Console.Out.WriteLine($"{shell} completion installed in {path}");
         Console.Out.WriteLine("Completion will take effect once you restart the terminal");
         return 0;
@@ -127,16 +127,16 @@ internal static class ShellCompletion
     public static IEnumerable<(string Value, string Description)> Candidates(IReadOnlyList<string> words)
     {
         ArgumentNullException.ThrowIfNull(words);
-        var partial = words.Count > 0 ? words[^1] : "";
-        var before = words.Count > 1 ? words.Take(words.Count - 1).ToList() : [];
+        string partial = words.Count > 0 ? words[^1] : "";
+        List<string> before = words.Count > 1 ? [.. words.Take(words.Count - 1)] : [];
         IEnumerable<(string Value, string Description)> items;
         if (before is [.., "--install-completion" or "--show-completion"])
         {
-            items = Shells.Select(shell => (shell, $"{shell} completion"));
+            items = s_shells.Select(shell => (shell, $"{shell} completion"));
         }
         else if (before.Count == 0)
         {
-            items = GlobalOptions.Concat(CliParser.Commands);
+            items = s_globalOptions.Concat(CliParser.Commands);
         }
         else
         {
@@ -201,33 +201,33 @@ internal static class ShellCompletion
             return null;
         }
 
-        var name = Path.GetFileName(shell);
+        string name = Path.GetFileName(shell);
         return name is "powershell" ? "pwsh" : name;
     }
 
     private static string Install(string shell)
     {
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var script = Script(shell);
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string script = Script(shell);
         switch (shell)
         {
             case "bash":
-                var bashScript = Path.Combine(home, ".bash_completions", "pgtail.sh");
+                string bashScript = Path.Combine(home, ".bash_completions", "pgtail.sh");
                 Write(bashScript, script);
                 AppendOnce(Path.Combine(home, ".bashrc"), $"source {bashScript}");
                 return bashScript;
             case "zsh":
-                var zshScript = Path.Combine(home, ".zfunc", "_pgtail");
+                string zshScript = Path.Combine(home, ".zfunc", "_pgtail");
                 Write(zshScript, script);
                 AppendOnce(Path.Combine(home, ".zshrc"), "fpath+=~/.zfunc");
                 AppendOnce(Path.Combine(home, ".zshrc"), "autoload -Uz compinit && compinit");
                 return zshScript;
             case "fish":
-                var fishScript = Path.Combine(home, ".config", "fish", "completions", "pgtail.fish");
+                string fishScript = Path.Combine(home, ".config", "fish", "completions", "pgtail.fish");
                 Write(fishScript, script);
                 return fishScript;
             default:
-                var profile = OperatingSystem.IsWindows()
+                string profile = OperatingSystem.IsWindows()
                     ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "PowerShell",
                         "Microsoft.PowerShell_profile.ps1")
                     : Path.Combine(home, ".config", "powershell", "Microsoft.PowerShell_profile.ps1");

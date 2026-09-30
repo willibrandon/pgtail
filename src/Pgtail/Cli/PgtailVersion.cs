@@ -14,7 +14,7 @@ internal static class PgtailVersion
 
     private static string Read()
     {
-        var informational = typeof(PgtailVersion)
+        string? informational = typeof(PgtailVersion)
             .Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         return informational is null ? "0.0.0-dev" : informational.Split('+')[0];
     }

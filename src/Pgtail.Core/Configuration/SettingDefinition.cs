@@ -30,7 +30,7 @@ public sealed record SettingDefinition(string Key, object? Default, SettingType 
         {
             SettingType.Boolean => (words.Count == 0 ? "true" : words[0]).ToLowerInvariant() is "true" or "1" or "yes",
             SettingType.Integer => long.TryParse(words.Count == 0 ? "0" : words[0], NumberStyles.Integer,
-                CultureInfo.InvariantCulture, out var number)
+                CultureInfo.InvariantCulture, out long number)
                 ? number
                 : throw new FormatException("must be an integer"),
             SettingType.List => words.Select(word => Key.Contains("levels", StringComparison.Ordinal) ? word.ToUpperInvariant() : word)

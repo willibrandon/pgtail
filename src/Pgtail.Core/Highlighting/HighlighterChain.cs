@@ -26,7 +26,8 @@ public sealed class HighlighterChain
     {
         ArgumentNullException.ThrowIfNull(highlighters);
         var sorted = highlighters.OrderBy(highlighter => highlighter.Priority).ToList();
-        var duplicate = sorted.GroupBy(highlighter => highlighter.Name, StringComparer.Ordinal).FirstOrDefault(group => group.Count() > 1);
+        IGrouping<string, IHighlighter>? duplicate = sorted.GroupBy(highlighter => highlighter.Name, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
         if (duplicate is not null)
         {
             throw new ArgumentException($"Highlighter '{duplicate.Key}' already registered", nameof(highlighters));
@@ -68,15 +69,15 @@ public sealed class HighlighterChain
             return new StyledText(text);
         }
 
-        var process = text.Length > MaxLength ? text[..MaxLength] : text;
+        string process = text.Length > MaxLength ? text[..MaxLength] : text;
         using var encoded = new Utf8Text(process);
-        var matches = Collect(encoded);
+        List<(HighlightMatch Match, int Priority)> matches = Collect(encoded);
         var result = new StyledText();
         if (matches.Count > 0)
         {
             var tracker = new OccupancyTracker(process.Length);
-            var position = 0;
-            foreach (var (match, _) in matches.OrderBy(pair => pair.Match.Start).ThenBy(pair => pair.Priority))
+            int position = 0;
+            foreach ((HighlightMatch match, int _) in matches.OrderBy(pair => pair.Match.Start).ThenBy(pair => pair.Priority))
             {
                 if (!tracker.IsAvailable(match.Start, match.End))
                 {
@@ -102,16 +103,16 @@ public sealed class HighlighterChain
     private List<(HighlightMatch Match, int Priority)> Collect(Utf8Text text)
     {
         var matches = new List<(HighlightMatch, int)>();
-        foreach (var highlighter in _general)
+        foreach (IHighlighter highlighter in _general)
         {
             matches.AddRange(highlighter.FindMatches(text).Select(match => (match, highlighter.Priority)));
         }
 
         if (_sql.Length > 0 && SqlDetector.Detect(text) is { } detection)
         {
-            var start = detection.Prefix.Length;
-            var end = start + detection.Sql.Length;
-            foreach (var highlighter in _sql)
+            int start = detection.Prefix.Length;
+            int end = start + detection.Sql.Length;
+            foreach (IHighlighter highlighter in _sql)
             {
                 matches.AddRange(highlighter.FindMatches(text)
                     .Where(match => match.Start >= start && match.End <= end)

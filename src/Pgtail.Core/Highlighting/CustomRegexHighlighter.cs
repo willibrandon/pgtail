@@ -26,7 +26,7 @@ public sealed class CustomRegexHighlighter : RegexHighlighter
             return "Pattern cannot be empty";
         }
 
-        if (!LogPattern.TryCompile(pattern, caseSensitive: true, out var compiled, out var error))
+        if (!LogPattern.TryCompile(pattern, caseSensitive: true, out LogPattern? compiled, out string? error))
         {
             return $"Invalid regex: {error}";
         }

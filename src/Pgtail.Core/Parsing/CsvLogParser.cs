@@ -32,14 +32,14 @@ public static class CsvLogParser
     public static bool TryParse(ReadOnlyMemory<byte> utf8, out LogEntry entry)
     {
         entry = null!;
-        var line = Encoding.UTF8.GetString(utf8.Span);
-        if (!CsvLine.TrySplit(line, out var fields) || fields.Count < 14)
+        string line = Encoding.UTF8.GetString(utf8.Span);
+        if (!CsvLine.TrySplit(line, out List<string>? fields) || fields.Count < 14)
         {
             return false;
         }
 
         string Field(int index) => index < fields.Count ? fields[index] : "";
-        var timestamp = LogTimestamps.ParseStructured(Field(0));
+        (DateTime Time, TimeSpan Offset)? timestamp = LogTimestamps.ParseStructured(Field(0));
         entry = new LogEntry
         {
             Timestamp = timestamp?.Time,
@@ -80,8 +80,8 @@ public static class CsvLogParser
     private static string? NonEmpty(string value) => value.Length == 0 ? null : value;
 
     private static int? ParseInt(string value) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : null;
 
     private static long? ParseLong(string value) =>
-        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : null;
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long number) ? number : null;
 }

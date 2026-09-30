@@ -26,7 +26,7 @@ public readonly record struct TerminalColor(TerminalColorKind Kind, byte Index, 
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 255);
-        var (r, g, b) = ColorTables.Palette[index];
+        (byte r, byte g, byte b) = ColorTables.Palette[index];
         return index switch
         {
             < 8 => new TerminalColor(TerminalColorKind.Standard, (byte)index, r, g, b),

@@ -57,7 +57,7 @@ internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> ma
     {
         if (_rows is null)
         {
-            var made = make();
+            IReadOnlyList<TailLine> made = make();
             _rows = made.Count == RowCount
                 ? made
                 : [.. made.Take(RowCount), .. Enumerable.Repeat(TailLine.Blank, RowCount - Math.Min(RowCount, made.Count))];

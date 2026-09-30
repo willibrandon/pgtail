@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using Pgtail.Detection;
 using Pgtail.Parsing;
 using Pgtail.Sessions;
 using Pgtail.Statistics;
@@ -13,15 +14,15 @@ namespace Pgtail.Commands;
 /// </summary>
 internal static class ConnectionsCommands
 {
-    private static readonly TextStyle Yellow = StyleParser.Parse("ansiyellow");
-    private static readonly TextStyle Green = StyleParser.Parse("ansigreen");
-    private static readonly TextStyle BrightGreen = StyleParser.Parse("ansibrightgreen");
-    private static readonly TextStyle BrightYellow = StyleParser.Parse("ansibrightyellow");
-    private static readonly TextStyle BrightRed = StyleParser.Parse("ansibrightred");
-    private static readonly TextStyle Red = StyleParser.Parse("ansired");
-    private static readonly TextStyle Bold = StyleParser.Parse("bold");
+    private static readonly TextStyle s_yellow = StyleParser.Parse("ansiyellow");
+    private static readonly TextStyle s_green = StyleParser.Parse("ansigreen");
+    private static readonly TextStyle s_brightGreen = StyleParser.Parse("ansibrightgreen");
+    private static readonly TextStyle s_brightYellow = StyleParser.Parse("ansibrightyellow");
+    private static readonly TextStyle s_brightRed = StyleParser.Parse("ansibrightred");
+    private static readonly TextStyle s_red = StyleParser.Parse("ansired");
+    private static readonly TextStyle s_bold = StyleParser.Parse("bold");
 
-    private static readonly string[] NoData =
+    private static readonly string[] s_noData =
     [
         "No connection data available.",
         "Start tailing a log with `tail` to begin tracking connections.",
@@ -67,12 +68,14 @@ internal static class ConnectionsCommands
             return Task.CompletedTask;
         }
 
-        var stats = invocation.Session.Connections;
-        var output = invocation.Output;
+        ConnectionStats stats = invocation.Session.Connections;
+        CommandOutput output = invocation.Output;
         output.Markup("[bold cyan]Connection Statistics[/bold cyan]");
         output.Markup($"  Active: [magenta]{stats.ActiveCount}[/magenta]  Connects: [green]{stats.ConnectCount}[/green]  "
             + $"Disconnects: [red]{stats.DisconnectCount}[/red]");
-        foreach (var (title, counts) in new[] { ("By Database", stats.GetByDatabase()), ("By User", stats.GetByUser()) })
+        (string Title, IReadOnlyList<KeyValuePair<string, int>> Counts)[] groups =
+            [("By Database", stats.GetByDatabase()), ("By User", stats.GetByUser())];
+        foreach ((string title, IReadOnlyList<KeyValuePair<string, int>> counts) in groups)
         {
             if (counts.Count == 0)
             {
@@ -80,7 +83,7 @@ internal static class ConnectionsCommands
             }
 
             output.Markup($"[dim]  {title}:[/dim]");
-            foreach (var (name, count) in counts.OrderByDescending(pair => pair.Value).Take(5))
+            foreach ((string name, int count) in counts.OrderByDescending(pair => pair.Value).Take(5))
             {
                 output.Markup($"    [cyan]{Markup.Escape(name)}[/cyan]: [magenta]{count}[/magenta]");
             }
@@ -91,21 +94,21 @@ internal static class ConnectionsCommands
 
     private static (bool Clear, bool History, bool Watch, ConnectionFilter Filter)? Parse(CommandInvocation invocation)
     {
-        var args = invocation.Args;
-        var output = invocation.Output;
+        IReadOnlyList<string> args = invocation.Args;
+        CommandOutput output = invocation.Output;
         if (args.Contains("clear"))
         {
             if (args.Count > 1)
             {
-                output.Line("Warning: clear ignores other options", Yellow);
+                output.Line("Warning: clear ignores other options", s_yellow);
             }
 
             return (true, false, false, new ConnectionFilter());
         }
 
-        var (history, watch) = (false, false);
+        (bool history, bool watch) = (false, false);
         string? database = null, user = null, application = null;
-        foreach (var argument in args)
+        foreach (string argument in args)
         {
             switch (argument)
             {
@@ -125,14 +128,14 @@ internal static class ConnectionsCommands
                     application = app[6..];
                     break;
                 default:
-                    output.Line("Usage: connections [--history] [--watch] [--db=NAME] [--user=NAME] [--app=NAME] [clear]", Yellow);
+                    output.Line("Usage: connections [--history] [--watch] [--db=NAME] [--user=NAME] [--app=NAME] [clear]", s_yellow);
                     return null;
             }
         }
 
         if (history && watch)
         {
-            output.Line("Cannot use --history and --watch together.", Yellow);
+            output.Line("Cannot use --history and --watch together.", s_yellow);
             return null;
         }
 
@@ -141,8 +144,8 @@ internal static class ConnectionsCommands
 
     private static void Report(CommandInvocation invocation, (bool Clear, bool History, bool Watch, ConnectionFilter Filter) options)
     {
-        var session = invocation.Session;
-        var output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
         if (options.Clear)
         {
             session.Connections.Clear();
@@ -181,19 +184,19 @@ internal static class ConnectionsCommands
 
     private static void Summary(PgtailSession session, CommandOutput output, ConnectionFilter filter)
     {
-        var stats = session.Connections;
+        ConnectionStats stats = session.Connections;
         if (stats.IsEmpty)
         {
-            output.Lines(NoData);
+            output.Lines(s_noData);
             return;
         }
 
-        var active = stats.GetActiveConnections(filter);
-        var header = filter.IsEmpty ? new StyledText("Active connections:", Bold) : new StyledText("Active connections", Bold)
+        IReadOnlyList<ConnectionEvent> active = stats.GetActiveConnections(filter);
+        StyledText header = filter.IsEmpty ? new StyledText("Active connections:", s_bold) : new StyledText("Active connections", s_bold)
             .Append($" (filter: {Describe(filter)}):");
-        output.Line(header.Append(" ").Append(active.Count.ToString(CultureInfo.InvariantCulture), Green));
+        output.Line(header.Append(" ").Append(active.Count.ToString(CultureInfo.InvariantCulture), s_green));
         output.Line();
-        foreach (var (title, key) in new (string, Func<ConnectionEvent, string>)[]
+        foreach ((string title, Func<ConnectionEvent, string> key) in new (string, Func<ConnectionEvent, string>)[]
         {
             ("By database:", item => item.Database ?? "unknown"),
             ("By user:", item => item.User ?? "unknown"),
@@ -208,7 +211,7 @@ internal static class ConnectionsCommands
             }
 
             output.Line(title);
-            foreach (var (name, count) in groups)
+            foreach ((string name, int count) in groups)
             {
                 output.Line($"  {name,-15} {count,5}");
             }
@@ -216,39 +219,39 @@ internal static class ConnectionsCommands
             output.Line();
         }
 
-        var totals = $"Session totals: {stats.ConnectCount} connects, {stats.DisconnectCount} disconnects";
+        string totals = $"Session totals: {stats.ConnectCount} connects, {stats.DisconnectCount} disconnects";
         output.Line(stats.FailedCount > 0 ? $"{totals}, {stats.FailedCount} failed" : totals);
     }
 
     private static void History(PgtailSession session, CommandOutput output, ConnectionFilter filter)
     {
-        var stats = session.Connections;
+        ConnectionStats stats = session.Connections;
         if (stats.IsEmpty)
         {
-            output.Lines(NoData);
+            output.Lines(s_noData);
             return;
         }
 
         const int minutes = 60;
         const int bucketSize = 15;
         const int count = minutes / bucketSize;
-        var connects = new int[count];
-        var disconnects = new int[count];
-        var now = DateTime.UtcNow;
-        foreach (var item in stats.GetEvents())
+        int[] connects = new int[count];
+        int[] disconnects = new int[count];
+        DateTime now = DateTime.UtcNow;
+        foreach (ConnectionEvent item in stats.GetEvents())
         {
             if (!filter.IsEmpty && !filter.Matches(item))
             {
                 continue;
             }
 
-            var ago = (now - LogTimestamps.ToUtc(item.Timestamp)).TotalMinutes;
+            double ago = (now - LogTimestamps.ToUtc(item.Timestamp)).TotalMinutes;
             if (ago is < 0 or >= minutes)
             {
                 continue;
             }
 
-            var index = Math.Clamp(count - 1 - (int)(ago / bucketSize), 0, count - 1);
+            int index = Math.Clamp(count - 1 - (int)(ago / bucketSize), 0, count - 1);
             if (item.Type == ConnectionEventType.Connect)
             {
                 connects[index]++;
@@ -259,21 +262,22 @@ internal static class ConnectionsCommands
             }
         }
 
-        var totalConnects = connects.Sum();
-        var totalDisconnects = disconnects.Sum();
-        var net = totalConnects - totalDisconnects;
-        var filterText = filter.IsEmpty ? "" : $" (filter: {Describe(filter)})";
-        output.Line($"Connection History{filterText} (last 60 min, 15-min buckets)", Bold);
+        int totalConnects = connects.Sum();
+        int totalDisconnects = disconnects.Sum();
+        int net = totalConnects - totalDisconnects;
+        string filterText = filter.IsEmpty ? "" : $" (filter: {Describe(filter)})";
+        output.Line($"Connection History{filterText} (last 60 min, 15-min buckets)", s_bold);
         output.Line("─────────────────────────────────────────────────");
         output.Line();
-        output.Line(new StyledText("  ").Append("Connects:", Green).Append($"    {ErrorTrend.Sparkline(connects)}  total {totalConnects}"));
-        output.Line(new StyledText("  ").Append("Disconnects:", Yellow)
+        output.Line(new StyledText("  ").Append("Connects:", s_green)
+            .Append($"    {ErrorTrend.Sparkline(connects)}  total {totalConnects}"));
+        output.Line(new StyledText("  ").Append("Disconnects:", s_yellow)
             .Append($" {ErrorTrend.Sparkline(disconnects)}  total {totalDisconnects}"));
         output.Line();
         output.Line(net switch
         {
-            > 0 => new StyledText("  Net change: ").Append($"+{net}", Green).Append(" (connections growing)"),
-            < 0 => new StyledText("  Net change: ").Append(net.ToString(CultureInfo.InvariantCulture), Yellow)
+            > 0 => new StyledText("  Net change: ").Append($"+{net}", s_green).Append(" (connections growing)"),
+            < 0 => new StyledText("  Net change: ").Append(net.ToString(CultureInfo.InvariantCulture), s_yellow)
                 .Append(" (connections decreasing)"),
             _ => new StyledText("  Net change: 0 (stable)"),
         });
@@ -281,45 +285,45 @@ internal static class ConnectionsCommands
         if (totalConnects > 10 && totalDisconnects == 0)
         {
             output.Line();
-            output.Line(new StyledText("  ").Append("⚠ Possible connection leak detected:", Red)
+            output.Line(new StyledText("  ").Append("⚠ Possible connection leak detected:", s_red)
                 .Append(" connections without disconnections"));
         }
         else if (totalConnects > 20 && totalDisconnects < totalConnects * 0.1)
         {
             output.Line();
-            output.Line(new StyledText("  ").Append("⚠ Low disconnect rate:", Yellow)
+            output.Line(new StyledText("  ").Append("⚠ Low disconnect rate:", s_yellow)
                 .Append($" only {totalDisconnects} disconnects for {totalConnects} connects"));
         }
 
         output.Line();
-        output.Line(new StyledText("  Active now: ").Append(stats.ActiveCount.ToString(CultureInfo.InvariantCulture), Green));
+        output.Line(new StyledText("  Active now: ").Append(stats.ActiveCount.ToString(CultureInfo.InvariantCulture), s_green));
     }
 
     private static async Task WatchAsync(CommandInvocation invocation, ConnectionFilter filter)
     {
-        var session = invocation.Session;
-        var output = invocation.Output;
-        var instance = session.LastSource?.Instance
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        PostgresInstance? instance = session.LastSource?.Instance
             ?? session.Instances.FirstOrDefault(item => item.LogPath is { } log && File.Exists(log));
         if (instance?.LogPath is not { } path)
         {
-            output.Line("No log file available. Use 'tail' first to select an instance.", Yellow);
+            output.Line("No log file available. Use 'tail' first to select an instance.", s_yellow);
             return;
         }
 
         if (!File.Exists(path))
         {
-            output.Line($"Log file not found: {path}", Yellow);
+            output.Line($"Log file not found: {path}", s_yellow);
             return;
         }
 
         // The log is opened before the header shows, so every event written after it is seen.
         var source = new LogTailer(path, fromStart: false, instance.DataDirectory, instance.LogDirectory, LogSources.PollInterval);
         source.Start();
-        var filterText = filter.IsEmpty ? "" : $" (filter: {Describe(filter)})";
-        output.Line(new StyledText($"Watching connections{filterText}", Bold).Append($" - {Path.GetFileName(path)} (Ctrl+C to exit)"));
-        output.Line(new StyledText().Append("[+]", Green).Append(" connect  ").Append("[-]", Yellow).Append(" disconnect  ")
-            .Append("[!]", Red).Append(" failed"));
+        string filterText = filter.IsEmpty ? "" : $" (filter: {Describe(filter)})";
+        output.Line(new StyledText($"Watching connections{filterText}", s_bold).Append($" - {Path.GetFileName(path)} (Ctrl+C to exit)"));
+        output.Line(new StyledText().Append("[+]", s_green).Append(" connect  ").Append("[-]", s_yellow).Append(" disconnect  ")
+            .Append("[!]", s_red).Append(" failed"));
         output.Line();
         await CoreCommands.Repl(invocation).WatchAsync(cancellationToken => Events(session, source, filter, cancellationToken));
     }
@@ -330,7 +334,7 @@ internal static class ConnectionsCommands
         ConnectionFilter filter,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var seen = 0;
+        int seen = 0;
         await using (source)
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -344,7 +348,7 @@ internal static class ConnectionsCommands
                     break;
                 }
 
-                while (source.Events.TryRead(out var item))
+                while (source.Events.TryRead(out LogSourceEvent? item))
                 {
                     if (item.Entry is not { } entry || ConnectionEvent.FromEntry(entry) is not { } connection)
                     {
@@ -367,8 +371,8 @@ internal static class ConnectionsCommands
 
     private static StyledText Format(ConnectionEvent item)
     {
-        var time = LogTimestamps.ToLocal(item.Timestamp).ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-        var details = $"{item.User ?? "?"}@{item.Database ?? "?"}";
+        string time = LogTimestamps.ToLocal(item.Timestamp).ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        string details = $"{item.User ?? "?"}@{item.Database ?? "?"}";
         if (item.Application != "unknown" && item.Application.Length > 0)
         {
             details += $" ({item.Application})";
@@ -381,10 +385,10 @@ internal static class ConnectionsCommands
 
         return item.Type switch
         {
-            ConnectionEventType.Connect => new StyledText("[+]", BrightGreen).Append($" {time}  {details}"),
-            ConnectionEventType.Disconnect => new StyledText("[-]", BrightYellow)
+            ConnectionEventType.Connect => new StyledText("[+]", s_brightGreen).Append($" {time}  {details}"),
+            ConnectionEventType.Disconnect => new StyledText("[-]", s_brightYellow)
                 .Append($" {time}  {details}{Duration(item.DurationSeconds)}"),
-            _ => new StyledText("[!]", BrightRed).Append($" {time}  {details} FAILED"),
+            _ => new StyledText("[!]", s_brightRed).Append($" {time}  {details} FAILED"),
         };
     }
 

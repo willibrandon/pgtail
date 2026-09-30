@@ -12,26 +12,26 @@ using Hex1b.Automation;
 
 // Publishes pgtail with Native AOT for one runtime, checks the executable, then packs and checks its tool package.
 // Usage: dotnet run --file scripts/Publish-NativeAot.cs -- --rid linux-x64 [--package-version 1.2.3] [--output dir]
-var options = ParseOptions(args);
+(string Rid, string Version, string Output)? options = ParseOptions(args);
 if (options is null)
 {
     Console.Error.WriteLine("usage: Publish-NativeAot.cs --rid RID [--package-version VERSION] [--output DIRECTORY]");
     return 2;
 }
 
-var (rid, version, output) = options.Value;
+(string rid, string version, string output) = options.Value;
 if (rid != CurrentRid())
 {
     Console.Error.WriteLine($"{rid} must be published and checked on a matching machine; this one is {CurrentRid()}.");
     return 1;
 }
 
-var repo = FindRepository();
-var artifacts = Path.GetFullPath(Path.Join(output, rid), repo);
-var publishDirectory = Path.Join(artifacts, "publish");
-var packagesDirectory = Path.Join(artifacts, "packages");
-var project = Path.Join(repo, "src", "Pgtail", "Pgtail.csproj");
-var executableName = OperatingSystem.IsWindows() ? "pgtail.exe" : "pgtail";
+string repo = FindRepository();
+string artifacts = Path.GetFullPath(Path.Join(output, rid), repo);
+string publishDirectory = Path.Join(artifacts, "publish");
+string packagesDirectory = Path.Join(artifacts, "packages");
+string project = Path.Join(repo, "src", "Pgtail", "Pgtail.csproj");
+string executableName = OperatingSystem.IsWindows() ? "pgtail.exe" : "pgtail";
 if (Directory.Exists(artifacts))
 {
     Directory.Delete(artifacts, recursive: true);
@@ -57,7 +57,7 @@ if (required.Any(file => !published.Contains(file))
     return 1;
 }
 
-var executable = Path.Join(publishDirectory, executableName);
+string executable = Path.Join(publishDirectory, executableName);
 if (!await SmokeAsync(executable, version))
 {
     return 1;
@@ -69,20 +69,20 @@ if (await RunAsync(repo, "dotnet", ["pack", project, "-c", "Release", "-r", rid,
     return 1;
 }
 
-var package = Path.Join(packagesDirectory, $"pgtail.{rid}.{version}.nupkg");
+string package = Path.Join(packagesDirectory, $"pgtail.{rid}.{version}.nupkg");
 if (!File.Exists(package))
 {
     Console.Error.WriteLine($"expected {package} after packing");
     return 1;
 }
 
-var unpacked = Directory.CreateTempSubdirectory("pgtail-package-").FullName;
+string unpacked = Directory.CreateTempSubdirectory("pgtail-package-").FullName;
 try
 {
     ZipFile.ExtractToDirectory(package, unpacked);
-    var settings = Directory.GetFiles(unpacked, "DotnetToolSettings.xml", SearchOption.AllDirectories).Single();
-    var entryPoint = XDocument.Load(settings).Descendants("Command").Single().Attribute("EntryPoint")!.Value;
-    var packaged = Path.Join(Path.GetDirectoryName(settings)!, entryPoint);
+    string settings = Directory.GetFiles(unpacked, "DotnetToolSettings.xml", SearchOption.AllDirectories).Single();
+    string entryPoint = XDocument.Load(settings).Descendants("Command").Single().Attribute("EntryPoint")!.Value;
+    string packaged = Path.Join(Path.GetDirectoryName(settings)!, entryPoint);
     if (!OperatingSystem.IsWindows())
     {
         File.SetUnixFileMode(packaged, File.GetUnixFileMode(packaged) | UnixFileMode.UserExecute);
@@ -104,11 +104,11 @@ return 0;
 static (string Rid, string Version, string Output)? ParseOptions(string[] arguments)
 {
     string? rid = null;
-    var version = "0.0.0";
-    var output = "artifacts/native-aot";
-    for (var index = 0; index < arguments.Length; index++)
+    string version = "0.0.0";
+    string output = "artifacts/native-aot";
+    for (int index = 0; index < arguments.Length; index++)
     {
-        var value = index + 1 < arguments.Length ? arguments[index + 1] : null;
+        string? value = index + 1 < arguments.Length ? arguments[index + 1] : null;
         switch (arguments[index])
         {
             case "--rid" when value is not null:
@@ -133,7 +133,7 @@ static (string Rid, string Version, string Output)? ParseOptions(string[] argume
 
 static string CurrentRid()
 {
-    var os = OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux";
+    string os = OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux";
     return $"{os}-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}";
 }
 
@@ -153,7 +153,7 @@ static string FindRepository()
 static async Task<int> RunAsync(string directory, string fileName, IEnumerable<string> arguments)
 {
     var info = new ProcessStartInfo(fileName, arguments) { WorkingDirectory = directory };
-    using var process = Process.Start(info)!;
+    using Process process = Process.Start(info)!;
     await process.WaitForExitAsync();
     return process.ExitCode;
 }
@@ -162,11 +162,11 @@ static async Task<int> RunAsync(string directory, string fileName, IEnumerable<s
 // with the update check off so nothing reaches the network.
 static async Task<bool> SmokeAsync(string executable, string version)
 {
-    var home = Directory.CreateTempSubdirectory("pgtail-smoke-").FullName;
+    string home = Directory.CreateTempSubdirectory("pgtail-smoke-").FullName;
     try
     {
-        var config = Path.Join(home, "config", "pgtail", "config.toml");
-        var data = Path.Join(home, "pgdata");
+        string config = Path.Join(home, "config", "pgtail", "config.toml");
+        string data = Path.Join(home, "pgdata");
         Directory.CreateDirectory(Path.GetDirectoryName(config)!);
         Directory.CreateDirectory(Path.Join(data, "log"));
         await File.WriteAllTextAsync(config, "[updates]\ncheck = false\n");
@@ -183,7 +183,7 @@ static async Task<bool> SmokeAsync(string executable, string version)
             ["PGDATA"] = data,
         };
 
-        var log = """
+        string log = """
             2026-09-29 10:15:01.123 UTC [4242] LOG:  database system is ready to accept connections
             2026-09-29 10:15:02.456 UTC [4243] ERROR:  duplicate key value violates unique constraint "users_pkey"
             2026-09-29 10:15:03.789 UTC [4244] LOG:  duration: 1234.567 ms  statement: SELECT * FROM orders WHERE id = 42
@@ -200,7 +200,7 @@ static async Task<bool> SmokeAsync(string executable, string version)
             (["tail", "--stdin", "--stream"], log, ["ready to accept connections", "users_pkey", "1234.567 ms"]),
         ];
 
-        foreach (var (arguments, input, expected) in checks)
+        foreach ((string[] arguments, string? input, string[] expected) in checks)
         {
             var info = new ProcessStartInfo(executable, arguments)
             {
@@ -210,24 +210,24 @@ static async Task<bool> SmokeAsync(string executable, string version)
                 StandardOutputEncoding = Encoding.UTF8,
             };
 
-            foreach (var (name, value) in environment)
+            foreach ((string name, string value) in environment)
             {
                 info.Environment[name] = value;
             }
 
-            using var process = Process.Start(info)!;
+            using Process process = Process.Start(info)!;
             if (input is not null)
             {
                 await process.StandardInput.WriteAsync(input);
             }
 
             process.StandardInput.Close();
-            var stdout = process.StandardOutput.ReadToEndAsync();
-            var stderr = process.StandardError.ReadToEndAsync();
+            Task<string> stdout = process.StandardOutput.ReadToEndAsync();
+            Task<string> stderr = process.StandardError.ReadToEndAsync();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await process.WaitForExitAsync(timeout.Token);
-            var text = await stdout;
-            var command = "pgtail " + string.Join(' ', arguments);
+            string text = await stdout;
+            string command = "pgtail " + string.Join(' ', arguments);
             if (process.ExitCode != 0 || expected.Any(part => !text.Contains(part, StringComparison.Ordinal)))
             {
                 Console.Error.WriteLine($"{command} failed with exit code {process.ExitCode}");
@@ -253,7 +253,7 @@ static async Task<bool> SmokeAsync(string executable, string version)
 // way a user's terminal would if the executable could not drive the console.
 static async Task<bool> InteractiveAsync(string executable, Dictionary<string, string> environment)
 {
-    await using var terminal = Hex1bTerminal.CreateBuilder()
+    await using Hex1bTerminal terminal = Hex1bTerminal.CreateBuilder()
         .WithPtyProcess(options =>
         {
             options.FileName = executable;
@@ -263,7 +263,7 @@ static async Task<bool> InteractiveAsync(string executable, Dictionary<string, s
         .WithDimensions(100, 30)
         .Build();
     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-    var run = terminal.RunAsync(timeout.Token);
+    Task<int> run = terminal.RunAsync(timeout.Token);
     var automator = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(30));
     try
     {
@@ -290,12 +290,12 @@ static async Task<bool> InteractiveAsync(string executable, Dictionary<string, s
 static async Task<bool> WithoutConsoleAsync(string executable, Dictionary<string, string> environment)
 {
     var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true };
-    foreach (var (name, value) in environment)
+    foreach ((string name, string value) in environment)
     {
         info.Environment[name] = value;
     }
 
-    using var process = Process.Start(info)!;
+    using Process process = Process.Start(info)!;
     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
     try
     {

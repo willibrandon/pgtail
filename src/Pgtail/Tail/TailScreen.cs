@@ -207,7 +207,7 @@ internal sealed partial class TailScreen : ITailHost
     public async Task RunCommandAsync(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
-        var text = line.Trim();
+        string text = line.Trim();
         if (text.Length == 0)
         {
             return;
@@ -227,7 +227,7 @@ internal sealed partial class TailScreen : ITailHost
             return null;
         }
 
-        var input = time.OriginalInput;
+        string input = time.OriginalInput;
         if (input.Length == 0)
         {
             return time.FormatDescription();
@@ -274,8 +274,8 @@ internal sealed partial class TailScreen : ITailHost
         }
 
         var shown = new List<TailSegment>();
-        var taken = 0;
-        while (taken < EntriesPerFrame && _source.Events.TryRead(out var item))
+        int taken = 0;
+        while (taken < EntriesPerFrame && _source.Events.TryRead(out LogSourceEvent? item))
         {
             taken++;
             Handle(item, shown);
@@ -344,8 +344,8 @@ internal sealed partial class TailScreen : ITailHost
     // newest entries.
     private void Load()
     {
-        var taken = 0;
-        while (taken < LoadPerFrame && _source.Events.TryRead(out var item))
+        int taken = 0;
+        while (taken < LoadPerFrame && _source.Events.TryRead(out LogSourceEvent? item))
         {
             taken++;
             if (item.Kind == LogSourceEventKind.CaughtUp)
@@ -381,7 +381,7 @@ internal sealed partial class TailScreen : ITailHost
     private void ShowEntries()
     {
         var shown = new List<LogEntry>();
-        foreach (var entry in _entries)
+        foreach (LogEntry entry in _entries)
         {
             if (Session.ShouldShow(entry))
             {
@@ -398,7 +398,7 @@ internal sealed partial class TailScreen : ITailHost
     {
         if (_entries.Count > MaxEntries)
         {
-            var removed = _entries.Count - MaxEntries;
+            int removed = _entries.Count - MaxEntries;
             _entries.RemoveRange(0, removed);
             _recounted = _recounted is { } recounted ? Math.Max(0, recounted - removed) : null;
         }
@@ -408,12 +408,12 @@ internal sealed partial class TailScreen : ITailHost
     // the statistics once all are read, since those take entries oldest first.
     private void AddOlder(IReadOnlyList<LogEntry> older)
     {
-        var room = MaxEntries - _entries.Count;
-        var kept = older.Count > room ? older.Skip(older.Count - Math.Max(0, room)).ToList() : older;
+        int room = MaxEntries - _entries.Count;
+        IReadOnlyList<LogEntry> kept = older.Count > room ? [.. older.Skip(older.Count - Math.Max(0, room))] : older;
         _entries.InsertRange(0, kept);
         _olderAdded |= kept.Count > 0;
         var segments = new List<TailSegment>();
-        foreach (var entry in kept)
+        foreach (LogEntry entry in kept)
         {
             if (Session.ShouldShow(entry))
             {
@@ -441,7 +441,7 @@ internal sealed partial class TailScreen : ITailHost
         _olderAdded = false;
         _recounted = 0;
         Session.Buffer.Clear();
-        foreach (var entry in _entries.Skip(Math.Max(0, _entries.Count - Session.Buffer.Capacity)))
+        foreach (LogEntry? entry in _entries.Skip(Math.Max(0, _entries.Count - Session.Buffer.Capacity)))
         {
             Session.Buffer.Add(entry);
         }
@@ -455,8 +455,8 @@ internal sealed partial class TailScreen : ITailHost
             return;
         }
 
-        var end = start + Math.Min(count, _entries.Count - start);
-        for (var i = start; i < end; i++)
+        int end = start + Math.Min(count, _entries.Count - start);
+        for (int i = start; i < end; i++)
         {
             Session.Count(_entries[i]);
         }
@@ -518,7 +518,7 @@ internal sealed partial class TailScreen : ITailHost
         }
 
         _detectionScanned++;
-        var (foundVersion, foundPort) = InstanceDetection.Find(entry.Message);
+        (string? foundVersion, int? foundPort) = InstanceDetection.Find(entry.Message);
         if (foundVersion is not null)
         {
             Status.PgVersion = foundVersion;

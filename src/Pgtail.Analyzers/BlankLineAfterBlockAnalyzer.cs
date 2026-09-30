@@ -16,7 +16,7 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(DiagnosticDescriptors.BlankLineAfterBrace);
+        ImmutableArray.Create(DiagnosticDescriptors.s_blankLineAfterBrace);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -36,7 +36,7 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
     // the tokens covers them all, because no list of syntax nodes names every place a comment can stand.
     private static void AnalyzeComments(SyntaxTreeAnalysisContext context)
     {
-        foreach (var token in context.Tree.GetRoot(context.CancellationToken).DescendantTokens())
+        foreach (SyntaxToken token in context.Tree.GetRoot(context.CancellationToken).DescendantTokens())
         {
             // The brace that closes a hole in an interpolated string is text, not layout.
             if (!token.IsKind(SyntaxKind.CloseBraceToken) || token.Parent is InterpolationSyntax
@@ -46,13 +46,13 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
             }
 
             // Closing punctuation wrapped onto the next line still belongs to the brace, as in "}" and then ");".
-            var last = LastOnLine(token);
+            SyntaxToken last = LastOnLine(token);
             while (true)
             {
-                var next = last.GetNextToken(includeZeroWidth: true);
-                if (IsCrowded(next, out var comment) && comment is { } found)
+                SyntaxToken next = last.GetNextToken(includeZeroWidth: true);
+                if (IsCrowded(next, out SyntaxTrivia? comment) && comment is { } found)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.BlankLineAfterBrace, found.GetLocation()));
+                    context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_blankLineAfterBrace, found.GetLocation()));
                 }
 
                 if (!IsCloser(next) || StartLineOf(next) != LineOf(last) + 1 || !ClosesOnly(next, LastOnLine(next)))
@@ -62,9 +62,9 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
 
                 // A comment beside that punctuation has no blank line above it either.
                 last = LastOnLine(next);
-                foreach (var trivia in last.TrailingTrivia.Where(trivia => !IsLayout(trivia)))
+                foreach (SyntaxTrivia trivia in last.TrailingTrivia.Where(trivia => !IsLayout(trivia)))
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.BlankLineAfterBrace, trivia.GetLocation()));
+                    context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_blankLineAfterBrace, trivia.GetLocation()));
                 }
             }
         }
@@ -85,7 +85,7 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
             _ => [],
         };
 
-        for (var index = 0; index + 1 < items.Count; index++)
+        for (int index = 0; index + 1 < items.Count; index++)
         {
             if (!EndsOnBraceLine(items[index]))
             {
@@ -93,18 +93,18 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
             }
 
             // The SDK's rule already reports a statement placed right under a block, so that one case is left to it.
-            var last = items[index].GetLastToken();
-            var next = items[index + 1];
+            SyntaxToken last = items[index].GetLastToken();
+            SyntaxNode next = items[index + 1];
             if (last.IsKind(SyntaxKind.CloseBraceToken) && IsStatement(items[index]) && IsStatement(next))
             {
                 continue;
             }
 
             // A comment under the brace is the other pass's to report.
-            var first = next.GetFirstToken();
-            if (StartLineOf(first) != LineOf(last) && IsCrowded(first, out var comment) && comment is null)
+            SyntaxToken first = next.GetFirstToken();
+            if (StartLineOf(first) != LineOf(last) && IsCrowded(first, out SyntaxTrivia? comment) && comment is null)
             {
-                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.BlankLineAfterBrace, first.GetLocation()));
+                context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_blankLineAfterBrace, first.GetLocation()));
             }
         }
     }
@@ -115,7 +115,7 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
     // that hold nothing but the closing punctuation around that brace, such as ");", count as part of it.
     private static bool EndsOnBraceLine(SyntaxNode node)
     {
-        var token = node.GetLastToken();
+        SyntaxToken token = node.GetLastToken();
         if (node.SyntaxTree.GetLineSpan(node.Span).StartLinePosition.Line == LineOf(token))
         {
             return false;
@@ -123,13 +123,13 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
 
         while (true)
         {
-            var first = FirstOnLine(token);
+            SyntaxToken first = FirstOnLine(token);
             if (first.IsKind(SyntaxKind.CloseBraceToken))
             {
                 return true;
             }
 
-            var above = first.GetPreviousToken();
+            SyntaxToken above = first.GetPreviousToken();
             if (!ClosesOnly(first, token) || first.SpanStart <= node.SpanStart || LineOf(above) + 1 != StartLineOf(first))
             {
                 return false;
@@ -162,7 +162,7 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
 
     private static bool ClosesOnly(SyntaxToken first, SyntaxToken last)
     {
-        for (var token = first; ; token = token.GetNextToken())
+        for (SyntaxToken token = first; ; token = token.GetNextToken())
         {
             if (!IsCloser(token))
             {
@@ -185,8 +185,8 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
     private static bool IsCrowded(SyntaxToken next, out SyntaxTrivia? comment)
     {
         comment = null;
-        var lineIsEmpty = true;
-        foreach (var trivia in next.LeadingTrivia)
+        bool lineIsEmpty = true;
+        foreach (SyntaxTrivia trivia in next.LeadingTrivia)
         {
             if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
             {
@@ -232,7 +232,7 @@ public sealed class BlankLineAfterBlockAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        var tree = first.SyntaxTree!;
+        SyntaxTree tree = first.SyntaxTree!;
         return tree.GetLineSpan(first.Span).EndLinePosition.Line == tree.GetLineSpan(second.Span).StartLinePosition.Line;
     }
 }

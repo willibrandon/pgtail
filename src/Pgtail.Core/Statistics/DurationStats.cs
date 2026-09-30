@@ -100,9 +100,9 @@ public sealed class DurationStats
         }
 
         _sorted ??= [.. _samples.Order()];
-        var index = p * (_sorted.Length - 1);
-        var lower = (int)index;
-        var upper = Math.Min(lower + 1, _sorted.Length - 1);
+        double index = p * (_sorted.Length - 1);
+        int lower = (int)index;
+        int upper = Math.Min(lower + 1, _sorted.Length - 1);
         return _sorted[lower] + ((index - lower) * (_sorted[upper] - _sorted[lower]));
     }
 

@@ -32,9 +32,9 @@ public static class ToastXml
     public static string Build(Notification notification)
     {
         ArgumentNullException.ThrowIfNull(notification);
-        var severity = notification.Severity;
-        var duration = severity is NotificationSeverity.Error or NotificationSeverity.Critical ? "long" : "short";
-        var attribution = severity switch
+        NotificationSeverity severity = notification.Severity;
+        string duration = severity is NotificationSeverity.Error or NotificationSeverity.Critical ? "long" : "short";
+        string? attribution = severity switch
         {
             NotificationSeverity.Warning => "Warning",
             NotificationSeverity.Error => "Error",

@@ -129,7 +129,7 @@ public sealed class HighlightingConfig
     /// <returns>True when it was removed.</returns>
     public bool RemoveCustom(string name)
     {
-        var index = _custom.FindIndex(existing => existing.Name == name);
+        int index = _custom.FindIndex(existing => existing.Name == name);
         if (index < 0)
         {
             return false;
@@ -147,7 +147,7 @@ public sealed class HighlightingConfig
     /// <returns>True when the highlighter exists.</returns>
     public bool SetCustomEnabled(string name, bool enabled)
     {
-        var index = _custom.FindIndex(existing => existing.Name == name);
+        int index = _custom.FindIndex(existing => existing.Name == name);
         if (index < 0)
         {
             return false;
@@ -223,7 +223,7 @@ public sealed class HighlightingConfig
             return;
         }
 
-        foreach (var entry in entries)
+        foreach (object entry in entries)
         {
             if (entry is TomlTable table && ReadCustom(table) is { } definition && definition.Name.Length > 0
                 && !BuiltInHighlighters.Names.Contains(definition.Name) && GetCustom(definition.Name) is null)
@@ -255,13 +255,13 @@ public sealed class HighlightingConfig
         {
             if (document.Root.GetPath(["highlighting", "enabled_highlighters"]) is TomlTable existing)
             {
-                foreach (var name in existing.Keys.ToList())
+                foreach (string? name in existing.Keys.ToList())
                 {
                     document.Remove(["highlighting", "enabled_highlighters", name]);
                 }
             }
 
-            foreach (var name in disabled)
+            foreach (string? name in disabled)
             {
                 document.Set(["highlighting", "enabled_highlighters", name], false);
             }
@@ -323,7 +323,7 @@ public sealed class HighlightingConfig
 
     private static CustomHighlighterDefinition? ReadCustom(TomlTable table)
     {
-        if (!table.TryGetValue("name", out var name) || !table.TryGetValue("pattern", out var pattern))
+        if (!table.TryGetValue("name", out object? name) || !table.TryGetValue("pattern", out object? pattern))
         {
             return null;
         }
@@ -331,9 +331,9 @@ public sealed class HighlightingConfig
         return new CustomHighlighterDefinition(
             Text(name),
             Text(pattern),
-            table.TryGetValue("style", out var style) ? Text(style) : "yellow",
-            table.TryGetValue("priority", out var priority) && priority is long number ? number : 1050,
-            !table.TryGetValue("enabled", out var enabled) || enabled is not bool flag || flag);
+            table.TryGetValue("style", out object? style) ? Text(style) : "yellow",
+            table.TryGetValue("priority", out object? priority) && priority is long number ? number : 1050,
+            !table.TryGetValue("enabled", out object? enabled) || enabled is not bool flag || flag);
     }
 
     private static string Text(object value) => value switch

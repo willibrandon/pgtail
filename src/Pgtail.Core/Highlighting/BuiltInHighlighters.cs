@@ -26,7 +26,7 @@ public static class BuiltInHighlighters
     {
         var sqlKeywords = HighlightKeywords.SqlDml.Concat(HighlightKeywords.SqlDdl).Concat(HighlightKeywords.SqlDcl)
             .Concat(HighlightKeywords.SqlTcl).Concat(HighlightKeywords.SqlOther).Select(keyword => (keyword, "sql_keyword")).ToList();
-        var sqlKeywordCount = HighlightKeywords.SqlDml.Length + HighlightKeywords.SqlDdl.Length + HighlightKeywords.SqlDcl.Length
+        int sqlKeywordCount = HighlightKeywords.SqlDml.Length + HighlightKeywords.SqlDdl.Length + HighlightKeywords.SqlDcl.Length
             + HighlightKeywords.SqlTcl.Length + HighlightKeywords.SqlOther.Length;
         return
         [

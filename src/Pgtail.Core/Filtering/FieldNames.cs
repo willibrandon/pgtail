@@ -48,12 +48,12 @@ public static class FieldNames
     public static string Resolve(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        if (Aliases.TryGetValue(name.ToLowerInvariant(), out var canonical))
+        if (Aliases.TryGetValue(name.ToLowerInvariant(), out string? canonical))
         {
             return canonical;
         }
 
-        var valid = string.Join(", ", Aliases.Keys.Order(StringComparer.Ordinal));
+        string valid = string.Join(", ", Aliases.Keys.Order(StringComparer.Ordinal));
         throw new ArgumentException($"Unknown field: {name}. Valid fields: {valid}");
     }
 

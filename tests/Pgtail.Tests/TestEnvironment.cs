@@ -33,7 +33,7 @@ internal sealed class TestEnvironment : IDisposable
 
         if (variables is not null)
         {
-            foreach (var (name, value) in variables)
+            foreach ((string name, string? value) in variables)
             {
                 _variables[name] = value;
             }

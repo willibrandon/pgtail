@@ -23,7 +23,7 @@ internal static class CommandLineSplitter
         ArgumentNullException.ThrowIfNull(line);
         var tokens = new List<CommandToken>();
         var builder = new StringBuilder();
-        var index = 0;
+        int index = 0;
         while (index < line.Length)
         {
             while (index < line.Length && char.IsWhiteSpace(line[index]))
@@ -36,11 +36,11 @@ internal static class CommandLineSplitter
                 break;
             }
 
-            var start = index;
+            int start = index;
             builder.Clear();
             while (index < line.Length && !char.IsWhiteSpace(line[index]))
             {
-                var current = line[index];
+                char current = line[index];
                 if (current is '\'' or '"' && FindClose(line, index) is var close && close > index)
                 {
                     AppendQuoted(builder, line, index + 1, close, current == '"');
@@ -60,8 +60,8 @@ internal static class CommandLineSplitter
 
     private static int FindClose(string line, int open)
     {
-        var quote = line[open];
-        for (var i = open + 1; i < line.Length; i++)
+        char quote = line[open];
+        for (int i = open + 1; i < line.Length; i++)
         {
             if (quote == '"' && line[i] == '\\' && i + 1 < line.Length)
             {
@@ -80,7 +80,7 @@ internal static class CommandLineSplitter
 
     private static void AppendQuoted(StringBuilder builder, string line, int start, int end, bool escapes)
     {
-        for (var i = start; i < end; i++)
+        for (int i = start; i < end; i++)
         {
             if (escapes && line[i] == '\\' && i + 1 < end && line[i + 1] is '"' or '\\')
             {

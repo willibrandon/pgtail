@@ -13,11 +13,11 @@ namespace Pgtail.Commands;
 /// </summary>
 internal static class ErrorsCommands
 {
-    private static readonly TextStyle Yellow = StyleParser.Parse("ansiyellow");
-    private static readonly TextStyle Red = StyleParser.Parse("ansired");
-    private static readonly TextStyle Bold = StyleParser.Parse("bold");
-    private static readonly TextStyle BrightRed = StyleParser.Parse("ansibrightred");
-    private static readonly TextStyle BrightYellow = StyleParser.Parse("ansibrightyellow");
+    private static readonly TextStyle s_yellow = StyleParser.Parse("ansiyellow");
+    private static readonly TextStyle s_red = StyleParser.Parse("ansired");
+    private static readonly TextStyle s_bold = StyleParser.Parse("bold");
+    private static readonly TextStyle s_brightRed = StyleParser.Parse("ansibrightred");
+    private static readonly TextStyle s_brightYellow = StyleParser.Parse("ansibrightyellow");
 
     /// <summary>
     /// The REPL command.
@@ -58,16 +58,16 @@ internal static class ErrorsCommands
             return Task.CompletedTask;
         }
 
-        var stats = invocation.Session.Errors;
-        var output = invocation.Output;
+        ErrorStats stats = invocation.Session.Errors;
+        CommandOutput output = invocation.Output;
         output.Markup($"[bold cyan]Error Statistics[/bold cyan]  Total: [magenta]{stats.ErrorCount + stats.WarningCount}[/magenta]");
-        var byLevel = stats.GetByLevel();
+        IReadOnlyDictionary<LogLevel, int> byLevel = stats.GetByLevel();
         if (byLevel.Count > 0)
         {
             output.Markup("[dim]  By Level:[/dim]");
-            foreach (var (level, count) in byLevel.OrderByDescending(pair => pair.Value))
+            foreach ((LogLevel level, int count) in byLevel.OrderByDescending(pair => pair.Value))
             {
-                var color = level switch
+                string color = level switch
                 {
                     LogLevel.Panic => "bold red",
                     LogLevel.Fatal => "red",
@@ -80,11 +80,11 @@ internal static class ErrorsCommands
             }
         }
 
-        var byCode = stats.GetByCode();
+        IReadOnlyList<KeyValuePair<string, int>> byCode = stats.GetByCode();
         if (byCode.Count > 0)
         {
             output.Markup("[dim]  By SQLSTATE:[/dim]");
-            foreach (var (code, count) in byCode.OrderByDescending(pair => pair.Value).Take(10))
+            foreach ((string code, int count) in byCode.OrderByDescending(pair => pair.Value).Take(10))
             {
                 output.Markup($"    [cyan]{code}[/cyan]: [magenta]{count}[/magenta]");
             }
@@ -95,12 +95,12 @@ internal static class ErrorsCommands
 
     private static (bool Clear, bool Trend, bool Live, string? Code, DateTime? Since)? Parse(CommandInvocation invocation)
     {
-        var args = invocation.Args;
-        var output = invocation.Output;
-        var (clear, trend, live) = (false, false, false);
+        IReadOnlyList<string> args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        (bool clear, bool trend, bool live) = (false, false, false);
         string? code = null;
         DateTime? since = null;
-        for (var i = 0; i < args.Count; i++)
+        for (int i = 0; i < args.Count; i++)
         {
             switch (args[i])
             {
@@ -123,18 +123,18 @@ internal static class ErrorsCommands
                     }
                     catch (FormatException exception)
                     {
-                        output.Line($"Invalid time format: {exception.Message}", Yellow);
+                        output.Line($"Invalid time format: {exception.Message}", s_yellow);
                         return null;
                     }
 
                     break;
                 default:
-                    output.Line("Usage: errors [--trend] [--code CODE] [--since TIME] [--live] [clear]", Yellow);
+                    output.Line("Usage: errors [--trend] [--code CODE] [--since TIME] [--live] [clear]", s_yellow);
                     return null;
             }
         }
 
-        var conflict = (live, trend, code, since) switch
+        string? conflict = (live, trend, code, since) switch
         {
             (true, true, _, _) => "Cannot use --live and --trend together.",
             (true, _, not null, _) => "Cannot use --live and --code together.",
@@ -145,7 +145,7 @@ internal static class ErrorsCommands
 
         if (conflict is not null)
         {
-            output.Line(conflict, Yellow);
+            output.Line(conflict, s_yellow);
             return null;
         }
 
@@ -154,8 +154,8 @@ internal static class ErrorsCommands
 
     private static void Report(CommandInvocation invocation, (bool Clear, bool Trend, bool Live, string? Code, DateTime? Since) options)
     {
-        var session = invocation.Session;
-        var output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
         if (options.Clear)
         {
             session.Errors.Clear();
@@ -177,25 +177,25 @@ internal static class ErrorsCommands
 
     private static void Summary(PgtailSession session, CommandOutput output, DateTime? since)
     {
-        var stats = session.Errors;
+        ErrorStats stats = session.Errors;
         if (stats.IsEmpty)
         {
             output.Line("No errors recorded in this session.");
             return;
         }
 
-        var events = since is { } bound ? stats.GetEventsSince(bound) : stats.GetEvents();
+        IReadOnlyList<ErrorEvent> events = since is { } bound ? stats.GetEventsSince(bound) : stats.GetEvents();
         if (events.Count == 0)
         {
             output.Line($"No errors recorded {Describe(since!.Value)}.");
             return;
         }
 
-        var errors = events.Count(item => ErrorStats.IsError(item.Level));
-        output.Line($"Error Statistics{(since is { } start ? $" ({Describe(start)})" : "")}", Bold);
+        int errors = events.Count(item => ErrorStats.IsError(item.Level));
+        output.Line($"Error Statistics{(since is { } start ? $" ({Describe(start)})" : "")}", s_bold);
         output.Line("─────────────────────────────");
-        output.Line(new StyledText("Errors: ").Append(errors.ToString(CultureInfo.InvariantCulture), Red)
-            .Append("  Warnings: ").Append((events.Count - errors).ToString(CultureInfo.InvariantCulture), Yellow));
+        output.Line(new StyledText("Errors: ").Append(errors.ToString(CultureInfo.InvariantCulture), s_red)
+            .Append("  Warnings: ").Append((events.Count - errors).ToString(CultureInfo.InvariantCulture), s_yellow));
         var byCode = events.GroupBy(item => item.SqlState ?? "UNKNOWN")
             .Select(group => (Code: group.Key, Count: group.Count()))
             .OrderByDescending(pair => pair.Count)
@@ -203,9 +203,9 @@ internal static class ErrorsCommands
             .ToList();
         output.Line();
         output.Line("By type:");
-        foreach (var (code, count) in byCode)
+        foreach ((string code, int count) in byCode)
         {
-            var name = SqlStates.GetName(code);
+            string name = SqlStates.GetName(code);
             output.Line(name != code
                 ? $"  {code} {name,-25} {count,5}"
                 : $"  {code,-31} {count,5}");
@@ -213,7 +213,7 @@ internal static class ErrorsCommands
 
         output.Line();
         output.Line("By level:");
-        foreach (var group in events.GroupBy(item => item.Level).OrderBy(group => group.Key))
+        foreach (IGrouping<LogLevel, ErrorEvent>? group in events.GroupBy(item => item.Level).OrderBy(group => group.Key))
         {
             output.Line($"  {group.Key.ToName(),-9} {group.Count(),5}");
         }
@@ -221,7 +221,7 @@ internal static class ErrorsCommands
 
     private static void Trend(PgtailSession session, CommandOutput output, DateTime? since)
     {
-        var stats = session.Errors;
+        ErrorStats stats = session.Errors;
         if (stats.IsEmpty)
         {
             output.Line("No errors recorded in this session.");
@@ -232,14 +232,14 @@ internal static class ErrorsCommands
         string label;
         if (since is { } bound)
         {
-            var events = stats.GetEventsSince(bound);
+            IReadOnlyList<ErrorEvent> events = stats.GetEventsSince(bound);
             if (events.Count == 0)
             {
                 output.Line($"No errors recorded {Describe(bound)}.");
                 return;
             }
 
-            var minutes = (int)Math.Clamp((DateTime.UtcNow - LogTimestamps.ToUtc(bound)).TotalMinutes, 1, 60);
+            int minutes = (int)Math.Clamp((DateTime.UtcNow - LogTimestamps.ToUtc(bound)).TotalMinutes, 1, 60);
             buckets = ErrorTrend.Bucket(events, minutes);
             label = Describe(bound);
         }
@@ -249,12 +249,12 @@ internal static class ErrorsCommands
             label = "Last 60 min";
         }
 
-        var total = buckets.Sum();
-        var average = buckets.Count > 0 ? (double)total / buckets.Count : 0;
-        var spike = "";
+        int total = buckets.Sum();
+        double average = buckets.Count > 0 ? (double)total / buckets.Count : 0;
+        string spike = "";
         if (average > 0 && buckets.Max() is var peak && peak > average * 2)
         {
-            var index = buckets.ToList().IndexOf(peak);
+            int index = buckets.ToList().IndexOf(peak);
             spike = $"  ← spike {buckets.Count - index - 1}m ago ({peak}/min)";
         }
 
@@ -268,50 +268,50 @@ internal static class ErrorsCommands
     {
         if (code.Length != 5)
         {
-            output.Line("Invalid SQLSTATE code format. Expected 5 characters (e.g., 23505).", Yellow);
+            output.Line("Invalid SQLSTATE code format. Expected 5 characters (e.g., 23505).", s_yellow);
             return;
         }
 
-        var events = session.Errors.GetEventsByCode(code);
+        IReadOnlyList<ErrorEvent> events = session.Errors.GetEventsByCode(code);
         if (since is { } bound)
         {
-            var utc = LogTimestamps.ToUtc(bound);
+            DateTime utc = LogTimestamps.ToUtc(bound);
             events = [.. events.Where(item => LogTimestamps.ToUtc(item.Timestamp) >= utc)];
         }
 
-        var window = since is { } start ? $" ({Describe(start)})" : "";
+        string window = since is { } start ? $" ({Describe(start)})" : "";
         if (events.Count == 0)
         {
             output.Line($"No errors with code {code} recorded{(since is { } s ? $" {Describe(s)}" : "")}.");
             return;
         }
 
-        var name = SqlStates.GetName(code);
+        string name = SqlStates.GetName(code);
         output.Line(name != code ? $"{code} {name}{window}: {events.Count} occurrences" : $"{code}{window}: {events.Count} occurrences");
         output.Line();
         output.Line("Recent examples:");
-        foreach (var item in events.TakeLast(5))
+        foreach (ErrorEvent? item in events.TakeLast(5))
         {
-            var message = item.Message.Length > 60 ? item.Message[..60] + "..." : item.Message;
+            string message = item.Message.Length > 60 ? item.Message[..60] + "..." : item.Message;
             output.Line($"  {LogTimestamps.ToLocal(item.Timestamp).ToString("HH:mm:ss", CultureInfo.InvariantCulture)} {message}");
         }
     }
 
     private static async Task LiveAsync(CommandInvocation invocation)
     {
-        var session = invocation.Session;
-        var output = invocation.Output;
-        var instance = session.LastSource?.Instance
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
+        Detection.PostgresInstance? instance = session.LastSource?.Instance
             ?? session.Instances.FirstOrDefault(item => item.LogPath is { } log && File.Exists(log));
         if (instance?.LogPath is not { } path)
         {
-            output.Line("No log file available. Use 'tail' first to select an instance.", Yellow);
+            output.Line("No log file available. Use 'tail' first to select an instance.", s_yellow);
             return;
         }
 
         if (!File.Exists(path))
         {
-            output.Line($"Log file not found: {path}", Yellow);
+            output.Line($"Log file not found: {path}", s_yellow);
             return;
         }
 
@@ -321,7 +321,7 @@ internal static class ErrorsCommands
         var header = new StyledText($"Live error counter - {Path.GetFileName(path)} (Ctrl+C to exit)");
         await CoreCommands.Repl(invocation).LiveAsync(() =>
         {
-            while (source.Events.TryRead(out var item))
+            while (source.Events.TryRead(out LogSourceEvent? item))
             {
                 if (item.Entry is { } entry)
                 {
@@ -329,13 +329,13 @@ internal static class ErrorsCommands
                 }
             }
 
-            var stats = session.Errors;
+            ErrorStats stats = session.Errors;
             return
             [
                 header,
                 new StyledText(),
-                new StyledText("Errors: ").Append(stats.ErrorCount.ToString(CultureInfo.InvariantCulture), BrightRed)
-                    .Append(" | Warnings: ").Append(stats.WarningCount.ToString(CultureInfo.InvariantCulture), BrightYellow)
+                new StyledText("Errors: ").Append(stats.ErrorCount.ToString(CultureInfo.InvariantCulture), s_brightRed)
+                    .Append(" | Warnings: ").Append(stats.WarningCount.ToString(CultureInfo.InvariantCulture), s_brightYellow)
                     .Append($" | Last error: {Since(stats.LastErrorTime)}"),
             ];
         }, TimeSpan.FromMilliseconds(500));
@@ -350,7 +350,7 @@ internal static class ErrorsCommands
             return "never";
         }
 
-        var seconds = (int)(DateTime.UtcNow - LogTimestamps.ToUtc(time)).TotalSeconds;
+        int seconds = (int)(DateTime.UtcNow - LogTimestamps.ToUtc(time)).TotalSeconds;
         return seconds switch
         {
             < 60 => $"{seconds}s ago",
@@ -366,7 +366,7 @@ internal static class ErrorsCommands
     /// <returns>The description.</returns>
     public static string Describe(DateTime since)
     {
-        var seconds = (int)(DateTime.UtcNow - LogTimestamps.ToUtc(since)).TotalSeconds;
+        int seconds = (int)(DateTime.UtcNow - LogTimestamps.ToUtc(since)).TotalSeconds;
         return seconds switch
         {
             < 60 => $"last {seconds}s",

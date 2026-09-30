@@ -10,7 +10,7 @@ internal sealed partial class TomlParser
         var parts = new List<string> { ParseSimpleKey() };
         while (true)
         {
-            var save = _position;
+            int save = _position;
             SkipWhitespace();
             if (AtEnd || Current != '.')
             {
@@ -51,7 +51,7 @@ internal sealed partial class TomlParser
             return ParseLiteralString();
         }
 
-        var start = _position;
+        int start = _position;
         while (!AtEnd && IsBareKeyCharacter(Current))
         {
             _position++;
@@ -69,10 +69,10 @@ internal sealed partial class TomlParser
 
     private void Insert(TomlTable table, List<string> key, object value, int keyStart)
     {
-        var target = table;
-        for (var i = 0; i < key.Count - 1; i++)
+        TomlTable target = table;
+        for (int i = 0; i < key.Count - 1; i++)
         {
-            if (target.TryGetValue(key[i], out var existing))
+            if (target.TryGetValue(key[i], out object? existing))
             {
                 if (existing is not TomlTable { Kind: TomlTableKind.Dotted } dotted)
                 {
@@ -100,10 +100,10 @@ internal sealed partial class TomlParser
 
     private TomlTable Descend(List<string> path, int count, int lineStart)
     {
-        var table = _root;
-        for (var i = 0; i < count; i++)
+        TomlTable table = _root;
+        for (int i = 0; i < count; i++)
         {
-            if (!table.TryGetValue(path[i], out var existing))
+            if (!table.TryGetValue(path[i], out object? existing))
             {
                 var created = new TomlTable(TomlTableKind.Implicit);
                 table.Add(path[i], created);
@@ -126,9 +126,9 @@ internal sealed partial class TomlParser
 
     private TomlTable OpenTable(List<string> path, int lineStart)
     {
-        var parent = Descend(path, path.Count - 1, lineStart);
-        var name = path[^1];
-        if (!parent.TryGetValue(name, out var existing))
+        TomlTable parent = Descend(path, path.Count - 1, lineStart);
+        string name = path[^1];
+        if (!parent.TryGetValue(name, out object? existing))
         {
             var created = new TomlTable(TomlTableKind.Header);
             parent.Add(name, created);
@@ -146,10 +146,10 @@ internal sealed partial class TomlParser
 
     private TomlTable OpenArrayTable(List<string> path, int lineStart)
     {
-        var parent = Descend(path, path.Count - 1, lineStart);
-        var name = path[^1];
+        TomlTable parent = Descend(path, path.Count - 1, lineStart);
+        string name = path[^1];
         var element = new TomlTable(TomlTableKind.ArrayElement);
-        if (!parent.TryGetValue(name, out var existing))
+        if (!parent.TryGetValue(name, out object? existing))
         {
             var array = new TomlArray(isTableArray: true);
             array.Add(element);

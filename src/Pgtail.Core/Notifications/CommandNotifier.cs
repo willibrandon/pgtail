@@ -8,7 +8,7 @@ namespace Pgtail.Notifications;
 /// </summary>
 internal static class CommandNotifier
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan s_timeout = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// Runs a program with arguments and no console interaction.
@@ -27,7 +27,7 @@ internal static class CommandNotifier
             CreateNoWindow = true,
         };
 
-        foreach (var argument in arguments)
+        foreach (string argument in arguments)
         {
             start.ArgumentList.Add(argument);
         }
@@ -41,9 +41,9 @@ internal static class CommandNotifier
             }
 
             process.StandardInput.Close();
-            var output = process.StandardOutput.ReadToEndAsync();
-            var error = process.StandardError.ReadToEndAsync();
-            if (!process.WaitForExit(Timeout))
+            Task<string> output = process.StandardOutput.ReadToEndAsync();
+            Task<string> error = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(s_timeout))
             {
                 process.Kill(entireProcessTree: true);
                 return false;

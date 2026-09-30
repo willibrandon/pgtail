@@ -134,7 +134,7 @@ public sealed class LogPattern
             return true;
         });
 
-        for (var i = 0; i < state.Count; i++)
+        for (int i = 0; i < state.Count; i++)
         {
             state[i] = (text.ToCharOffset(state[i].Item1), text.ToCharOffset(state[i].Item2));
         }
@@ -153,12 +153,12 @@ public sealed class LogPattern
         ArgumentNullException.ThrowIfNull(regex);
         ArgumentNullException.ThrowIfNull(text);
         var results = new List<(int Start, int End)?[]>();
-        var bytes = text.Bytes;
-        var position = 0;
+        ReadOnlySpan<byte> bytes = text.Bytes;
+        int position = 0;
         while (position <= bytes.Length && regex.FindCaptures(bytes, position) is { } captures)
         {
             var groups = new (int Start, int End)?[captures.GroupCount];
-            for (var i = 0; i < groups.Length; i++)
+            for (int i = 0; i < groups.Length; i++)
             {
                 if (captures.GetGroup(i) is { } group)
                 {
@@ -167,7 +167,7 @@ public sealed class LogPattern
             }
 
             results.Add(groups);
-            var match = captures.Match;
+            ByteRegexMatch match = captures.Match;
             position = match.Length == 0 ? NextBoundary(bytes, match.End) : match.End;
         }
 

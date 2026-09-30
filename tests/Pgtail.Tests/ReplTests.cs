@@ -19,7 +19,7 @@ public sealed class ReplTests
     public async Task Start_ShowsBannerPromptAndToolbar()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("pgtail - PostgreSQL log tailer");
         await repl.Automator.WaitUntilTextAsync("Type 'help' for available commands, 'quit' to exit.");
         await repl.Automator.WaitUntilTextAsync("Theme: dark");
@@ -33,7 +33,7 @@ public sealed class ReplTests
     public async Task Help_PrintsCommandReference()
     {
         using var environment = new TestEnvironment();
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("help", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync("Ctrl+D    Exit pgtail");
         await repl.Automator.WaitUntilTextAsync("pgtail>");

@@ -19,9 +19,9 @@ internal static class CompletionSources
     public static IEnumerable<CompletionItem> Instances(CompletionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        foreach (var instance in context.Session.Instances)
+        foreach (Detection.PostgresInstance instance in context.Session.Instances)
         {
-            var id = instance.Id.ToString(CultureInfo.InvariantCulture);
+            string id = instance.Id.ToString(CultureInfo.InvariantCulture);
             yield return new CompletionItem(id, $"v{instance.Version} ({instance.StatusText})");
             if (context.Partial.Length > 0)
             {
@@ -44,7 +44,7 @@ internal static class CompletionSources
             yield return new CompletionItem("ALL", "Show all log levels");
         }
 
-        foreach (var level in LogLevels.All)
+        foreach (LogLevel level in LogLevels.All)
         {
             if (!chosen.Contains(level.ToName()))
             {
@@ -69,14 +69,14 @@ internal static class CompletionSources
     public static IEnumerable<CompletionItem> Themes(CompletionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var (builtIn, custom) = context.Session.Themes.ListThemes();
-        foreach (var name in builtIn)
+        (IReadOnlyList<string>? builtIn, IReadOnlyList<string>? custom) = context.Session.Themes.ListThemes();
+        foreach (string name in builtIn)
         {
-            var description = BuiltInThemes.All[name].Description;
+            string description = BuiltInThemes.All[name].Description;
             yield return new CompletionItem(name, description.Length > 0 ? description : "Built-in theme");
         }
 
-        foreach (var name in custom.Where(name => !BuiltInThemes.All.ContainsKey(name)))
+        foreach (string? name in custom.Where(name => !BuiltInThemes.All.ContainsKey(name)))
         {
             yield return new CompletionItem(name, "Custom theme");
         }
@@ -110,11 +110,11 @@ internal static class CompletionSources
     public static IEnumerable<CompletionItem> Paths(CompletionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var typed = context.Partial;
-        var separator = typed.LastIndexOfAny(['/', Path.DirectorySeparatorChar]);
-        var directoryPart = separator >= 0 ? typed[..(separator + 1)] : "";
-        var namePart = separator >= 0 ? typed[(separator + 1)..] : typed;
-        var directory = directoryPart.Length == 0
+        string typed = context.Partial;
+        int separator = typed.LastIndexOfAny(['/', Path.DirectorySeparatorChar]);
+        string directoryPart = separator >= 0 ? typed[..(separator + 1)] : "";
+        string namePart = separator >= 0 ? typed[(separator + 1)..] : typed;
+        string directory = directoryPart.Length == 0
             ? context.CurrentDirectory
             : PathDisplay.Resolve(directoryPart, context.Session.Home, context.CurrentDirectory);
         if (!Directory.Exists(directory))
@@ -128,14 +128,17 @@ internal static class CompletionSources
                 .Where(entry => entry.Name.StartsWith(namePart, StringComparison.OrdinalIgnoreCase))
                 .Where(entry => namePart.StartsWith('.') || !entry.Name.StartsWith('.'))
                 .ToList();
-            return entries.OfType<DirectoryInfo>().OrderBy(entry => entry.Name, StringComparer.Ordinal)
-                .Select(entry => new CompletionItem(directoryPart + entry.Name + "/", "directory", Continues: true)
-                {
-                    Display = entry.Name + "/",
-                })
-                .Concat(entries.OfType<FileInfo>().OrderBy(entry => entry.Name, StringComparer.Ordinal)
-                    .Select(entry => new CompletionItem(directoryPart + entry.Name, "file") { Display = entry.Name }))
-                .ToList();
+            return
+            [
+                .. entries.OfType<DirectoryInfo>().OrderBy(entry => entry.Name, StringComparer.Ordinal)
+                                .Select(entry => new CompletionItem(directoryPart + entry.Name + "/", "directory", Continues: true)
+                                {
+                                    Display = entry.Name + "/",
+                                })
+,
+                .. entries.OfType<FileInfo>().OrderBy(entry => entry.Name, StringComparer.Ordinal)
+                        .Select(entry => new CompletionItem(directoryPart + entry.Name, "file") { Display = entry.Name }),
+            ];
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

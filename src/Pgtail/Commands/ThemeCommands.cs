@@ -11,7 +11,7 @@ namespace Pgtail.Commands;
 /// </summary>
 internal static class ThemeCommands
 {
-    private static readonly (LogLevel Level, string Message)[] Samples =
+    private static readonly (LogLevel Level, string Message)[] s_samples =
     [
         (LogLevel.Panic, "System shutdown initiated due to memory corruption"),
         (LogLevel.Fatal, "Could not open relation: permission denied"),
@@ -30,8 +30,8 @@ internal static class ThemeCommands
     /// <returns>A task that completes when the command has finished.</returns>
     public static async Task Repl(CommandInvocation invocation)
     {
-        var args = invocation.Args;
-        var output = invocation.Output;
+        IReadOnlyList<string> args = invocation.Args;
+        CommandOutput output = invocation.Output;
         if (args.Count == 0)
         {
             Show(invocation.Session, output);
@@ -72,18 +72,18 @@ internal static class ThemeCommands
     /// <returns>A completed task.</returns>
     public static Task Tail(CommandInvocation invocation)
     {
-        var session = invocation.Session;
-        var output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
         if (invocation.Args.Count == 0)
         {
             output.Markup($"[dim]Current theme:[/] [bold cyan]{Markup.Escape(session.Theme.Name)}[/]");
             return Task.CompletedTask;
         }
 
-        var name = invocation.Args[0];
+        string name = invocation.Args[0];
         if (!session.Themes.Switch(name))
         {
-            var (builtIn, custom) = session.Themes.ListThemes();
+            (IReadOnlyList<string>? builtIn, IReadOnlyList<string>? custom) = session.Themes.ListThemes();
             output.Markup($"[bold red]✗[/] Unknown theme [bold yellow]{Markup.Escape(name)}[/]. "
                 + $"Available: {Markup.Escape(string.Join(", ", builtIn.Concat(custom).Order(StringComparer.Ordinal)))}");
             return Task.CompletedTask;
@@ -97,7 +97,7 @@ internal static class ThemeCommands
 
     private static void Show(PgtailSession session, CommandOutput output)
     {
-        var theme = session.Theme;
+        Theme theme = session.Theme;
         output.Line($"Current theme: {theme.Name}");
         if (theme.Description.Length > 0)
         {
@@ -112,14 +112,14 @@ internal static class ThemeCommands
 
     private static void Switch(PgtailSession session, string name, CommandOutput output)
     {
-        var file = session.Themes.ThemeFile(name);
+        string file = session.Themes.ThemeFile(name);
         if (File.Exists(file))
         {
-            var (loaded, errors) = Styling.ThemeLoader.Load(file);
+            (Theme? loaded, IReadOnlyList<string>? errors) = Styling.ThemeLoader.Load(file);
             if (errors.Count > 0)
             {
                 output.Line($"Theme '{name}' has validation errors:");
-                foreach (var error in errors)
+                foreach (string error in errors)
                 {
                     output.Line($"  {error}");
                 }
@@ -138,16 +138,16 @@ internal static class ThemeCommands
 
         if (!session.Themes.Switch(name))
         {
-            var (builtIn, custom) = session.Themes.ListThemes();
+            (IReadOnlyList<string>? builtIn, IReadOnlyList<string>? custom) = session.Themes.ListThemes();
             output.Line($"Unknown theme: {name}");
             output.Line();
             output.Line("Available themes:");
-            foreach (var theme in builtIn)
+            foreach (string theme in builtIn)
             {
                 output.Line($"  {theme} (built-in)");
             }
 
-            foreach (var theme in custom)
+            foreach (string theme in custom)
             {
                 output.Line($"  {theme} (custom)");
             }
@@ -193,12 +193,12 @@ internal static class ThemeCommands
 
     private static void List(PgtailSession session, CommandOutput output)
     {
-        var (builtIn, custom) = session.Themes.ListThemes();
-        var current = session.Theme.Name;
+        (IReadOnlyList<string>? builtIn, IReadOnlyList<string>? custom) = session.Themes.ListThemes();
+        string current = session.Theme.Name;
         output.Line("Available themes:");
         output.Line();
         output.Line("Built-in:");
-        foreach (var name in builtIn)
+        foreach (string name in builtIn)
         {
             output.Line(ListLine(session, name, current));
         }
@@ -207,7 +207,7 @@ internal static class ThemeCommands
         {
             output.Line();
             output.Line("Custom:");
-            foreach (var name in custom)
+            foreach (string name in custom)
             {
                 output.Line(ListLine(session, name, current));
             }
@@ -222,8 +222,8 @@ internal static class ThemeCommands
 
     private static string ListLine(PgtailSession session, string name, string current)
     {
-        var marker = name == current ? " *" : "";
-        var description = session.Themes.GetTheme(name)?.Description is { Length: > 0 } text ? $"  - {text}" : "";
+        string marker = name == current ? " *" : "";
+        string description = session.Themes.GetTheme(name)?.Description is { Length: > 0 } text ? $"  - {text}" : "";
         return $"  {name}{marker}{description}";
     }
 
@@ -232,11 +232,11 @@ internal static class ThemeCommands
         session.Themes.ScanCustomThemes();
         if (session.Themes.GetTheme(name) is not { } theme)
         {
-            var (builtIn, custom) = session.Themes.ListThemes();
+            (IReadOnlyList<string>? builtIn, IReadOnlyList<string>? custom) = session.Themes.ListThemes();
             output.Line($"Unknown theme: {name}");
             output.Line();
             output.Line("Available themes:");
-            foreach (var available in builtIn.Concat(custom))
+            foreach (string? available in builtIn.Concat(custom))
             {
                 output.Line($"  {available}");
             }
@@ -251,8 +251,8 @@ internal static class ThemeCommands
         }
 
         output.Line();
-        var now = DateTime.Now;
-        foreach (var (level, message) in Samples)
+        DateTime now = DateTime.Now;
+        foreach ((LogLevel level, string message) in s_samples)
         {
             output.Line(new StyledText($"{EntryFormatter.FormatTime(now)} ", theme.Style("timestamp"))
                 .Append("[12345] ", theme.Style("pid"))
@@ -265,8 +265,8 @@ internal static class ThemeCommands
 
     private static async Task EditAsync(CommandInvocation invocation, string name)
     {
-        var session = invocation.Session;
-        var output = invocation.Output;
+        PgtailSession session = invocation.Session;
+        CommandOutput output = invocation.Output;
         if (ThemeManager.IsBuiltIn(name))
         {
             output.Line($"Cannot edit built-in theme: {name}");
@@ -277,8 +277,8 @@ internal static class ThemeCommands
             return;
         }
 
-        var file = session.Themes.ThemeFile(name);
-        var template = ThemeLoader.Template.Replace("{name}", name, StringComparison.Ordinal);
+        string file = session.Themes.ThemeFile(name);
+        string template = ThemeLoader.Template.Replace("{name}", name, StringComparison.Ordinal);
         if (!File.Exists(file))
         {
             Directory.CreateDirectory(session.Themes.ThemesDirectory);

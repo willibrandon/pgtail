@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Pgtail.Analyzers;
 
@@ -15,7 +16,7 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(DiagnosticDescriptors.BlockIsNotExpanded);
+        ImmutableArray.Create(DiagnosticDescriptors.s_blockIsNotExpanded);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -88,7 +89,7 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
             || SharesLine(close.GetPreviousToken(), close) || ContinuesWithCode(close)
             || HasCommentBeside(open) || HasCommentBeside(close))
         {
-            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.BlockIsNotExpanded, open.GetLocation()));
+            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.s_blockIsNotExpanded, open.GetLocation()));
         }
     }
 
@@ -96,7 +97,7 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
     // access that carries the expression on, as in ".ToList()", take the next line.
     private static bool ContinuesWithCode(SyntaxToken close)
     {
-        var next = close.GetNextToken();
+        SyntaxToken next = close.GetNextToken();
         if (!SharesLine(close, next))
         {
             return false;
@@ -121,7 +122,7 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
     // is written everywhere. A statement or member that starts after it, as in "}); Next();", is code beside the brace.
     private static bool StartsAnotherStatement(SyntaxToken close)
     {
-        for (var token = close.GetNextToken(); SharesLine(close, token); token = token.GetNextToken())
+        for (SyntaxToken token = close.GetNextToken(); SharesLine(close, token); token = token.GetNextToken())
         {
             if (token.IsKind(SyntaxKind.SemicolonToken) && SharesLine(token, token.GetNextToken()))
             {
@@ -135,11 +136,11 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
     // A comment is trivia, so the neighbouring tokens do not show it. One written after "});" hangs on the last token of that line.
     private static bool HasCommentBeside(SyntaxToken brace)
     {
-        var tree = brace.SyntaxTree!;
-        var line = tree.GetLineSpan(brace.Span).StartLinePosition.Line;
-        for (var token = brace; SharesLine(brace, token); token = token.GetNextToken())
+        SyntaxTree tree = brace.SyntaxTree!;
+        int line = tree.GetLineSpan(brace.Span).StartLinePosition.Line;
+        for (SyntaxToken token = brace; SharesLine(brace, token); token = token.GetNextToken())
         {
-            foreach (var trivia in token.LeadingTrivia.Concat(token.TrailingTrivia))
+            foreach (SyntaxTrivia trivia in token.LeadingTrivia.Concat(token.TrailingTrivia))
             {
                 if (IsComment(trivia) && Touches(tree, trivia, line))
                 {
@@ -158,9 +159,9 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
     // A documentation comment's span runs to the start of the next line, which is not a line it is written on.
     private static bool Touches(SyntaxTree tree, SyntaxTrivia trivia, int line)
     {
-        var span = tree.GetLineSpan(trivia.Span);
-        var end = span.EndLinePosition;
-        var last = end.Character == 0 && end.Line > span.StartLinePosition.Line ? end.Line - 1 : end.Line;
+        FileLinePositionSpan span = tree.GetLineSpan(trivia.Span);
+        LinePosition end = span.EndLinePosition;
+        int last = end.Character == 0 && end.Line > span.StartLinePosition.Line ? end.Line - 1 : end.Line;
         return span.StartLinePosition.Line == line || last == line;
     }
 
@@ -171,7 +172,7 @@ public sealed class ExpandedBlockAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        var tree = first.SyntaxTree!;
+        SyntaxTree tree = first.SyntaxTree!;
         return tree.GetLineSpan(first.Span).EndLinePosition.Line == tree.GetLineSpan(second.Span).StartLinePosition.Line;
     }
 }

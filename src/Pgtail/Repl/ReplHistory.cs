@@ -35,7 +35,7 @@ internal sealed class ReplHistory(string? path)
         }
 
         var current = new List<string>();
-        foreach (var line in File.ReadLines(path, Encoding.UTF8))
+        foreach (string line in File.ReadLines(path, Encoding.UTF8))
         {
             if (line.StartsWith('+'))
             {
@@ -132,7 +132,7 @@ internal sealed class ReplHistory(string? path)
             var builder = new StringBuilder();
             builder.Append('\n').Append("# ")
                 .Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.ffffff", CultureInfo.InvariantCulture)).Append('\n');
-            foreach (var part in line.Split('\n'))
+            foreach (string part in line.Split('\n'))
             {
                 builder.Append('+').Append(part).Append('\n');
             }

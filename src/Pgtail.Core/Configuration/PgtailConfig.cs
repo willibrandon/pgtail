@@ -12,7 +12,7 @@ public sealed class PgtailConfig
     /// </summary>
     public PgtailConfig()
     {
-        foreach (var setting in SettingsSchema.All)
+        foreach (SettingDefinition setting in SettingsSchema.All)
         {
             _values[setting.Key] = setting.Default;
         }
@@ -25,7 +25,7 @@ public sealed class PgtailConfig
     /// <returns>The value, or null when it is unset.</returns>
     public object? this[string key]
     {
-        get => _values.TryGetValue(key, out var value) ? value : throw new KeyNotFoundException($"Unknown setting: {key}");
+        get => _values.TryGetValue(key, out object? value) ? value : throw new KeyNotFoundException($"Unknown setting: {key}");
         set
         {
             if (!_values.ContainsKey(key))

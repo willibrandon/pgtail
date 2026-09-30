@@ -28,13 +28,13 @@ public static partial class ProcessTable
         }
 
         var entries = new List<ProcessEntry>();
-        foreach (var process in Process.GetProcesses())
+        foreach (Process process in Process.GetProcesses())
         {
             using (process)
             {
                 try
                 {
-                    var arguments = OperatingSystem.IsWindows() ? WindowsArguments(process.Id)
+                    IReadOnlyList<string> arguments = OperatingSystem.IsWindows() ? WindowsArguments(process.Id)
                         : OperatingSystem.IsMacOS() ? MacArguments(process.Id)
                         : [];
                     entries.Add(new ProcessEntry(process.Id, process.ProcessName, arguments));
@@ -85,16 +85,16 @@ public static partial class ProcessTable
             return entries;
         }
 
-        foreach (var directory in directories)
+        foreach (string directory in directories)
         {
-            if (!int.TryParse(Path.GetFileName(directory), out var pid) || ReadText(Path.Combine(directory, "comm")) is not { } comm)
+            if (!int.TryParse(Path.GetFileName(directory), out int pid) || ReadText(Path.Combine(directory, "comm")) is not { } comm)
             {
                 continue;
             }
 
-            var commandLine = ReadText(Path.Combine(directory, "cmdline")) ?? "";
-            var arguments = commandLine.Split('\0');
-            var count = arguments.Length > 0 && arguments[^1].Length == 0 ? arguments.Length - 1 : arguments.Length;
+            string commandLine = ReadText(Path.Combine(directory, "cmdline")) ?? "";
+            string[] arguments = commandLine.Split('\0');
+            int count = arguments.Length > 0 && arguments[^1].Length == 0 ? arguments.Length - 1 : arguments.Length;
             entries.Add(new ProcessEntry(pid, comm.Trim(), arguments[..count]));
         }
 
@@ -103,26 +103,26 @@ public static partial class ProcessTable
 
     private static List<string> MacArguments(int pid)
     {
-        var maxName = new[] { CtlKern, KernArgMax };
-        var maxBuffer = new byte[sizeof(int)];
+        int[] maxName = [CtlKern, KernArgMax];
+        byte[] maxBuffer = new byte[sizeof(int)];
         nuint maxLength = sizeof(int);
         if (Sysctl(maxName, 2, maxBuffer, ref maxLength, IntPtr.Zero, 0) != 0)
         {
             return [];
         }
 
-        var size = BitConverter.ToInt32(maxBuffer);
-        var buffer = new byte[size];
-        var length = (nuint)size;
+        int size = BitConverter.ToInt32(maxBuffer);
+        byte[] buffer = new byte[size];
+        nuint length = (nuint)size;
         if (Sysctl([CtlKern, KernProcArgs2, pid], 3, buffer, ref length, IntPtr.Zero, 0) != 0 || length < sizeof(int))
         {
             return [];
         }
 
         // The buffer holds argc, the executable path, padding, and then argc NUL-terminated arguments.
-        var count = BitConverter.ToInt32(buffer, 0);
-        var position = sizeof(int);
-        var used = (int)length;
+        int count = BitConverter.ToInt32(buffer, 0);
+        int position = sizeof(int);
+        int used = (int)length;
         while (position < used && buffer[position] != 0)
         {
             position++;
@@ -136,7 +136,7 @@ public static partial class ProcessTable
         var arguments = new List<string>();
         while (arguments.Count < count && position < used)
         {
-            var end = Array.IndexOf(buffer, (byte)0, position, used - position);
+            int end = Array.IndexOf(buffer, (byte)0, position, used - position);
             end = end < 0 ? used : end;
             arguments.Add(Encoding.UTF8.GetString(buffer, position, end - position));
             position = end + 1;
@@ -147,7 +147,7 @@ public static partial class ProcessTable
 
     private static IReadOnlyList<string> WindowsArguments(int pid)
     {
-        var handle = OpenProcess(ProcessQueryLimitedInformation, false, pid);
+        nint handle = OpenProcess(ProcessQueryLimitedInformation, false, pid);
         if (handle == IntPtr.Zero)
         {
             return [];
@@ -155,21 +155,21 @@ public static partial class ProcessTable
 
         try
         {
-            NtQueryInformationProcess(handle, ProcessCommandLineInformation, [], 0, out var required);
+            NtQueryInformationProcess(handle, ProcessCommandLineInformation, [], 0, out int required);
             if (required <= 0)
             {
                 return [];
             }
 
-            var buffer = new byte[required];
+            byte[] buffer = new byte[required];
             if (NtQueryInformationProcess(handle, ProcessCommandLineInformation, buffer, buffer.Length, out _) != 0)
             {
                 return [];
             }
 
             // The UNICODE_STRING header is followed directly by the characters it describes.
-            var bytes = BitConverter.ToUInt16(buffer, 0);
-            var offset = IntPtr.Size == 8 ? 16 : 8;
+            ushort bytes = BitConverter.ToUInt16(buffer, 0);
+            int offset = IntPtr.Size == 8 ? 16 : 8;
             if (offset + bytes > buffer.Length)
             {
                 return [];

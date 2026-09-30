@@ -104,10 +104,10 @@ internal static class CliHelp
     public static string Error(CliParseException error)
     {
         ArgumentNullException.ThrowIfNull(error);
-        var usage = error.Command is { } command
+        string usage = error.Command is { } command
             ? For(command).Split('\n')[0]
             : "Usage: pgtail [OPTIONS] COMMAND [ARGS]...";
-        var help = error.Command is { } name ? $"pgtail {name} --help" : "pgtail --help";
+        string help = error.Command is { } name ? $"pgtail {name} --help" : "pgtail --help";
         return $"{usage}\nTry '{help}' for help.\n\nError: {error.Message}";
     }
 }

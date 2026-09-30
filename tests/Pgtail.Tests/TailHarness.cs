@@ -31,7 +31,7 @@ internal sealed class TailHarness : IAsyncDisposable
     {
         Session = session;
         var request = new TailRequest(new TailSource(Files: logFiles), logFiles[0], Stream: false);
-        var source = LogSources.Create(request, session, directory, () => Stream.Null, TailScreen.BacklogLines);
+        ILogSource source = LogSources.Create(request, session, directory, () => Stream.Null, TailScreen.BacklogLines);
         _screen = new TailScreen(session, request, source, directory);
         Hex1bAppOptions? options = null;
         _terminal = Hex1bTerminal.CreateBuilder()
@@ -91,7 +91,7 @@ internal sealed class TailHarness : IAsyncDisposable
         int width = 100,
         int height = 24)
     {
-        var session = environment.CreateSession();
+        PgtailSession session = environment.CreateSession();
         session.Time = new TimeFilter(since: DateTime.UtcNow.AddDays(-1), originalInput: "1d");
         var harness = new TailHarness(session, logFiles, environment.Root, width, height, cancellationToken);
         await harness.Automator.WaitUntilTextAsync("FOLLOW");
@@ -128,8 +128,8 @@ internal sealed class TailHarness : IAsyncDisposable
     public static int? InputCursor(IHex1bTerminalRegion screen)
     {
         ArgumentNullException.ThrowIfNull(screen);
-        var row = screen.Height - 3;
-        for (var x = 0; x < screen.Width; x++)
+        int row = screen.Height - 3;
+        for (int x = 0; x < screen.Width; x++)
         {
             if (screen.GetCell(x, row).IsReverse)
             {

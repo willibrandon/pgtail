@@ -1,5 +1,6 @@
 using Hex1b;
 using Hex1b.Surfaces;
+using Hex1b.Theming;
 using Hex1b.Widgets;
 using Pgtail.Styling;
 
@@ -10,7 +11,7 @@ namespace Pgtail.Rendering;
 /// </summary>
 internal static class StyledBlock
 {
-    private static readonly IReadOnlyList<List<StyledSpan>> EmptyRows = [[]];
+    private static readonly IReadOnlyList<List<StyledSpan>> s_emptyRows = [[]];
 
     /// <summary>
     /// Builds a widget that draws the lines folded to a width.
@@ -47,7 +48,7 @@ internal static class StyledBlock
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(rows);
-        var shown = rows.Count == 0 ? EmptyRows : rows;
+        IReadOnlyList<List<StyledSpan>> shown = rows.Count == 0 ? s_emptyRows : rows;
 
         // Size hints apply to a widget through its parent, so the surface sits in a stack even when it is a root.
         return context.VStack(v =>
@@ -78,7 +79,7 @@ internal static class StyledBlock
     {
         ArgumentNullException.ThrowIfNull(surface);
         ArgumentNullException.ThrowIfNull(rows);
-        for (var y = 0; y < rows.Count && y < surface.Height; y++)
+        for (int y = 0; y < rows.Count && y < surface.Height; y++)
         {
             DrawRow(surface, 0, y, rows[y], color);
         }
@@ -97,16 +98,16 @@ internal static class StyledBlock
     {
         ArgumentNullException.ThrowIfNull(surface);
         ArgumentNullException.ThrowIfNull(row);
-        foreach (var span in row)
+        foreach (StyledSpan span in row)
         {
             if (x >= surface.Width)
             {
                 break;
             }
 
-            var style = span.Style;
-            var foreground = color ? style.Foreground?.ToHex1b() : null;
-            var background = color ? style.Background?.ToHex1b() : null;
+            TextStyle style = span.Style;
+            Hex1bColor? foreground = color ? style.Foreground?.ToHex1b() : null;
+            Hex1bColor? background = color ? style.Background?.ToHex1b() : null;
             x += surface.WriteText(x, y, span.Text, foreground, background, style.Attributes.ToCellAttributes());
         }
 

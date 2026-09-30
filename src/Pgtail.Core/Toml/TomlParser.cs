@@ -45,7 +45,7 @@ internal sealed partial class TomlParser
 
         while (true)
         {
-            var lineStart = _position;
+            int lineStart = _position;
             SkipWhitespace();
             if (AtEnd)
             {
@@ -73,13 +73,13 @@ internal sealed partial class TomlParser
 
     private void ParseStatement(int lineStart)
     {
-        var key = ParseKey();
+        List<string> key = ParseKey();
         SkipWhitespace();
         Expect('=', "Expected '=' after the key");
         SkipWhitespace();
-        var valueStart = _position;
-        var value = ParseValue();
-        var valueEnd = _position;
+        int valueStart = _position;
+        object value = ParseValue();
+        int valueEnd = _position;
         FinishLine();
         Insert(_current, key, value, keyStart: lineStart);
         _statements.Add(new TomlStatement(TomlStatementKind.KeyValue, [.. _currentPath, .. key], [.. _currentPath], lineStart,
@@ -88,10 +88,10 @@ internal sealed partial class TomlParser
 
     private void ParseHeader(int lineStart)
     {
-        var isArray = _position + 1 < _text.Length && _text[_position + 1] == '[';
+        bool isArray = _position + 1 < _text.Length && _text[_position + 1] == '[';
         _position += isArray ? 2 : 1;
         SkipWhitespace();
-        var path = ParseKey();
+        List<string> path = ParseKey();
         SkipWhitespace();
         Expect(']', isArray ? "Expected ']]' to close the array of tables header" : "Expected ']' to close the table header");
         if (isArray)
@@ -152,7 +152,7 @@ internal sealed partial class TomlParser
         _position++;
         while (!AtEnd && Current != '\n')
         {
-            var c = Current;
+            char c = Current;
             if (c == '\r' && _position + 1 < _text.Length && _text[_position + 1] == '\n')
             {
                 return;
@@ -206,9 +206,9 @@ internal sealed partial class TomlParser
 
     private TomlException Error(string message, int position)
     {
-        var line = 1;
-        var column = 1;
-        for (var i = 0; i < position && i < _text.Length; i++)
+        int line = 1;
+        int column = 1;
+        for (int i = 0; i < position && i < _text.Length; i++)
         {
             if (_text[i] == '\n')
             {

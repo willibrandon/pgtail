@@ -8,13 +8,13 @@ namespace Pgtail.Display;
 /// </summary>
 public static class TailStyles
 {
-    private static readonly TextStyle Panic = StyleParser.Parse("bold white on red");
-    private static readonly TextStyle Fatal = StyleParser.Parse("bold red reverse");
-    private static readonly TextStyle Error = StyleParser.Parse("bold red");
-    private static readonly TextStyle Warning = StyleParser.Parse("yellow");
-    private static readonly TextStyle Notice = StyleParser.Parse("cyan");
-    private static readonly TextStyle Log = StyleParser.Parse("green");
-    private static readonly TextStyle Info = StyleParser.Parse("blue");
+    private static readonly TextStyle s_panic = StyleParser.Parse("bold white on red");
+    private static readonly TextStyle s_fatal = StyleParser.Parse("bold red reverse");
+    private static readonly TextStyle s_error = StyleParser.Parse("bold red");
+    private static readonly TextStyle s_warning = StyleParser.Parse("yellow");
+    private static readonly TextStyle s_notice = StyleParser.Parse("cyan");
+    private static readonly TextStyle s_log = StyleParser.Parse("green");
+    private static readonly TextStyle s_info = StyleParser.Parse("blue");
 
     /// <summary>
     /// Timestamps and process IDs.
@@ -38,13 +38,13 @@ public static class TailStyles
     /// <returns>The style.</returns>
     public static TextStyle Level(LogLevel level) => level switch
     {
-        LogLevel.Panic => Panic,
-        LogLevel.Fatal => Fatal,
-        LogLevel.Error => Error,
-        LogLevel.Warning => Warning,
-        LogLevel.Notice => Notice,
-        LogLevel.Log => Log,
-        LogLevel.Info => Info,
+        LogLevel.Panic => s_panic,
+        LogLevel.Fatal => s_fatal,
+        LogLevel.Error => s_error,
+        LogLevel.Warning => s_warning,
+        LogLevel.Notice => s_notice,
+        LogLevel.Log => s_log,
+        LogLevel.Info => s_info,
         _ => Dim,
     };
 }

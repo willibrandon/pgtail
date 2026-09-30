@@ -31,7 +31,7 @@ public sealed class EntryGrouper
             return null;
         }
 
-        var complete = _pending;
+        LogEntry? complete = _pending;
         _pending = entry;
         return complete;
     }
@@ -42,7 +42,7 @@ public sealed class EntryGrouper
     /// <returns>The entry, or null.</returns>
     public LogEntry? Flush()
     {
-        var pending = _pending;
+        LogEntry? pending = _pending;
         _pending = null;
         return pending;
     }

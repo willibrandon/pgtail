@@ -16,9 +16,9 @@ public sealed partial class Theme(
     IReadOnlyDictionary<string, ColorStyle> levels,
     IReadOnlyDictionary<string, ColorStyle> ui)
 {
-    private static readonly string[] RequiredLevels = ["ERROR", "LOG", "WARNING"];
+    private static readonly string[] s_requiredLevels = ["ERROR", "LOG", "WARNING"];
     private readonly ConcurrentDictionary<string, TextStyle> _resolved = new(StringComparer.Ordinal);
-    private static readonly string[] RequiredElements = ["highlight", "timestamp"];
+    private static readonly string[] s_requiredElements = ["highlight", "timestamp"];
 
     /// <summary>
     /// The theme name.
@@ -60,24 +60,24 @@ public sealed partial class Theme(
             errors.Add("Theme name must be lowercase alphanumeric with hyphens");
         }
 
-        var missingLevels = RequiredLevels.Where(level => !Levels.ContainsKey(level)).ToList();
+        var missingLevels = s_requiredLevels.Where(level => !Levels.ContainsKey(level)).ToList();
         if (missingLevels.Count > 0)
         {
             errors.Add($"Missing required log levels: {string.Join(", ", missingLevels)}");
         }
 
-        var missingUi = RequiredElements.Where(element => !Ui.ContainsKey(element)).ToList();
+        var missingUi = s_requiredElements.Where(element => !Ui.ContainsKey(element)).ToList();
         if (missingUi.Count > 0)
         {
             errors.Add($"Missing required UI elements: {string.Join(", ", missingUi)}");
         }
 
-        foreach (var (level, style) in Levels)
+        foreach ((string level, ColorStyle style) in Levels)
         {
             errors.AddRange(style.Validate().Select(error => $"levels.{level}: {error}"));
         }
 
-        foreach (var (element, style) in Ui)
+        foreach ((string element, ColorStyle style) in Ui)
         {
             errors.AddRange(style.Validate().Select(error => $"ui.{element}: {error}"));
         }
@@ -93,17 +93,17 @@ public sealed partial class Theme(
     public ColorStyle GetLevelStyle(string level)
     {
         ArgumentNullException.ThrowIfNull(level);
-        if (Levels.TryGetValue(level, out var style))
+        if (Levels.TryGetValue(level, out ColorStyle? style))
         {
             return style;
         }
 
-        if (level.StartsWith("DEBUG", StringComparison.Ordinal) && Levels.TryGetValue("DEBUG", out var debug))
+        if (level.StartsWith("DEBUG", StringComparison.Ordinal) && Levels.TryGetValue("DEBUG", out ColorStyle? debug))
         {
             return debug;
         }
 
-        return Levels.TryGetValue("LOG", out var log) ? log : new ColorStyle();
+        return Levels.TryGetValue("LOG", out ColorStyle? log) ? log : new ColorStyle();
     }
 
     /// <summary>
@@ -111,7 +111,7 @@ public sealed partial class Theme(
     /// </summary>
     /// <param name="element">The element name.</param>
     /// <returns>The style.</returns>
-    public TextStyle Style(string element) => Ui.TryGetValue(element, out var style) ? style.ToTextStyle() : TextStyle.Plain;
+    public TextStyle Style(string element) => Ui.TryGetValue(element, out ColorStyle? style) ? style.ToTextStyle() : TextStyle.Plain;
 
     /// <summary>
     /// Resolves a highlight style: a theme element name, or else a style string such as <c>bold red</c>.
@@ -124,9 +124,9 @@ public sealed partial class Theme(
     public TextStyle ResolveStyle(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        return _resolved.GetOrAdd(key, static (name, theme) => theme.Ui.TryGetValue(name, out var style)
+        return _resolved.GetOrAdd(key, static (name, theme) => theme.Ui.TryGetValue(name, out ColorStyle? style)
             ? style.ToTextStyle()
-            : StyleParser.TryParse(name, out var parsed, out _) ? parsed : TextStyle.Plain, this);
+            : StyleParser.TryParse(name, out TextStyle parsed, out _) ? parsed : TextStyle.Plain, this);
     }
 
     [GeneratedRegex("^[a-z0-9-]+$")]

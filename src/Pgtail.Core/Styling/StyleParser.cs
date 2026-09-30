@@ -20,11 +20,11 @@ public static class StyleParser
     public static TextStyle Parse(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var style = TextStyle.Plain;
-        var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        for (var i = 0; i < words.Length; i++)
+        TextStyle style = TextStyle.Plain;
+        string[] words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < words.Length; i++)
         {
-            var word = words[i].ToLowerInvariant();
+            string word = words[i].ToLowerInvariant();
             if (word == "none")
             {
                 continue;
@@ -32,7 +32,7 @@ public static class StyleParser
 
             if (word == "on")
             {
-                if (i + 1 >= words.Length || !ColorParser.TryParse(words[i + 1], out var background))
+                if (i + 1 >= words.Length || !ColorParser.TryParse(words[i + 1], out TerminalColor background))
                 {
                     throw new FormatException($"Expected a color after 'on' in style '{text}'");
                 }
@@ -68,7 +68,7 @@ public static class StyleParser
 
             if (word.StartsWith("fg:", StringComparison.Ordinal) || word.StartsWith("bg:", StringComparison.Ordinal))
             {
-                if (!ColorParser.TryParse(word[3..], out var prefixed))
+                if (!ColorParser.TryParse(word[3..], out TerminalColor prefixed))
                 {
                     throw new FormatException($"Unknown color '{words[i][3..]}' in style '{text}'");
                 }
@@ -77,7 +77,7 @@ public static class StyleParser
                 continue;
             }
 
-            if (!ColorParser.TryParse(word, out var foreground))
+            if (!ColorParser.TryParse(word, out TerminalColor foreground))
             {
                 throw new FormatException($"Unknown color or attribute '{words[i]}' in style '{text}'");
             }

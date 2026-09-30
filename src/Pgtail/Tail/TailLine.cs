@@ -69,14 +69,14 @@ internal sealed class TailLine
     private static List<(string Text, IReadOnlyList<(int Start, int End, TextStyle Style)> Styles)> Split(StyledText text)
     {
         var rows = new List<(string, IReadOnlyList<(int, int, TextStyle)>)>();
-        foreach (var row in text.SplitLines())
+        foreach (StyledText row in text.SplitLines())
         {
             var builder = new StringBuilder();
             var styles = new List<(int, int, TextStyle)>();
-            foreach (var span in row.Spans)
+            foreach (StyledSpan span in row.Spans)
             {
-                var start = builder.Length;
-                foreach (var character in span.Text)
+                int start = builder.Length;
+                foreach (char character in span.Text)
                 {
                     if (character == '\t')
                     {

@@ -36,12 +36,12 @@ internal sealed class CommandCatalog(IReadOnlyList<CommandInfo> commands)
     {
         ArgumentNullException.ThrowIfNull(line);
         ArgumentNullException.ThrowIfNull(host);
-        var tokens = CommandLineSplitter.Split(line);
-        var endsInSpace = line.Length == 0 || char.IsWhiteSpace(line[^1]);
-        var partialToken = endsInSpace || tokens.Count == 0 ? (CommandToken?)null : tokens[^1];
-        var partial = partialToken?.Text ?? "";
-        var start = partialToken?.Start ?? line.Length;
-        var finished = partialToken is null ? tokens : tokens.Take(tokens.Count - 1).ToList();
+        List<CommandToken> tokens = CommandLineSplitter.Split(line);
+        bool endsInSpace = line.Length == 0 || char.IsWhiteSpace(line[^1]);
+        CommandToken? partialToken = endsInSpace || tokens.Count == 0 ? null : tokens[^1];
+        string partial = partialToken?.Text ?? "";
+        int start = partialToken?.Start ?? line.Length;
+        List<CommandToken> finished = partialToken is null ? tokens : [.. tokens.Take(tokens.Count - 1)];
         if (finished.Count == 0)
         {
             return (start, partial.Length == 0 && style == CompletionStyle.Inline ? [] : ArgumentCompleter.Filter(Names(), partial));

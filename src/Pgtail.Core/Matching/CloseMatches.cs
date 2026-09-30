@@ -20,10 +20,10 @@ public static class CloseMatches
         ArgumentNullException.ThrowIfNull(word);
         ArgumentNullException.ThrowIfNull(candidates);
         string? best = null;
-        var bestRatio = cutoff;
-        foreach (var candidate in candidates)
+        double bestRatio = cutoff;
+        foreach (string candidate in candidates)
         {
-            var ratio = Ratio(word, candidate);
+            double ratio = Ratio(word, candidate);
             if (ratio > bestRatio || (ratio == bestRatio && best is null && ratio >= cutoff))
             {
                 best = candidate;
@@ -44,13 +44,13 @@ public static class CloseMatches
     {
         ArgumentNullException.ThrowIfNull(a);
         ArgumentNullException.ThrowIfNull(b);
-        var total = a.Length + b.Length;
+        int total = a.Length + b.Length;
         return total == 0 ? 1 : 2.0 * Matches(a, 0, a.Length, b, 0, b.Length) / total;
     }
 
     private static int Matches(string a, int aStart, int aEnd, string b, int bStart, int bEnd)
     {
-        var (i, j, size) = LongestMatch(a, aStart, aEnd, b, bStart, bEnd);
+        (int i, int j, int size) = LongestMatch(a, aStart, aEnd, b, bStart, bEnd);
         if (size == 0)
         {
             return 0;
@@ -61,12 +61,12 @@ public static class CloseMatches
 
     private static (int I, int J, int Size) LongestMatch(string a, int aStart, int aEnd, string b, int bStart, int bEnd)
     {
-        var best = (I: aStart, J: bStart, Size: 0);
-        for (var i = aStart; i < aEnd; i++)
+        (int I, int J, int Size) best = (I: aStart, J: bStart, Size: 0);
+        for (int i = aStart; i < aEnd; i++)
         {
-            for (var j = bStart; j < bEnd; j++)
+            for (int j = bStart; j < bEnd; j++)
             {
-                var size = 0;
+                int size = 0;
                 while (i + size < aEnd && j + size < bEnd && a[i + size] == b[j + size])
                 {
                     size++;

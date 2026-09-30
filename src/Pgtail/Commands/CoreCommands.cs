@@ -162,7 +162,7 @@ internal static class CoreCommands
     /// <returns>A completed task.</returns>
     public static Task Quit(CommandInvocation invocation)
     {
-        var host = Repl(invocation);
+        IReplHost host = Repl(invocation);
         if (host.IsStreaming)
         {
             host.StopStreaming();
@@ -179,7 +179,7 @@ internal static class CoreCommands
     /// <returns>A completed task.</returns>
     public static Task Stop(CommandInvocation invocation)
     {
-        var host = Repl(invocation);
+        IReplHost host = Repl(invocation);
         if (!host.IsStreaming)
         {
             invocation.Output.Line("Not currently tailing.");
@@ -198,10 +198,10 @@ internal static class CoreCommands
     /// <returns>A completed task.</returns>
     public static Task Display(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var display = invocation.Session.Display;
-        var args = invocation.Args;
-        var validFields = $"Valid fields: {string.Join(", ", DisplayFields.Valid)}";
+        CommandOutput output = invocation.Output;
+        DisplayState display = invocation.Session.Display;
+        IReadOnlyList<string> args = invocation.Args;
+        string validFields = $"Valid fields: {string.Join(", ", DisplayFields.Valid)}";
         if (args.Count == 0)
         {
             output.Line(display.FormatStatus());
@@ -223,7 +223,7 @@ internal static class CoreCommands
                 output.Line(validFields);
                 break;
             case "fields":
-                var fields = args[1].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                string[] fields = args[1].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 if (fields.Length == 0)
                 {
                     output.Line("No fields specified.");
@@ -231,7 +231,7 @@ internal static class CoreCommands
                     break;
                 }
 
-                var invalid = display.SetCustom(fields);
+                IReadOnlyList<string> invalid = display.SetCustom(fields);
                 if (invalid.Count > 0)
                 {
                     output.Line($"Unknown fields: {string.Join(", ", invalid)}");
@@ -263,9 +263,9 @@ internal static class CoreCommands
     /// <returns>A completed task.</returns>
     public static Task Output(CommandInvocation invocation)
     {
-        var output = invocation.Output;
-        var display = invocation.Session.Display;
-        var args = invocation.Args;
+        CommandOutput output = invocation.Output;
+        DisplayState display = invocation.Session.Display;
+        IReadOnlyList<string> args = invocation.Args;
         if (args.Count == 0)
         {
             output.Line($"Output format: {(display.OutputFormat == OutputFormat.Json ? "json" : "text")}");

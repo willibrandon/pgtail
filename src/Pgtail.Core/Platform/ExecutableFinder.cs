@@ -15,7 +15,7 @@ public static class ExecutableFinder
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(environment);
-        var path = environment("PATH");
+        string? path = environment("PATH");
         if (string.IsNullOrEmpty(path))
         {
             return null;
@@ -24,11 +24,11 @@ public static class ExecutableFinder
         string[] extensions = OperatingSystem.IsWindows()
             ? [.. (environment("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD").Split(';', StringSplitOptions.RemoveEmptyEntries)]
             : [""];
-        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        foreach (string directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            foreach (var extension in extensions)
+            foreach (string extension in extensions)
             {
-                var candidate = Path.Combine(directory, name + extension);
+                string candidate = Path.Combine(directory, name + extension);
                 if (IsExecutable(candidate))
                 {
                     return candidate;

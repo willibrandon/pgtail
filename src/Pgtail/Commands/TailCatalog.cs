@@ -8,18 +8,18 @@ namespace Pgtail.Commands;
 /// </summary>
 internal static class TailCatalog
 {
-    private static readonly ArgumentSpec Levels = ArgumentSpec.Of(
+    private static readonly ArgumentSpec s_levels = ArgumentSpec.Of(
         ("debug", "Debug messages"), ("error", "Errors"), ("fatal", "Fatal errors"), ("info", "Informational"), ("log", "Log messages"),
         ("notice", "Notices"), ("panic", "Panics"), ("warning", "Warnings"));
 
-    private static readonly ArgumentSpec TimePresets = ArgumentSpec.Of(
+    private static readonly ArgumentSpec s_timePresets = ArgumentSpec.Of(
         ("10m", "Last 10 minutes"), ("15m", "Last 15 minutes"), ("1d", "Last day"), ("1h", "Last hour"), ("2h", "Last 2 hours"),
         ("30m", "Last 30 minutes"), ("4h", "Last 4 hours"), ("5m", "Last 5 minutes"), ("clear", "Remove time filter"));
 
-    private static readonly ArgumentSpec Formats =
+    private static readonly ArgumentSpec s_formats =
         ArgumentSpec.Of(("csv", "CSV with headers"), ("json", "JSON Lines"), ("text", "Raw log lines"));
 
-    private static readonly ArgumentSpec HighlighterNames = ArgumentSpec.From(context =>
+    private static readonly ArgumentSpec s_highlighterNames = ArgumentSpec.From(context =>
         CompletionSources.Highlighters(name => $"{name} highlighter")(context).Concat(context.Session.Highlighting.CustomHighlighters
             .Select(custom => new CompletionItem(custom.Name, "custom highlighter"))));
 
@@ -28,7 +28,7 @@ internal static class TailCatalog
     /// </summary>
     public static CommandCatalog Catalog { get; } = new(
     [
-        new("level", "Filter by level", ArgumentSpec.Positional(Levels), FilterCommands.TailLevel)
+        new("level", "Filter by level", ArgumentSpec.Positional(s_levels), FilterCommands.TailLevel)
         {
             Aliases = ["levels"],
             Help = new("level <level>[+|-] [level2...]", "Filter log entries by severity level",
@@ -59,7 +59,7 @@ internal static class TailCatalog
                     "filter clear        Remove regex filter",
                 ]),
         },
-        new("since", "Show entries since a time", ArgumentSpec.Positional(TimePresets), TimeCommands.TailSince)
+        new("since", "Show entries since a time", ArgumentSpec.Positional(s_timePresets), TimeCommands.TailSince)
         {
             Help = new("since <time>", "Show entries from a specific time onward",
                 "Filter to show only log entries from the specified time.",
@@ -71,7 +71,7 @@ internal static class TailCatalog
                     "since clear        Remove time filter",
                 ]),
         },
-        new("until", "Show entries until a time", ArgumentSpec.Positional(TimePresets), TimeCommands.TailUntil)
+        new("until", "Show entries until a time", ArgumentSpec.Positional(s_timePresets), TimeCommands.TailUntil)
         {
             Help = new("until <time>", "Show entries up to a specific time",
                 "Filter to show only log entries up to the specified time.",
@@ -81,7 +81,7 @@ internal static class TailCatalog
                     "until clear        Remove time filter",
                 ]),
         },
-        new("between", "Show entries in a time range", new ArgumentSpec { Positionals = [TimePresets, TimePresets] },
+        new("between", "Show entries in a time range", new ArgumentSpec { Positionals = [s_timePresets, s_timePresets] },
             TimeCommands.TailBetween)
         {
             Help = new("between <start> <end>", "Show entries in a time range",
@@ -120,7 +120,7 @@ internal static class TailCatalog
                 new("--code", "Filter by SQLSTATE code", ArgumentSpec.From(_ =>
                     SqlStates.Names.Keys.Order(StringComparer.Ordinal).Select(code => new CompletionItem(code, SqlStates.Names[code])))),
                 new("--live", "Live updating counter"),
-                new("--since", "Filter by time window", TimePresets),
+                new("--since", "Filter by time window", s_timePresets),
                 new("--trend", "Show error rate sparkline"),
             ],
         }, ErrorsCommands.Tail)
@@ -162,8 +162,8 @@ internal static class TailCatalog
             Subcommands =
             [
                 new("add", "Add custom highlighter (name pattern [--style])", new ArgumentSpec { Positionals = [null, null] }),
-                new("disable", "Disable a specific highlighter", ArgumentSpec.Positional(HighlighterNames)),
-                new("enable", "Enable a specific highlighter", ArgumentSpec.Positional(HighlighterNames)),
+                new("disable", "Disable a specific highlighter", ArgumentSpec.Positional(s_highlighterNames)),
+                new("enable", "Enable a specific highlighter", ArgumentSpec.Positional(s_highlighterNames)),
                 new("export", "Export highlighting config as TOML", new ArgumentSpec
                 {
                     Flags = [new("--file", "Export to file path", ArgumentSpec.From(CompletionSources.Paths))],
@@ -174,7 +174,7 @@ internal static class TailCatalog
                 new("off", "Disable all highlighting globally", ArgumentSpec.None),
                 new("on", "Enable all highlighting globally", ArgumentSpec.None),
                 new("preview", "Preview highlighting with sample log lines", ArgumentSpec.None),
-                new("remove", "Remove custom highlighter", ArgumentSpec.Positional(HighlighterNames)),
+                new("remove", "Remove custom highlighter", ArgumentSpec.Positional(s_highlighterNames)),
                 new("reset", "Reset all highlighting settings to defaults", ArgumentSpec.None),
             ],
         }, HighlightCommands.Tail)
@@ -217,7 +217,7 @@ internal static class TailCatalog
         new("export", "Export displayed entries to a file", new ArgumentSpec
         {
             Positionals = [ArgumentSpec.From(CompletionSources.Paths)],
-            Flags = [new("--format", "Output format", Formats), new("--highlighted", "Keep colors (ANSI escapes) in text output")],
+            Flags = [new("--format", "Output format", s_formats), new("--highlighted", "Keep colors (ANSI escapes) in text output")],
         }, ExportCommands.TailExport)
         {
             Help = new("export <path> [--format text|json|csv] [--highlighted]", "Export displayed entries to a file",
@@ -236,7 +236,7 @@ internal static class TailCatalog
             [
                 new("clear", "Remove all notification rules", ArgumentSpec.None),
                 new("off", "Disable all notifications", ArgumentSpec.None),
-                new("on", "Enable notifications", new ArgumentSpec { Rest = Levels, Positionals = [Levels] }),
+                new("on", "Enable notifications", new ArgumentSpec { Rest = s_levels, Positionals = [s_levels] }),
                 new("quiet", "Set quiet hours (HH:MM-HH:MM)", ArgumentSpec.Positional(ArgumentSpec.Of(("off", "Disable quiet hours")))),
                 new("test", "Send a test notification", ArgumentSpec.Positional(ArgumentSpec.Of(
                     ("info", "Default toast"), ("warning", "Warning toast"), ("error", "Error toast"), ("critical", "Critical toast")))),
@@ -312,13 +312,13 @@ internal static class TailCatalog
     {
         ArgumentNullException.ThrowIfNull(line);
         ArgumentNullException.ThrowIfNull(host);
-        var tokens = CommandLineSplitter.Split(line);
+        List<CommandToken> tokens = CommandLineSplitter.Split(line);
         if (tokens.Count == 0)
         {
             return;
         }
 
-        var name = tokens[0].Text;
+        string name = tokens[0].Text;
         if (Catalog.Find(name) is not { } command)
         {
             host.Output.Markup($"[bold red]✗[/] Unknown command: {Markup.Escape(name)}. Type 'help' for commands.");

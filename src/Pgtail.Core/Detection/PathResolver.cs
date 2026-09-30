@@ -23,14 +23,14 @@ public static class PathResolver
             path = home + path[1..];
         }
 
-        var full = Path.GetFullPath(path);
-        var root = Path.GetPathRoot(full) ?? "";
-        var parts = full[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+        string full = Path.GetFullPath(path);
+        string root = Path.GetPathRoot(full) ?? "";
+        string[] parts = full[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
             StringSplitOptions.RemoveEmptyEntries);
-        var current = root;
-        for (var i = 0; i < parts.Length; i++)
+        string current = root;
+        for (int i = 0; i < parts.Length; i++)
         {
-            var next = Path.Combine(current, parts[i]);
+            string next = Path.Combine(current, parts[i]);
             FileSystemInfo info = Directory.Exists(next) ? new DirectoryInfo(next) : new FileInfo(next);
             if (!info.Exists)
             {

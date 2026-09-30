@@ -69,13 +69,13 @@ public sealed class Utf8Text : IDisposable
 
     private int[] BuildOffsets()
     {
-        var offsets = new int[Length + 1];
-        var bytePosition = 0;
-        for (var i = 0; i < Text.Length; i++)
+        int[] offsets = new int[Length + 1];
+        int bytePosition = 0;
+        for (int i = 0; i < Text.Length; i++)
         {
-            var c = Text[i];
+            char c = Text[i];
             int width;
-            var characters = 1;
+            int characters = 1;
             if (char.IsHighSurrogate(c) && i + 1 < Text.Length && char.IsLowSurrogate(Text[i + 1]))
             {
                 width = 4;
@@ -86,7 +86,7 @@ public sealed class Utf8Text : IDisposable
                 width = c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
             }
 
-            for (var b = 0; b < width && bytePosition + b < offsets.Length; b++)
+            for (int b = 0; b < width && bytePosition + b < offsets.Length; b++)
             {
                 offsets[bytePosition + b] = i;
             }

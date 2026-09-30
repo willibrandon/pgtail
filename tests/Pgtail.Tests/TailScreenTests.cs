@@ -12,7 +12,7 @@ namespace Pgtail.Tests;
 [TestClass]
 public sealed class TailScreenTests
 {
-    private static readonly Hex1bColor SelectionBackground = Hex1bColor.FromRgb(38, 79, 120);
+    private static readonly Hex1bColor s_selectionBackground = Hex1bColor.FromRgb(38, 79, 120);
 
     /// <summary>
     /// Supplies cancellation for the terminal.
@@ -27,9 +27,9 @@ public sealed class TailScreenTests
     public async Task Start_ExistingEntries_ShowsLogAndStatus()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "database system is ready to accept connections"),
+        string log = WriteLog(environment, ("LOG", "database system is ready to accept connections"),
             ("ERROR", "relation \"users\" does not exist"), ("WARNING", "checkpoints are occurring too frequently"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => screen.ContainsText("q Quit")
                 && screen.ContainsText("relation \"users\" does not exist")
@@ -46,8 +46,8 @@ public sealed class TailScreenTests
     public async Task AppendedLines_WhileFollowing_AppearAtBottom()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, [.. Enumerable.Range(0, 40).Select(i => ("LOG", $"existing line {i}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, [.. Enumerable.Range(0, 40).Select(i => ("LOG", $"existing line {i}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.LogRows(screen)[^1].EndsWith("existing line 39",
             StringComparison.Ordinal),
             description: "the last existing line at the bottom");
@@ -66,8 +66,8 @@ public sealed class TailScreenTests
     public async Task K_MovesCursorUp_HighlightsRowAndPauses()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, [.. Enumerable.Range(0, 30).Select(i => ("LOG", $"line number {i}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, [.. Enumerable.Range(0, 30).Select(i => ("LOG", $"line number {i}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("line number 29");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("k", TestContext.CancellationToken);
@@ -79,7 +79,7 @@ public sealed class TailScreenTests
         await tail.Automator.TypeAsync("f", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => TailHarness.Status(screen).StartsWith("FOLLOW", StringComparison.Ordinal)
-                && !screen.HasBackgroundColor(SelectionBackground),
+                && !screen.HasBackgroundColor(s_selectionBackground),
             description: "following again with nothing highlighted");
     }
 
@@ -91,8 +91,8 @@ public sealed class TailScreenTests
     public async Task G_JumpsToTop()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, [.. Enumerable.Range(0, 60).Select(i => ("LOG", $"entry {i:D2}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, [.. Enumerable.Range(0, 60).Select(i => ("LOG", $"entry {i:D2}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("entry 59");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("g", TestContext.CancellationToken);
@@ -114,8 +114,8 @@ public sealed class TailScreenTests
     public async Task TypedKeys_ArrivingTogether_EachMoveTheCursor()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, [.. Enumerable.Range(0, 30).Select(i => ("LOG", $"row {i:D2}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, [.. Enumerable.Range(0, 30).Select(i => ("LOG", $"row {i:D2}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("row 29");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.SequenceAsync(builder => builder.Type("kkkk"), "four ups at once", TestContext.CancellationToken);
@@ -132,8 +132,8 @@ public sealed class TailScreenTests
     public async Task P_ThenNewEntries_CountsThemUntilFollow()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "before pausing"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "before pausing"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("before pausing");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("p", TestContext.CancellationToken);
@@ -160,9 +160,9 @@ public sealed class TailScreenTests
     public async Task LevelCommand_Error_ShowsOnlyErrors()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "routine message"), ("ERROR", "first failure"), ("LOG", "another routine"),
+        string log = WriteLog(environment, ("LOG", "routine message"), ("ERROR", "first failure"), ("LOG", "another routine"),
             ("ERROR", "second failure"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("second failure");
         await tail.RunAsync("level error", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
@@ -180,14 +180,14 @@ public sealed class TailScreenTests
     public async Task DebianPrefix_LevelCommand_KeepsErrorWithStatement()
     {
         using var environment = new TestEnvironment();
-        var path = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
-        var time = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        string path = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
+        string time = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         LogFiles.Append(path,
             $"{time} UTC [4200] [unknown]@[unknown] LOG:  connection received: host=::1 port=50000",
             $"{time} UTC [4200] alice@orders ERROR:  division by zero",
             $"{time} UTC [4200] alice@orders STATEMENT:  select 1/0",
             $"{time} UTC [17] LOG:  checkpoint starting: time");
-        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => screen.ContainsText("LOG    : connection received: host=::1 port=50000")
                 && TailHarness.Status(screen).Contains("E:1 W:0 | 4 lines", StringComparison.Ordinal),
@@ -208,14 +208,14 @@ public sealed class TailScreenTests
     public async Task LevelCommand_ErrorWithDetail_KeepsContinuationLines()
     {
         using var environment = new TestEnvironment();
-        var path = Path.Combine(environment.Root, "logs", "postgresql.log");
-        var time = DateTime.UtcNow.AddMinutes(-5);
+        string path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        DateTime time = DateTime.UtcNow.AddMinutes(-5);
         LogFiles.Append(path,
             LogFiles.Text(time, 2001, "ERROR", "duplicate key value violates unique constraint \"t_pkey\""),
             LogFiles.Text(time, 2001, "DETAIL", "Key (id)=(1) already exists."),
             LogFiles.Text(time, 2001, "STATEMENT", "insert into t values (1)"),
             LogFiles.Text(time.AddSeconds(1), 2002, "LOG", "checkpoint starting: time"));
-        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => screen.ContainsText("checkpoint starting")
                 && TailHarness.Status(screen).Contains("E:1 W:0 | 4 lines", StringComparison.Ordinal),
@@ -238,9 +238,9 @@ public sealed class TailScreenTests
     public async Task FilterCommand_ThenClear_RestoresEntries()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "connection authorized: user=alice"), ("LOG", "checkpoint starting: time"),
+        string log = WriteLog(environment, ("LOG", "connection authorized: user=alice"), ("LOG", "checkpoint starting: time"),
             ("LOG", "connection authorized: user=bob"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("user=bob");
         await tail.RunAsync("filter /connection/", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
@@ -260,8 +260,8 @@ public sealed class TailScreenTests
     public async Task UnknownCommand_ShowsError()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("bogus", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("✗ Unknown command: bogus. Type 'help' for commands.");
     }
@@ -274,8 +274,8 @@ public sealed class TailScreenTests
     public async Task Input_PartialCommand_SuggestsRest()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("conn", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> connections",
             description: "the suggestion completing the command");
@@ -293,9 +293,9 @@ public sealed class TailScreenTests
     public async Task Input_Suggestion_FollowsTheCursor()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
-        foreach (var (typed, shown) in new[] { ("t", "tail> theme"), ("th", "tail> theme"), ("the", "tail> theme") })
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        foreach ((string typed, string shown) in new[] { ("t", "tail> theme"), ("th", "tail> theme"), ("the", "tail> theme") })
         {
             await tail.Automator.TypeAsync(typed[^1..], TestContext.CancellationToken);
             await tail.Automator.WaitUntilAsync(
@@ -312,8 +312,8 @@ public sealed class TailScreenTests
     public async Task Input_LineKeys_EditTheLine()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("level error ", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen).StartsWith("tail> level error", StringComparison.Ordinal),
             description: "the line typed");
@@ -343,8 +343,8 @@ public sealed class TailScreenTests
     public async Task Input_UpArrow_RecallsPreviousCommand()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("ERROR", "a failure"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("ERROR", "a failure"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("errors", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("Error Statistics") && TailHarness.Input(screen) == "tail>",
             description: "the output and an empty input");
@@ -361,8 +361,8 @@ public sealed class TailScreenTests
     public async Task Input_AfterCommand_TakesTheNextCommand()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("level error", TestContext.CancellationToken);
         await tail.Automator.EnterAsync(TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).Contains("levels:ERROR", StringComparison.Ordinal)
@@ -383,8 +383,8 @@ public sealed class TailScreenTests
     public async Task Levels_IsLevelInTailMode()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("levels error", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => TailHarness.Status(screen).Contains("levels:ERROR", StringComparison.Ordinal) && !screen.ContainsText("routine"),
@@ -399,8 +399,8 @@ public sealed class TailScreenTests
     public async Task Log_TypedCommand_GoesToTheInput()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.EscapeAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("since 5m", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> since 5m",
@@ -415,8 +415,8 @@ public sealed class TailScreenTests
     public async Task Help_WritesIntoLog()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("help", TestContext.CancellationToken);
         await tail.Automator.EnterAsync(TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
@@ -436,8 +436,8 @@ public sealed class TailScreenTests
     public async Task QuestionMark_ShowsHelp_EscapeCloses()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 50);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 50);
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("?", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
@@ -447,7 +447,7 @@ public sealed class TailScreenTests
         await tail.Automator.WaitUntilNoTextAsync("pgtail Keybindings");
         await tail.Automator.TypeAsync("k", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal)
-            || screen.HasBackgroundColor(SelectionBackground),
+            || screen.HasBackgroundColor(s_selectionBackground),
             description: "keys reach the log after closing help");
     }
 
@@ -459,15 +459,15 @@ public sealed class TailScreenTests
     public async Task VisualLineMode_Yank_CopiesSelectedRows()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "first"), ("LOG", "second"), ("LOG", "third"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "first"), ("LOG", "second"), ("LOG", "third"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("third");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("k", TestContext.CancellationToken);
         await tail.Automator.TypeAsync("V", TestContext.CancellationToken);
         await tail.Automator.TypeAsync("j", TestContext.CancellationToken);
-        var rows = TailHarness.LogRows(tail.Automator.CreateSnapshot());
-        var expected = rows.First(row => row.EndsWith("second", StringComparison.Ordinal)).Length
+        List<string> rows = TailHarness.LogRows(tail.Automator.CreateSnapshot());
+        int expected = rows.First(row => row.EndsWith("second", StringComparison.Ordinal)).Length
             + 1 + rows.First(row => row.EndsWith("third", StringComparison.Ordinal)).Length;
         await tail.Automator.TypeAsync("y", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync($"Copied {expected} characters");
@@ -481,10 +481,10 @@ public sealed class TailScreenTests
     public async Task Click_OnRow_SelectsIt()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "alpha"), ("LOG", "bravo"), ("LOG", "charlie"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "alpha"), ("LOG", "bravo"), ("LOG", "charlie"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("charlie");
-        var row = RowOf(tail.Automator.CreateSnapshot(), "alpha")!.Value;
+        int row = RowOf(tail.Automator.CreateSnapshot(), "alpha")!.Value;
         await tail.Automator.ClickAtAsync(10, row, ct: TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => screen.GetCell(60, row).Background is { R: 38, G: 79, B: 120 }
@@ -500,9 +500,9 @@ public sealed class TailScreenTests
     public async Task TimeFilter_LongLog_LoadsWholeRangeAndCountsIt()
     {
         using var environment = new TestEnvironment();
-        var count = Tail.TailScreen.BacklogLines + 12_345;
-        var log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        int count = Tail.TailScreen.BacklogLines + 12_345;
+        string log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => TailHarness.Status(screen).Contains($"| {count.ToString("N0", CultureInfo.InvariantCulture)} lines |",
                     StringComparison.Ordinal)
@@ -521,8 +521,8 @@ public sealed class TailScreenTests
     public async Task LevelCommand_ErrorAtReadBoundary_KeepsItsStatement()
     {
         using var environment = new TestEnvironment();
-        var path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
-        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
+        string path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
         await ShowsErrorWithStatementAsync(tail);
     }
 
@@ -534,10 +534,10 @@ public sealed class TailScreenTests
     public async Task LevelCommand_SeveralFiles_ErrorAtReadBoundary_KeepsItsStatement()
     {
         using var environment = new TestEnvironment();
-        var path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
-        var other = Path.Combine(environment.Root, "logs", "other.log");
+        string path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
+        string other = Path.Combine(environment.Root, "logs", "other.log");
         LogFiles.Append(other, LogFiles.Text(DateTime.UtcNow.AddMinutes(-6), 2003, "LOG", "another file"));
-        await using var tail = await TailHarness.StartAsync(environment, [path, other], TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, [path, other], TestContext.CancellationToken);
         await ShowsErrorWithStatementAsync(tail);
     }
 
@@ -549,9 +549,9 @@ public sealed class TailScreenTests
     public async Task Connections_OlderEntriesReadBack_CountInOrder()
     {
         using var environment = new TestEnvironment();
-        var count = Tail.TailScreen.BacklogLines + 5_000;
-        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
-        var start = DateTime.UtcNow.AddMinutes(-10);
+        int count = Tail.TailScreen.BacklogLines + 5_000;
+        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        DateTime start = DateTime.UtcNow.AddMinutes(-10);
         LogFiles.Append(log,
         [
             LogFiles.Text(start, 3001, "LOG", "connection authorized: user=alice database=orders"),
@@ -559,7 +559,7 @@ public sealed class TailScreenTests
             LogFiles.Text(start.AddMinutes(1), 3001, "LOG",
                 "disconnection: session time: 0:00:01.000 user=alice database=orders host=[local]"),
         ]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => TailHarness.Status(screen) is var status
                 && status.Contains($"| {count.ToString("N0", CultureInfo.InvariantCulture)} lines |", StringComparison.Ordinal)
@@ -584,17 +584,17 @@ public sealed class TailScreenTests
         const int count = 200_000;
         // One error just before the newest lines, in the first chunk read back, and one at the end.
         const int older = count - Tail.TailScreen.BacklogLines - 10;
-        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
-        var start = DateTime.UtcNow.AddMinutes(-30);
+        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        DateTime start = DateTime.UtcNow.AddMinutes(-30);
         LogFiles.Append(log, Enumerable.Range(1, count).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000,
             i is older or count ? "ERROR" : "LOG", $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
-        await using (var warm = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
+        await using (TailHarness warm = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
         {
             await warm.Automator.WaitUntilTextAsync("200,000 lines");
         }
 
         PgtailSession session;
-        await using (var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
+        await using (TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
         {
             session = tail.Session;
             await tail.Automator.WaitUntilAsync(
@@ -617,9 +617,9 @@ public sealed class TailScreenTests
     public async Task NewerLogInDirectory_IsFollowed()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "first file"));
+        string log = WriteLog(environment, ("LOG", "first file"));
         File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddMinutes(-1));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("first file");
         LogFiles.Append(Path.Combine(Path.GetDirectoryName(log)!, "postgresql-next.log"),
             LogFiles.Text(DateTime.UtcNow, 1500, "LOG", "second file"));
@@ -634,22 +634,22 @@ public sealed class TailScreenTests
     public async Task LogsInDirectoryWrittenAtTheSameTime_AreNotFollowed()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "tailed file"));
+        string log = WriteLog(environment, ("LOG", "tailed file"));
         // Written at the same time, any of them can count as the newest, so with several copies it is seldom the tailed one.
-        foreach (var name in new[] { "copy-1.log", "copy-2.log", "copy-3.log" })
+        foreach (string? name in new[] { "copy-1.log", "copy-2.log", "copy-3.log" })
         {
-            var copy = Path.Combine(Path.GetDirectoryName(log)!, name);
+            string copy = Path.Combine(Path.GetDirectoryName(log)!, name);
             LogFiles.Append(copy, LogFiles.Text(DateTime.UtcNow.AddMinutes(-5), 1600, "LOG", "copied file"));
             File.SetLastWriteTimeUtc(copy, File.GetLastWriteTimeUtc(log));
         }
 
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("tailed file");
         // The directory is checked when the file stops growing, at most once a second.
         await Task.Delay(TimeSpan.FromSeconds(2.5), TestContext.CancellationToken);
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 1601, "LOG", "still tailed"));
         await tail.Automator.WaitUntilTextAsync("still tailed");
-        using var screen = tail.Automator.CreateSnapshot();
+        using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
         Assert.IsFalse(screen.ContainsText("copied file"), "a copy's entries are not shown");
     }
 
@@ -661,19 +661,19 @@ public sealed class TailScreenTests
     public async Task OlderLogNamed_StaysTailed()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "tailed file"));
+        string log = WriteLog(environment, ("LOG", "tailed file"));
         File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddHours(-2));
-        var newer = Path.Combine(Path.GetDirectoryName(log)!, "postgresql-newer.log");
+        string newer = Path.Combine(Path.GetDirectoryName(log)!, "postgresql-newer.log");
         LogFiles.Append(newer, LogFiles.Text(DateTime.UtcNow.AddHours(-1), 1700, "LOG", "newer file"));
         File.SetLastWriteTimeUtc(newer, DateTime.UtcNow.AddHours(-1));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("tailed file");
         LogFiles.Append(newer, LogFiles.Text(DateTime.UtcNow, 1701, "LOG", "newer file written to"));
         // The directory is checked when the file stops growing, at most once a second.
         await Task.Delay(TimeSpan.FromSeconds(2.5), TestContext.CancellationToken);
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 1702, "LOG", "still tailed"));
         await tail.Automator.WaitUntilTextAsync("still tailed");
-        using var screen = tail.Automator.CreateSnapshot();
+        using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
         Assert.IsFalse(screen.ContainsText("newer file"), "the newer log's entries are not shown");
     }
 
@@ -685,8 +685,8 @@ public sealed class TailScreenTests
     public async Task SinceCommand_HugeDuration_ReportsIt()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("hello");
         await tail.RunAsync("since 999999999999999999999h", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("The duration is too long.");
@@ -701,11 +701,11 @@ public sealed class TailScreenTests
     public async Task Truncated_InAnotherFormat_ReadsTheNewFormat()
     {
         using var environment = new TestEnvironment();
-        var count = Tail.TailScreen.BacklogLines + 100;
-        var log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        int count = Tail.TailScreen.BacklogLines + 100;
+        string log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync($"entry {count:D6}");
-        var time = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        string time = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         File.WriteAllText(log,
             $$"""{"timestamp":"{{time}} UTC","pid":3001,"error_severity":"ERROR","message":"relation \"nope\" does not exist"}"""
             + "\n");
@@ -720,10 +720,10 @@ public sealed class TailScreenTests
     public async Task Scrollbar_PressAndDrag_Scrolls()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, [.. Enumerable.Range(1, 100).Select(i => ("LOG", $"entry {i:D3}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, [.. Enumerable.Range(1, 100).Select(i => ("LOG", $"entry {i:D3}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("entry 100");
-        var scrollbar = tail.Automator.CreateSnapshot().Width - 1;
+        int scrollbar = tail.Automator.CreateSnapshot().Width - 1;
         await tail.Automator.ClickAtAsync(scrollbar, 2, ct: TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => screen.ContainsText("entry 001") && TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal),
@@ -742,8 +742,8 @@ public sealed class TailScreenTests
     public async Task InputCursor_BlinksWhenFocused_SolidOtherwise()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) == "tail> ".Length, description: "the cursor on");
         await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is null, description: "the cursor blinking off");
         await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is not null, description: "the cursor back on");
@@ -754,10 +754,10 @@ public sealed class TailScreenTests
             screen => TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal)
                 && TailHarness.InputCursor(screen) is not null,
             description: "the cursor with the log focused");
-        for (var sample = 0; sample < 6; sample++)
+        for (int sample = 0; sample < 6; sample++)
         {
             await Task.Delay(Tail.TailInput.BlinkInterval / 2, TestContext.CancellationToken);
-            using var screen = tail.Automator.CreateSnapshot();
+            using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
             Assert.AreEqual("tail> ".Length, TailHarness.InputCursor(screen), "the cursor stays on while the log has focus");
         }
     }
@@ -770,13 +770,13 @@ public sealed class TailScreenTests
     public async Task Drag_AcrossText_SelectsIt()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "alpha bravo charlie"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "alpha bravo charlie"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("alpha bravo charlie");
-        using (var screen = tail.Automator.CreateSnapshot())
+        using (Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot())
         {
-            var row = RowOf(screen, "alpha")!.Value;
-            var start = screen.GetLineTrimmed(row).IndexOf("bravo", StringComparison.Ordinal);
+            int row = RowOf(screen, "alpha")!.Value;
+            int start = screen.GetLineTrimmed(row).IndexOf("bravo", StringComparison.Ordinal);
             await tail.Automator.DragAsync(start, row, start + 4, row, ct: TestContext.CancellationToken);
             await tail.Automator.WaitUntilAsync(
                 current => current.GetCell(start, row).Background is { R: 38, G: 79 }
@@ -795,8 +795,8 @@ public sealed class TailScreenTests
     public async Task MouseWheelUp_ScrollsBackAndPauses()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, [.. Enumerable.Range(0, 60).Select(i => ("LOG", $"wheel {i:D2}"))]);
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, [.. Enumerable.Range(0, 60).Select(i => ("LOG", $"wheel {i:D2}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("wheel 59");
         await tail.Automator.MouseMoveToAsync(20, 10, TestContext.CancellationToken);
         await tail.Automator.ScrollUpAsync(2, TestContext.CancellationToken);
@@ -813,13 +813,13 @@ public sealed class TailScreenTests
     public async Task ErrorLevel_IsDrawnBoldAndColored()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("ERROR", "something failed"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("ERROR", "something failed"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("something failed");
-        using var screen = tail.Automator.CreateSnapshot();
-        var row = RowOf(screen, "something failed")!.Value;
-        var column = screen.GetLineTrimmed(row).IndexOf("ERROR", StringComparison.Ordinal);
-        var cell = screen.GetCell(column, row);
+        using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
+        int row = RowOf(screen, "something failed")!.Value;
+        int column = screen.GetLineTrimmed(row).IndexOf("ERROR", StringComparison.Ordinal);
+        Hex1b.TerminalCell cell = screen.GetCell(column, row);
         Assert.IsTrue(cell.IsBold, "ERROR should be bold");
         Assert.IsNotNull(cell.Foreground, "ERROR should be colored");
     }
@@ -832,15 +832,15 @@ public sealed class TailScreenTests
     public async Task NoColor_DrawsAttributesWithoutColors()
     {
         using var environment = new TestEnvironment(new Dictionary<string, string?> { ["NO_COLOR"] = "1" });
-        var log = WriteLog(environment, ("ERROR", "something failed"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("ERROR", "something failed"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("something failed");
-        using var screen = tail.Automator.CreateSnapshot();
-        var row = RowOf(screen, "something failed")!.Value;
-        var line = screen.GetLineTrimmed(row);
-        var column = line.IndexOf("ERROR", StringComparison.Ordinal);
+        using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
+        int row = RowOf(screen, "something failed")!.Value;
+        string line = screen.GetLineTrimmed(row);
+        int column = line.IndexOf("ERROR", StringComparison.Ordinal);
         Assert.IsTrue(screen.GetCell(column, row).IsBold, "ERROR should stay bold");
-        for (var x = 0; x < line.Length; x++)
+        for (int x = 0; x < line.Length; x++)
         {
             Assert.IsNull(screen.GetCell(x, row).Foreground, $"column {x} should have no color");
         }
@@ -854,9 +854,9 @@ public sealed class TailScreenTests
     public async Task Dollar_OnLongRow_ScrollsToItsEnd()
     {
         using var environment = new TestEnvironment();
-        var columns = string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));
-        var log = WriteLog(environment, ("LOG", $"statement: SELECT {columns} FROM wide_table END_OF_ROW"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string columns = string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));
+        string log = WriteLog(environment, ("LOG", $"statement: SELECT {columns} FROM wide_table END_OF_ROW"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("k", TestContext.CancellationToken);
@@ -878,13 +878,13 @@ public sealed class TailScreenTests
     public async Task ExportCommand_WritesShownEntries()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "keep this one"), ("ERROR", "and this error"));
-        var output = Path.Combine(environment.Root, "exported.log");
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, width: 160);
+        string log = WriteLog(environment, ("LOG", "keep this one"), ("ERROR", "and this error"));
+        string output = Path.Combine(environment.Root, "exported.log");
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, width: 160);
         await tail.Automator.WaitUntilTextAsync("and this error");
         await tail.RunAsync($"export {output}", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("Exported 2 entries");
-        var text = await File.ReadAllTextAsync(output, TestContext.CancellationToken);
+        string text = await File.ReadAllTextAsync(output, TestContext.CancellationToken);
         Assert.Contains("keep this one", text);
         Assert.Contains("and this error", text);
     }
@@ -897,16 +897,16 @@ public sealed class TailScreenTests
     public async Task ZoneWrittenInLog_ShowsTimeAsWrittenAndExportsOffset()
     {
         using var environment = new TestEnvironment();
-        var path = Path.Combine(environment.Root, "logs", "postgresql.log");
-        var written = DateTime.UtcNow.AddHours(-7).AddMinutes(-5);
-        var stamp = written.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        string path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        DateTime written = DateTime.UtcNow.AddHours(-7).AddMinutes(-5);
+        string stamp = written.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         LogFiles.Append(path, $"{stamp} PDT [3001] ERROR:  relation \"missing_table\" does not exist");
-        var output = Path.Combine(environment.Root, "exported.json");
-        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken, width: 160);
+        string output = Path.Combine(environment.Root, "exported.json");
+        await using TailHarness tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken, width: 160);
         await tail.Automator.WaitUntilTextAsync($"{stamp[11..]} [3001 ] ERROR  : relation \"missing_table\" does not exist");
         await tail.RunAsync($"export --format json {output}", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("Exported 1 entries");
-        var json = await File.ReadAllTextAsync(output, TestContext.CancellationToken);
+        string json = await File.ReadAllTextAsync(output, TestContext.CancellationToken);
         Assert.Contains($"\"timestamp\": \"{stamp.Replace(' ', 'T')}000-07:00\"", json);
     }
 
@@ -918,11 +918,11 @@ public sealed class TailScreenTests
     public async Task ServerStartupLines_ShowVersionAndPortInStatus()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment,
+        string log = WriteLog(environment,
             ("LOG", "starting PostgreSQL 17.2 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 14.2.1, 64-bit"),
             ("LOG", "listening on IPv4 address \"127.0.0.1\", port 5544"),
             ("LOG", "database system is ready to accept connections"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).EndsWith("| PG17.2:5544", StringComparison.Ordinal),
             description: "the logged version and port");
     }
@@ -935,8 +935,8 @@ public sealed class TailScreenTests
     public async Task SlowCommand_ColorsSlowQueries()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "duration: 850.000 ms  statement: SELECT count(*) FROM orders WHERE id = 42"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, width: 120);
+        string log = WriteLog(environment, ("LOG", "duration: 850.000 ms  statement: SELECT count(*) FROM orders WHERE id = 42"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, width: 120);
         await tail.Automator.WaitUntilTextAsync("SELECT count(*) FROM orders");
         await tail.RunAsync("slow 200", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
@@ -957,8 +957,8 @@ public sealed class TailScreenTests
     public async Task HelpCommands_ShowCommandsKeysAndUsage()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 60);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 60);
         await tail.RunAsync("help", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
             screen => screen.ContainsText("help keys    Show keybinding reference") && screen.ContainsText("stop/exit/q  Exit tail mode"),
@@ -981,8 +981,8 @@ public sealed class TailScreenTests
     public async Task PauseAndFollowCommands_SwitchStatus()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("pause", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal),
             description: "paused");
@@ -999,8 +999,8 @@ public sealed class TailScreenTests
     public async Task ThemeSetNotifyCommands_Work()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("theme monokai", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("✓ Switched to theme monokai");
         await tail.RunAsync("set slow.warn 50", TestContext.CancellationToken);
@@ -1010,7 +1010,7 @@ public sealed class TailScreenTests
             description: "the setting applied");
         await tail.RunAsync("notify", TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync(PlatformNotifier.Status);
-        var config = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
+        string config = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.Contains("warn = 50", config);
         Assert.Contains("name = \"monokai\"", config);
     }
@@ -1023,8 +1023,8 @@ public sealed class TailScreenTests
     public async Task StopCommand_LeavesTailMode()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.RunAsync("stop", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped");
     }
@@ -1037,8 +1037,8 @@ public sealed class TailScreenTests
     public async Task Q_AtPrompt_IsTextUntilEnter()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("q", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> q" && !tail.Stopped,
             description: "q in the prompt, tail mode still running");
@@ -1054,8 +1054,8 @@ public sealed class TailScreenTests
     public async Task Q_InLog_LeavesTailMode()
     {
         using var environment = new TestEnvironment();
-        var log = WriteLog(environment, ("LOG", "hello"));
-        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        string log = WriteLog(environment, ("LOG", "hello"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("q", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped");
@@ -1063,8 +1063,8 @@ public sealed class TailScreenTests
 
     private static string WriteLog(TestEnvironment environment, params (string Level, string Message)[] entries)
     {
-        var path = Path.Combine(environment.Root, "logs", "postgresql.log");
-        var start = DateTime.UtcNow.AddMinutes(-10);
+        string path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        DateTime start = DateTime.UtcNow.AddMinutes(-10);
         LogFiles.Append(path, entries.Select((entry, index) => LogFiles.Text(start.AddSeconds(index), 1000
             + index, entry.Level, entry.Message)));
         return path;
@@ -1084,7 +1084,7 @@ public sealed class TailScreenTests
 
     private static int? RowOf(Hex1bTerminalSnapshot screen, string text)
     {
-        for (var row = 0; row < screen.Height; row++)
+        for (int row = 0; row < screen.Height; row++)
         {
             if (screen.GetLineTrimmed(row).Contains(text, StringComparison.Ordinal))
             {

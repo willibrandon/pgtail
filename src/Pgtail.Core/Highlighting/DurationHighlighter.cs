@@ -18,16 +18,16 @@ public sealed class DurationHighlighter(long slow = 100, long verySlow = 500, lo
     /// <inheritdoc />
     public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
-        foreach (var groups in LogPattern.Captures(Regex, text))
+        foreach ((int Start, int End)?[] groups in LogPattern.Captures(Regex, text))
         {
             if (groups[0] is not { } whole || groups[1] is not { } value
                 || !double.TryParse(text.Text.AsSpan(value.Start, value.End - value.Start), NumberStyles.AllowDecimalPoint,
-                    CultureInfo.InvariantCulture, out var ms))
+                    CultureInfo.InvariantCulture, out double ms))
             {
                 continue;
             }
 
-            var style = ms >= critical ? "hl_duration_critical"
+            string style = ms >= critical ? "hl_duration_critical"
                 : ms >= verySlow ? "hl_duration_very_slow"
                 : ms >= slow ? "hl_duration_slow"
                 : "hl_duration_fast";

@@ -26,11 +26,11 @@ public sealed class SqlStringHighlighter : IHighlighter
     public IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var s = text.Text;
-        var position = 0;
+        string s = text.Text;
+        int position = 0;
         while (position < s.Length)
         {
-            var end = s[position] switch
+            int end = s[position] switch
             {
                 '$' => DollarQuoted(s, position),
                 '\'' => SingleQuoted(s, position),
@@ -51,7 +51,7 @@ public sealed class SqlStringHighlighter : IHighlighter
 
     private static int DollarQuoted(string s, int start)
     {
-        var tagEnd = start + 1;
+        int tagEnd = start + 1;
         if (tagEnd < s.Length && (char.IsAsciiLetter(s[tagEnd]) || s[tagEnd] == '_'))
         {
             while (tagEnd < s.Length && (char.IsAsciiLetterOrDigit(s[tagEnd]) || s[tagEnd] == '_'))
@@ -65,8 +65,8 @@ public sealed class SqlStringHighlighter : IHighlighter
             return -1;
         }
 
-        var tag = s[(start + 1)..tagEnd];
-        for (var i = tagEnd + 1; i < s.Length; i++)
+        string tag = s[(start + 1)..tagEnd];
+        for (int i = tagEnd + 1; i < s.Length; i++)
         {
             if (s[i] != '$')
             {
@@ -90,8 +90,8 @@ public sealed class SqlStringHighlighter : IHighlighter
 
     private static int SingleQuoted(string s, int start)
     {
-        var lastPair = -1;
-        var i = start + 1;
+        int lastPair = -1;
+        int i = start + 1;
         while (i < s.Length)
         {
             if (s[i] != '\'')

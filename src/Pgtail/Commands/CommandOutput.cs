@@ -44,7 +44,7 @@ internal sealed class CommandOutput
     public void Lines(IEnumerable<string> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
-        foreach (var line in lines)
+        foreach (string line in lines)
         {
             Line(line);
         }

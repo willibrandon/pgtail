@@ -20,7 +20,7 @@ public static class InstallMethods
     {
         ArgumentNullException.ThrowIfNull(executable);
         ArgumentNullException.ThrowIfNull(environment);
-        var normalized = executable.Replace('\\', '/').ToLowerInvariant();
+        string normalized = executable.Replace('\\', '/').ToLowerInvariant();
         if (normalized.Contains("/.dotnet/tools/", StringComparison.Ordinal)
             || normalized.Contains("/.store/pgtail/", StringComparison.Ordinal))
         {
@@ -34,7 +34,7 @@ public static class InstallMethods
             return InstallMethod.Homebrew;
         }
 
-        var localAppData = environment("LOCALAPPDATA")?.Replace('\\', '/').ToLowerInvariant();
+        string? localAppData = environment("LOCALAPPDATA")?.Replace('\\', '/').ToLowerInvariant();
         if (normalized.Contains("/microsoft/winget/", StringComparison.Ordinal)
             || (localAppData is { Length: > 0 }
                 && normalized.StartsWith(localAppData + "/microsoft/winget/packages", StringComparison.Ordinal)))
