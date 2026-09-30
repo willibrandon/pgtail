@@ -5,6 +5,7 @@ using Hex1b.Flow;
 using Hex1b.Input;
 using Hex1b.Widgets;
 using Pgtail.Commands;
+using Pgtail.Display;
 using Pgtail.Rendering;
 using Pgtail.Sessions;
 using Pgtail.Styling;
@@ -438,15 +439,8 @@ internal sealed partial class ReplHost : IReplHost
         return result;
     }
 
-    private StyledText PromptLabel(bool shell)
-    {
-        if (shell)
-        {
-            return Markup.Parse("[#ff6688]![/] ");
-        }
-
-        return StreamLabel is { } label
-            ? Markup.Parse($"[#ffaa00]paused[/] [#00aaaa]{Markup.Escape($"[{label}]")}[/][#666666]>[/] ")
-            : Markup.Parse("[#00aa00]pgtail[/][#666666]>[/] ");
-    }
+    private StyledText PromptLabel(bool shell) =>
+        shell ? PromptLabels.Shell
+        : StreamLabel is { } label ? PromptLabels.Paused(label)
+        : PromptLabels.Repl(Session.Theme);
 }

@@ -55,7 +55,13 @@ own, and indents the further lines of a multi-line message with a tab. pgtail jo
 to, as csvlog and jsonlog keep them in one record, so a level filter keeps an error's detail and statement with it and
 the error counts once:
 
-```
+<!-- pgtail-log
+2024-01-15 10:30:45.123 UTC [12345] ERROR:  duplicate key value violates unique constraint "users_pkey"
+2024-01-15 10:30:45.123 UTC [12345] DETAIL:  Key (id)=(1) already exists.
+2024-01-15 10:30:45.123 UTC [12345] STATEMENT:  insert into users values (1)
+-->
+
+```pgtail-log
 10:30:45.123 [12345] ERROR  : duplicate key value violates unique constraint "users_pkey"
 DETAIL:  Key (id)=(1) already exists.
 STATEMENT:  insert into users values (1)

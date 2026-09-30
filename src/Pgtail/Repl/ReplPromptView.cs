@@ -48,6 +48,13 @@ internal sealed record ReplPromptView(
     protected override Hex1bWidget Build(CompositionContext ctx)
     {
         ArgumentNullException.ThrowIfNull(ctx);
+
+        // A terminal sends pasted text as one event rather than as keys, so the line takes it here.
+        return ctx.Pastable(BuildPrompt(ctx)).OnPaste(async paste => Controller.Paste(await paste.Paste.ReadToEndAsync()));
+    }
+
+    private VStackWidget BuildPrompt(CompositionContext ctx)
+    {
         PromptState state = Controller.State;
         if (Controller.Search is { } search)
         {

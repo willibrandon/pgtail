@@ -1,0 +1,16 @@
+---
+// Written by scripts/Highlight-Docs.cs from src/hero.pgtail; edit that and run the script.
+---
+<pre class="hero-prompt"><span style="--d:#98c379;--l:#006400">pgtail</span><span style="--d:#666666;--l:#666666">&gt;</span> list
+  #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY
+  0  17       5432   running  on   process /var/lib/postgresql/17/main
+<span style="--d:#98c379;--l:#006400">pgtail</span><span style="--d:#666666;--l:#666666">&gt;</span> tail 0 --stream
+Tailing /var/lib/postgresql/17/main/log/postgresql-Tue.log
+Press Ctrl+C to stop
+
+<span style="--d:#7f848e;--l:#696c77">Detected format: text</span>
+<span style="--d:#7f848e;--l:#808080">10:30:05.118 [6021] </span><span style="--l:#383a42">LOG    : </span>duration: <span style="--d:#f0d197;--l:#ff8c00;font-weight:600">1523.412 ms</span>  statement: <span style="--d:#61afef;--l:#00008b;font-weight:600">SELECT</span> id, <span style="--d:#61afef;--l:#00008b">total</span> <span style="--d:#61afef;--l:#00008b;font-weight:600">FROM</span> orders <span style="--d:#e06c75;--l:#8b0000">WHERE</span> customer_id <span style="--d:#e5c07b;--l:#ff8c00">=</span> <span style="--d:#c678dd;--l:#8b008b">42</span>
+<span style="--d:#7f848e;--l:#808080">10:30:07.234 [6025] </span><span style="--d:#e06c75;--l:#8b0000">ERROR  : </span>relation <span style="--d:#56b6c2;--l:#008080">&quot;users&quot;</span> does not exist at character 15
+<span style="--d:#e5c07b;--l:#ff8c00;font-weight:600">STATEMENT:</span>  <span style="--d:#61afef;--l:#00008b;font-weight:600">SELECT</span> <span style="--d:#e5c07b;--l:#ff8c00">*</span> <span style="--d:#61afef;--l:#00008b;font-weight:600">FROM</span> users <span style="--d:#e06c75;--l:#8b0000">WHERE</span> id <span style="--d:#e5c07b;--l:#ff8c00">=</span> <span style="--d:#c678dd;--l:#8b008b">1</span>
+<span style="--d:#7f848e;--l:#808080">10:30:09.871 [6027] </span><span style="--d:#e5c07b;--l:#ff8c00">WARNING: </span>there is <span style="--d:#e06c75;--l:#8b0000">no</span> transaction in progress
+<span style="--d:#7f848e;--l:#808080">10:30:10.234 [6028] </span><span style="--d:#e06c75;--l:#8b0000;font-weight:600">FATAL  : </span>password authentication failed for user <span style="--d:#56b6c2;--l:#008080">&quot;alice&quot;</span></pre>

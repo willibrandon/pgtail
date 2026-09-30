@@ -4,6 +4,7 @@ using Hex1b.Nodes;
 using Hex1b.Surfaces;
 using Hex1b.Theming;
 using Hex1b.Widgets;
+using Pgtail.Display;
 using Pgtail.Editing;
 
 namespace Pgtail.Tail;
@@ -24,7 +25,7 @@ internal sealed class TailInput
     /// <summary>
     /// The prompt in front of the line.
     /// </summary>
-    public const string Prompt = "tail> ";
+    public const string Prompt = PromptLabels.Tail;
 
     /// <summary>
     /// How long the cursor stays on, and then off, while it blinks.

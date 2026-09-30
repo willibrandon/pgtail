@@ -33,8 +33,10 @@ internal sealed class EntryStreamer(PgtailSession session, TextWriter output, bo
         {
             while (await source.Events.WaitToReadAsync(cancellationToken))
             {
+                // A long backlog, or a log busy enough that entries are always waiting, must still stop at Ctrl+C.
                 while (source.Events.TryRead(out LogSourceEvent? item))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     Write(item);
                 }
 

@@ -15,5 +15,8 @@
     "@astrojs/starlight": "^0.42.4",
     "astro": "^7.3.5",
     "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@expressive-code/core": "0.44.2"
   }
 }

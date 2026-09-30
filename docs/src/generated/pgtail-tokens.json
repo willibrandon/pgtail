@@ -1,0 +1,1940 @@
+{
+  "blocks": {
+    "02f9ed43ffbe4bfa26eac083ba5ac75250a95dadebe65241a37ee23f94d1a557": {
+      "where": "guide/filtering.md:123",
+      "lines": [
+        [
+          {
+            "start": 25,
+            "length": 18,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 15,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 11,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "05735afceb769c858bfcbf7b42af4b2b58d45133a38d5c100c0ec4df9e9b43fa": {
+      "where": "guide/highlighting.md:183",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "06bcd954798c9b3ac1b303bfa95487ddd69c1d0eb5c3f8fa1241961f978dea6d": {
+      "where": "guide/filtering.md:140",
+      "lines": [
+        [
+          {
+            "start": 25,
+            "length": 20,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 19,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 20,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "0e4f34f6e0a81f68cea33a5fab82a09c5b78809ed7bd24471cf922eea6f3c3e0": {
+      "where": "guide/notifications.md:35",
+      "lines": [
+        [
+          {
+            "start": 32,
+            "length": 16,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        []
+      ]
+    },
+    "10562821263f8c8f29bdfb9de0a3f47f9b71701c0610fd2221ee87272e0f7fd1": {
+      "where": "guide/log-formats.md:65",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 13,
+            "length": 7,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 21,
+            "length": 7,
+            "dark": "#e06c75",
+            "light": "#e45649",
+            "bold": true
+          },
+          {
+            "start": 77,
+            "length": 12,
+            "dark": "#56b6c2",
+            "light": "#008080"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 7,
+            "dark": "#e5c07b",
+            "light": "#ff8c00",
+            "bold": true
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 10,
+            "dark": "#e5c07b",
+            "light": "#ff8c00",
+            "bold": true
+          },
+          {
+            "start": 12,
+            "length": 6,
+            "dark": "#61afef",
+            "light": "#00008b",
+            "bold": true
+          },
+          {
+            "start": 19,
+            "length": 4,
+            "dark": "#61afef",
+            "light": "#00008b",
+            "bold": true
+          },
+          {
+            "start": 30,
+            "length": 6,
+            "dark": "#61afef",
+            "light": "#00008b",
+            "bold": true
+          },
+          {
+            "start": 38,
+            "length": 1,
+            "dark": "#c678dd",
+            "light": "#8b008b"
+          }
+        ]
+      ]
+    },
+    "1169e1694561114bd5eae01f4453e986f6ab3bea9afcd82114ab9927e0367122": {
+      "where": "guide/highlighting.md:256",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "135ed4235b1e6cfd73dd9548bae0270cee9e5fe869df774d7bb6b6936cb5a079": {
+      "where": "guide/filtering.md:86",
+      "lines": [
+        [],
+        [],
+        []
+      ]
+    },
+    "148bd0691fcf781cb0777354ff97b320e2b2d94cc83a629d172838e7e51cfd1a": {
+      "where": "guide/time-filters.md:82",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "1994c3ec2436f177eb9391867b1fa85e319681c91d06ef9443c242479236dfd1": {
+      "where": "guide/notifications.md:93",
+      "lines": [
+        [
+          {
+            "start": 31,
+            "length": 22,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 31,
+            "length": 25,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "1a8db1a6c4bebfb18924fb1e8225d88a74306ed86e876382850a6b7cebca921c": {
+      "where": "guide/export.md:92",
+      "lines": [
+        [
+          {
+            "start": 50,
+            "length": 23,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 50,
+            "length": 15,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 50,
+            "length": 23,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 53,
+            "length": 24,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "1cb9cb0eb58ef78d66a7aa964573a1a5b060318e2eb480cf0e5721814b832456": {
+      "where": "guide/notifications.md:42",
+      "lines": [
+        [
+          {
+            "start": 31,
+            "length": 45,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "1ff87dc6a318f967ba29a6fd6f004d395e784033bf988aafee294d8863169568": {
+      "where": "configuration.md:55",
+      "lines": [
+        [
+          {
+            "start": 20,
+            "length": 22,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 20,
+            "length": 30,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 20,
+            "length": 37,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 20,
+            "length": 45,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "2abe8c08fb9146d987ee6d089a872c7b820f412debc41cb5c12ac2d8f4d8cdbe": {
+      "where": "guide/highlighting.md:310",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "2baab2d7282f9c3cbdbc90e47dd13b858667ac55b958379341c9fed3b909384b": {
+      "where": "guide/filtering.md:56",
+      "lines": [
+        [
+          {
+            "start": 12,
+            "length": 17,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 12,
+            "length": 14,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "3141c9b118725b83bd2fb8a44acbac047352fb3c1c99c264de6457e846cc739d": {
+      "where": "guide/slow-queries.md:66",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "3233eed23feaed0638dfeb991aaa0e979cc4b0fb9ce3ddb784d1f1980e38c006": {
+      "where": "guide/highlighting.md:296",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "3b58a5868b06f439b54422b009738b59e6663e3d52207ac91a459ad95f5ef4f8": {
+      "where": "guide/filtering.md:16",
+      "lines": [
+        [
+          {
+            "start": 17,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 17,
+            "length": 14,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 17,
+            "length": 10,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 17,
+            "length": 39,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "3d4bd04d4d64b4410ba202192fe6d469735e36924e3c4916d88f60725794b701": {
+      "where": "guide/notifications.md:103",
+      "lines": [
+        [
+          {
+            "start": 31,
+            "length": 35,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 31,
+            "length": 19,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "3fb31d2ec0e4e4a1f635be880722a8eea097f7a7567c0f35bcd4c6bc6cd0cc3d": {
+      "where": "guide/highlighting.md:320",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 34,
+            "length": 15,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 34,
+            "length": 16,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 34,
+            "length": 13,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "5266fa2b1327acca3ba54e093b576f4542dced471e7c2bd80ad034f3f4f47a95": {
+      "where": "guide/highlighting.md:77",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "5668b4c081013dcdd029dd88d4a96dbff65c8a64763e636200684b1c0dc5f0ac": {
+      "where": "guide/filtering.md:27",
+      "lines": [
+        [
+          {
+            "start": 17,
+            "length": 38,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 17,
+            "length": 30,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 17,
+            "length": 55,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "575f9bb71975977a1daffe8e4d4fd278e7e66d72e7a125dea0f84ea39d2d28b5": {
+      "where": "guide/export.md:41",
+      "lines": [
+        []
+      ]
+    },
+    "5830cc903c90edd0e81b1a52c92292c2d7029467a9f2af54b3e2576f24bc3c33": {
+      "where": "guide/themes.md:40",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "64d1627e7ff647ae910e1c49f288b7b0bba71bbd2b3ed87ccacda21fa358adb8": {
+      "where": "guide/filtering.md:68",
+      "lines": [
+        [
+          {
+            "start": 25,
+            "length": 42,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 16,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "659102ac432ac4e7b7143b310641a9cb3e428ec332d6ade58f6aae401e7762a5": {
+      "where": "guide/highlighting.md:241",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "65da700e49da5cbd5180d39113ed136621eb42e53ee8290595654803d4fc2432": {
+      "where": "guide/export.md:105",
+      "lines": [
+        [],
+        [],
+        []
+      ]
+    },
+    "70507bcdc397c22326703b24a441a59528e9a1ad84ff2230437229c902e1a034": {
+      "where": "guide/export.md:50",
+      "lines": [
+        []
+      ]
+    },
+    "7161a460df5d18b134f36c200a73245d7e56758c4278b99d2259a1dc51151003": {
+      "where": "cli-reference.md:336",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 26,
+            "length": 8,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 26,
+            "length": 18,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 1,
+            "dark": "#ff6688",
+            "light": "#ff6688"
+          },
+          {
+            "start": 26,
+            "length": 19,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "7453c7bdc5d38f38132b189b484a34568a86ad9144f681250e26f93d71ee26d3": {
+      "where": "guide/highlighting.md:202",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "75f9ccb96cec24710313658f5613a8f09e75014720fe3a9db745cec041d6f32e": {
+      "where": "configuration.md:25",
+      "lines": [
+        [
+          {
+            "start": 20,
+            "length": 40,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 20,
+            "length": 31,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 20,
+            "length": 32,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 20,
+            "length": 41,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "770d07e748f06a6723a61863e6d1b75f76147b10ed2b82b93e201984bb0bd282": {
+      "where": "cli-reference.md:260",
+      "lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "7b5c2398c8624217e2134fbd085ada85d03534295a5a633a04acabdf6cf0512f": {
+      "where": "guide/export.md:86",
+      "lines": [
+        []
+      ]
+    },
+    "7d88d9a0c228dfb06bd76186572902a2dd0873617b89b53347820485e2a7dcd9": {
+      "where": "guide/themes.md:50",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "81a291e12fb66f67263452cc7a90aaf670b3cfa33902399e8434e228224ef186": {
+      "where": "guide/slow-queries.md:29",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 30,
+            "length": 31,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 30,
+            "length": 29,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 30,
+            "length": 34,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "85f9135115009a590cf92c5ceb268977ce0aa37ae8752b436de54895967ea9a7": {
+      "where": "guide/slow-queries.md:38",
+      "lines": [
+        [
+          {
+            "start": 22,
+            "length": 47,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 22,
+            "length": 32,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "8699772f8305380a311fc05b037584dcf6e20f5317bdd623d161f5117cf4903a": {
+      "where": "guide/highlighting.md:303",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "879f940656cfc5d68eb4866035a57842feac914bb83a71f130ffcbb020d1fa1c": {
+      "where": "guide/export.md:119",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 38,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "8d08bcf38546c391a18a9cc9a1ae3e5a036c2fbe775ef093ca640d730a87eb50": {
+      "where": "guide/notifications.md:26",
+      "lines": [
+        [
+          {
+            "start": 31,
+            "length": 17,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 31,
+            "length": 17,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "921025d7a91130f1adebae79326ab0049b19770e3d5ac49e7b2daba0a316ee38": {
+      "where": "guide/themes.md:22",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "929fa89beab8578a1039d73c01dd90e4351e4eeede526fda92388004efb09ae1": {
+      "where": "getting-started/quickstart.md:71",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "962d4a690c77179a8a67a5f182c395ae0380142779eda64def8f8e6f63686c38": {
+      "where": "guide/notifications.md:84",
+      "lines": [
+        [
+          {
+            "start": 31,
+            "length": 28,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 31,
+            "length": 16,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "965828672182c10f311b140fe9fb5ad4c2df1f295be1484ffe8141716b6cda57": {
+      "where": "guide/filtering.md:98",
+      "lines": [
+        [
+          {
+            "start": 29,
+            "length": 28,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 29,
+            "length": 13,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "9e02ceffe3be928dd781e754c96996bb9cf0f4a211ee9b7437165be88c0311c5": {
+      "where": "guide/slow-queries.md:47",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "9f2afe4d41059a2285a1532dc5d5aa03efa9e13c2c9af4c53c9e145449af6ffb": {
+      "where": "guide/time-filters.md:48",
+      "lines": [
+        [
+          {
+            "start": 19,
+            "length": 20,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 19,
+            "length": 20,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 19,
+            "length": 17,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "a2a42b576ce2f6f60e50b28c2668015c96ce71a638aff0103fda46e82241021e": {
+      "where": "guide/export.md:23",
+      "lines": [
+        [
+          {
+            "start": 38,
+            "length": 50,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 38,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 38,
+            "length": 23,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "a3cc2d43be86c6082b6573523002cd8012f82744b67a51c80330685e2ac960b2": {
+      "where": "guide/export.md:58",
+      "lines": [
+        []
+      ]
+    },
+    "a43a85de6be95c0f11b1bd156b4eb63027afecb9aaab105b83f69576ac06ef9b": {
+      "where": "guide/themes.md:32",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "a6bd21fc2f7c90ed92689052f9c2eba5822e850204b93d337ff4af1eafe9d210": {
+      "where": "guide/export.md:77",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "aba873edbf169a4f543e739905a8a624f3499511ee114b0a80bb65e4254dd172": {
+      "where": "guide/highlighting.md:270",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 35,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 39,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "b70de5d72e92103019da8c186082ca03c029b62f74cc27829b5b1c540dd83708": {
+      "where": "getting-started/quickstart.md:112",
+      "lines": [
+        [
+          {
+            "start": 27,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 27,
+            "length": 41,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 27,
+            "length": 35,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 27,
+            "length": 20,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 27,
+            "length": 44,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "b95ecb4866b2cd91874503b4ef6c04b7982f43eec8d2994481342b3a8b156b27": {
+      "where": "guide/filtering.md:159",
+      "lines": [
+        [],
+        [],
+        []
+      ]
+    },
+    "c2b8a12d1fbc01d38c9ac05a1179c4b4a67a7e06c784853b6b6c0085bc2f76e1": {
+      "where": "guide/highlighting.md:247",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "c2e17f4f1e2195fdd4121e4d5cc9ee06a420c5786dea1db091029ac6009d29a9": {
+      "where": "guide/highlighting.md:45",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "c7ca8b1224b2c8b47f76ef1a2d3a4b1c33444c900effb68acdd8ea7865cc4aae": {
+      "where": "guide/tail-mode.md:13",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 28,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 28,
+            "length": 26,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          },
+          {
+            "start": 28,
+            "length": 36,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "caf9c494b06e67cadf4835c8738e6bb257f2d73e7626831b89d7b84a3c90a648": {
+      "where": "guide/notifications.md:48",
+      "lines": [
+        [
+          {
+            "start": 31,
+            "length": 39,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 31,
+            "length": 18,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "cbbeb83171cc72bcb8a6966f8c60780c4df45882e0c3feb2e84e733c3426f895": {
+      "where": "guide/slow-queries.md:103",
+      "lines": [
+        []
+      ]
+    },
+    "ccd9da1e86fec1e44ca5e5fc39e621ae3e6dcc39f0ccd71356aeaea436767a2d": {
+      "where": "guide/highlighting.md:67",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "d0bd848a7912dfa3844dbeddbb1a2d7fe857dbe73a6b8159b3b68055ae60684a": {
+      "where": "getting-started/quickstart.md:39",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "d98542104b65ad9b6591448b29bddfc868c1671511d8a93e6da2e8d058e3e029": {
+      "where": "configuration.md:64",
+      "lines": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "dd36d2871971e29b7534f5b5db41af9b61b05d5544911b6e92b5c3fe50113630": {
+      "where": "guide/time-filters.md:58",
+      "lines": [
+        [
+          {
+            "start": 19,
+            "length": 18,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 19,
+            "length": 20,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "e2b13b6424e6b8e86a007350c761d72a461aed660ca8d477f33dc482a42c2682": {
+      "where": "guide/themes.md:137",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "e39c985163c11b95f8252bc49e67a92cfd53e940a9c58afc0c4b87940db0beb9": {
+      "where": "guide/time-filters.md:69",
+      "lines": [
+        [
+          {
+            "start": 33,
+            "length": 17,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 33,
+            "length": 25,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 33,
+            "length": 36,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "e81e501d906b0c76a57853281f871450bffafe095c15c4d1a6b6b88edf75e68a": {
+      "where": "guide/notifications.md:55",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "ed0afd062b5519fb3135174f1644269dc2502e6338fe2b69749c77bdc291569c": {
+      "where": "guide/themes.md:61",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "ef5160697da8c5c51a6f376021f483ba843e2129ae214e4060eca7b912985aef": {
+      "where": "getting-started/installation.md:170",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ]
+      ]
+    },
+    "f30aebc70e7a2141f4a7b692fa6c8a3a33dfa622f903c2ac53481ee2d4883103": {
+      "where": "guide/filtering.md:35",
+      "lines": [
+        [
+          {
+            "start": 25,
+            "length": 19,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 10,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 25,
+            "length": 13,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "fdc104c949219f832c9b4ce0c14356dffba37b27bd90d31367adaf7b10a74360": {
+      "where": "guide/export.md:13",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        []
+      ]
+    },
+    "fdcfb86da5da70ab5b0be4806a51beb7fb15c3247ce3e5d90742d6f6f43e78ea": {
+      "where": "guide/export.md:66",
+      "lines": [
+        []
+      ]
+    },
+    "fddfd947cb39079c18da4dab2d1ee84a2379e053abf01390c63059dbe1fe425e": {
+      "where": "guide/time-filters.md:95",
+      "lines": [
+        [
+          {
+            "start": 19,
+            "length": 24,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 19,
+            "length": 10,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 19,
+            "length": 58,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ],
+        [
+          {
+            "start": 19,
+            "length": 35,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "ff75f4a818a309ee7e8196fa2ca7f7c3cb435f2a2b1251d19774970c172862e1": {
+      "where": "guide/tail-mode.md:69",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 7,
+            "dark": "#c678dd",
+            "light": "#a626a4"
+          },
+          {
+            "start": 8,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 21,
+            "length": 7,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 29,
+            "length": 7,
+            "dark": "#e06c75",
+            "light": "#e45649",
+            "bold": true
+          },
+          {
+            "start": 85,
+            "length": 12,
+            "dark": "#56b6c2",
+            "light": "#008080"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 7,
+            "dark": "#c678dd",
+            "light": "#a626a4"
+          },
+          {
+            "start": 8,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 21,
+            "length": 7,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 29,
+            "length": 7,
+            "dark": "#98c379",
+            "light": "#50a14f"
+          },
+          {
+            "start": 49,
+            "length": 6,
+            "dark": "#61afef",
+            "light": "#00008b",
+            "bold": true
+          },
+          {
+            "start": 56,
+            "length": 1,
+            "dark": "#c678dd",
+            "light": "#8b008b"
+          }
+        ],
+        [
+          {
+            "start": 0,
+            "length": 7,
+            "dark": "#c678dd",
+            "light": "#a626a4"
+          },
+          {
+            "start": 8,
+            "length": 12,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 21,
+            "length": 7,
+            "dark": "#7f848e",
+            "light": "#696c77"
+          },
+          {
+            "start": 29,
+            "length": 7,
+            "dark": "#e5c07b",
+            "light": "#c18401"
+          },
+          {
+            "start": 47,
+            "length": 2,
+            "dark": "#e06c75",
+            "light": "#8b0000"
+          }
+        ]
+      ]
+    }
+  }
+}

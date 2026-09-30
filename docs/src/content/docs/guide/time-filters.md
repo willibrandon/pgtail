@@ -44,7 +44,7 @@ A date, or a date and time:
 
 Show entries from a time onward:
 
-```
+```pgtail
 since 5m           # The last 5 minutes
 since 14:30        # From 2:30 PM today
 since 2024-01-15   # From January 15
@@ -54,7 +54,7 @@ since 2024-01-15   # From January 15
 
 Show entries up to a time:
 
-```
+```pgtail
 until 15:00        # Up to 3 PM today
 until 1h           # Up to one hour ago
 ```
@@ -65,7 +65,7 @@ With an upper bound, entries written after it never match, so live tailing shows
 
 Show entries within a range:
 
-```
+```pgtail
 between 14:00 16:00              # 2 to 4 PM today
 between 2024-01-15 2024-01-16    # The whole of January 15
 between 1h 30m                   # From an hour ago to 30 minutes ago
@@ -78,7 +78,7 @@ accepted with a warning, since nothing matches it yet.
 
 ## Starting tail mode with a time filter
 
-```
+```pgtail
 pgtail> tail 0 --since 1h
 ```
 
@@ -91,7 +91,7 @@ part of the [filter anchor](/guide/filtering/#filter-anchor): `clear` returns to
 
 ## Clearing time filters
 
-```
+```pgtail
 since clear        # Remove the time filter
 until clear        # The same
 clear              # In tail mode: back to the filters tail mode started with

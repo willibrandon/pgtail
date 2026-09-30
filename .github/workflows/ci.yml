@@ -30,6 +30,23 @@ jobs:
           redact: 100
           timeout: 300
 
+  docs-colors:
+    name: docs colors
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # The site's pgtail blocks are colored by pgtail's own formatter; this fails when they are out of date.
+      - name: Check the documentation's colors
+        run: dotnet run --file scripts/Highlight-Docs.cs -- --verify
+
   test:
     name: tests (${{ matrix.name }})
     strategy:

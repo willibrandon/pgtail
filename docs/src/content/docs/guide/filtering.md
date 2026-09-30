@@ -12,7 +12,7 @@ Filter entries by severity. In tail mode the command is `level`; in the REPL it 
 
 ### Basic level filter
 
-```
+```pgtail
 level error      # ERROR only
 level warning    # WARNING only
 level log        # LOG only
@@ -23,7 +23,7 @@ level all        # Every level (clears the level filter)
 
 Levels run from most to least severe: PANIC, FATAL, ERROR, WARNING, NOTICE, LOG, INFO, DEBUG1 through DEBUG5.
 
-```
+```pgtail
 level error+     # ERROR and more severe (FATAL, PANIC)
 level warning+   # WARNING, ERROR, FATAL, PANIC
 level warning-   # WARNING and less severe (NOTICE, LOG, INFO, DEBUG1-5)
@@ -31,7 +31,7 @@ level warning-   # WARNING and less severe (NOTICE, LOG, INFO, DEBUG1-5)
 
 ### Several levels
 
-```
+```pgtail
 level error,warning      # ERROR and WARNING
 level error warning      # The same
 levels ERROR WARNING     # In the REPL
@@ -52,7 +52,7 @@ levels ERROR WARNING     # In the REPL
 
 Examples:
 
-```
+```pgtail
 level e+    # ERROR and above
 level w     # WARNING only
 ```
@@ -64,7 +64,7 @@ Level names ignore case. The `default.levels` setting chooses the levels pgtail 
 
 Filter by a pattern in the log message:
 
-```
+```pgtail
 filter /deadlock/        # Lines matching 'deadlock', ignoring case
 filter /deadlock/c       # Case-sensitive
 ```
@@ -82,7 +82,7 @@ filter /deadlock/c       # Case-sensitive
 
 For example, to see statements on `users` or `orders` that are not `SELECT`s:
 
-```
+```pgtail
 filter /users/
 filter +/orders/
 filter -/SELECT/
@@ -94,7 +94,7 @@ Patterns use the regular expression syntax of ripgrep, matched by a linear-time 
 proportional to the line whatever the pattern, so no pattern can stall the log. Classes (`\d`, `\w`, `[a-z]`),
 repetition (`+`, `*`, `{3}`), alternation, groups, and anchors all work; backreferences do not.
 
-```
+```pgtail
 filter /user_\d+/            # 'user_' followed by digits
 filter /timeout|deadlock/    # Either word
 ```
@@ -119,7 +119,7 @@ Filter by structured fields (CSV and JSON log formats only).
 
 ### Examples
 
-```
+```pgtail
 filter app=myapp         # Application name
 filter db=production     # Database name
 filter user=postgres     # User name
@@ -136,7 +136,7 @@ effect.
 
 See [Time filters](/guide/time-filters/) for every time format.
 
-```
+```pgtail
 since 5m                 # The last 5 minutes
 until 14:00              # Before 2 PM today
 between 14:00 16:00      # Between 2 and 4 PM
@@ -155,7 +155,7 @@ Filters run cheapest first:
 
 All filter kinds combine with AND:
 
-```
+```pgtail
 level error+
 filter /timeout/
 since 1h

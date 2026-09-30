@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Hex1b;
 using Hex1b.Automation;
 
@@ -122,6 +123,15 @@ internal sealed class PgtailProcess : IAsyncDisposable
             : StartInfo(environment, new ProcessStartInfo("/bin/sh", ["-c", command]));
         return new(environment, builder => builder.WithProcess(info), 160, 40, cancellationToken);
     }
+
+    /// <summary>
+    /// Pastes text, as a terminal sends it: between the markers of a bracketed paste rather than as keys.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="cancellationToken">Cancels the send.</param>
+    /// <returns>A task that completes when the text is sent.</returns>
+    public Task PasteAsync(string text, CancellationToken cancellationToken) =>
+        _terminal.SendInputAsync(Encoding.UTF8.GetBytes($"\e[200~{text}\e[201~"), cancellationToken);
 
     /// <summary>
     /// Waits for the process to exit and returns its exit code.
