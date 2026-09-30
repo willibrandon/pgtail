@@ -144,10 +144,10 @@ IEnumerable<List<Span>> Transcript(List<string> body)
     foreach (string line in body)
     {
         var spans = new List<Span>();
-        StyledText? label = Label(line);
+        StyledText? label = Label(line, themes[0]);
         if (label is not null)
         {
-            spans.AddRange(Spans(label, label));
+            spans.AddRange(Spans(label, Label(line, themes[1])!));
         }
 
         // A note follows a command; a line of output may have a "#" of its own, as a table's first column does.
@@ -223,7 +223,7 @@ static string Html(string text, List<Span> spans)
     return html.Append(WebUtility.HtmlEncode(text[at..])).ToString();
 }
 
-StyledText? Label(string line)
+StyledText? Label(string line, Theme theme)
 {
     if (line.StartsWith(PromptLabels.Tail.TrimEnd(), StringComparison.Ordinal))
     {
@@ -231,7 +231,7 @@ StyledText? Label(string line)
         return new StyledText(PromptLabels.Tail.TrimEnd());
     }
 
-    StyledText[] labels = [PromptLabels.Repl, PromptLabels.Shell];
+    StyledText[] labels = [PromptLabels.Repl(theme), PromptLabels.Shell];
     foreach (StyledText label in labels.Where(label => line.StartsWith(label.PlainText.TrimEnd(), StringComparison.Ordinal)))
     {
         return label;
