@@ -588,9 +588,14 @@ public sealed class TailScreenTests
         DateTime start = DateTime.UtcNow.AddMinutes(-30);
         LogFiles.Append(log, Enumerable.Range(1, count).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000,
             i is older or count ? "ERROR" : "LOG", $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
-        await using (TailHarness warm = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
+        // The warm-up reads back a short log of its own; the long one takes a loaded CI machine longer than a wait allows.
+        const int warmCount = Tail.TailScreen.BacklogLines + 10_000;
+        string warmLog = Path.Join(environment.Root, "warm", "postgresql.log");
+        LogFiles.Append(warmLog, Enumerable.Range(1, warmCount).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000, "LOG",
+            $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
+        await using (TailHarness warm = await TailHarness.StartAsync(environment, warmLog, TestContext.CancellationToken))
         {
-            await warm.Automator.WaitUntilTextAsync("200,000 lines");
+            await warm.Automator.WaitUntilTextAsync($"{warmCount.ToString("N0", CultureInfo.InvariantCulture)} lines");
         }
 
         PgtailSession session;
