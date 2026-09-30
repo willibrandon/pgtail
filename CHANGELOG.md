@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-30
+
+### Fixed
+- The package page on nuget.org showed the README's logo as raw HTML; the package now carries the README without it.
+
 ## [0.7.0] - 2026-09-30
 
 ### Changed
@@ -276,6 +281,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.7.1]: https://github.com/willibrandon/pgtail/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/willibrandon/pgtail/compare/v0.6.1...v0.7.0
+[0.6.1]: https://github.com/willibrandon/pgtail/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/willibrandon/pgtail/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/willibrandon/pgtail/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/willibrandon/pgtail/compare/v0.4.1...v0.5.0
