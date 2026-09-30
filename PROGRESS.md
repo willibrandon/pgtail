@@ -257,3 +257,12 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   user typing `errors` right after loading would otherwise see. The same run failed the cursor blink test, whose wait
   for the log's focus after Tab passed on any frame with the cursor on, focused or not; it now presses `p`, which only
   the log takes, and waits for `PAUSED`.
+- The docs build printed three warnings under Astro 7.3.5 and Starlight 0.42.4, both current. Starlight reads an
+  `i18n` collection and a docs entry named `404`, and Astro 7 now logs a miss; Starlight's attempt to quiet the first
+  replaces `console.warn`, which Astro's logger does not use. The collection is now declared as the Starlight i18n
+  guide shows, with an `en.yml` that changes no strings and says so, and the not found page is `src/pages/404.astro`
+  with `disable404Route`, as Starlight's configuration reference describes: a `404.md` entry, as Starlight's own docs
+  use, also clashes with the injected route and Astro warns about that. Rolldown's `MODULE_LEVEL_DIRECTIVE` warning
+  on the `"use astro:head-inject"` Astro puts in MDX asset modules is dropped by an `onLog` filter for that directive
+  only, as other Astro 7 sites do, until withastro/astro#18088 removes the dead directive. The landing page's text is
+  unchanged; the not found page is titled "Page not found" and links home.

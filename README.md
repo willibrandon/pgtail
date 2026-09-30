@@ -146,6 +146,15 @@ dotnet publish src/Pgtail -c Release -r linux-x64 -o out
 
 `scripts/Publish-NativeAot.cs` publishes, checks, and packs a runtime as the release does; see `scripts/README.md`.
 
+The documentation site in `docs/` is built with [pnpm](https://pnpm.io/installation), which Node.js 25 and later no
+longer provide through Corepack:
+
+```bash
+cd docs
+pnpm install
+pnpm build    # or pnpm dev to preview
+```
+
 ### Installation Summary
 
 | Method | Platforms | Auto-Update | Notes |

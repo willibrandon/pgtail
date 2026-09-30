@@ -5,6 +5,22 @@ import starlight from '@astrojs/starlight';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://pgtail.dev',
+  vite: {
+    build: {
+      rolldownOptions: {
+        // Astro starts each MDX page's asset module with a "use astro:head-inject" directive that nothing reads any
+        // more, and rolldown warns that bundling may not keep it. Only that warning is dropped; remove this once Astro
+        // ships https://github.com/withastro/astro/pull/18088.
+        onLog(level, log, handler) {
+          if (log.code === 'MODULE_LEVEL_DIRECTIVE' && log.message.includes('"use astro:head-inject"')) {
+            return;
+          }
+
+          handler(level, log);
+        },
+      },
+    },
+  },
   integrations: [
     starlight({
       title: 'pgtail',
@@ -13,6 +29,8 @@ export default defineConfig({
       favicon: '/favicon.png',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/willibrandon/pgtail' }],
       customCss: ['./src/styles/custom.css'],
+      // src/pages/404.astro is the not found page.
+      disable404Route: true,
       sidebar: [
         {
           label: 'Getting started',

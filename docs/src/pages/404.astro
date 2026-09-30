@@ -1,0 +1,18 @@
+---
+// The not found page. Starlight's own 404 route is turned off in astro.config.mjs: it looks for a docs entry named 404,
+// and Astro warns when there is none, while such an entry would also be built at /404/ and clash with the route.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+
+<StarlightPage
+	frontmatter={{
+		title: 'Page not found',
+		template: 'splash',
+		pagefind: false,
+		hero: {
+			title: '404',
+			tagline: 'Page not found. Check the URL or try using the search bar.',
+			actions: [{ text: 'Go home', link: '/', icon: 'right-arrow', variant: 'primary' }],
+		},
+	}}
+/>
