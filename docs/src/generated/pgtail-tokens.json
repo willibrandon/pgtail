@@ -105,6 +105,53 @@
         ]
       ]
     },
+    "0bb9b61becde6ab798ab741c31b2f89b74ee9abad943bd5c1f171257db859946": {
+      "where": "cli-reference.md:308",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 13,
+            "dark": "#cccccc",
+            "light": "#333333",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          },
+          {
+            "start": 13,
+            "length": 2,
+            "dark": "#666666",
+            "light": "#888888",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          },
+          {
+            "start": 15,
+            "length": 39,
+            "dark": "#55ffff",
+            "light": "#007acc",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          },
+          {
+            "start": 54,
+            "length": 2,
+            "dark": "#666666",
+            "light": "#888888",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          },
+          {
+            "start": 56,
+            "length": 14,
+            "dark": "#cccccc",
+            "light": "#333333",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          }
+        ]
+      ]
+    },
     "0e4f34f6e0a81f68cea33a5fab82a09c5b78809ed7bd24471cf922eea6f3c3e0": {
       "where": "guide/notifications.md:35",
       "lines": [
@@ -248,6 +295,30 @@
         ]
       ]
     },
+    "14b24e8e24d2f56d551f524ae8c76a3ad39ab822f377fc2388ef827fafdfeff5": {
+      "where": "cli-reference.md:330",
+      "lines": [
+        [
+          {
+            "start": 0,
+            "length": 7,
+            "dark": "#ffffff",
+            "light": "#000000",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0",
+            "bold": true
+          },
+          {
+            "start": 7,
+            "length": 22,
+            "dark": "#666666",
+            "light": "#888888",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          }
+        ]
+      ]
+    },
     "1994c3ec2436f177eb9391867b1fa85e319681c91d06ef9443c242479236dfd1": {
       "where": "guide/notifications.md:93",
       "lines": [
@@ -302,6 +373,57 @@
             "length": 24,
             "dark": "#7f848e",
             "light": "#696c77"
+          }
+        ]
+      ]
+    },
+    "1bce73ab73c62fb7f43862b231fb4433adb586c7fd4f51100d865478e79b104c": {
+      "where": "getting-started/quickstart.md:17",
+      "lines": [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          {
+            "start": 0,
+            "length": 6,
+            "dark": "#98c379",
+            "light": "#006400"
+          },
+          {
+            "start": 6,
+            "length": 1,
+            "dark": "#666666",
+            "light": "#666666"
+          }
+        ],
+        [],
+        [
+          {
+            "start": 0,
+            "length": 13,
+            "dark": "#cccccc",
+            "light": "#333333",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          },
+          {
+            "start": 13,
+            "length": 2,
+            "dark": "#666666",
+            "light": "#888888",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
+          },
+          {
+            "start": 15,
+            "length": 11,
+            "dark": "#cccccc",
+            "light": "#333333",
+            "darkBackground": "#1a1a1a",
+            "lightBackground": "#e0e0e0"
           }
         ]
       ]

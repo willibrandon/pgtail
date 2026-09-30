@@ -304,7 +304,7 @@ kept across sessions (see [Configuration](/configuration/#config-file-location))
 
 The REPL keeps a toolbar at the bottom of the terminal:
 
-```
+```pgtail
  3 instances • levels:ERROR,WARNING filter:/timeout/i • Theme: monokai
 ```
 
@@ -326,7 +326,7 @@ Run shell commands without leaving pgtail:
 
 In shell mode the prompt is `!` and the toolbar shows:
 
-```
+```pgtail
  SHELL • Press Escape to exit
 ```
 

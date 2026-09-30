@@ -6,7 +6,8 @@
 // Colors the documentation's pgtail blocks with pgtail's own formatter, highlighters, themes, and prompt labels, and
 // writes the spans to docs/src/generated/pgtail-tokens.json for the site's code block plugin.
 //
-//   ```pgtail       A transcript or a list of commands: prompts in their colors, a trailing "# note" dimmed.
+//   ```pgtail       A transcript or a list of commands: prompts in their colors, a trailing "# note" dimmed, and the
+//                   REPL's toolbar (a line such as " 2 instances • Theme: dark") in the theme's toolbar styles.
 //   ```pgtail-log   Entries as tail mode draws them, made from the PostgreSQL log lines in the comment above the block:
 //
 //                       <!-- pgtail-log
@@ -143,6 +144,12 @@ IEnumerable<List<Span>> Transcript(List<string> body)
 {
     foreach (string line in body)
     {
+        if (Toolbar(line, themes[0]) is { } toolbar)
+        {
+            yield return Spans(toolbar, Toolbar(line, themes[1])!);
+            continue;
+        }
+
         var spans = new List<Span>();
         StyledText? label = Label(line, themes[0]);
         if (label is not null)
@@ -151,7 +158,7 @@ IEnumerable<List<Span>> Transcript(List<string> body)
         }
 
         // A note follows a command; a line of output may have a "#" of its own, as a table's first column does.
-        int command = label?.Length ?? 0;
+        int command = Math.Min(label?.Length ?? 0, line.Length);
         int note = line.IndexOf("  #", command, StringComparison.Ordinal);
         note = note >= 0 && line[command..note].Trim().Length > 0 ? note : -1;
         if (note >= 0 || (label is null && line.StartsWith('#')))
@@ -221,6 +228,47 @@ static string Html(string text, List<Span> spans)
     }
 
     return html.Append(WebUtility.HtmlEncode(text[at..])).ToString();
+}
+
+// The REPL's toolbar in a theme's styles, as the REPL builds it: the instance count, then the filters and the theme
+// after "•" separators, or the shell mode notice.
+static StyledText? Toolbar(string line, Theme theme)
+{
+    if (!line.StartsWith(' ') || !line.Contains(" • ", StringComparison.Ordinal))
+    {
+        return null;
+    }
+
+    TextStyle dim = theme.Style("toolbar.dim");
+    var text = new StyledText();
+    string[] parts = line.Split("• ");
+    for (int i = 0; i < parts.Length; i++)
+    {
+        string part = parts[i];
+        if (i > 0)
+        {
+            text.Append("• ", dim);
+        }
+
+        if (part.StartsWith(" SHELL", StringComparison.Ordinal))
+        {
+            text.Append(part, theme.Style("toolbar.shell"));
+        }
+        else if (part.StartsWith(" No instances ", StringComparison.Ordinal))
+        {
+            text.Append(" No instances ", theme.Style("toolbar.warning")).Append(part[" No instances ".Length..], dim);
+        }
+        else if (i == 0 || part.StartsWith("Theme:", StringComparison.Ordinal))
+        {
+            text.Append(part, theme.Style("toolbar"));
+        }
+        else
+        {
+            text.Append(part, part.StartsWith("Press ", StringComparison.Ordinal) ? dim : theme.Style("toolbar.filter"));
+        }
+    }
+
+    return text;
 }
 
 StyledText? Label(string line, Theme theme)
