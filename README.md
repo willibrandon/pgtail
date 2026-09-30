@@ -897,8 +897,8 @@ Mouse drag selection auto-copies to clipboard on release.
 **Command input (history & autocomplete):**
 
 The `tail>` command prompt has the focus when tail mode starts and keeps it after each command, so commands can be typed
-one after another; text typed on the log that is not one of its keys goes to the prompt too. A command's output shows in
-a panel above the prompt until the next command or Escape, so a busy log does not scroll it away.
+one after another; text typed on the log that is not one of its keys goes to the prompt too. A command's output, such as
+`help`, is written into the log.
 
 | Key | Action |
 |-----|--------|
@@ -906,8 +906,8 @@ a panel above the prompt until the next command or Escape, so a busy log does no
 | Up | Recall previous command from history |
 | Down | Navigate forward through history |
 | Right / End | Accept ghost text suggestion |
-| PgUp / PgDn | Page through the command output, or else the log |
-| Escape | Close the command output; then clear the prompt and move to the log |
+| PgUp / PgDn | Scroll the log a page |
+| Escape | Clear the prompt and move to the log |
 
 - **Command history** persists across sessions (Up/Down arrows to navigate)
 - **Ghost text autocomplete** shows dimmed suggestions as you type:

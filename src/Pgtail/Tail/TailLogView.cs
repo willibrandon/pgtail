@@ -115,7 +115,7 @@ internal sealed class TailLogView(TailLog log, bool color)
     /// Scrolls a page at a time, as Page Up and Page Down do.
     /// </summary>
     /// <param name="pages">The pages to scroll, negative for up.</param>
-    public void Page(int pages) => Move(pages * _viewport);
+    public void Page(int pages) => ScrollWithCaret(pages * _viewport);
 
     /// <summary>
     /// Adjusts for rows put in front of the log, so the rows on screen and the selection stay where they are.
@@ -242,12 +242,12 @@ internal sealed class TailLogView(TailLog log, bool color)
         bindings.Key(Hex1bKey.RightArrow).Action(_ => Right(), "Right");
         bindings.Key(Hex1bKey.Home).Action(_ => Top(), "Top");
         bindings.Key(Hex1bKey.End).Action(_ => Bottom(), "Bottom");
-        bindings.Ctrl().Key(Hex1bKey.D).Action(_ => Move(_viewport / 2), "Half page down");
-        bindings.Ctrl().Key(Hex1bKey.U).Action(_ => Move(-(_viewport / 2)), "Half page up");
-        bindings.Ctrl().Key(Hex1bKey.F).Action(_ => Move(_viewport), "Page down");
-        bindings.Key(Hex1bKey.PageDown).Action(_ => Move(_viewport), "Page down");
-        bindings.Ctrl().Key(Hex1bKey.B).Action(_ => Move(-_viewport), "Page up");
-        bindings.Key(Hex1bKey.PageUp).Action(_ => Move(-_viewport), "Page up");
+        bindings.Ctrl().Key(Hex1bKey.D).Action(_ => ScrollWithCaret(_viewport / 2), "Half page down");
+        bindings.Ctrl().Key(Hex1bKey.U).Action(_ => ScrollWithCaret(-(_viewport / 2)), "Half page up");
+        bindings.Ctrl().Key(Hex1bKey.F).Action(_ => Page(1), "Page down");
+        bindings.Key(Hex1bKey.PageDown).Action(_ => Page(1), "Page down");
+        bindings.Ctrl().Key(Hex1bKey.B).Action(_ => Page(-1), "Page up");
+        bindings.Key(Hex1bKey.PageUp).Action(_ => Page(-1), "Page up");
         bindings.Key(Hex1bKey.Escape).Action(_ => ClearSelection(), "Clear selection");
         bindings.Ctrl().Key(Hex1bKey.A).Action(_ => SelectAll(), "Select all");
         bindings.Mouse(MouseButton.ScrollUp).Action(_ => Scroll(-WheelLines), "Scroll up");
@@ -445,6 +445,26 @@ internal sealed class TailLogView(TailLog log, bool color)
 
         BeginNavigation();
         _line = Math.Clamp(_line + delta, 0, Log.Count - 1);
+        _column = Math.Min(_column, Length(_line));
+        Reveal();
+    }
+
+    // Scrolls the view by rows and carries the cursor line along, as a pager's page keys do; at either end, where the view
+    // cannot move, the cursor line goes the rest of the way.
+    private void ScrollWithCaret(int delta)
+    {
+        if (Log.Count == 0)
+        {
+            return;
+        }
+
+        BeginNavigation();
+        var maxTop = Math.Max(0, Log.Count - _viewport);
+        var top = Following ? maxTop : _top;
+        var target = Math.Clamp(top + delta, 0, maxTop);
+        Following = false;
+        _top = target;
+        _line = Math.Clamp(_line + (target != top ? target - top : delta), 0, Log.Count - 1);
         _column = Math.Min(_column, Length(_line));
         Reveal();
     }

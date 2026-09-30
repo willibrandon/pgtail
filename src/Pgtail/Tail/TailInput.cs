@@ -15,9 +15,9 @@ namespace Pgtail.Tail;
 /// The input draws itself, with a block cursor that blinks while it has focus and stays solid when the log has it. The
 /// rest of a command the input suggests follows the text in grey, its first character under the cursor, and is worked
 /// out as each frame is built so it always belongs to the line on screen; Right, or End at the end of the line, accepts
-/// it. Up and Down walk the history, Enter runs the command and keeps the input for the next one, Page Up and Page Down
-/// scroll the command output or else the log, and Escape closes the command output or else clears the line and moves to
-/// the log. Every character typed is text, <c>q</c> included; the <c>q</c> command leaves tail mode once Enter runs it.
+/// it. Up and Down walk the history, Enter runs the command, whose output goes into the log, and keeps the input for the
+/// next one, Page Up and Page Down scroll the log, and Escape clears the line and moves to the log. Every character typed
+/// is text, <c>q</c> included; the <c>q</c> command leaves tail mode once Enter runs it.
 /// </remarks>
 internal sealed class TailInput
 {
@@ -185,18 +185,12 @@ internal sealed class TailInput
         bindings.Key(Hex1bKey.Enter).Action(_ => SubmitAsync(), "Run the command");
         bindings.Key(Hex1bKey.Escape).Action(context =>
         {
-            if (_screen.ResultVisible)
-            {
-                _screen.CloseResult();
-                return;
-            }
-
             SetText("");
             FocusLog?.Invoke(context);
-        }, "Close the command output, or clear and return to the log");
+        }, "Clear and return to the log");
 
-        bindings.Key(Hex1bKey.PageUp).Action(_ => _screen.Scroll(-1), "Scroll the command output or the log up");
-        bindings.Key(Hex1bKey.PageDown).Action(_ => _screen.Scroll(1), "Scroll the command output or the log down");
+        bindings.Key(Hex1bKey.PageUp).Action(_ => _screen.Scroll(-1), "Scroll the log up");
+        bindings.Key(Hex1bKey.PageDown).Action(_ => _screen.Scroll(1), "Scroll the log down");
         bindings.Key(Hex1bKey.UpArrow).Action(_ =>
         {
             if (_history.Back(Text) is { } entry)

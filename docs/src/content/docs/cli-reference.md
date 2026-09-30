@@ -345,7 +345,7 @@ Commands run in `sh` (`powershell` or `cmd` on Windows) on the terminal itself, 
 
 In tail mode, the `tail>` input offers command history (Up/Down, kept across sessions) and completion suggestions
 (Right or End to accept). It keeps the focus after a command, so the next one can be typed at once. A command's output
-shows in a panel above the input until the next command or Escape; PgUp and PgDn page through a long one.
+is written into the log; PgUp and PgDn in the input scroll the log.
 
 | Command | Description |
 |---------|-------------|

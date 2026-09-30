@@ -82,12 +82,12 @@ When tailing several files, entries are interleaved by time with the file each c
 ```
 
 The command input has focus when tail mode starts, and keeps it after a command runs, so commands can be typed one
-after another; the terminal's cursor marks where you type. Text typed on the log that is not one of its keys goes to
+after another; a blinking block cursor marks where you type. Text typed on the log that is not one of its keys goes to
 the input too. **Tab** switches between the log and the input, `/` in the log moves to the input, and **Escape** in
-the input closes the command output, then clears the input and returns to the log.
+the input clears it and returns to the log.
 
-A command's output, such as `help` or `errors`, shows in a panel above the input until the next command or
-**Escape**, so a busy log does not scroll it away; **PgUp** and **PgDn** page through a long one.
+A command's output, such as `help` or `errors`, is written into the log, so its end shows at once and **PgUp** scrolls
+back to the rest.
 
 ## Log keys
 
@@ -211,8 +211,8 @@ Suggestions come from each command's arguments, flags, and subcommands first, an
 | `Up` / `Down` | Previous / next command from history |
 | `Right` / `End` | Accept the suggestion |
 | `Enter` | Run the command |
-| `PgUp` / `PgDn` | Page through the command output, or else the log |
-| `Escape` | Close the command output; then clear the input and return to the log |
+| `PgUp` / `PgDn` | Scroll the log a page |
+| `Escape` | Clear the input and return to the log |
 | `Tab` | Return to the log |
 
 Every key typed in the input is text, `q` included: type `q` (or `stop`) and **Enter** to leave tail mode.

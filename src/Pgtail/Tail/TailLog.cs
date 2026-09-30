@@ -28,6 +28,11 @@ internal sealed class TailLog
     public int Count => (int)(_next - _first);
 
     /// <summary>
+    /// The number of rows that are log entries', leaving out messages such as command output.
+    /// </summary>
+    public int EntryRows { get; private set; }
+
+    /// <summary>
     /// One of the rows.
     /// </summary>
     /// <param name="index">The row, counting from 0.</param>
@@ -75,6 +80,7 @@ internal sealed class TailLog
         {
             segment.Start = _next;
             _next += segment.RowCount;
+            EntryRows += segment.IsEntry ? segment.RowCount : 0;
             _segments.Add(segment);
         }
 
@@ -82,7 +88,9 @@ internal sealed class TailLog
         var remove = 0;
         while (Count - dropped > MaxLines && remove < _segments.Count)
         {
-            dropped += _segments[remove++].RowCount;
+            var segment = _segments[remove++];
+            dropped += segment.RowCount;
+            EntryRows -= segment.IsEntry ? segment.RowCount : 0;
         }
 
         _segments.RemoveRange(0, remove);
@@ -112,6 +120,7 @@ internal sealed class TailLog
         {
             segment.Start = start;
             start += segment.RowCount;
+            EntryRows += segment.IsEntry ? segment.RowCount : 0;
         }
 
         _segments.InsertRange(0, kept);
@@ -126,6 +135,7 @@ internal sealed class TailLog
     {
         _segments.Clear();
         _made.Clear();
+        EntryRows = 0;
         _first = 0;
         _next = 0;
     }

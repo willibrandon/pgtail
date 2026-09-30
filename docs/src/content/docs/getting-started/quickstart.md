@@ -83,7 +83,7 @@ This opens **tail mode**, a full screen view with:
 
 - The log, which follows new entries and scrolls with vim keys or the mouse
 - A command input (`tail>`) with command history (Up/Down) and suggestions as you type. It keeps the focus after each
-  command, and a command's output shows above it until the next command or Escape
+  command, and a command's output, such as `help`, is written into the log
 - A status bar with the mode, error and warning counts, the line count, filters, and the instance
 
 ## Tail mode keys
@@ -100,8 +100,8 @@ This opens **tail mode**, a full screen view with:
 | `y` | Yank (copy) the selection |
 | `?` | Show the key reference |
 | `/` or `Tab` | Focus the command input (typing a command on the log also does) |
-| `PgUp` / `PgDn` | In the input, page through the command output, or else the log |
-| `Escape` | In the input, close the command output; then move to the log |
+| `PgUp` / `PgDn` | Scroll the log a page, from the input too |
+| `Escape` | In the input, clear it and move to the log |
 | `q` | Leave tail mode from the log; in the input, type `q` and Enter |
 
 ## Filter logs

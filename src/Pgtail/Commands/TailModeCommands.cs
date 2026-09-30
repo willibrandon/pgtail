@@ -99,10 +99,10 @@ internal static class TailModeCommands
         output.Markup("[bold cyan]Command Input[/bold cyan]");
         foreach (var (key, description) in new[]
         {
-            ("Enter", "Run the command; its output stays above the input"),
-            ("PgUp/PgDn", "Scroll the output, or the log"),
+            ("Enter", "Run the command"),
+            ("PgUp/PgDn", "Scroll the log"),
             ("Up/Down", "Previous/next command"),
-            ("Escape", "Close the output, then go to the log"),
+            ("Escape", "Clear the input and go to the log"),
             ("Tab", "Switch between the input and the log"),
         })
         {

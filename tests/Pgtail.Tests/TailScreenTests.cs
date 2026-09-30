@@ -407,31 +407,24 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
-    /// A command's output stays above the input while entries arrive, pages with Page Down, and Escape closes it.
+    /// help writes its text into the log, where the end shows at once and the rest is a scroll up away.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task CommandOutput_StaysWhileEntriesArrive_EscapeCloses()
+    public async Task Help_WritesIntoLog()
     {
         using var environment = new TestEnvironment();
         var log = WriteLog(environment, ("LOG", "hello"));
         await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.TypeAsync("help", TestContext.CancellationToken);
         await tail.Automator.EnterAsync(TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("Navigation") && screen.ContainsText("more below"),
-            description: "the help output with more below");
-        LogFiles.Append(log, Enumerable.Range(1, 60).Select(i => LogFiles.Text(DateTime.UtcNow, 2000 + i, "LOG", $"arriving {i}")));
-        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("arriving 60") && screen.ContainsText("Navigation"),
-            description: "new entries with the output still shown");
-        await tail.Automator.PageDownAsync(TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("more above") && !screen.ContainsText("Scroll 1 line"),
-            description: "the next page of the output");
-        await tail.Automator.EscapeAsync(TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => !screen.ContainsText("more above") && TailHarness.Input(screen) == "tail>",
-            description: "the output closed with the input kept");
-        await tail.Automator.TypeAsync("pause", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> pause",
-            description: "the input still focused");
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("stop/exit/q  Exit tail mode") && TailHarness.Input(screen) == "tail>"
+                && TailHarness.Status(screen).Contains("| 1 lines |", StringComparison.Ordinal),
+            description: "the end of the help in the log, with only the entry counted");
+        await tail.Automator.PageUpAsync(TestContext.CancellationToken);
+        await tail.Automator.PageUpAsync(TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("Navigation");
     }
 
     /// <summary>
@@ -764,14 +757,9 @@ public sealed class TailScreenTests
         await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, height: 60);
         await tail.RunAsync("help", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
-            screen => screen.ContainsText("help keys    Show keybinding reference") && screen.ContainsText("more below"),
-            description: "the command list's first page");
-        await tail.Automator.PageDownAsync(TestContext.CancellationToken);
-        await tail.Automator.WaitUntilTextAsync("stop/exit/q  Exit tail mode");
+            screen => screen.ContainsText("help keys    Show keybinding reference") && screen.ContainsText("stop/exit/q  Exit tail mode"),
+            description: "the command list");
         await tail.RunAsync("help keys", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => screen.ContainsText("j / ↓") && screen.ContainsText("more below"),
-            description: "the key reference's first page");
-        await tail.Automator.PageDownAsync(TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("Escape / q       Close help");
         await tail.RunAsync("help level", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(

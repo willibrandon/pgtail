@@ -223,3 +223,8 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   makes rows only when they are drawn, keeping the last 5,000 made. On the test server's day (142,358 lines, two of
   them without a text time, which a time filter leaves out) the Native AOT build shows the tail at 0.5 s and the whole
   day at 1.1 s in 167 MB, and `level error` finds the day's 1,993 errors in about 0.4 s.
+- The output panel over the tail input was a mistake: `help` showed its first six lines and "31 more below · PgUp/PgDn
+  scroll · Esc closes", which read as nonsense, where the Python release wrote `help` into the log and showed its end,
+  the command list. Command output is written into the log again and the panel is gone; the status bar's line count
+  leaves such output out. Page Up and Page Down now scroll a whole page with the cursor line along, as a pager does;
+  they moved the cursor line a page, so from the newest line the view moved by one line.

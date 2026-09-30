@@ -45,10 +45,10 @@ internal sealed class TailHelpOverlay
         ("Command input",
         [
             ("/ or Tab", "Focus command input"),
-            ("Enter", "Run; output shows above the input"),
-            ("PgUp / PgDn", "Scroll the output, or the log"),
+            ("Enter", "Run the command"),
+            ("PgUp / PgDn", "Scroll the log"),
             ("↑ / ↓", "Previous / next command"),
-            ("Escape", "Close the output, then the input"),
+            ("Escape", "Clear the input, go to the log"),
         ]),
         ("Commands",
         [

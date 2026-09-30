@@ -9,7 +9,8 @@ namespace Pgtail.Tail;
 /// </remarks>
 /// <param name="rowCount">How many rows the segment has.</param>
 /// <param name="make">Makes the rows.</param>
-internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> make)
+/// <param name="isEntry">Whether the rows are a log entry's, which the status bar counts, rather than a message's.</param>
+internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> make, bool isEntry = true)
 {
     private IReadOnlyList<TailLine>? _rows;
 
@@ -17,6 +18,11 @@ internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> ma
     /// How many rows the segment has.
     /// </summary>
     public int RowCount { get; } = rowCount;
+
+    /// <summary>
+    /// Whether the rows are a log entry's rather than a message's, such as a command's output.
+    /// </summary>
+    public bool IsEntry { get; } = isEntry;
 
     /// <summary>
     /// The log's number for the segment's first row, which stays the same as rows come and go around it.
@@ -29,14 +35,14 @@ internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> ma
     public bool IsMade => _rows is not null;
 
     /// <summary>
-    /// A segment of rows that are already made, such as a message's.
+    /// A message's rows, such as a command's output, which are already made.
     /// </summary>
     /// <param name="rows">The rows.</param>
     /// <returns>The segment.</returns>
     public static TailSegment Of(IReadOnlyList<TailLine> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
-        return new TailSegment(rows.Count, () => rows);
+        return new TailSegment(rows.Count, () => rows, isEntry: false);
     }
 
     /// <summary>
