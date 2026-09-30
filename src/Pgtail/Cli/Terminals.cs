@@ -55,18 +55,19 @@ internal static class Terminals
     public static Task ReleaseConsoleAsync() => Task.Delay(TimeSpan.FromMilliseconds(150));
 
     /// <summary>
-    /// Puts the cursor at the start of a screen row, as after a flow, below everything it printed.
+    /// Puts the cursor at the start of a screen row, as after a flow, below everything it printed, and saves it there.
     /// </summary>
     /// <remarks>
-    /// A stopped terminal writes the sequence that also leaves an alternate screen, which restores the cursor saved on
-    /// entering one. A flow never enters one, and Windows' console host, like xterm, still takes the cursor to the top
-    /// left, so a shell command's output or a stream would be written there, and on Windows the next prompt, which asks
-    /// the console where the cursor is, would start there too and erase the lines below.
+    /// A stopped terminal writes the sequence that also leaves an alternate screen, which restores the saved cursor.
+    /// A flow never enters one, and Windows' console host, like xterm, still restores: to wherever a cursor was last
+    /// saved, such as the line pgtail was started from. Called at the end of a flow, this saves the position the restore
+    /// should go to, so the cursor stays put; called again once the terminal has stopped, it corrects a console that
+    /// moved anyway, where a shell command's output, a stream, and the next prompt would otherwise start.
     /// </remarks>
     /// <param name="row">The row, counting from 0.</param>
     public static void PlaceCursor(int row)
     {
-        Console.Out.Write($"\e[{row + 1};1H");
+        Console.Out.Write($"\e[{row + 1};1H\e7");
         Console.Out.Flush();
     }
 

@@ -76,6 +76,7 @@ internal static class ReplRunner
                     {
                         request = await host.RunAsync(flow);
                         await Terminals.DrainOutputAsync();
+                        Terminals.PlaceCursor(host.EndRow);
                     },
                     options =>
                     {
@@ -91,8 +92,8 @@ internal static class ReplRunner
                 _ = await terminal.RunAsync();
             }
 
-            await Terminals.ReleaseConsoleAsync();
             Terminals.PlaceCursor(host.EndRow);
+            await Terminals.ReleaseConsoleAsync();
             switch (request)
             {
                 case null or { Kind: ReplRequestKind.Exit }:

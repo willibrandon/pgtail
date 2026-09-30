@@ -394,19 +394,28 @@ internal sealed partial class ReplHost : IReplHost
             {
                 // The prompt fills the rows down to the toolbar at the bottom, which a resized terminal moves, so it
                 // starts again at the new size, leaving nothing behind.
-                if (!resized && (flow.TerminalWidth != width || flow.TerminalHeight != terminalHeight))
+                // Once the line is submitted, its step is finished with the line; a size change seen on a later redraw
+                // must not finish it again with nothing.
+                if (!resized && !completed.Task.IsCompleted
+                    && (flow.TerminalWidth != width || flow.TerminalHeight != terminalHeight))
                 {
                     resized = true;
-                    ctx.Step.Complete();
-                    _ = completed.TrySetResult(new PromptResult(PromptOutcome.Resized, _prompt.Text, _shellMode.Value));
+                    if (completed.TrySetResult(new PromptResult(PromptOutcome.Resized, _prompt.Text, _shellMode.Value)))
+                    {
+                        ctx.Step.Complete();
+                    }
                 }
 
                 controller.Changed = ctx.Step.Invalidate;
                 controller.Ended = result =>
                 {
+                    if (!completed.TrySetResult(result))
+                    {
+                        return;
+                    }
+
                     var tombstone = PromptLabel(result.Shell).Append(result.Text);
                     ctx.Step.Complete(y => StyledBlock.Build(y, [tombstone], FrozenWidth(flow), Session.ColorEnabled));
-                    _ = completed.TrySetResult(result);
                 };
 
                 return new ReplPromptView(controller, PromptLabel(_shellMode.Value), ReplToolbar.Build(Session, _shellMode.Value),

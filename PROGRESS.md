@@ -282,3 +282,9 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   after its prompt completes can stop the terminal before the finished line is written. The flow now waits 50 ms
   before returning. Still open: on Windows `!` runs PowerShell for every shell but cmd, nushell included, as the
   Python release did.
+- Two more from Windows. The cursor visibly jumped to the line pgtail was started from before a `!` command's output:
+  conhost restores a saved cursor on `\e[?1049l`, and pgtail put it back only after the 150 ms wait for the console.
+  The flow now ends by moving to its end row and saving the cursor there (`\e7`), so the restore lands in place, and
+  the correction after the terminal stops comes before the wait. The PowerShell run of the new several-commands test
+  then failed in CI with a command line missing though the 50 ms wait had passed: the prompt's redraw after Enter saw
+  a size change and completed the step again with nothing, replacing the submitted line. A prompt now completes once.
