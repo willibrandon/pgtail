@@ -64,12 +64,9 @@ public sealed class LogTailer(
         _lines.Clear();
         ReadOutcome outcome = _cursor.Read(_lines, format => Post(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format,
             Path: _cursor.Path)));
-        foreach (ReadOnlyMemory<byte> line in _lines)
+        foreach (LogEntry complete in Group(_grouper, _lines))
         {
-            if (_grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)) is { } complete)
-            {
-                Post(new LogSourceEvent(LogSourceEventKind.Entry, complete));
-            }
+            Post(new LogSourceEvent(LogSourceEventKind.Entry, complete));
         }
 
         // A read that stopped short of the end may have split an entry from its continuation lines, so its last entry
@@ -111,14 +108,7 @@ public sealed class LogTailer(
         var lines = new List<ReadOnlyMemory<byte>>();
         _olderEnd = _cursor.ReadOlder(_olderEnd, lines);
         var grouper = new EntryGrouper();
-        var entries = new List<LogEntry>();
-        foreach (ReadOnlyMemory<byte> line in lines)
-        {
-            if (grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text)) is { } complete)
-            {
-                entries.Add(complete);
-            }
-        }
+        List<LogEntry> entries = [.. Group(grouper, lines)];
 
         if (grouper.Flush() is { } last)
         {
@@ -137,6 +127,10 @@ public sealed class LogTailer(
             FinishOlder();
         }
     }
+
+    // The entries that lines complete, in order; the last one stays with the grouper until more lines or a flush.
+    private IEnumerable<LogEntry> Group(EntryGrouper grouper, IEnumerable<ReadOnlyMemory<byte>> lines) =>
+        lines.Select(line => grouper.Add(LogLineParser.Parse(line, _cursor.Format ?? LogFormat.Text))).OfType<LogEntry>();
 
     private void FlushEntry()
     {

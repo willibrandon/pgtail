@@ -381,13 +381,10 @@ internal sealed partial class TailScreen : ITailHost, IAsyncDisposable
     private void ShowEntries()
     {
         var shown = new List<LogEntry>();
-        foreach (LogEntry entry in _entries)
+        foreach (LogEntry entry in _entries.Where(Session.ShouldShow))
         {
-            if (Session.ShouldShow(entry))
-            {
-                Status.Count(entry);
-                shown.Add(entry);
-            }
+            Status.Count(entry);
+            shown.Add(entry);
         }
 
         Append(shown.Skip(Math.Max(0, shown.Count - TailLog.MaxLines)).Select(Segment));
@@ -413,13 +410,10 @@ internal sealed partial class TailScreen : ITailHost, IAsyncDisposable
         _entries.InsertRange(0, kept);
         _olderAdded |= kept.Count > 0;
         var segments = new List<TailSegment>();
-        foreach (LogEntry entry in kept)
+        foreach (LogEntry entry in kept.Where(Session.ShouldShow))
         {
-            if (Session.ShouldShow(entry))
-            {
-                Status.Count(entry);
-                segments.Add(Segment(entry));
-            }
+            Status.Count(entry);
+            segments.Add(Segment(entry));
         }
 
         _view.Prepended(_log.Prepend(segments));

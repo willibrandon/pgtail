@@ -223,13 +223,16 @@ public sealed class HighlightingConfig
             return;
         }
 
-        foreach (object entry in entries)
+        // The sequence is filtered as it is read, so a definition is checked against those added before it and a name
+        // given twice is taken once.
+        IEnumerable<CustomHighlighterDefinition> added = entries.OfType<TomlTable>()
+            .Select(ReadCustom)
+            .OfType<CustomHighlighterDefinition>()
+            .Where(definition => definition.Name.Length > 0 && !BuiltInHighlighters.Names.Contains(definition.Name))
+            .Where(definition => GetCustom(definition.Name) is null);
+        foreach (CustomHighlighterDefinition definition in added)
         {
-            if (entry is TomlTable table && ReadCustom(table) is { } definition && definition.Name.Length > 0
-                && !BuiltInHighlighters.Names.Contains(definition.Name) && GetCustom(definition.Name) is null)
-            {
-                Change(() => _custom.Add(definition));
-            }
+            Change(() => _custom.Add(definition));
         }
     }
 

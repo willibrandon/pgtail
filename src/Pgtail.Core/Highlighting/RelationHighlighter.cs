@@ -9,14 +9,9 @@ public sealed class RelationHighlighter() : RegexHighlighter("relation", 410, "T
     HighlightPatterns.Relation, "hl_relation")
 {
     /// <inheritdoc />
-    public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text)
-    {
-        foreach ((int Start, int End)?[] groups in LogPattern.Captures(Regex, text))
-        {
-            if (groups[2] is { } name)
-            {
-                yield return new HighlightMatch(name.Start, name.End, Style);
-            }
-        }
-    }
+    public override IEnumerable<HighlightMatch> FindMatches(Utf8Text text) =>
+        LogPattern.Captures(Regex, text)
+            .Select(groups => groups[2])
+            .OfType<(int Start, int End)>()
+            .Select(name => new HighlightMatch(name.Start, name.End, Style));
 }

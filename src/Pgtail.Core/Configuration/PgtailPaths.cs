@@ -15,22 +15,22 @@ public sealed record PgtailPaths(string ConfigDirectory, string DataDirectory)
     /// <summary>
     /// The configuration file.
     /// </summary>
-    public string ConfigFile => Path.Combine(ConfigDirectory, "config.toml");
+    public string ConfigFile => Path.Join(ConfigDirectory, "config.toml");
 
     /// <summary>
     /// The directory of custom themes.
     /// </summary>
-    public string ThemesDirectory => Path.Combine(ConfigDirectory, "themes");
+    public string ThemesDirectory => Path.Join(ConfigDirectory, "themes");
 
     /// <summary>
     /// The REPL command history.
     /// </summary>
-    public string HistoryFile => Path.Combine(DataDirectory, "history");
+    public string HistoryFile => Path.Join(DataDirectory, "history");
 
     /// <summary>
     /// The tail mode command history.
     /// </summary>
-    public string TailHistoryFile => Path.Combine(DataDirectory, "tail_history");
+    public string TailHistoryFile => Path.Join(DataDirectory, "tail_history");
 
     /// <summary>
     /// The platform locations for the current user.
@@ -53,19 +53,19 @@ public sealed record PgtailPaths(string ConfigDirectory, string DataDirectory)
             : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (OperatingSystem.IsMacOS())
         {
-            string support = Path.Combine(home, "Library", "Application Support", ApplicationName);
+            string support = Path.Join(home, "Library", "Application Support", ApplicationName);
             return new PgtailPaths(support, support);
         }
 
         if (OperatingSystem.IsWindows())
         {
-            string roaming = environment("APPDATA") is { Length: > 0 } appData ? appData : Path.Combine(home, "AppData", "Roaming");
-            string directory = Path.Combine(roaming, ApplicationName);
+            string roaming = environment("APPDATA") is { Length: > 0 } appData ? appData : Path.Join(home, "AppData", "Roaming");
+            string directory = Path.Join(roaming, ApplicationName);
             return new PgtailPaths(directory, directory);
         }
 
-        string config = environment("XDG_CONFIG_HOME") is { Length: > 0 } xdgConfig ? xdgConfig : Path.Combine(home, ".config");
-        string data = environment("XDG_DATA_HOME") is { Length: > 0 } xdgData ? xdgData : Path.Combine(home, ".local", "share");
-        return new PgtailPaths(Path.Combine(config, ApplicationName), Path.Combine(data, ApplicationName));
+        string config = environment("XDG_CONFIG_HOME") is { Length: > 0 } xdgConfig ? xdgConfig : Path.Join(home, ".config");
+        string data = environment("XDG_DATA_HOME") is { Length: > 0 } xdgData ? xdgData : Path.Join(home, ".local", "share");
+        return new PgtailPaths(Path.Join(config, ApplicationName), Path.Join(data, ApplicationName));
     }
 }

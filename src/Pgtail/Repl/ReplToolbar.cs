@@ -2,6 +2,7 @@ using System.Globalization;
 using Pgtail.Filtering;
 using Pgtail.Parsing;
 using Pgtail.Sessions;
+using Pgtail.Statistics;
 using Pgtail.Styling;
 
 namespace Pgtail.Repl;
@@ -80,7 +81,7 @@ internal static class ReplToolbar
             parts.Add(session.Time.FormatDescription());
         }
 
-        if (session.Slow.Enabled && session.Slow.WarningMs != 100)
+        if (session.Slow.Enabled && session.Slow.WarningMs is > SlowQueryConfig.DefaultWarningMs or < SlowQueryConfig.DefaultWarningMs)
         {
             parts.Add($"slow:>{session.Slow.WarningMs.ToString("0.###", CultureInfo.InvariantCulture)}ms");
         }

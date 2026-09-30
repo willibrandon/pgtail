@@ -115,12 +115,9 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
         }
 
         _lastScan = now;
-        foreach (string path in pattern.Expand())
+        foreach (string path in pattern.Expand().Where(path => !_cursors.ContainsKey(path)))
         {
-            if (!_cursors.ContainsKey(path))
-            {
-                Add(path, fromStart);
-            }
+            Add(path, fromStart);
         }
     }
 

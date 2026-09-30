@@ -406,7 +406,7 @@ public sealed class ReplCommandTests
     public async Task TailMissingFilePrintsError()
     {
         using var environment = new TestEnvironment();
-        string missing = Path.Combine(environment.Root, "missing.log");
+        string missing = Path.Join(environment.Root, "missing.log");
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
         await repl.RunAsync($"tail --file {missing}", TestContext.CancellationToken);
         await repl.Automator.WaitUntilTextAsync($"File not found: {missing}");
@@ -661,9 +661,9 @@ public sealed class ReplCommandTests
     public async Task ExportAfterTailWritesQuotedPath()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-2), 700, "ERROR", "exported error line"));
-        string output = Path.Combine(environment.Root, "with space", "out.log");
+        string output = Path.Join(environment.Root, "with space", "out.log");
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 200);
         await repl.RunAsync($"tail --file {log} --since 1h", TestContext.CancellationToken);

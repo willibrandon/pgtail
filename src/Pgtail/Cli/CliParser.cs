@@ -95,7 +95,12 @@ internal static class CliParser
         bool verbose = false;
         foreach (string argument in args)
         {
-            verbose = argument is "--verbose" or "-v" ? true : throw Unexpected(argument, "list-instances");
+            if (argument is not ("--verbose" or "-v"))
+            {
+                throw Unexpected(argument, "list-instances");
+            }
+
+            verbose = true;
         }
 
         return new CliArguments { Command = CliCommand.ListInstances, Verbose = verbose };

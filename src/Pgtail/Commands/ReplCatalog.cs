@@ -260,15 +260,12 @@ internal static class ReplCatalog
         string prefix = comma >= 0 ? partial[..(comma + 1)] : "";
         var chosen = prefix.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(field => field.ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
-        foreach (string? field in DisplayFields.Valid.Order(StringComparer.Ordinal))
+        foreach (string field in DisplayFields.Valid.Order(StringComparer.Ordinal).Where(field => !chosen.Contains(field)))
         {
-            if (!chosen.Contains(field))
+            yield return new CompletionItem(prefix + field, comma >= 0 ? $"Add {field} field" : $"Show {field} field")
             {
-                yield return new CompletionItem(prefix + field, comma >= 0 ? $"Add {field} field" : $"Show {field} field")
-                {
-                    Display = field,
-                };
-            }
+                Display = field,
+            };
         }
     }
 }

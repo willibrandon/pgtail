@@ -63,7 +63,9 @@ public sealed record GlobPattern(string Directory, string Pattern, string Origin
             pattern = string.Join('/', parts[first..]);
         }
 
-        directory = directory.Length == 0 ? currentDirectory : Path.Combine(currentDirectory, directory);
+        directory = directory.Length == 0 ? currentDirectory
+            : Path.IsPathRooted(directory) ? directory
+            : Path.Join(currentDirectory, directory);
         return new GlobPattern(PathResolver.Resolve(directory, home), pattern, path);
     }
 

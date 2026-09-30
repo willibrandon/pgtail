@@ -21,7 +21,9 @@ public sealed record ConnectionFilter(string? Database = null, string? User = nu
     public bool Matches(ConnectionEvent item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return (Database is null || item.Database == Database) && (User is null || item.User == User)
-            && (Application is null || item.Application == Application);
+        return Allows(Database, item.Database) && Allows(User, item.User) && Allows(Application, item.Application);
     }
+
+    // A part of the filter that is not set allows every value.
+    private static bool Allows(string? wanted, string? value) => wanted is null || value == wanted;
 }

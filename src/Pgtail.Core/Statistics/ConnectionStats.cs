@@ -188,14 +188,8 @@ public sealed class ConnectionStats
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         var order = new List<string>();
-        foreach (int pid in _activeOrder)
+        foreach (string name in _activeOrder.Select(pid => key(_active[pid])).Select(name => string.IsNullOrEmpty(name) ? "unknown" : name))
         {
-            string? name = key(_active[pid]);
-            if (string.IsNullOrEmpty(name))
-            {
-                name = "unknown";
-            }
-
             if (!counts.TryGetValue(name, out int value))
             {
                 order.Add(name);

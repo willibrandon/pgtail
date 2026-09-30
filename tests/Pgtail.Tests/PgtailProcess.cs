@@ -156,7 +156,7 @@ internal sealed class PgtailProcess : IAsyncDisposable
     // the test's directory, so a failure on a platform no one runs locally can be played back.
     private static Hex1bTerminalBuilder Record(Hex1bTerminalBuilder builder, TestEnvironment environment) =>
         Environment.GetEnvironmentVariable("PGTAIL_TEST_RECORDINGS") is { Length: > 0 } directory
-            ? builder.WithAsciinemaRecording(Path.Combine(Directory.CreateDirectory(directory).FullName,
+            ? builder.WithAsciinemaRecording(Path.Join(Directory.CreateDirectory(directory).FullName,
                 Path.GetFileName(environment.Root) + ".cast"))
             : builder;
 
@@ -165,7 +165,7 @@ internal sealed class PgtailProcess : IAsyncDisposable
         var output = new DirectoryInfo(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
         DirectoryInfo configuration = output.Parent!;
         string repository = configuration.Parent!.Parent!.Parent!.Parent!.FullName;
-        string executable = Path.Combine(repository, "src", "Pgtail", "bin", configuration.Name, output.Name,
+        string executable = Path.Join(repository, "src", "Pgtail", "bin", configuration.Name, output.Name,
             OperatingSystem.IsWindows() ? "pgtail.exe" : "pgtail");
         return File.Exists(executable) ? executable : throw new FileNotFoundException("pgtail has not been built", executable);
     }
@@ -186,16 +186,14 @@ internal sealed class PgtailProcess : IAsyncDisposable
     {
         Dictionary<string, string> variables = environment.ProcessVariables();
         variables["TERM"] = "xterm-256color";
-        variables["DOTNET_ROOT"] = Path.GetFullPath(Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
+        variables["DOTNET_ROOT"] = Path.GetFullPath(Path.Join(RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
         variables["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
         if (OperatingSystem.IsWindows())
         {
-            foreach (string? name in new[] { "SystemRoot", "SystemDrive", "ComSpec", "PATHEXT", "TEMP", "TMP", "WINDIR" })
+            string[] inherited = ["SystemRoot", "SystemDrive", "ComSpec", "PATHEXT", "TEMP", "TMP", "WINDIR"];
+            foreach (string name in inherited.Where(name => Environment.GetEnvironmentVariable(name) is not null))
             {
-                if (Environment.GetEnvironmentVariable(name) is { } value)
-                {
-                    variables[name] = value;
-                }
+                variables[name] = Environment.GetEnvironmentVariable(name)!;
             }
 
             variables["USERPROFILE"] = environment.Home;

@@ -44,12 +44,9 @@ internal static class CompletionSources
             yield return new CompletionItem("ALL", "Show all log levels");
         }
 
-        foreach (LogLevel level in LogLevels.All)
+        foreach (LogLevel level in LogLevels.All.Where(level => !chosen.Contains(level.ToName())))
         {
-            if (!chosen.Contains(level.ToName()))
-            {
-                yield return new CompletionItem(level.ToName(), $"Severity {(int)level}");
-            }
+            yield return new CompletionItem(level.ToName(), $"Severity {(int)level}");
         }
     }
 

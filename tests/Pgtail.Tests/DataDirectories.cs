@@ -13,7 +13,7 @@ internal static class DataDirectories
     /// <param name="port">The port written to <c>postgresql.conf</c>.</param>
     /// <returns>The data directory and its log file.</returns>
     public static (string DataDirectory, string LogFile) Create(string root, string version, int port) =>
-        CreateAt(Path.Combine(root, "pgdata"), version, port);
+        CreateAt(Path.Join(root, "pgdata"), version, port);
 
     /// <summary>
     /// Creates a data directory at a given place, such as where a platform's installer puts one.
@@ -24,17 +24,17 @@ internal static class DataDirectories
     /// <returns>The data directory and its log file.</returns>
     public static (string DataDirectory, string LogFile) CreateAt(string data, string version, int port)
     {
-        string logs = Path.Combine(data, "log");
+        string logs = Path.Join(data, "log");
         Directory.CreateDirectory(logs);
-        File.WriteAllText(Path.Combine(data, "PG_VERSION"), version + "\n");
-        File.WriteAllText(Path.Combine(data, "postgresql.conf"), $"""
+        File.WriteAllText(Path.Join(data, "PG_VERSION"), version + "\n");
+        File.WriteAllText(Path.Join(data, "postgresql.conf"), $"""
             port = {port}
             logging_collector = on
             log_directory = 'log'
             log_filename = 'postgresql.log'
 
             """);
-        string log = Path.Combine(logs, "postgresql.log");
+        string log = Path.Join(logs, "postgresql.log");
         File.WriteAllText(log, "");
         return (data, log);
     }

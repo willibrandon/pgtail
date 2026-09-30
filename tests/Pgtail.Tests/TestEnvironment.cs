@@ -18,16 +18,16 @@ internal sealed class TestEnvironment : IDisposable
     public TestEnvironment(IReadOnlyDictionary<string, string?>? variables = null)
     {
         // pgtail shows paths with links followed, as on macOS, where the temp directory is under /var, a link to /private/var.
-        Root = PathResolver.Resolve(Path.Combine(Path.GetTempPath(), "pgtail-tests", Guid.NewGuid().ToString("N")));
-        Home = Path.Combine(Root, "home");
+        Root = PathResolver.Resolve(Path.Join(Path.GetTempPath(), "pgtail-tests", Guid.NewGuid().ToString("N")));
+        Home = Path.Join(Root, "home");
         Directory.CreateDirectory(Home);
         _variables = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["HOME"] = Home,
-            ["XDG_CONFIG_HOME"] = Path.Combine(Home, ".config"),
-            ["XDG_DATA_HOME"] = Path.Combine(Home, ".local", "share"),
-            ["APPDATA"] = Path.Combine(Home, "AppData", "Roaming"),
-            ["LOCALAPPDATA"] = Path.Combine(Home, "AppData", "Local"),
+            ["XDG_CONFIG_HOME"] = Path.Join(Home, ".config"),
+            ["XDG_DATA_HOME"] = Path.Join(Home, ".local", "share"),
+            ["APPDATA"] = Path.Join(Home, "AppData", "Roaming"),
+            ["LOCALAPPDATA"] = Path.Join(Home, "AppData", "Local"),
             ["PATH"] = Environment.GetEnvironmentVariable("PATH"),
         };
 

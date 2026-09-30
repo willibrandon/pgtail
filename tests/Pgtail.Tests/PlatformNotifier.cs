@@ -25,5 +25,5 @@ internal static class PlatformNotifier
         : "Platform: Linux (notify-send not found)";
 
     private static bool HasNotifySend => (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
-        .Any(directory => directory.Length > 0 && File.Exists(Path.Combine(directory, "notify-send")));
+        .Any(directory => directory.Length > 0 && File.Exists(Path.Join(directory, "notify-send")));
 }

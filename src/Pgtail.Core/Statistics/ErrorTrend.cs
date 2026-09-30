@@ -47,14 +47,8 @@ public static class ErrorTrend
         DateTime current = now is { } fixedNow ? LogTimestamps.ToUtc(fixedNow) : DateTime.UtcNow;
         int[] buckets = new int[Math.Max(0, minutes)];
         DateTime cutoff = current.AddMinutes(-minutes);
-        foreach (ErrorEvent item in events)
+        foreach (DateTime timestamp in events.Select(item => LogTimestamps.ToUtc(item.Timestamp)).Where(timestamp => timestamp >= cutoff))
         {
-            DateTime timestamp = LogTimestamps.ToUtc(item.Timestamp);
-            if (timestamp < cutoff)
-            {
-                continue;
-            }
-
             int age = (int)((current - timestamp).TotalSeconds / 60);
             if (age >= 0 && age < minutes)
             {

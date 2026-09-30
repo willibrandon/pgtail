@@ -21,12 +21,9 @@ public sealed class AhoCorasick
     public AhoCorasick(IEnumerable<string> keywords)
     {
         ArgumentNullException.ThrowIfNull(keywords);
-        foreach (string keyword in keywords)
+        foreach (string keyword in keywords.Where(keyword => keyword.Length > 0))
         {
-            if (keyword.Length > 0)
-            {
-                Add(keyword);
-            }
+            Add(keyword);
         }
 
         Link();

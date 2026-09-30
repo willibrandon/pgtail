@@ -361,17 +361,13 @@ public sealed class PgtailSession
         }
     }
 
+    // The levels that names stand for; a name that is not a level is left out.
+    private static HashSet<LogLevel> KnownLevels(IEnumerable<string> names) =>
+        [.. names.Select(name => LogLevels.TryParse(name, out LogLevel level) ? level : (LogLevel?)null).OfType<LogLevel>()];
+
     private static HashSet<LogLevel>? ParseLevels(IEnumerable<string> names)
     {
-        var levels = new HashSet<LogLevel>();
-        foreach (string name in names)
-        {
-            if (LogLevels.TryParse(name, out LogLevel level))
-            {
-                _ = levels.Add(level);
-            }
-        }
-
+        HashSet<LogLevel> levels = KnownLevels(names);
         return levels.Count > 0 ? levels : null;
     }
 
@@ -399,14 +395,7 @@ public sealed class PgtailSession
         NotificationConfig config = Notifications.Config;
         config.Clear();
         config.Enabled = Config.NotificationsEnabled;
-        var levels = new HashSet<LogLevel>();
-        foreach (string name in Config.NotificationLevels)
-        {
-            if (LogLevels.TryParse(name, out LogLevel level))
-            {
-                _ = levels.Add(level);
-            }
-        }
+        HashSet<LogLevel> levels = KnownLevels(Config.NotificationLevels);
 
         if (levels.Count > 0)
         {

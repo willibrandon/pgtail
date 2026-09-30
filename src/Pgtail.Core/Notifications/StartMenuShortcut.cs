@@ -36,7 +36,7 @@ internal static unsafe partial class StartMenuShortcut
             return false;
         }
 
-        string path = Path.Combine(appData, "Microsoft", "Windows", "Start Menu", "Programs", "pgtail.lnk");
+        string path = Path.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "pgtail.lnk");
         if (File.Exists(path))
         {
             return true;
