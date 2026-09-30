@@ -49,7 +49,9 @@ internal sealed record ReplPromptView(
     {
         ArgumentNullException.ThrowIfNull(ctx);
 
-        // A terminal sends pasted text as one event rather than as keys, so the line takes it here.
+        // A terminal sends pasted text as one event rather than as keys. It is read off this thread, so it is queued and
+        // put into the line here, where the line is drawn.
+        Controller.ApplyPastes();
         return ctx.Pastable(BuildPrompt(ctx)).OnPaste(async paste => Controller.Paste(await paste.Paste.ReadToEndAsync()));
     }
 

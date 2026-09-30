@@ -386,6 +386,24 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// Text pasted in tail mode goes into the command input, wherever the focus is.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TailPasteGoesIntoTheInput()
+    {
+        using var environment = new TestEnvironment();
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4800, "LOG", "an entry to tail"));
+        await using PgtailProcess pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken, "tail", "--file", log,
+            "--since", "1h");
+        await pgtail.Automator.WaitUntilTextAsync("an entry to tail");
+        await pgtail.PasteAsync("level error", TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => TailHarness.Input(screen) == "tail> level error",
+            description: "the pasted text in the input");
+    }
+
+    /// <summary>
     /// Ctrl+C stops a stream that still has a long backlog to print.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

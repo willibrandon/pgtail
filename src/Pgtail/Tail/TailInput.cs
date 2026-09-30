@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Hex1b;
 using Hex1b.Input;
 using Hex1b.Nodes;
@@ -41,6 +42,7 @@ internal sealed class TailInput
     private (string Text, string? Suffix) _suggested = ("", null);
     private long _lastInput = Environment.TickCount64;
     private int _scroll;
+    private readonly ConcurrentQueue<string> _pasted = new();
 
     /// <summary>
     /// Creates the input for a screen.
@@ -123,6 +125,31 @@ internal sealed class TailInput
         ArgumentNullException.ThrowIfNull(text);
         _line.Replace(_line.Caret, _line.Caret, text.ReplaceLineEndings(" "));
         Edited();
+    }
+
+    /// <summary>
+    /// Takes pasted text, to go into the line when the screen is next built.
+    /// </summary>
+    /// <remarks>
+    /// A paste is read on a background thread, and the line is edited and drawn on the app's own, so the text waits here
+    /// for <see cref="ApplyPastes"/>.
+    /// </remarks>
+    /// <param name="text">The text.</param>
+    public void Paste(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        _pasted.Enqueue(text);
+    }
+
+    /// <summary>
+    /// Types the text pasted since the last build at the caret.
+    /// </summary>
+    public void ApplyPastes()
+    {
+        while (_pasted.TryDequeue(out string? text))
+        {
+            Type(text);
+        }
     }
 
     /// <summary>

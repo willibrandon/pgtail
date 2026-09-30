@@ -146,6 +146,8 @@ internal sealed partial class TailScreen
             Pump();
         }
 
+        Input.ApplyPastes();
+
         VStackWidget main = context.VStack(v =>
         [
             Bar(v, TailStatus.FormatHeader(), s_headerText),
@@ -161,8 +163,9 @@ internal sealed partial class TailScreen
         return context.Pastable(HelpVisible ? context.ZStack(z => [main, _help.Build(z, ScreenRows(), CloseHelp)]) : main)
             .OnPaste(async paste =>
             {
-                Input.Type(await paste.Paste.ReadToEndAsync());
+                Input.Paste(await paste.Paste.ReadToEndAsync());
                 _app?.RequestFocus(TailInput.Is);
+                _app?.Invalidate();
             });
     }
 

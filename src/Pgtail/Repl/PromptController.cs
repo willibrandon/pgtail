@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Hex1b.Input;
 using Hex1b.Widgets;
@@ -22,6 +23,8 @@ namespace Pgtail.Repl;
 /// <param name="shellMode">Reads and sets shell mode.</param>
 internal sealed class PromptController(PromptState state, CommandCatalog catalog, ICommandHost host, StrongBox<bool> shellMode)
 {
+    private readonly ConcurrentQueue<string> _pasted = new();
+
     // The keys that end a history search and keep the command found for editing.
     private static readonly Hex1bKey[] s_searchExitKeys =
     [
@@ -61,16 +64,34 @@ internal sealed class PromptController(PromptState state, CommandCatalog catalog
     public Action? Changed { get; set; }
 
     /// <summary>
-    /// Inserts pasted text at the caret.
+    /// Takes pasted text, to go into the line when the prompt is next built.
     /// </summary>
-    /// <param name="text">The text; line breaks become spaces, since the prompt takes one line.</param>
+    /// <remarks>
+    /// A paste is read on a background thread, and the line is edited and drawn on the app's own, so the text waits here
+    /// for <see cref="ApplyPastes"/> rather than being inserted at once.
+    /// </remarks>
+    /// <param name="text">The text.</param>
     public void Paste(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var line = new EditorLine(State.Editor);
-        line.Replace(line.Caret, line.Caret, text.ReplaceLineEndings(" ").TrimEnd());
-        TextChanged();
+        _pasted.Enqueue(text);
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Inserts the text pasted since the last build at the caret.
+    /// </summary>
+    /// <remarks>
+    /// Line breaks become spaces, since the prompt takes one line.
+    /// </remarks>
+    public void ApplyPastes()
+    {
+        while (_pasted.TryDequeue(out string? text))
+        {
+            var line = new EditorLine(State.Editor);
+            line.Replace(line.Caret, line.Caret, text.ReplaceLineEndings(" ").TrimEnd());
+            TextChanged();
+        }
     }
 
     /// <summary>
