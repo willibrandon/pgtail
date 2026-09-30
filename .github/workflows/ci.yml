@@ -117,7 +117,8 @@ jobs:
       - name: Check Native AOT size
         uses: willibrandon/dotsider@v0
         with:
-          target: artifacts/native-aot/${{ matrix.rid }}/publish/${{ startsWith(matrix.rid, 'win-') && 'pgtail.exe' || 'pgtail' }}
+          # The size report the Native AOT compiler writes beside its object files.
+          target: src/Pgtail/obj/Release/net10.0/${{ matrix.rid }}/native/pgtail.mstat
           baseline-key: pgtail-${{ matrix.rid }}
           budgets: |
             max=25mb

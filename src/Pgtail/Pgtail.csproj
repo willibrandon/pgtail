@@ -8,6 +8,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
+    <!-- The size report Dotsider checks in CI; it is written under obj and never published. -->
+    <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <ToolPackageRuntimeIdentifiers>$(RuntimeIdentifiers);any</ToolPackageRuntimeIdentifiers>
     <OptimizationPreference>Speed</OptimizationPreference>
