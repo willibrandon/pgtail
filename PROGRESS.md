@@ -242,3 +242,18 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   patterns. Durations are now scanned for by hand (same results, by the new stats test run against both) and the
   connection patterns run only on messages with their opening words, so the day recounts in 143 ms over 28 frames of at
   most 27 ms in the Native AOT build.
+- A second review found two gaps. Leaving tail mode before `OlderRead` arrived skipped the recount, so older entries
+  already read back were never counted; ending now starts the recount itself when history is uncounted. The test warms
+  the code up with a first run: cold, the Debug build read the whole range back before the screen's first frame after
+  loading, which left no window to leave in, while warm it shows `(loading older)` for about 800 ms, as the Native AOT
+  build does, and the test failed three runs of three without the fix. Following the directory now takes a log with the
+  same extension written after the file read, and only from a file that was the newest there when tailing began: the
+  Python release switched a named file to the directory's newest log at the first idle poll, which made tailing a copy
+  read the original too (two copies of the test server's day, 0.47 s apart, showed 261,107 lines instead of 142,356)
+  and a named older log turn into the current one. Looking the newest log up by extension also lets a server writing
+  both `.log` and `.csv` files be followed; the newest of either kind was looked up and a `.csv` one ignored.
+- A full run then failed `Connections_OlderEntriesReadBack_CountInOrder` once: `connections` ran while the recount was
+  still spread over frames and printed part of the range. A command in tail mode now finishes the recount first, as a
+  user typing `errors` right after loading would otherwise see. The same run failed the cursor blink test, whose wait
+  for the log's focus after Tab passed on any frame with the cursor on, focused or not; it now presses `p`, which only
+  the log takes, and waits for `PAUSED`.

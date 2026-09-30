@@ -196,17 +196,20 @@ public static partial class PostgresConf
     /// Finds the most recently modified log file in a directory.
     /// </summary>
     /// <remarks>
-    /// Log files end in <c>.log</c> or start with <c>postgresql</c>.
+    /// Log files end in <c>.log</c> or start with <c>postgresql</c>, unless an extension is given.
     /// </remarks>
     /// <param name="directory">The directory.</param>
+    /// <param name="extension">Only files with this extension, such as <c>.csv</c>, or null for any log file.</param>
     /// <returns>The file, or null when there is none.</returns>
-    public static string? FindLatestLog(string directory)
+    public static string? FindLatestLog(string directory, string? extension = null)
     {
         ArgumentNullException.ThrowIfNull(directory);
         try
         {
             return new DirectoryInfo(directory).EnumerateFileSystemInfos()
-                .Where(file => file.Extension == ".log" || file.Name.StartsWith("postgresql", StringComparison.Ordinal))
+                .Where(file => extension is null
+                    ? file.Extension == ".log" || file.Name.StartsWith("postgresql", StringComparison.Ordinal)
+                    : file.Extension == extension)
                 .OrderByDescending(ModifiedTime)
                 .Select(file => file.FullName)
                 .FirstOrDefault();

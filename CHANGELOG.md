@@ -74,7 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for its continuation lines until the file's end is read, or until piped input is quiet for a moment.
 - `errors`, `connections`, and `stats` count the entries a time filter reads back in the order they were logged. The
   older part of the range was counted after the newest, so a connection it opened and the newest entries closed showed
-  as still open, and the error list kept older errors in place of newer ones.
+  as still open, and the error list kept older errors in place of newer ones. Leaving tail mode while the older part is
+  still being read counts what was read.
+- A log file named with `--file` is followed to the next file in its directory only when it was the newest log there
+  when tailing began, and only to a log with the same extension written after it. Tailing a copy, or an older log on
+  purpose, switched to another log in the directory, even one written at the same time, and read it in too.
 - A log truncated and started over in another format, such as jsonlog in place of text, is read in the new format; a
   long log went on being read in the format of its first line before the truncation.
 - `since 999999999999999999999h` reports that the duration is too long instead of failing with an overflow.

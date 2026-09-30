@@ -9,9 +9,11 @@ namespace Pgtail.Tailing;
 /// <remarks>
 /// When the file stops growing or disappears, the source checks at most once a second whether PostgreSQL moved on:
 /// <c>current_logfiles</c> in the data directory names the current file, or else the newest file with the same
-/// extension in the log directory is taken. When only the file's last lines are read at first, the rest of it is read
-/// back once caught up, a chunk at a time from the newest, and reported as older entries, until the start of the file
-/// or of the time filter, or until the reader has enough.
+/// extension in the log directory is taken when it was written after the file being read. A file that was not the
+/// newest in its directory when tailing began, such as an older log or a copy named on purpose, is not followed. When
+/// only the file's last lines are read at first, the rest of it is read back once caught up, a chunk at a time from the
+/// newest, and reported as older entries, until the start of the file or of the time filter, or until the reader has
+/// enough.
 /// </remarks>
 /// <param name="path">The log file.</param>
 /// <param name="fromStart">True to read existing lines, as when a time filter looks back; false to read only new lines.</param>
@@ -38,6 +40,7 @@ public sealed class LogTailer(
     private long _olderEnd = -1;
     private int _olderGeneration;
     private volatile bool _stopOlder;
+    private bool _followsDirectory;
 
     /// <inheritdoc />
     public override void StopReadingOlder() => _stopOlder = true;
@@ -45,6 +48,8 @@ public sealed class LogTailer(
     /// <inheritdoc />
     protected override void Prepare()
     {
+        // A file chosen over a newer log in its directory is read on its own.
+        _followsDirectory = logDirectory is not null && (!File.Exists(path) || Successor() is null);
         _cursor.Open(fromStart, lastLines);
         if (fromStart && lastLines is not null && _cursor.Position > 0)
         {
@@ -164,11 +169,30 @@ public sealed class LogTailer(
             return;
         }
 
-        // Only a file with the same extension is taken, so a server writing both .log and .csv files is not followed back and forth.
-        if (logDirectory is not null && PostgresConf.FindLatestLog(logDirectory) is { } latest && PathResolver.Resolve(latest) != current
-            && Path.GetExtension(latest) == Path.GetExtension(_cursor.Path))
+        if (_followsDirectory && Successor() is { } next)
         {
-            Switch(latest);
+            Switch(next);
+        }
+    }
+
+    // The newest log in the directory written after the one being read, as the file PostgreSQL moves on to is, or null.
+    // Only a file with the same extension counts, so a server writing both .log and .csv files is not followed back and
+    // forth; one written at the same time is a copy or a neighbor, not a successor.
+    private string? Successor()
+    {
+        if (logDirectory is null || PostgresConf.FindLatestLog(logDirectory, Path.GetExtension(_cursor.Path)) is not { } latest
+            || PathResolver.Resolve(latest) == PathResolver.Resolve(_cursor.Path))
+        {
+            return null;
+        }
+
+        try
+        {
+            return !File.Exists(_cursor.Path) || File.GetLastWriteTimeUtc(latest) > File.GetLastWriteTimeUtc(_cursor.Path) ? latest : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
         }
     }
 

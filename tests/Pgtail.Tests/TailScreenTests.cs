@@ -2,6 +2,7 @@ using System.Globalization;
 using Hex1b.Automation;
 using Hex1b.Input;
 using Hex1b.Theming;
+using Pgtail.Sessions;
 
 namespace Pgtail.Tests;
 
@@ -569,6 +570,114 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// Leaving tail mode while older entries are still being read back counts those read in the statistics.
+    /// </summary>
+    /// <remarks>
+    /// A first run warms the code up, as the native build is from the start; cold, the older entries were all read back
+    /// before the screen drew its first frame after loading, and none was left to leave during.
+    /// </remarks>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Quit_WhileReadingBack_CountsWhatWasRead()
+    {
+        using var environment = new TestEnvironment();
+        const int count = 200_000;
+        // One error just before the newest lines, in the first chunk read back, and one at the end.
+        const int older = count - Tail.TailScreen.BacklogLines - 10;
+        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        var start = DateTime.UtcNow.AddMinutes(-30);
+        LogFiles.Append(log, Enumerable.Range(1, count).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000,
+            i is older or count ? "ERROR" : "LOG", $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
+        await using (var warm = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
+        {
+            await warm.Automator.WaitUntilTextAsync("200,000 lines");
+        }
+
+        PgtailSession session;
+        await using (var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken))
+        {
+            session = tail.Session;
+            await tail.Automator.WaitUntilAsync(
+                screen => TailHarness.Status(screen) is var status
+                    && (status.Contains("loading older", StringComparison.Ordinal)
+                        || status.Contains("200,000 lines", StringComparison.Ordinal)),
+                description: "older entries being read back, or all read");
+            await tail.Automator.EscapeAsync(TestContext.CancellationToken);
+            await tail.Automator.TypeAsync("q", TestContext.CancellationToken);
+        }
+
+        Assert.AreEqual(2, session.Errors.ErrorCount);
+    }
+
+    /// <summary>
+    /// A log written after the one tailed in its directory, as PostgreSQL's next log file is, is followed.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task NewerLogInDirectory_IsFollowed()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "first file"));
+        File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddMinutes(-1));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("first file");
+        LogFiles.Append(Path.Combine(Path.GetDirectoryName(log)!, "postgresql-next.log"),
+            LogFiles.Text(DateTime.UtcNow, 1500, "LOG", "second file"));
+        await tail.Automator.WaitUntilTextAsync("second file");
+    }
+
+    /// <summary>
+    /// Logs in the tailed log's directory written at the same time as it, such as copies, are not followed.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LogsInDirectoryWrittenAtTheSameTime_AreNotFollowed()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "tailed file"));
+        // Written at the same time, any of them can count as the newest, so with several copies it is seldom the tailed one.
+        foreach (var name in new[] { "copy-1.log", "copy-2.log", "copy-3.log" })
+        {
+            var copy = Path.Combine(Path.GetDirectoryName(log)!, name);
+            LogFiles.Append(copy, LogFiles.Text(DateTime.UtcNow.AddMinutes(-5), 1600, "LOG", "copied file"));
+            File.SetLastWriteTimeUtc(copy, File.GetLastWriteTimeUtc(log));
+        }
+
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("tailed file");
+        // The directory is checked when the file stops growing, at most once a second.
+        await Task.Delay(TimeSpan.FromSeconds(2.5), TestContext.CancellationToken);
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 1601, "LOG", "still tailed"));
+        await tail.Automator.WaitUntilTextAsync("still tailed");
+        using var screen = tail.Automator.CreateSnapshot();
+        Assert.IsFalse(screen.ContainsText("copied file"), "a copy's entries are not shown");
+    }
+
+    /// <summary>
+    /// A log named while a later one was in its directory, such as a copy or the current log, stays tailed.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task OlderLogNamed_StaysTailed()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "tailed file"));
+        File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddHours(-2));
+        var newer = Path.Combine(Path.GetDirectoryName(log)!, "postgresql-newer.log");
+        LogFiles.Append(newer, LogFiles.Text(DateTime.UtcNow.AddHours(-1), 1700, "LOG", "newer file"));
+        File.SetLastWriteTimeUtc(newer, DateTime.UtcNow.AddHours(-1));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("tailed file");
+        LogFiles.Append(newer, LogFiles.Text(DateTime.UtcNow, 1701, "LOG", "newer file written to"));
+        // The directory is checked when the file stops growing, at most once a second.
+        await Task.Delay(TimeSpan.FromSeconds(2.5), TestContext.CancellationToken);
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 1702, "LOG", "still tailed"));
+        await tail.Automator.WaitUntilTextAsync("still tailed");
+        using var screen = tail.Automator.CreateSnapshot();
+        Assert.IsFalse(screen.ContainsText("newer file"), "the newer log's entries are not shown");
+    }
+
+    /// <summary>
     /// A time too far back to work out is an error the command reports.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
@@ -639,7 +748,11 @@ public sealed class TailScreenTests
         await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is null, description: "the cursor blinking off");
         await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is not null, description: "the cursor back on");
         await tail.Automator.TabAsync(TestContext.CancellationToken);
-        await tail.Automator.WaitUntilAsync(screen => TailHarness.InputCursor(screen) is not null,
+        // p pauses only from the log, so the pause shows the log has the focus.
+        await tail.Automator.TypeAsync("p", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Status(screen).StartsWith("PAUSED", StringComparison.Ordinal)
+                && TailHarness.InputCursor(screen) is not null,
             description: "the cursor with the log focused");
         for (var sample = 0; sample < 6; sample++)
         {

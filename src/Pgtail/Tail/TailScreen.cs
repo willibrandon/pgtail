@@ -214,6 +214,8 @@ internal sealed partial class TailScreen : ITailHost
         }
 
         _history.Add(text);
+        // A command that reads the statistics sees them whole.
+        Recount(int.MaxValue);
         await TailCatalog.ExecuteAsync(text, this);
         WriteLines(Output.Take());
     }
@@ -436,6 +438,7 @@ internal sealed partial class TailScreen : ITailHost
     private void StartRecount()
     {
         Session.ClearStatistics();
+        _olderAdded = false;
         _recounted = 0;
         Session.Buffer.Clear();
         foreach (var entry in _entries.Skip(Math.Max(0, _entries.Count - Session.Buffer.Capacity)))
