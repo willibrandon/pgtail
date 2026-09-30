@@ -24,19 +24,9 @@ public static class ExecutableFinder
         string[] extensions = OperatingSystem.IsWindows()
             ? [.. (environment("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD").Split(';', StringSplitOptions.RemoveEmptyEntries)]
             : [""];
-        foreach (string directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            foreach (string extension in extensions)
-            {
-                string candidate = Path.Join(directory, name + extension);
-                if (IsExecutable(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return null;
+        return path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .SelectMany(directory => extensions.Select(extension => Path.Join(directory, name + extension)))
+            .FirstOrDefault(IsExecutable);
     }
 
     private static bool IsExecutable(string path)
