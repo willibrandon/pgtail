@@ -1,0 +1,5 @@
+# Findings Picket reports that are not secrets, by fingerprint; each entry covers one value in one file.
+# See https://github.com/willibrandon/picket/blob/main/docs/ACTION.md
+
+# generic-api-key on `Hex1bKey.B, Hex1bModifiers.Alt` in the key bindings: an enum value, not a key.
+picket:v1:ea278d4a9c17c9009f664328e918a01567c5b73c120a1daf6d1871ebe6299780
