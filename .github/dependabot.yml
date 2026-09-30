@@ -1,0 +1,44 @@
+# Dependabot reads this file from the default branch and opens a pull request for each update it finds.
+version: 2
+updates:
+  # Directory.Packages.props holds every package version, and global.json holds MSTest.Sdk.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    assignees:
+      - willibrandon
+    labels:
+      - dependencies
+    ignore:
+      # The analyzers must not be built against a newer compiler than the SDK in global.json ships, or the build cannot
+      # load them. This version moves by hand, together with the SDK.
+      - dependency-name: Microsoft.CodeAnalysis.CSharp
+
+  # One pull request for the actions the workflows use, since they are tested together anyway.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    assignees:
+      - willibrandon
+    labels:
+      - dependencies
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # The documentation site. Its packages never reach the tool, so they also arrive as one pull request.
+  - package-ecosystem: npm
+    directory: /docs
+    schedule:
+      interval: weekly
+    assignees:
+      - willibrandon
+    labels:
+      - dependencies
+    groups:
+      docs:
+        patterns:
+          - "*"

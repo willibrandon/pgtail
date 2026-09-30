@@ -1,0 +1,82 @@
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 9 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Scan C#
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      sarif-artifact-id: ${{ steps.sarif.outputs.artifact-id }}
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          build-mode: none
+          config-file: ./.github/codeql-config.yml
+          languages: csharp
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          output: artifacts/codeql-results
+          # The verification job reads this result itself while GitHub processes the upload.
+          wait-for-processing: false
+
+      - name: Share CodeQL results
+        id: sarif
+        uses: actions/upload-artifact@v7
+        with:
+          name: codeql-results-${{ github.run_attempt }}
+          path: artifacts/codeql-results/**/*.sarif
+          if-no-files-found: error
+
+  verify:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: analyze
+    if: ${{ always() }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Require a successful scan
+        if: ${{ needs.analyze.result != 'success' }}
+        run: |
+          echo "The scan ended with '${{ needs.analyze.result }}', so there is no result to check."
+          exit 1
+
+      - name: Retrieve CodeQL results
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.analyze.outputs.sarif-artifact-id }}
+          path: artifacts/codeql-results
+
+      - name: Require zero findings
+        run: dotnet run --file scripts/Verify-CodeQl.cs -- artifacts/codeql-results
