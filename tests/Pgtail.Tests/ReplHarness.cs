@@ -149,6 +149,26 @@ internal sealed class ReplHarness : IAsyncDisposable
     }
 
     /// <summary>
+    /// The line below the first one holding some text, without trailing spaces, or null when no line holds it.
+    /// </summary>
+    /// <param name="screen">The screen.</param>
+    /// <param name="text">The text.</param>
+    /// <returns>The line, keeping any leading spaces.</returns>
+    public static string? LineAfter(IHex1bTerminalRegion screen, string text)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        for (var row = 0; row < screen.Height - 1; row++)
+        {
+            if (screen.GetLine(row).Contains(text, StringComparison.Ordinal))
+            {
+                return screen.GetLineTrimmed(row + 1);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The prompt line: the last row above the toolbar that has text, when no completion menu shows.
     /// </summary>
     /// <param name="screen">The screen.</param>

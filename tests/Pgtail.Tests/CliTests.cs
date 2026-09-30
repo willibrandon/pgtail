@@ -301,8 +301,9 @@ public sealed class CliTests
         await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
         var expected = OperatingSystem.IsWindows() ? "shell-output-$((6*7))" : "shell-output-42";
         await pgtail.Automator.WaitUntilAsync(
-            screen => screen.ContainsText(expected) && ReplHarness.PromptLine(screen) == "pgtail>",
-            description: "the shell's output and a new prompt");
+            screen => ReplHarness.LineAfter(screen, "echo shell-output") is { } output
+                && output.StartsWith(expected, StringComparison.Ordinal) && ReplHarness.PromptLine(screen) == "pgtail>",
+            description: "the shell's output at the start of the next line, and a new prompt");
     }
 
     /// <summary>
@@ -320,8 +321,9 @@ public sealed class CliTests
             TestContext.CancellationToken);
         await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilAsync(
-            screen => screen.ContainsText("quoted-file-contents") && ReplHarness.PromptLine(screen) == "pgtail>",
-            description: "the file's contents and a new prompt");
+            screen => ReplHarness.LineAfter(screen, "two words.txt") == "quoted-file-contents"
+                && ReplHarness.PromptLine(screen) == "pgtail>",
+            description: "the file's contents on the next line, and a new prompt");
     }
 
     /// <summary>
