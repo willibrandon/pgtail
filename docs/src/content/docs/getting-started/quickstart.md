@@ -35,7 +35,7 @@ through the menu or, when it is closed, through your command history.
 
 ## List PostgreSQL instances
 
-```
+```pgtail
 pgtail> list
 ```
 
@@ -67,7 +67,7 @@ Example output:
 
 Tail instance 0:
 
-```
+```pgtail
 pgtail> tail 0
 ```
 
@@ -108,7 +108,7 @@ This opens **tail mode**, a full screen view with:
 
 In tail mode, type commands at the `tail>` input:
 
-```
+```pgtail
 tail> level error          # Only ERROR
 tail> level warning+       # WARNING and above (ERROR, FATAL, PANIC)
 tail> filter /deadlock/    # Regular expression, ignoring case

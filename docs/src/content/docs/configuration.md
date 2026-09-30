@@ -21,7 +21,7 @@ in `tail_history`: beside the configuration on macOS and Windows, and in `~/.loc
 
 In the REPL:
 
-```
+```pgtail
 config              # Show the current configuration as TOML
 config path         # Show the config file location
 config edit         # Edit it in the built-in editor
@@ -51,7 +51,7 @@ are reported and replaced by their defaults. Settings earlier releases wrote tha
 
 ## Setting values
 
-```
+```pgtail
 set <key> <value>   # Set and save a value
 set <key>           # Show a value and its default
 set                 # List every setting with its default
@@ -60,7 +60,7 @@ unset <key>         # Remove a setting, going back to its default
 
 Examples:
 
-```
+```pgtail
 set slow.warn 50
 set theme.name monokai
 set default.levels ERROR WARNING

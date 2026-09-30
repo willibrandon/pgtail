@@ -166,7 +166,7 @@ When one exists, pgtail names the command that upgrades your installation: `dotn
 The REPL also checks once every 24 hours when it starts, in the background, and prints a notice when a newer release
 is out. To turn that off, run this in the REPL:
 
-```
+```pgtail
 pgtail> set updates.check false
 ```
 

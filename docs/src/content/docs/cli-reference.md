@@ -256,7 +256,7 @@ See [Export and pipe](/guide/export/).
 
 **Examples:**
 
-```
+```pgtail
 highlight disable timestamp
 highlight add request_id "REQ-[A-Z]{3}-\d{6}" --style "cyan"
 highlight add txn_id "TXN:[0-9a-f]{16}" --style "bold magenta" --priority 500
@@ -332,7 +332,7 @@ In shell mode the prompt is `!` and the toolbar shows:
 
 **Examples:**
 
-```
+```pgtail
 pgtail> !ls -la           # Run ls
 pgtail> !                 # Enter shell mode
 ! echo "hello"            # Runs in the shell

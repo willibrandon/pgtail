@@ -1,0 +1,13 @@
+pgtail> list
+  #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY
+  0  17       5432   running  on   process /var/lib/postgresql/17/main
+pgtail> tail 0 --stream
+Tailing /var/lib/postgresql/17/main/log/postgresql-Tue.log
+Press Ctrl+C to stop
+
+markup: [dim]Detected format: text[/]
+log: 2024-01-16 10:30:05.118 UTC [6021] LOG:  duration: 1523.412 ms  statement: SELECT id, total FROM orders WHERE customer_id = 42
+log: 2024-01-16 10:30:07.234 UTC [6025] ERROR:  relation "users" does not exist at character 15
+log: 2024-01-16 10:30:07.234 UTC [6025] STATEMENT:  SELECT * FROM users WHERE id = 1
+log: 2024-01-16 10:30:09.871 UTC [6027] WARNING:  there is no transaction in progress
+log: 2024-01-16 10:30:10.234 UTC [6028] FATAL:  password authentication failed for user "alice"

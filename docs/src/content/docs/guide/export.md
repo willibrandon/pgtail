@@ -9,7 +9,7 @@ Export the filtered entries of your last tail to a file, or pipe them to another
 
 ### Basic export
 
-```
+```pgtail
 pgtail> export /tmp/errors.log
 Exported 42 entries to /tmp/errors.log
 ```
@@ -19,7 +19,7 @@ replacing it: `File /tmp/errors.log exists. Overwrite? [y/N]`.
 
 ### Formats
 
-```
+```pgtail
 export --format text /tmp/logs.txt    # The log lines as PostgreSQL wrote them (default)
 export --format json /tmp/logs.json   # JSON Lines
 export --format csv /tmp/logs.csv     # CSV with a header row
@@ -37,7 +37,7 @@ timestamp,level,pid,message
 
 ### Keeping colors
 
-```
+```pgtail
 export --highlighted /tmp/colored.log
 ```
 
@@ -46,7 +46,7 @@ or `cat`.
 
 ### Append mode
 
-```
+```pgtail
 export --append /tmp/logs.txt
 ```
 
@@ -54,7 +54,7 @@ Adds to the end of an existing file instead of replacing it.
 
 ### Time-scoped export
 
-```
+```pgtail
 export --since 1h /tmp/recent.log
 ```
 
@@ -62,7 +62,7 @@ Exports only entries from the last hour. `--since` takes any [time format](/guid
 
 ### Continuous export
 
-```
+```pgtail
 export --follow /tmp/live.log
 ```
 
@@ -73,7 +73,7 @@ Keeps writing new entries to the file as they arrive, like `tail -f | tee`, and 
 
 ### Basic pipe
 
-```
+```pgtail
 pgtail> pipe wc -l
 ```
 
@@ -82,13 +82,13 @@ Sends the filtered entries to a command's standard input and prints what it writ
 
 ### With a format
 
-```
+```pgtail
 pipe --format json jq -r '.level'
 ```
 
 ### Examples
 
-```
+```pgtail
 pipe grep ERROR                                   # Search within entries
 pipe wc -l                                        # Count entries
 pipe sort | uniq -c                               # Count identical lines
@@ -101,7 +101,7 @@ The command's error output is printed after `stderr:`, and a non-zero exit code 
 
 Tail mode has its own `export`, which writes the entries the log is showing:
 
-```
+```pgtail
 tail> export /tmp/logs.txt
 tail> export /tmp/logs.json --format json
 tail> export /tmp/logs.txt --highlighted
@@ -115,7 +115,7 @@ tail> export /tmp/logs.txt --highlighted
 - Filters apply when you export, so you can change them and export again
 - Both full screen tail mode and streaming fill the buffer, and it stays after you leave tail mode
 
-```
+```pgtail
 pgtail> tail 0
 # ... read the log, leave with 'q' ...
 pgtail> export /tmp/session.log

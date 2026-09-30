@@ -25,7 +25,7 @@ thresholds.
 
 In the REPL, `slow` sets all three at once:
 
-```
+```pgtail
 pgtail> slow 100 500 1000     # warning, slow, critical in ms
 pgtail> slow                  # Show the current thresholds
 pgtail> slow off              # Turn slow query highlighting off
@@ -34,7 +34,7 @@ pgtail> slow off              # Turn slow query highlighting off
 In tail mode, `slow` takes one threshold and sets the others from it (slow at twice it, critical at five times),
 redraws the log in the new colors, and the status bar shows it as `slow:>Nms`:
 
-```
+```pgtail
 tail> slow 200        # warning 200 ms, slow 400 ms, critical 1000 ms
 tail> slow off        # Turn it off (also: slow clear)
 ```
@@ -43,7 +43,7 @@ tail> slow off        # Turn it off (also: slow clear)
 
 `slow` lasts for the session. To keep thresholds, set them in the configuration:
 
-```
+```pgtail
 pgtail> set slow.warn 50
 pgtail> set slow.error 200
 pgtail> set slow.critical 500
@@ -62,7 +62,7 @@ critical = 500   # Critical threshold (ms)
 
 `stats` in the REPL summarizes the durations seen while tailing:
 
-```
+```pgtail
 pgtail> stats
 Query Duration Statistics
 ─────────────────────────
@@ -99,7 +99,7 @@ LOG:  duration: 1234.567 ms  statement: SELECT ...
 
 Get a desktop notification when a query exceeds a threshold:
 
-```
+```pgtail
 notify on slow > 500ms
 ```
 

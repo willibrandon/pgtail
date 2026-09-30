@@ -31,7 +31,9 @@ with every other, so give each its own `TestEnvironment`. Wait for a condition o
 
 Repository utilities are .NET file-based apps under `scripts/`. When you add or change one, update `scripts/README.md`.
 
-The documentation site under `docs/` is built with pnpm; see the README. User-facing changes go in `CHANGELOG.md`.
+The documentation site under `docs/` is built with pnpm; see the README. Its `pgtail` and `pgtail-log` code blocks are
+colored by pgtail itself, so after editing one run `dotnet run --file scripts/Highlight-Docs.cs -- --update` and commit
+what it writes; CI checks that it is current. User-facing changes go in `CHANGELOG.md`.
 
 ## Pull requests
 

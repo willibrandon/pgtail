@@ -9,7 +9,7 @@ Tail mode is pgtail's main view: a full screen log that follows new entries as P
 
 From the REPL:
 
-```
+```pgtail
 pgtail> tail 0              # Instance 0
 pgtail> tail 0 --since 1h   # Start with a time filter
 pgtail> tail                # The only instance, if there is one
@@ -59,7 +59,13 @@ available for the keyboard, it says so and suggests `--stream`, which prints the
 
 When tailing several files, entries are interleaved by time with the file each came from:
 
-```
+<!-- pgtail-log
+@a.log 2024-01-15 10:30:45.123 UTC [12345] ERROR:  duplicate key value violates unique constraint "users_pkey"
+@b.log 2024-01-15 10:30:46.456 UTC [12346] LOG:  statement: SELECT 1
+@a.log 2024-01-15 10:30:47.789 UTC [12347] WARNING:  there is no transaction in progress
+-->
+
+```pgtail-log
 [a.log] 10:30:45.123 [12345] ERROR  : duplicate key value violates unique constraint "users_pkey"
 [b.log] 10:30:46.456 [12346] LOG    : statement: SELECT 1
 [a.log] 10:30:47.789 [12347] WARNING: there is no transaction in progress

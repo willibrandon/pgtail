@@ -142,22 +142,15 @@ starlight-toc {
   white-space: pre;
 }
 
-.hero-prompt .prompt {
-  color: var(--sl-color-accent);
-  user-select: none;
+/* The spans are written by scripts/Highlight-Docs.cs with pgtail's colors for the dark ground and the light one. */
+.hero-prompt span {
+  color: var(--d, inherit);
+  background-color: var(--db, transparent);
 }
 
-.hero-prompt .dim {
-  color: var(--sl-color-gray-3);
-}
-
-.hero-prompt .error {
-  color: #e06c75;
-  font-weight: 600;
-}
-
-.hero-prompt .warning {
-  color: #d7a641;
+[data-theme='light'] .hero-prompt span {
+  color: var(--l, inherit);
+  background-color: var(--lb, transparent);
 }
 
 .feature-strip {

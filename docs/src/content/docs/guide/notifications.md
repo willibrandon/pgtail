@@ -22,7 +22,7 @@ registered there.
 
 ### By log level
 
-```
+```pgtail
 notify on FATAL PANIC          # Specific levels
 notify on error+               # ERROR and above
 ```
@@ -31,27 +31,27 @@ Levels accept the same forms as [`level`](/guide/filtering/#level-filtering).
 
 ### By pattern
 
-```
+```pgtail
 notify on /deadlock/            # Case-sensitive
 notify on /connection refused/i # Ignoring case
 ```
 
 ### By error rate
 
-```
+```pgtail
 notify on errors > 10/min      # When more than 10 errors arrive in a minute
 ```
 
 ### By query duration
 
-```
+```pgtail
 notify on slow > 500ms         # When a query takes longer than 500 ms
 notify on slow > 2s            # Seconds work too
 ```
 
 ## Viewing the settings
 
-```
+```pgtail
 pgtail> notify
 ```
 
@@ -80,7 +80,7 @@ Platform: macOS (osascript)
 
 Silence notifications during set hours:
 
-```
+```pgtail
 notify quiet 22:00-08:00       # Nothing from 10 PM to 8 AM
 notify quiet off               # No quiet hours
 ```
@@ -89,7 +89,7 @@ A range that crosses midnight works as expected. `notify` shows `(active)` while
 
 ## Testing
 
-```
+```pgtail
 notify test                    # An info notification
 notify test error              # Also: warning, critical
 ```
@@ -99,7 +99,7 @@ On Windows the severity sets how long the toast stays in the notification center
 
 ## Turning notifications off
 
-```
+```pgtail
 notify off                     # Stop notifying, keeping the rules
 notify clear                   # Remove every rule
 ```

@@ -18,7 +18,7 @@ Themes set the colors of log levels, highlighting, and pgtail's own interface.
 
 ## Switching themes
 
-```
+```pgtail
 pgtail> theme light
 pgtail> theme monokai
 ```
@@ -28,7 +28,7 @@ works in tail mode too, and redraws the log. `theme` on its own shows the curren
 
 ## Previewing themes
 
-```
+```pgtail
 pgtail> theme preview solarized-dark
 ```
 
@@ -36,7 +36,7 @@ Shows sample log lines in a theme without switching to it.
 
 ## Listing themes
 
-```
+```pgtail
 pgtail> theme list
 ```
 
@@ -46,7 +46,7 @@ Lists the built-in themes and your custom themes, marking the current one.
 
 ### Creating a custom theme
 
-```
+```pgtail
 pgtail> theme edit mytheme
 ```
 
@@ -57,7 +57,7 @@ edited; give your copy a new name, such as `theme edit my-dark`.
 
 Then switch to it:
 
-```
+```pgtail
 pgtail> theme mytheme
 ```
 
@@ -133,7 +133,7 @@ Names ignore case.
 
 After editing a theme file in another editor:
 
-```
+```pgtail
 pgtail> theme reload
 ```
 
