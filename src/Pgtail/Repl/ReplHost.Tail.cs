@@ -20,7 +20,7 @@ internal sealed partial class ReplHost
         }
         finally
         {
-            await screen.EndAsync();
+            await screen.DisposeAsync();
         }
     }
 }

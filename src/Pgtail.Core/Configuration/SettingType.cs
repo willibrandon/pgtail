@@ -13,7 +13,7 @@ public enum SettingType
     /// <summary>
     /// A whole number.
     /// </summary>
-    Integer,
+    WholeNumber,
 
     /// <summary>
     /// One or more words, each an item.

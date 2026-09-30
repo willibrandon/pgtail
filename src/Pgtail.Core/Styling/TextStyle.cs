@@ -16,7 +16,7 @@ public readonly record struct TextStyle(
     /// <summary>
     /// The style that changes nothing.
     /// </summary>
-    public static TextStyle Plain { get; } = new();
+    public static TextStyle Plain => default;
 
     /// <summary>
     /// Whether the style changes nothing.

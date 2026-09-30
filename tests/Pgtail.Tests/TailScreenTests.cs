@@ -24,7 +24,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Start_ExistingEntries_ShowsLogAndStatus()
+    public async Task StartExistingEntriesShowsLogAndStatus()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "database system is ready to accept connections"),
@@ -43,7 +43,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task AppendedLines_WhileFollowing_AppearAtBottom()
+    public async Task AppendedLinesWhileFollowingAppearAtBottom()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, [.. Enumerable.Range(0, 40).Select(i => ("LOG", $"existing line {i}"))]);
@@ -63,7 +63,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task K_MovesCursorUp_HighlightsRowAndPauses()
+    public async Task KMovesCursorUpHighlightsRowAndPauses()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, [.. Enumerable.Range(0, 30).Select(i => ("LOG", $"line number {i}"))]);
@@ -88,7 +88,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task G_JumpsToTop()
+    public async Task GJumpsToTop()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, [.. Enumerable.Range(0, 60).Select(i => ("LOG", $"entry {i:D2}"))]);
@@ -111,7 +111,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TypedKeys_ArrivingTogether_EachMoveTheCursor()
+    public async Task TypedKeysArrivingTogetherEachMoveTheCursor()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, [.. Enumerable.Range(0, 30).Select(i => ("LOG", $"row {i:D2}"))]);
@@ -129,7 +129,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task P_ThenNewEntries_CountsThemUntilFollow()
+    public async Task PThenNewEntriesCountsThemUntilFollow()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "before pausing"));
@@ -157,7 +157,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LevelCommand_Error_ShowsOnlyErrors()
+    public async Task LevelCommandErrorShowsOnlyErrors()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "routine message"), ("ERROR", "first failure"), ("LOG", "another routine"),
@@ -177,7 +177,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task DebianPrefix_LevelCommand_KeepsErrorWithStatement()
+    public async Task DebianPrefixLevelCommandKeepsErrorWithStatement()
     {
         using var environment = new TestEnvironment();
         string path = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
@@ -205,7 +205,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LevelCommand_ErrorWithDetail_KeepsContinuationLines()
+    public async Task LevelCommandErrorWithDetailKeepsContinuationLines()
     {
         using var environment = new TestEnvironment();
         string path = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -235,7 +235,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task FilterCommand_ThenClear_RestoresEntries()
+    public async Task FilterCommandThenClearRestoresEntries()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "connection authorized: user=alice"), ("LOG", "checkpoint starting: time"),
@@ -257,7 +257,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task UnknownCommand_ShowsError()
+    public async Task UnknownCommandShowsError()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -271,7 +271,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Input_PartialCommand_SuggestsRest()
+    public async Task InputPartialCommandSuggestsRest()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -290,7 +290,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Input_Suggestion_FollowsTheCursor()
+    public async Task InputSuggestionFollowsTheCursor()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -309,7 +309,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Input_LineKeys_EditTheLine()
+    public async Task InputLineKeysEditTheLine()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -340,7 +340,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Input_UpArrow_RecallsPreviousCommand()
+    public async Task InputUpArrowRecallsPreviousCommand()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("ERROR", "a failure"));
@@ -358,7 +358,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Input_AfterCommand_TakesTheNextCommand()
+    public async Task InputAfterCommandTakesTheNextCommand()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
@@ -380,7 +380,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Levels_IsLevelInTailMode()
+    public async Task LevelsIsLevelInTailMode()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("ERROR", "a failure"), ("LOG", "routine"));
@@ -396,7 +396,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Log_TypedCommand_GoesToTheInput()
+    public async Task LogTypedCommandGoesToTheInput()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -412,7 +412,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Help_WritesIntoLog()
+    public async Task HelpWritesIntoLog()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -433,7 +433,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task QuestionMark_ShowsHelp_EscapeCloses()
+    public async Task QuestionMarkShowsHelpEscapeCloses()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -456,7 +456,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task VisualLineMode_Yank_CopiesSelectedRows()
+    public async Task VisualLineModeYankCopiesSelectedRows()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "first"), ("LOG", "second"), ("LOG", "third"));
@@ -478,7 +478,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Click_OnRow_SelectsIt()
+    public async Task ClickOnRowSelectsIt()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "alpha"), ("LOG", "bravo"), ("LOG", "charlie"));
@@ -497,7 +497,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TimeFilter_LongLog_LoadsWholeRangeAndCountsIt()
+    public async Task TimeFilterLongLogLoadsWholeRangeAndCountsIt()
     {
         using var environment = new TestEnvironment();
         int count = Tail.TailScreen.BacklogLines + 12_345;
@@ -518,7 +518,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LevelCommand_ErrorAtReadBoundary_KeepsItsStatement()
+    public async Task LevelCommandErrorAtReadBoundaryKeepsItsStatement()
     {
         using var environment = new TestEnvironment();
         string path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
@@ -531,7 +531,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LevelCommand_SeveralFiles_ErrorAtReadBoundary_KeepsItsStatement()
+    public async Task LevelCommandSeveralFilesErrorAtReadBoundaryKeepsItsStatement()
     {
         using var environment = new TestEnvironment();
         string path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
@@ -546,7 +546,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Connections_OlderEntriesReadBack_CountInOrder()
+    public async Task ConnectionsOlderEntriesReadBackCountInOrder()
     {
         using var environment = new TestEnvironment();
         int count = Tail.TailScreen.BacklogLines + 5_000;
@@ -578,7 +578,7 @@ public sealed class TailScreenTests
     /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Quit_WhileReadingBack_CountsWhatWasRead()
+    public async Task QuitWhileReadingBackCountsWhatWasRead()
     {
         using var environment = new TestEnvironment();
         const int count = 200_000;
@@ -614,7 +614,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task NewerLogInDirectory_IsFollowed()
+    public async Task NewerLogInDirectoryIsFollowed()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "first file"));
@@ -631,7 +631,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LogsInDirectoryWrittenAtTheSameTime_AreNotFollowed()
+    public async Task LogsInDirectoryWrittenAtTheSameTimeAreNotFollowed()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "tailed file"));
@@ -658,7 +658,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task OlderLogNamed_StaysTailed()
+    public async Task OlderLogNamedStaysTailed()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "tailed file"));
@@ -682,7 +682,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task SinceCommand_HugeDuration_ReportsIt()
+    public async Task SinceCommandHugeDurationReportsIt()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -698,7 +698,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Truncated_InAnotherFormat_ReadsTheNewFormat()
+    public async Task TruncatedInAnotherFormatReadsTheNewFormat()
     {
         using var environment = new TestEnvironment();
         int count = Tail.TailScreen.BacklogLines + 100;
@@ -717,7 +717,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Scrollbar_PressAndDrag_Scrolls()
+    public async Task ScrollbarPressAndDragScrolls()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, [.. Enumerable.Range(1, 100).Select(i => ("LOG", $"entry {i:D3}"))]);
@@ -739,7 +739,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task InputCursor_BlinksWhenFocused_SolidOtherwise()
+    public async Task InputCursorBlinksWhenFocusedSolidOtherwise()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -767,7 +767,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Drag_AcrossText_SelectsIt()
+    public async Task DragAcrossTextSelectsIt()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "alpha bravo charlie"));
@@ -792,7 +792,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task MouseWheelUp_ScrollsBackAndPauses()
+    public async Task MouseWheelUpScrollsBackAndPauses()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, [.. Enumerable.Range(0, 60).Select(i => ("LOG", $"wheel {i:D2}"))]);
@@ -810,7 +810,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ErrorLevel_IsDrawnBoldAndColored()
+    public async Task ErrorLevelIsDrawnBoldAndColored()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("ERROR", "something failed"));
@@ -829,7 +829,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task NoColor_DrawsAttributesWithoutColors()
+    public async Task NoColorDrawsAttributesWithoutColors()
     {
         using var environment = new TestEnvironment(new Dictionary<string, string?> { ["NO_COLOR"] = "1" });
         string log = WriteLog(environment, ("ERROR", "something failed"));
@@ -851,7 +851,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Dollar_OnLongRow_ScrollsToItsEnd()
+    public async Task DollarOnLongRowScrollsToItsEnd()
     {
         using var environment = new TestEnvironment();
         string columns = string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));
@@ -875,7 +875,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ExportCommand_WritesShownEntries()
+    public async Task ExportCommandWritesShownEntries()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "keep this one"), ("ERROR", "and this error"));
@@ -894,7 +894,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ZoneWrittenInLog_ShowsTimeAsWrittenAndExportsOffset()
+    public async Task ZoneWrittenInLogShowsTimeAsWrittenAndExportsOffset()
     {
         using var environment = new TestEnvironment();
         string path = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -915,7 +915,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ServerStartupLines_ShowVersionAndPortInStatus()
+    public async Task ServerStartupLinesShowVersionAndPortInStatus()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment,
@@ -932,7 +932,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task SlowCommand_ColorsSlowQueries()
+    public async Task SlowCommandColorsSlowQueries()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "duration: 850.000 ms  statement: SELECT count(*) FROM orders WHERE id = 42"));
@@ -954,7 +954,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task HelpCommands_ShowCommandsKeysAndUsage()
+    public async Task HelpCommandsShowCommandsKeysAndUsage()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -978,7 +978,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task PauseAndFollowCommands_SwitchStatus()
+    public async Task PauseAndFollowCommandsSwitchStatus()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -996,7 +996,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ThemeSetNotifyCommands_Work()
+    public async Task ThemeSetNotifyCommandsWork()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -1020,7 +1020,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task StopCommand_LeavesTailMode()
+    public async Task StopCommandLeavesTailMode()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -1034,7 +1034,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Q_AtPrompt_IsTextUntilEnter()
+    public async Task QAtPromptIsTextUntilEnter()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));
@@ -1051,7 +1051,7 @@ public sealed class TailScreenTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Q_InLog_LeavesTailMode()
+    public async Task QInLogLeavesTailMode()
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "hello"));

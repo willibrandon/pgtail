@@ -252,7 +252,7 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   read the original too (two copies of the test server's day, 0.47 s apart, showed 261,107 lines instead of 142,356)
   and a named older log turn into the current one. Looking the newest log up by extension also lets a server writing
   both `.log` and `.csv` files be followed; the newest of either kind was looked up and a `.csv` one ignored.
-- A full run then failed `Connections_OlderEntriesReadBack_CountInOrder` once: `connections` ran while the recount was
+- A full run then failed `ConnectionsOlderEntriesReadBackCountInOrder` once: `connections` ran while the recount was
   still spread over frames and printed part of the range. A command in tail mode now finishes the recount first, as a
   user typing `errors` right after loading would otherwise see. The same run failed the cursor blink test, whose wait
   for the log's focus after Tab passed on any frame with the cursor on, focused or not; it now presses `p`, which only
@@ -293,3 +293,8 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   name their type (IDE0008; the old config required `var`), 120 static fields without the `s_` prefix (IDE1006), and
   seven collection expressions. `dotnet format` fixed most of the types in two passes; the renames, the file-based
   publish script, lines pushed past 140 columns, and tuple elements it marked nullable were fixed by hand.
+- `AnalysisLevel` is `latest-recommended` and `MSTestAnalysisMode` is `All`, as in Ankus. That found 125 more: 120 test
+  methods with underscores in their names (CA1707), now written without, as Ankus's are; `SettingType.Integer`, named
+  after a type (now `WholeNumber`); two `new COMException`, a type reserved for the runtime (now `WinRtException`,
+  which derives from it so the catches still match); a default initializer on `TextStyle.Plain`; and `TailScreen`
+  owning a cancellation source without being disposable (`EndAsync` is now `DisposeAsync`).

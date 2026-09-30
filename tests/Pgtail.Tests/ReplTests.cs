@@ -16,7 +16,7 @@ public sealed class ReplTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Start_ShowsBannerPromptAndToolbar()
+    public async Task StartShowsBannerPromptAndToolbar()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -30,7 +30,7 @@ public sealed class ReplTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Help_PrintsCommandReference()
+    public async Task HelpPrintsCommandReference()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);

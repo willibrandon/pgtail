@@ -36,23 +36,23 @@ public static partial class SettingsSchema
         var settings = new List<SettingDefinition>
         {
             new("default.levels", new List<string>(), SettingType.List, LogLevelList),
-            new("slow.warn", 100L, SettingType.Integer, value => PositiveInteger(value)),
-            new("slow.error", 500L, SettingType.Integer, value => PositiveInteger(value)),
-            new("slow.critical", 1000L, SettingType.Integer, value => PositiveInteger(value)),
+            new("slow.warn", 100L, SettingType.WholeNumber, value => PositiveInteger(value)),
+            new("slow.error", 500L, SettingType.WholeNumber, value => PositiveInteger(value)),
+            new("slow.critical", 1000L, SettingType.WholeNumber, value => PositiveInteger(value)),
             new("theme.name", BuiltInThemes.DefaultName, SettingType.Text, ThemeName),
             new("notifications.enabled", false, SettingType.Boolean, value => Boolean(value)),
             new("notifications.levels", new List<string> { "FATAL", "PANIC" }, SettingType.List, LogLevelList),
             new("notifications.patterns", new List<string>(), SettingType.List, PatternList),
-            new("notifications.error_rate", null, SettingType.Integer, value => PositiveInteger(value)),
-            new("notifications.slow_query_ms", null, SettingType.Integer, value => PositiveInteger(value)),
+            new("notifications.error_rate", null, SettingType.WholeNumber, value => PositiveInteger(value)),
+            new("notifications.slow_query_ms", null, SettingType.WholeNumber, value => PositiveInteger(value)),
             new("notifications.quiet_hours", null, SettingType.Text, QuietHours),
             new("updates.check", true, SettingType.Boolean, value => Boolean(value)),
             new("updates.last_check", "", SettingType.Text, Iso8601),
             new("highlighting.enabled", true, SettingType.Boolean, value => Boolean(value)),
-            new("highlighting.max_length", HighlightingConfig.DefaultMaxLength, SettingType.Integer, value => PositiveInteger(value)),
-            new("highlighting.duration.slow", 100L, SettingType.Integer, value => PositiveInteger(value)),
-            new("highlighting.duration.very_slow", 500L, SettingType.Integer, value => PositiveInteger(value)),
-            new("highlighting.duration.critical", 5000L, SettingType.Integer, value => PositiveInteger(value)),
+            new("highlighting.max_length", HighlightingConfig.DefaultMaxLength, SettingType.WholeNumber, value => PositiveInteger(value)),
+            new("highlighting.duration.slow", 100L, SettingType.WholeNumber, value => PositiveInteger(value)),
+            new("highlighting.duration.very_slow", 500L, SettingType.WholeNumber, value => PositiveInteger(value)),
+            new("highlighting.duration.critical", 5000L, SettingType.WholeNumber, value => PositiveInteger(value)),
         };
 
         settings.AddRange(BuiltInHighlighters.Names.Select(name =>

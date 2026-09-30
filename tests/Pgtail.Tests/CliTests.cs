@@ -20,7 +20,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Version_PrintsVersionAndExitsZero()
+    public async Task VersionPrintsVersionAndExitsZero()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "--version");
@@ -33,7 +33,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Help_ListsCommands()
+    public async Task HelpListsCommands()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "--help");
@@ -49,7 +49,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task UnknownCommand_PrintsErrorAndExitsTwo()
+    public async Task UnknownCommandPrintsErrorAndExitsTwo()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "bogus");
@@ -64,7 +64,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ListInstances_WithPgdata_ShowsInstance()
+    public async Task ListInstancesWithPgdataShowsInstance()
     {
         using var environment = new TestEnvironment();
         (string? data, string _) = DataDirectories.Create(environment.Root, "17", 5498);
@@ -81,7 +81,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ConfigPath_PrintsPlatformConfigFile()
+    public async Task ConfigPathPrintsPlatformConfigFile()
     {
         using var environment = new TestEnvironment();
         string expected = OperatingSystem.IsMacOS()
@@ -103,7 +103,7 @@ public sealed class CliTests
     /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ListInstances_UserKnownLocation_ShowsInstance()
+    public async Task ListInstancesUserKnownLocationShowsInstance()
     {
         using var environment = new TestEnvironment();
         string data = OperatingSystem.IsWindows()
@@ -123,7 +123,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Complete_TailOptions_ListsFlags()
+    public async Task CompleteTailOptionsListsFlags()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "__complete", "bash", "--", "tail", "--s");
@@ -139,7 +139,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TailStream_File_PrintsEntriesUntilCtrlC()
+    public async Task TailStreamFilePrintsEntriesUntilCtrlC()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -159,7 +159,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_DisplayFull_DebianPrefix_ShowsUserAndDatabase()
+    public async Task ReplDisplayFullDebianPrefixShowsUserAndDatabase()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
@@ -193,7 +193,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TailStdinStream_PipedLog_PrintsEntries()
+    public async Task TailStdinStreamPipedLogPrintsEntries()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "piped.log");
@@ -218,7 +218,7 @@ public sealed class CliTests
     /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TailStdinStream_ErrorAtReadBoundary_KeepsItsStatement()
+    public async Task TailStdinStreamErrorAtReadBoundaryKeepsItsStatement()
     {
         using var environment = new TestEnvironment();
         string log = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "piped.log"), 64 * 1024);
@@ -239,7 +239,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TailStream_NoColor_PrintsWithoutColors()
+    public async Task TailStreamNoColorPrintsWithoutColors()
     {
         using var environment = new TestEnvironment(new Dictionary<string, string?> { ["NO_COLOR"] = "1" });
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -256,7 +256,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Tail_FullScreen_QuitExitsZero()
+    public async Task TailFullScreenQuitExitsZero()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -275,7 +275,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_Quit_ExitsZero()
+    public async Task ReplQuitExitsZero()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
@@ -292,7 +292,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_BangCommand_RunsInShell()
+    public async Task ReplBangCommandRunsInShell()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
@@ -311,7 +311,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_BangCommand_KeepsQuotes()
+    public async Task ReplBangCommandKeepsQuotes()
     {
         using var environment = new TestEnvironment();
         File.WriteAllText(Path.Combine(environment.Root, "two words.txt"), "quoted-file-contents\n");
@@ -337,7 +337,7 @@ public sealed class CliTests
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
-    public async Task Repl_BangCommands_InARow_KeepCommandAndOutputTogether(bool fromPowerShell)
+    public async Task ReplBangCommandsInARowKeepCommandAndOutputTogether(bool fromPowerShell)
     {
         using var environment = new TestEnvironment();
         if (fromPowerShell && OperatingSystem.IsWindows())
@@ -372,7 +372,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_Stats_CountsDurationsInEitherUnit()
+    public async Task ReplStatsCountsDurationsInEitherUnit()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -406,7 +406,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_Clear_ClearsScreen()
+    public async Task ReplClearClearsScreen()
     {
         using var environment = new TestEnvironment();
         await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
@@ -423,7 +423,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_TailThenQuit_ReturnsToPrompt()
+    public async Task ReplTailThenQuitReturnsToPrompt()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -451,7 +451,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_TailMode_ReportsMouse()
+    public async Task ReplTailModeReportsMouse()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -471,7 +471,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_ConfigEdit_OpensEditorAndCloses()
+    public async Task ReplConfigEditOpensEditorAndCloses()
     {
         using var environment = new TestEnvironment();
         // Wide enough for the title's path, which is long under a test's temp directory on Windows.
@@ -493,7 +493,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_ConfigEdit_UndoneEdit_ClosesWithoutWarning()
+    public async Task ReplConfigEditUndoneEditClosesWithoutWarning()
     {
         using var environment = new TestEnvironment();
         // Wide enough for the title's path, which is long under a test's temp directory on Windows.
@@ -517,7 +517,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_ConfigEdit_UnknownSetting_NotSavedUntilFixed()
+    public async Task ReplConfigEditUnknownSettingNotSavedUntilFixed()
     {
         using var environment = new TestEnvironment();
         Directory.CreateDirectory(Path.GetDirectoryName(environment.Paths.ConfigFile)!);
@@ -559,7 +559,7 @@ public sealed class CliTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Repl_ConnectionsWatch_StreamsUntilCtrlC()
+    public async Task ReplConnectionsWatchStreamsUntilCtrlC()
     {
         using var environment = new TestEnvironment();
         (string? data, string? log) = DataDirectories.Create(environment.Root, "17", 5496);

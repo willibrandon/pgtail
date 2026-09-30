@@ -16,7 +16,7 @@ namespace Pgtail.Tail;
 /// newest entries once it is all read, while older ones are read back and put in front. A filter change redraws the log
 /// at once, and a command's output is written into the log.
 /// </remarks>
-internal sealed partial class TailScreen : ITailHost
+internal sealed partial class TailScreen : ITailHost, IAsyncDisposable
 {
     /// <summary>
     /// How many of a log's last lines tail mode reads back for a time filter, enough for the entries it keeps.

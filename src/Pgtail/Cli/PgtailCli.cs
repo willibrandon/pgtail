@@ -377,7 +377,7 @@ internal static class PgtailCli
         }
         finally
         {
-            await screen.EndAsync();
+            await screen.DisposeAsync();
         }
 
         return 0;

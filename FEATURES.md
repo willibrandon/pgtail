@@ -35,7 +35,7 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
       Debian/Ubuntu `/var/lib/postgresql/<ver>/<cluster>`, RHEL and PGDG `/var/lib/pgsql`, and Arch
       `/var/lib/postgres/data` (each layout verified with `list-instances` in a bubblewrap sandbox that places it)
 - [ ] Windows known paths (`Program Files\PostgreSQL\<ver>\data`, `%APPDATA%`, `%LOCALAPPDATA%`): covered by
-      `ListInstances_UserKnownLocation_ShowsInstance` on the Windows CI runner
+      `ListInstancesUserKnownLocationShowsInstance` on the Windows CI runner
 - [x] Debian config in `/etc/postgresql/<version>/<cluster>/`, version fallback from the data directory path (verified
       with a real PostgreSQL 18 server laid out as a Debian cluster, running and stopped with its data directory closed)
 - [x] Debian and Ubuntu server logs from `pg_ctlcluster` in `/var/log/postgresql` with `adm` group advice, and the
@@ -155,7 +155,7 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 - [x] Linux `notify-send` (verified on the desktop session bus)
 - [ ] macOS `osascript` and Windows toast notifications (with Start menu shortcut/AUMID): covered by
       `Notify_Status_NamesPlatformNotifier` (both; on Windows it writes the shortcut and activates the toast API) and
-      `NotifyTest_SendsThroughPlatformNotifier` (macOS) on the CI runners; a toast on screen needs a Windows desktop
+      `NotifyTestSendsThroughPlatformNotifier` (macOS) on the CI runners; a toast on screen needs a Windows desktop
 - [x] Persistence under `[notifications]`
 
 ## Export and pipe
@@ -169,7 +169,7 @@ verified by a real test or by driving the binary through the `hex1b` CLI.
 - [x] Linux config and history paths: `$XDG_CONFIG_HOME/pgtail` and `$XDG_DATA_HOME/pgtail`, defaulting to
       `~/.config/pgtail` and `~/.local/share/pgtail` (verified with `config --path` both ways)
 - [ ] macOS `~/Library/Application Support/pgtail` and Windows `%APPDATA%\pgtail`: covered by
-      `ConfigPath_PrintsPlatformConfigFile` on the macOS and Windows CI runners
+      `ConfigPathPrintsPlatformConfigFile` on the macOS and Windows CI runners
 - [x] TOML settings: `default.levels`, `slow.*`, `theme.*`, `notifications.*`, `highlighting.*`, `updates.*`;
       validation with warnings; comments preserved on `set`/`unset` (the never-applied `default.follow`, `display.*`, and
       `buffer.*` settings are dropped as dead code)

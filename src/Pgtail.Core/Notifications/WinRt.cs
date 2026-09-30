@@ -23,7 +23,7 @@ internal static unsafe partial class WinRt
     /// <remarks>
     /// A thread already in another apartment is accepted as it is.
     /// </remarks>
-    /// <exception cref="COMException">Initialization failed.</exception>
+    /// <exception cref="WinRtException">Initialization failed.</exception>
     public static void EnsureInitialized()
     {
         if (s_initialized)
@@ -34,7 +34,7 @@ internal static unsafe partial class WinRt
         int result = RoInitialize(RoInitMultithreaded);
         if (result is not (SOk or SFalse or RpcEChangedMode))
         {
-            throw new COMException("RoInitialize failed", result);
+            throw new WinRtException("RoInitialize failed", result);
         }
 
         s_initialized = true;
@@ -135,12 +135,12 @@ internal static unsafe partial class WinRt
     /// </summary>
     /// <param name="result">The result.</param>
     /// <param name="operation">What was attempted.</param>
-    /// <exception cref="COMException">The result is a failure.</exception>
+    /// <exception cref="WinRtException">The result is a failure.</exception>
     public static void Check(int result, string operation)
     {
         if (result < 0)
         {
-            throw new COMException($"{operation} failed: 0x{result:X8}", result);
+            throw new WinRtException($"{operation} failed: 0x{result:X8}", result);
         }
     }
 

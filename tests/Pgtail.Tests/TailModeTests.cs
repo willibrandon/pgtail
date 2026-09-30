@@ -18,7 +18,7 @@ public sealed class TailModeTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TailFile_Quit_ReturnsToPrompt()
+    public async Task TailFileQuitReturnsToPrompt()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");

@@ -23,7 +23,7 @@ internal sealed partial class TailScreen
     /// Sets up the app and returns the screen's builder.
     /// </summary>
     /// <remarks>
-    /// Starts the source and a watcher that wakes the app when entries arrive; <see cref="EndAsync"/> stops both.
+    /// Starts the source and a watcher that wakes the app when entries arrive; <see cref="DisposeAsync"/> stops both.
     /// </remarks>
     /// <param name="app">The app.</param>
     /// <param name="options">The app's options.</param>
@@ -64,7 +64,7 @@ internal sealed partial class TailScreen
     /// were logged with the rest, and a recount still going on is finished.
     /// </remarks>
     /// <returns>A task that completes when the source has stopped.</returns>
-    public async Task EndAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_watch is { } watch)
         {

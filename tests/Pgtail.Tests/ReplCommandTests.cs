@@ -20,7 +20,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task UnknownCommand_PrintsHelpHint()
+    public async Task UnknownCommandPrintsHelpHint()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -35,7 +35,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Levels_ErrorWarning_ShowsFilterInToolbar()
+    public async Task LevelsErrorWarningShowsFilterInToolbar()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -51,7 +51,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Levels_UnknownLevel_ListsValidLevels()
+    public async Task LevelsUnknownLevelListsValidLevels()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -66,7 +66,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Filter_Pattern_ShowsCaseInsensitiveFilterInToolbar()
+    public async Task FilterPatternShowsCaseInsensitiveFilterInToolbar()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -82,7 +82,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Since_FiveMinutes_ShowsStartTimeInToolbar()
+    public async Task SinceFiveMinutesShowsStartTimeInToolbar()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -98,7 +98,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Slow_Thresholds_ShowsEachThreshold()
+    public async Task SlowThresholdsShowsEachThreshold()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -116,7 +116,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Set_SlowWarn_SavesConfigurationFile()
+    public async Task SetSlowWarnSavesConfigurationFile()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -134,7 +134,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Set_InvalidValue_IsRejected()
+    public async Task SetInvalidValueIsRejected()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -148,7 +148,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Theme_Monokai_UpdatesToolbarAndSaves()
+    public async Task ThemeMonokaiUpdatesToolbarAndSaves()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -165,7 +165,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Typing_CommandPrefix_ShowsCompletionMenu()
+    public async Task TypingCommandPrefixShowsCompletionMenu()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -180,7 +180,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Tab_LoneCompletion_CompletesCommand()
+    public async Task TabLoneCompletionCompletesCommand()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -199,7 +199,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Backspace_ToEmptyLine_ClosesMenu()
+    public async Task BackspaceToEmptyLineClosesMenu()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -220,7 +220,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Level_IsLevelsAtThePrompt()
+    public async Task LevelIsLevelsAtThePrompt()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -236,7 +236,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Typing_CommandAndSpace_ShowsSubcommands()
+    public async Task TypingCommandAndSpaceShowsSubcommands()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -251,7 +251,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task UpArrow_AfterCommand_RecallsIt()
+    public async Task UpArrowAfterCommandRecallsIt()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -270,7 +270,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task UpArrow_AfterRestart_RecallsEarlierSession()
+    public async Task UpArrowAfterRestartRecallsEarlierSession()
     {
         using var environment = new TestEnvironment();
         await using (ReplHarness first = await ReplHarness.StartAsync(environment, TestContext.CancellationToken))
@@ -291,7 +291,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task CtrlC_WithText_AbandonsLine()
+    public async Task CtrlCWithTextAbandonsLine()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -309,7 +309,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task CtrlD_OnEmptyLine_Exits()
+    public async Task CtrlDOnEmptyLineExits()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -323,7 +323,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Quit_SaysGoodbyeAndExits()
+    public async Task QuitSaysGoodbyeAndExits()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -337,7 +337,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Bang_WithCommand_RequestsShell()
+    public async Task BangWithCommandRequestsShell()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -351,7 +351,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Bang_OnEmptyLine_EntersShellMode()
+    public async Task BangOnEmptyLineEntersShellMode()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -372,7 +372,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Clear_RequestsClearScreen()
+    public async Task ClearRequestsClearScreen()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -386,7 +386,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task List_WithPgdata_ShowsInstance()
+    public async Task ListWithPgdataShowsInstance()
     {
         using var environment = new TestEnvironment();
         (string? data, string _) = DataDirectories.Create(environment.Root, "16", 5499);
@@ -403,7 +403,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Tail_MissingFile_PrintsError()
+    public async Task TailMissingFilePrintsError()
     {
         using var environment = new TestEnvironment();
         string missing = Path.Combine(environment.Root, "missing.log");
@@ -417,7 +417,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Statistics_BeforeTailing_ExplainNoData()
+    public async Task StatisticsBeforeTailingExplainNoData()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
@@ -438,7 +438,7 @@ public sealed class ReplCommandTests
     /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Notify_Status_ShowsStatusAndPlatform()
+    public async Task NotifyStatusShowsStatusAndPlatform()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -459,7 +459,7 @@ public sealed class ReplCommandTests
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
     [OSCondition(OperatingSystems.OSX)]
-    public async Task NotifyTest_SendsThroughPlatformNotifier()
+    public async Task NotifyTestSendsThroughPlatformNotifier()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -472,7 +472,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task NotifyOn_Levels_SavesConfiguration()
+    public async Task NotifyOnLevelsSavesConfiguration()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -489,7 +489,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task NotifyOn_PatternWithSpaces_SavesWholePattern()
+    public async Task NotifyOnPatternWithSpacesSavesWholePattern()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -504,7 +504,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Config_Show_PrintsToml()
+    public async Task ConfigShowPrintsToml()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 60);
@@ -519,7 +519,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task ThemeList_ShowsBuiltInThemes()
+    public async Task ThemeListShowsBuiltInThemes()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
@@ -534,7 +534,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task HighlightList_ShowsBuiltInHighlighters()
+    public async Task HighlightListShowsBuiltInHighlighters()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 60);
@@ -549,7 +549,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Filter_EveryKind_IsListed()
+    public async Task FilterEveryKindIsListed()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
@@ -575,7 +575,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task TimeFilters_UntilBetweenClear()
+    public async Task TimeFiltersUntilBetweenClear()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -598,7 +598,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task DisplayAndOutput_SwitchModes()
+    public async Task DisplayAndOutputSwitchModes()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, height: 40);
@@ -620,7 +620,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LsAndRefresh_ListAndRescan()
+    public async Task LsAndRefreshListAndRescan()
     {
         using var environment = new TestEnvironment();
         (string? data, string _) = DataDirectories.Create(environment.Root, "15", 5497);
@@ -641,7 +641,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Unset_AfterSet_RestoresDefault()
+    public async Task UnsetAfterSetRestoresDefault()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -658,7 +658,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Export_AfterTail_WritesQuotedPath()
+    public async Task ExportAfterTailWritesQuotedPath()
     {
         using var environment = new TestEnvironment();
         string log = Path.Combine(environment.Root, "logs", "postgresql.log");
@@ -682,7 +682,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LongCommand_AfterRunning_KeepsEveryCharacter()
+    public async Task LongCommandAfterRunningKeepsEveryCharacter()
     {
         using var environment = new TestEnvironment();
         string pattern = string.Concat(Enumerable.Range(0, 8).Select(i => "abcdefghij"));
@@ -700,7 +700,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task CtrlR_SearchesHistoryAndRunsMatch()
+    public async Task CtrlRSearchesHistoryAndRunsMatch()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -729,7 +729,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task CtrlG_DuringSearch_RestoresLine()
+    public async Task CtrlGDuringSearchRestoresLine()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -756,7 +756,7 @@ public sealed class ReplCommandTests
     /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task LineKeys_CutMoveAndPaste()
+    public async Task LineKeysCutMoveAndPaste()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
@@ -783,7 +783,7 @@ public sealed class ReplCommandTests
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Resize_WhileTyping_KeepsLineAndMovesToolbar()
+    public async Task ResizeWhileTypingKeepsLineAndMovesToolbar()
     {
         using var environment = new TestEnvironment();
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 100, height: 24);

@@ -190,7 +190,7 @@ internal sealed class TailHarness : IAsyncDisposable
         }
 
         await _terminal.DisposeAsync();
-        await _screen.EndAsync();
+        await _screen.DisposeAsync();
         _stop.Dispose();
     }
 }
