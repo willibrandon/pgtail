@@ -13,7 +13,7 @@ pgtail
 
 pgtail prints a banner, then the prompt with a toolbar at the bottom of the terminal:
 
-```
+```pgtail
 pgtail - PostgreSQL log tailer
 
 Found 2 PostgreSQL instances. Type 'list' to see details.
