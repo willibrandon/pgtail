@@ -38,7 +38,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath="/" />
     <None Include="../../art/pgtail-icon.png" Pack="true" PackagePath="/icon.png" />
   </ItemGroup>
 
@@ -67,6 +66,29 @@
     </ItemGroup>
     <Error Condition="'@(_LeftoverWindowsProgram)' != ''"
            Text="Only pgtail.exe may be published; found @(_LeftoverWindowsProgram)." />
+  </Target>
+
+  <!--
+    nuget.org shows the package's README as Markdown and prints any HTML in it as text. The repository's README opens
+    with an HTML block that picks a logo for GitHub's light or dark theme, so the package carries a copy without that
+    block, and with its link to a file in the repository made absolute. The package shows its icon in the logo's place.
+  -->
+  <Target Name="WritePackageReadme" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <_PackageReadmePath>$(BaseIntermediateOutputPath)package/README.md</_PackageReadmePath>
+      <_PackageReadmeText>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../README.md'))</_PackageReadmeText>
+      <_PackageReadmeText>$([System.Text.RegularExpressions.Regex]::Replace($(_PackageReadmeText), '(?s)\A\s*&lt;p align="center"&gt;.*?&lt;/p&gt;\s*', ''))</_PackageReadmeText>
+      <_PackageReadmeText>$(_PackageReadmeText.Replace('](CONTRIBUTING.md)', '](https://github.com/willibrandon/pgtail/blob/main/CONTRIBUTING.md)'))</_PackageReadmeText>
+    </PropertyGroup>
+    <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(_PackageReadmeText), '&lt;/?[a-z]+[ &gt;]'))"
+           Text="The package README must not contain HTML; nuget.org prints it as text." />
+    <WriteLinesToFile File="$(_PackageReadmePath)"
+                      Lines="$([MSBuild]::Escape($(_PackageReadmeText)))"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <None Include="$(_PackageReadmePath)" Pack="true" PackagePath="/" />
+    </ItemGroup>
   </Target>
 
 </Project>
