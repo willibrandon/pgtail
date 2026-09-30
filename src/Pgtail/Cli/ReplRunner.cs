@@ -86,6 +86,7 @@ internal static class ReplRunner
             }
 
             await Terminals.ReleaseConsoleAsync();
+            Terminals.PlaceCursor(host.EndRow);
             switch (request)
             {
                 case null or { Kind: ReplRequestKind.Exit }:

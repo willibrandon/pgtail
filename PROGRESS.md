@@ -266,3 +266,13 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   on the `"use astro:head-inject"` Astro puts in MDX asset modules is dropped by an `onLog` filter for that directive
   only, as other Astro 7 sites do, until withastro/astro#18088 removes the dead directive. The landing page's text is
   unchanged; the not found page is titled "Page not found" and links home.
+- PR #42's first CI run failed on every test job. Linux and macOS were the tests' assumptions about the machine:
+  `notify-send` is missing on the runners, so notifications are unavailable rather than disabled; macOS keeps the temp
+  directory under `/private/var`, which pgtail prints with the link followed as the Python release did; and long temp
+  paths wrapped commands at 100 columns. Windows added two pgtail bugs, found by recording the tests' terminals in CI
+  (`PGTAIL_TEST_RECORDINGS`). Hex1b stops a terminal with `\e[?1049l`, which leaves an alternate screen and restores a
+  saved cursor; the REPL's flow never enters one, and conhost, like xterm, still sent its cursor to the top left, so a
+  `!` command's output, a stream, and then the next prompt (which asks the console for the cursor) landed near the top
+  and the prompt erased the lines below. The REPL now puts the cursor back below the flow's output after each terminal.
+  `cmd /c` also got its command through `ArgumentList`, whose backslash-escaped quotes cmd does not read; it now runs
+  `cmd /d /s /c "command"` verbatim, as Node.js does.

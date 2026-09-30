@@ -82,6 +82,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A log truncated and started over in another format, such as jsonlog in place of text, is read in the new format; a
   long log went on being read in the format of its first line before the truncation.
 - `since 999999999999999999999h` reports that the duration is too long instead of failing with an overflow.
+- On Windows, the prompt after a `!` command or after stopping a stream with Ctrl+C starts below their output instead
+  of near the top of the screen, where it erased the lines below it.
+- On Windows, `!` commands keep their quotes, so a quoted path with spaces reaches the command whole.
 - Counting query durations is about ten times faster, which shortens loading a log of statement durations.
 - Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.
 - Alerts that arrive within 5 seconds of a notification are summarized in one notification when the 5 seconds are up

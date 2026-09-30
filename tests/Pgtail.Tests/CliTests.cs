@@ -306,6 +306,25 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// A shell command keeps its quotes, so a quoted path with a space reaches the command whole.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_BangCommand_KeepsQuotes()
+    {
+        using var environment = new TestEnvironment();
+        File.WriteAllText(Path.Combine(environment.Root, "two words.txt"), "quoted-file-contents\n");
+        await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        await pgtail.Automator.TypeAsync(OperatingSystem.IsWindows() ? "!type \"two words.txt\"" : "!cat \"two words.txt\"",
+            TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("quoted-file-contents") && ReplHarness.PromptLine(screen) == "pgtail>",
+            description: "the file's contents and a new prompt");
+    }
+
+    /// <summary>
     /// stats counts each duration logged in milliseconds or seconds, in any case, and skips a label with no duration.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

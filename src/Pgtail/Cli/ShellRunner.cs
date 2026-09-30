@@ -48,7 +48,10 @@ internal static class ShellRunner
             return new ProcessStartInfo("powershell") { ArgumentList = { "-NoProfile", "-Command", command } };
         }
 
-        return new ProcessStartInfo("cmd.exe") { ArgumentList = { "/c", command } };
+        // cmd reads its command line itself instead of by the C runtime's rules, which escape quotes with backslashes,
+        // so the command goes in as typed; with /s, cmd runs what is between the first and last quotes, as Node.js runs
+        // shell commands.
+        return new ProcessStartInfo(Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe", $"/d /s /c \"{command}\"");
     }
 
     private static bool StartedFromPowerShell()

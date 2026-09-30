@@ -44,6 +44,22 @@ internal static class Terminals
     public static Task ReleaseConsoleAsync() => Task.Delay(TimeSpan.FromMilliseconds(150));
 
     /// <summary>
+    /// Puts the cursor at the start of a screen row, as after a flow, below everything it printed.
+    /// </summary>
+    /// <remarks>
+    /// A stopped terminal writes the sequence that also leaves an alternate screen, which restores the cursor saved on
+    /// entering one. A flow never enters one, and Windows' console host, like xterm, still takes the cursor to the top
+    /// left, so a shell command's output or a stream would be written there, and on Windows the next prompt, which asks
+    /// the console where the cursor is, would start there too and erase the lines below.
+    /// </remarks>
+    /// <param name="row">The row, counting from 0.</param>
+    public static void PlaceCursor(int row)
+    {
+        Console.Out.Write($"\e[{row + 1};1H");
+        Console.Out.Flush();
+    }
+
+    /// <summary>
     /// Makes the next cursor position query ask the terminal.
     /// </summary>
     /// <remarks>
