@@ -1,0 +1,79 @@
+---
+title: pgtail
+description: Interactive PostgreSQL log tailer with auto-detection and color output.
+template: splash
+head:
+  - tag: title
+    content: pgtail
+hero:
+  tagline: An interactive PostgreSQL log tailer that finds your instances and colors what matters
+  image:
+    light: ../../assets/logo-light.svg
+    dark: ../../assets/logo-dark.svg
+    alt: pgtail
+  actions:
+    - text: Get started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: Quick start
+      link: /getting-started/quickstart/
+      variant: minimal
+---
+
+import HeroPrompt from '../../components/HeroPrompt.astro';
+
+<HeroPrompt />
+
+<div class="feature-strip">
+  <div class="feature-item">
+    <span class="feature-key">list</span>
+    <span class="feature-label">Finds instances from running processes, pgrx, PGDATA, and the usual Homebrew, Debian, PGDG, Postgres.app, and Windows locations.</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-key">tail</span>
+    <span class="feature-label">A full screen log that follows new rows, with vim keys, visual selection, the mouse, and a command line with suggestions.</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-key">level</span>
+    <span class="feature-label">Filters by severity, regular expression, time range, and csvlog or jsonlog fields, changed while the log keeps running.</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-key">highlight</span>
+    <span class="feature-label">Thirty semantic highlighters for SQL, durations, SQLSTATE codes, LSNs, locks, and more, plus your own patterns.</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-key">errors</span>
+    <span class="feature-label">Error, connection, and query duration statistics, with trend sparklines and live counters.</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-key">notify</span>
+    <span class="feature-label">Desktop notifications for levels, patterns, error rates, and slow queries, with quiet hours.</span>
+  </div>
+  <div class="feature-item">
+    <span class="feature-key">export</span>
+    <span class="feature-label">Writes the filtered entries as text, JSON Lines, or CSV, or pipes them to any shell command.</span>
+  </div>
+</div>
+
+<div class="install-hint">
+  <code>dotnet tool install -g pgtail</code>
+  <button class="copy-btn" aria-label="Copy install command">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+{`
+  const btn = document.querySelector('.install-hint .copy-btn');
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText('dotnet tool install -g pgtail');
+    btn.classList.add('copied');
+  });
+  btn.addEventListener('mouseenter', () => {
+    btn.classList.remove('copied');
+  });
+`}
+</script>

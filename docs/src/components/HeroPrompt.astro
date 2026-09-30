@@ -1,0 +1,16 @@
+---
+// A short REPL session for the landing page, in the colors the dark theme uses.
+---
+
+<pre class="hero-prompt"><span class="prompt">pgtail&gt;</span> list
+  #  VERSION  PORT   STATUS   LOG  SOURCE  DATA DIRECTORY
+  0  17       5432   running  on   process /var/lib/postgresql/17/main
+<span class="prompt">pgtail&gt;</span> levels error+
+Filter set: ERROR FATAL PANIC
+<span class="prompt">pgtail&gt;</span> tail 0 --stream
+Tailing /var/lib/postgresql/17/main/log/postgresql-Tue.log
+Press Ctrl+C to stop
+
+<span class="dim">Detected format: text</span>
+<span class="dim">10:30:07.234 [6025]</span> <span class="error">ERROR</span>  : relation "users" does not exist
+<span class="dim">10:30:10.234 [6028]</span> <span class="error">FATAL</span>  : password authentication failed for user "alice"</pre>

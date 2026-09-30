@@ -5,6 +5,110 @@ All notable changes to pgtail are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **pgtail is now a .NET 10 application** published with Native AOT: each release is a single native executable per
+  platform, with no Python or other runtime to install. The REPL, tail mode, and editor are built on
+  [Hex1b](https://github.com/mitchdenny/hex1b); log matching, globbing, and detection use Scout's byte-oriented regular
+  expressions and file walking.
+- Commands come from one catalog per mode that drives dispatch, completion, and help, so the REPL's completion menu, tail
+  mode's suggestions, and `help` always agree.
+- `config edit`, `pgtail config --edit`, and `theme edit` open a built-in editor with TOML highlighting that checks the
+  file before saving, instead of `$EDITOR`.
+- Tail mode keeps every entry it reads and applies filters when displaying, so `clear` brings back entries that a
+  narrower filter hid.
+- Moving the cursor off the newest line in tail mode stops following and shows `PAUSED`; returning to the end resumes.
+  Long lines scroll sideways to keep the cursor in view.
+- `export --highlighted` keeps colors as ANSI escapes, and text export writes log lines exactly as PostgreSQL wrote them.
+- `pipe` runs its command through the shell, so pipelines and quoting work.
+- Tail mode reports unknown commands and bad filter values instead of ignoring them.
+- `slow` in tail mode colors slow queries in the log, as streamed output does, instead of only updating the status bar.
+- Update checks suggest the upgrade command for the way pgtail was installed.
+- Shell completion offers options once the word starts with `-`, so `pgtail <Tab>` lists commands.
+- Time windows and `errors --trend` compare timestamps in UTC, fixing errors when mixing logs with and without time zones.
+- Times show as the log wrote them in every format; csvlog and jsonlog times were shown converted to UTC. JSON and CSV
+  export keep the offset the time was written with.
+- In text logs, a message's `DETAIL:`, `HINT:`, `CONTEXT:`, `STATEMENT:`, `QUERY:`, and `LOCATION:` lines and the
+  further lines of a multi-line message stay with the entry they belong to, so level filters keep them and an error
+  counts once.
+- Tail mode's `tail>` input keeps the focus after a command, so the next one can be typed at once instead of the keys
+  scrolling or selecting in the log; text typed on the log that is not one of its keys goes to the input, and `tail>`
+  stays in front of the text. The `?` key reference fits the screen and scrolls, and `q` typed in the input is text like
+  any other key; the `q` command, run with Enter, leaves tail mode.
+- Page Up and Page Down in tail mode scroll a whole page at a time, carrying the cursor line along; from the newest
+  line the first press moved the view by one line.
+
+### Added
+- **.NET tool**: `dotnet tool install -g pgtail` installs the native executable for Windows, Linux, and macOS on x64 and
+  Arm64, or a framework-dependent build elsewhere.
+- Windows Arm64 archive (`pgtail-windows-arm64.zip`), also offered through Scoop.
+- `pgtail list` as an alias of `pgtail list-instances`, and `pgtail enable-logging <id>` on the command line.
+- `pgtail tail --stdin --stream` prints piped input through the filters, for use without a terminal.
+- `Ctrl+R` reverse history search at the REPL prompt, and the shell's line editing keys (Ctrl+A/E/B/F/K/U/W/Y,
+  Alt+B/F/D) at the prompt and in tail mode's command input, as prompt_toolkit gave the Python REPL.
+- Mouse support in tail mode: the wheel scrolls (Shift scrolls sideways), a click selects a line, and a drag selects
+  text and copies it.
+- Detection finds every Debian cluster, PGDG `/var/lib/pgsql/*/data`, every Homebrew `postgresql@*`, Arch Linux's
+  `/var/lib/postgres/data`, and Postgres.app data directories. A Debian or Ubuntu cluster is found from its
+  configuration in `/etc/postgresql` even when its data directory is closed to the user.
+- Debian and Ubuntu clusters with the logging collector off, as installed, are tailed from the file `pg_ctlcluster`
+  writes, `/var/log/postgresql/postgresql-<version>-<cluster>.log` (or the target of the cluster's `log` link), and a
+  permission error there suggests joining the `adm` group.
+- Text logs with a longer `log_line_prefix` that starts with the time are read, such as Debian and Ubuntu's
+  `'%m [%p] %q%u@%d '`, whose lines were shown unparsed; its user and database show in the full display.
+
+### Fixed
+- Tail mode asks the terminal to report the mouse when opened from the REPL, so clicks, drags, and the scrollbar work
+  there; the wheel only scrolled through the arrow keys some terminals send in its place. The scrollbar can be clicked
+  and dragged.
+- The tail input draws a block cursor that blinks while the input has focus and stays solid while the log has it,
+  with a suggestion's first character under it.
+- Tail mode with a time filter, such as `tail 0 --since 1d`, opens at the newest entries at once instead of scrolling
+  through the backlog, then reads the older part of the range back in the background, so the status bar counts every
+  line of the range, filters such as `level error` cover all of it, and it can be scrolled back to its start. It kept
+  only the newest 10,000 lines, which the count showed as `10,000 lines`; it now keeps up to 200,000 entries, making
+  rows only when they are drawn. A filter change redraws the log at once.
+- An error whose `STATEMENT:` or `DETAIL:` line fell in the next read of the file, or of piped input, was split in two:
+  the continuation became an entry of its own, which a level filter dropped and exports wrote apart. An entry now waits
+  for its continuation lines until the file's end is read, or until piped input is quiet for a moment.
+- `errors`, `connections`, and `stats` count the entries a time filter reads back in the order they were logged. The
+  older part of the range was counted after the newest, so a connection it opened and the newest entries closed showed
+  as still open, and the error list kept older errors in place of newer ones. Leaving tail mode while the older part is
+  still being read counts what was read.
+- A log file named with `--file` is followed to the next file in its directory only when it was the newest log there
+  when tailing began, and only to a log with the same extension written after it. Tailing a copy, or an older log on
+  purpose, switched to another log in the directory, even one written at the same time, and read it in too.
+- A log truncated and started over in another format, such as jsonlog in place of text, is read in the new format; a
+  long log went on being read in the format of its first line before the truncation.
+- `since 999999999999999999999h` reports that the duration is too long instead of failing with an overflow.
+- On Windows, the prompt after a `!` command or after stopping a stream with Ctrl+C starts below their output instead
+  of near the top of the screen, where it erased the lines below it.
+- A command's line at the prompt is always kept above its output; it was sometimes left blank, most often once the
+  prompt had reached the bottom of the screen.
+- On Windows, `!` commands keep their quotes, so a quoted path with spaces reaches the command whole.
+- Counting query durations is about ten times faster, which shortens loading a log of statement durations.
+- Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.
+- Alerts that arrive within 5 seconds of a notification are summarized in one notification when the 5 seconds are up
+  instead of being dropped, and a message repeated within a minute, apart from its numbers, is counted instead of shown
+  again.
+- `notify on /pattern with spaces/` keeps the whole pattern; it was cut at the first space.
+- Deleting back to an empty line at the REPL prompt closes the completion menu instead of listing every command.
+- `level` works at the REPL prompt and `levels` in tail mode, so the level filter command has the same name in both.
+- A misspelled setting in `config.toml` is reported at startup instead of being ignored silently, and the built-in
+  editor saves only settings pgtail knows with valid values.
+- The editor no longer reports unsaved changes after edits are undone back to the saved text.
+- On Windows, copying from tail mode through `clip.exe` sends a byte order mark, which `clip.exe` needs to read the text
+  as UTF-16.
+- On Windows, pgtail started directly by a terminal, such as a Windows Terminal profile whose command is `pgtail`, runs
+  the REPL instead of exiting at once; it still exits silently when started with no terminal, as by package validation.
+
+### Removed
+- The settings `default.follow`, `display.timestamp_format`, `display.show_pid`, `display.show_level`,
+  `updates.last_version`, and `buffer.*`,
+  which were validated and stored but never used.
+- Installing with pip, pipx, or uv.
+
 ## [0.6.1] - 2026-06-10
 
 ### Changed

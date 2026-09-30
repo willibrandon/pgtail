@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <!--
+    A project cannot load the analyzers it is still building, so their own source is checked in a second pass. It compiles
+    the same files again into a folder of its own, with the assembly the first pass produced as its analyzer.
+  -->
+  <ItemGroup Condition="'$(_CheckingOwnSource)' == 'true'">
+    <Analyzer Include="$(_BuiltAnalyzers)" />
+  </ItemGroup>
+
+  <Target Name="CheckOwnSource"
+          AfterTargets="Build"
+          Condition="'$(_CheckingOwnSource)' != 'true' and '$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <!-- NormalizeDirectory also honors an absolute BaseIntermediateOutputPath. -->
+      <_OwnSourceBase>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)'))</_OwnSourceBase>
+      <_OwnSourceDirectory>$([MSBuild]::NormalizeDirectory('$(_OwnSourceBase)', 'own-source', '$(Configuration)'))</_OwnSourceDirectory>
+      <_OwnSourceProperties>_CheckingOwnSource=true;_BuiltAnalyzers=$(TargetPath)</_OwnSourceProperties>
+      <_OwnSourceProperties>$(_OwnSourceProperties);IntermediateOutputPath=$(_OwnSourceDirectory)obj/</_OwnSourceProperties>
+      <_OwnSourceProperties>$(_OwnSourceProperties);OutDir=$(_OwnSourceDirectory)bin/</_OwnSourceProperties>
+    </PropertyGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Build" Properties="$(_OwnSourceProperties)" />
+  </Target>
+
+</Project>

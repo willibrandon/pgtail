@@ -1,0 +1,342 @@
+using System.Runtime.CompilerServices;
+using Hex1b.Input;
+using Hex1b.Widgets;
+using Pgtail.Commands;
+using Pgtail.Editing;
+
+namespace Pgtail.Repl;
+
+/// <summary>
+/// Handles the REPL prompt's keys: completion, history, shell mode, and submitting.
+/// </summary>
+/// <remarks>
+/// Completions appear while typing, as in the Python release. Tab inserts a lone completion or the part all
+/// completions share, then cycles through them; Up and Down move through the menu while it shows and through history
+/// otherwise; Escape closes the menu or leaves shell mode; <c>!</c> on an empty line enters shell mode. Ctrl+R searches
+/// the history backward as a shell does: Enter runs the command found, Escape or an arrow key keeps it for editing, and
+/// Ctrl+G or Ctrl+C gives the line back.
+/// </remarks>
+/// <param name="state">The prompt state.</param>
+/// <param name="catalog">The commands to complete.</param>
+/// <param name="host">The command host, for completion.</param>
+/// <param name="shellMode">Reads and sets shell mode.</param>
+internal sealed class PromptController(PromptState state, CommandCatalog catalog, ICommandHost host, StrongBox<bool> shellMode)
+{
+    // The keys that end a history search and keep the command found for editing.
+    private static readonly Hex1bKey[] s_searchExitKeys =
+    [
+        Hex1bKey.Escape, Hex1bKey.Tab, Hex1bKey.LeftArrow, Hex1bKey.RightArrow, Hex1bKey.Home, Hex1bKey.End, Hex1bKey.UpArrow,
+        Hex1bKey.DownArrow,
+    ];
+
+    /// <summary>
+    /// The prompt state.
+    /// </summary>
+    public PromptState State { get; } = state;
+
+    /// <summary>
+    /// Whether the next line runs as a shell command.
+    /// </summary>
+    public bool ShellMode
+    {
+        get => shellMode.Value;
+        set => shellMode.Value = value;
+    }
+
+    private LineEditingKeys? _lineKeys;
+
+    /// <summary>
+    /// The history search in progress, or null.
+    /// </summary>
+    public HistorySearch? Search { get; private set; }
+
+    /// <summary>
+    /// Called when the prompt ends.
+    /// </summary>
+    public Action<PromptResult>? Ended { get; set; }
+
+    /// <summary>
+    /// Called after a key changes what is shown.
+    /// </summary>
+    public Action? Changed { get; set; }
+
+    /// <summary>
+    /// Recomputes completions after the user edits the line, entering shell mode for <c>!</c> on an empty line.
+    /// </summary>
+    public void TextChanged()
+    {
+        long version = State.Editor.Document.Version;
+        if (version == State.SeenVersion)
+        {
+            return;
+        }
+
+        State.SeenVersion = version;
+        State.History.ResetNavigation();
+        if (Search is { } search)
+        {
+            search.Update(State.History.Entries, State.Text);
+            return;
+        }
+
+        if (!ShellMode && State.Text == "!")
+        {
+            State.SetText("");
+            ShellMode = true;
+        }
+
+        if (ShellMode)
+        {
+            State.HideCompletions();
+            return;
+        }
+
+        // Clearing the line closes the menu, as the prompt starts; Tab still lists every command.
+        if (string.IsNullOrWhiteSpace(State.Text[..Math.Min(State.Caret, State.Text.Length)]))
+        {
+            State.HideCompletions();
+            return;
+        }
+
+        (int start, List<CompletionItem>? items) = Complete();
+        string partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
+        if (items is [var only] && only.Text.Equals(partial, StringComparison.OrdinalIgnoreCase))
+        {
+            items = [];
+        }
+
+        State.ShowCompletions(start, items);
+    }
+
+    /// <summary>
+    /// Adds the prompt's key bindings to the editor's.
+    /// </summary>
+    /// <param name="bindings">The editor's bindings.</param>
+    public void Bind(InputBindingsBuilder bindings)
+    {
+        ArgumentNullException.ThrowIfNull(bindings);
+        if (Search is not null)
+        {
+            BindSearch(bindings);
+            return;
+        }
+
+        _lineKeys ??= new LineEditingKeys(new EditorLine(State.Editor), TextChanged);
+        _lineKeys.Bind(bindings);
+
+        bindings.Remove(EditorWidget.InsertNewline);
+        bindings.Remove(EditorWidget.InsertTab);
+        bindings.Remove(EditorWidget.AddCursorAtNextMatch);
+        bindings.Remove(EditorWidget.MoveUp);
+        bindings.Remove(EditorWidget.MoveDown);
+        bindings.Remove(Hex1bKey.Escape);
+        bindings.Key(Hex1bKey.Enter).Action(_ => End(PromptOutcome.Submitted), "Run the command");
+        bindings.Key(Hex1bKey.Tab).Action(_ => Tab(), "Complete");
+        bindings.Shift().Key(Hex1bKey.Tab).Action(_ => Update(() => State.MoveSelection(-1)), "Previous completion");
+        bindings.Key(Hex1bKey.UpArrow).Action(_ => Update(Up), "Previous completion or history entry");
+        bindings.Key(Hex1bKey.DownArrow).Action(_ => Update(Down), "Next completion or history entry");
+        bindings.Key(Hex1bKey.Escape).Action(_ => Update(Escape), "Close completions or leave shell mode");
+        bindings.Ctrl().Key(Hex1bKey.C).Action(_ => End(PromptOutcome.Interrupted), "Abandon the line");
+        bindings.Ctrl().Key(Hex1bKey.D).Action(_ => CtrlD(), "Leave on an empty line, else delete");
+        bindings.Ctrl().Key(Hex1bKey.L).Action(_ => End(PromptOutcome.ClearScreen), "Clear the screen");
+        bindings.Key(Hex1bKey.Backspace).Action(_ => Update(Backspace), "Delete back, or leave shell mode");
+        bindings.Ctrl().Key(Hex1bKey.R).Action(_ => Update(StartSearch), "Search history backward");
+    }
+
+    private void BindSearch(InputBindingsBuilder bindings)
+    {
+        bindings.Remove(EditorWidget.InsertNewline);
+        bindings.Remove(EditorWidget.InsertTab);
+        bindings.Remove(EditorWidget.MoveUp);
+        bindings.Remove(EditorWidget.MoveDown);
+        bindings.Remove(Hex1bKey.Escape);
+        bindings.Key(Hex1bKey.Enter).Action(_ =>
+        {
+            FinishSearch();
+            End(PromptOutcome.Submitted);
+        }, "Run the command found");
+
+        bindings.Ctrl().Key(Hex1bKey.R).Action(_ => Update(() => Search?.Older(State.History.Entries, State.Text)),
+            "Find an older command");
+
+        foreach (Hex1bKey key in s_searchExitKeys)
+        {
+            bindings.Remove(key);
+            bindings.Key(key).Action(_ => Update(FinishSearch), "Edit the command found");
+        }
+
+        bindings.Ctrl().Key(Hex1bKey.G).Action(_ => Update(CancelSearch), "Cancel the search");
+        bindings.Ctrl().Key(Hex1bKey.C).Action(_ => Update(CancelSearch), "Cancel the search");
+    }
+
+    private void StartSearch()
+    {
+        if (ShellMode)
+        {
+            return;
+        }
+
+        State.HideCompletions();
+        Search = new HistorySearch(State.Text);
+        State.SetText("");
+    }
+
+    private void FinishSearch()
+    {
+        if (Search is { } search)
+        {
+            Search = null;
+            State.SetText(search.Match ?? State.Text);
+        }
+    }
+
+    private void CancelSearch()
+    {
+        if (Search is { } search)
+        {
+            Search = null;
+            State.SetText(search.Saved);
+        }
+    }
+
+    private (int Start, List<CompletionItem> Items) Complete()
+    {
+        int caret = Math.Min(State.Caret, State.Text.Length);
+        return catalog.Complete(State.Text[..caret], host, CompletionStyle.Menu);
+    }
+
+    private void Tab()
+    {
+        if (ShellMode)
+        {
+            return;
+        }
+
+        if (State.MenuVisible)
+        {
+            Update(() => State.MoveSelection(1));
+            return;
+        }
+
+        (int start, List<CompletionItem>? items) = Complete();
+        Update(() =>
+        {
+            switch (items.Count)
+            {
+                case 0:
+                    return;
+                case 1:
+                    State.ShowCompletions(start, items);
+                    State.Accept(items[0]);
+                    return;
+            }
+
+            string partial = State.Text[start..Math.Min(State.Caret, State.Text.Length)];
+            string common = CommonPrefix(items.Select(item => item.Text));
+            State.ShowCompletions(start, items);
+            if (common.Length > partial.Length)
+            {
+                State.Replace(start, start + partial.Length, common);
+            }
+        });
+    }
+
+    private void Up()
+    {
+        if (State.MenuVisible)
+        {
+            State.MoveSelection(-1);
+        }
+        else if (State.History.Previous(State.Text) is { } previous)
+        {
+            State.SetText(previous);
+        }
+    }
+
+    private void Down()
+    {
+        if (State.MenuVisible)
+        {
+            State.MoveSelection(1);
+        }
+        else if (State.History.Next() is { } next)
+        {
+            State.SetText(next);
+        }
+    }
+
+    private void Escape()
+    {
+        if (State.MenuVisible)
+        {
+            State.HideCompletions();
+        }
+        else if (ShellMode)
+        {
+            ShellMode = false;
+        }
+    }
+
+    private void Backspace()
+    {
+        if (State.Text.Length == 0)
+        {
+            ShellMode = false;
+            return;
+        }
+
+        State.Editor.DeleteBackward();
+        TextChanged();
+    }
+
+    private void CtrlD()
+    {
+        if (State.Text.Length == 0)
+        {
+            End(PromptOutcome.EndOfInput);
+            return;
+        }
+
+        Update(() =>
+        {
+            State.Editor.DeleteForward();
+            TextChanged();
+        });
+    }
+
+    private void End(PromptOutcome outcome)
+    {
+        State.HideCompletions();
+        Ended?.Invoke(new PromptResult(outcome, State.Text, ShellMode));
+    }
+
+    private void Update(Action action)
+    {
+        action();
+        Changed?.Invoke();
+    }
+
+    private static string CommonPrefix(IEnumerable<string> values)
+    {
+        string? prefix = null;
+        foreach (string value in values)
+        {
+            if (prefix is null)
+            {
+                prefix = value;
+                continue;
+            }
+
+            int length = 0;
+            while (length < prefix.Length && length < value.Length
+                && char.ToLowerInvariant(prefix[length]) == char.ToLowerInvariant(value[length]))
+            {
+                length++;
+            }
+
+            prefix = prefix[..length];
+        }
+
+        return prefix ?? "";
+    }
+}

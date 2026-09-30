@@ -1,0 +1,21 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Pgtail.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <MSTestAnalysisMode>Recommended</MSTestAnalysisMode>
+    <EnableMicrosoftTestingExtensionsHangDump>true</EnableMicrosoftTestingExtensionsHangDump>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <PackageReference Include="Hex1b" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Pgtail/Pgtail.csproj" />
+    <ProjectReference Include="../../src/Pgtail.Core/Pgtail.Core.csproj" />
+  </ItemGroup>
+
+</Project>

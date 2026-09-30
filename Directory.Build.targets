@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    Every project is checked by the repository's own analyzers. A property a project passes to its references would
+    otherwise travel on to the analyzers and build them a second time into the same folder, so those properties are
+    removed from the analyzer reference.
+  -->
+  <PropertyGroup>
+    <_AnalyzerPropertiesToRemove>RuntimeIdentifier;SelfContained;PublishAot;PublishReadyToRun;PublishSingleFile</_AnalyzerPropertiesToRemove>
+    <_AnalyzerPropertiesToRemove
+      >$(_AnalyzerPropertiesToRemove);PublishTrimmed;RuntimeIdentifiers;UseAppHost;OutputPath;IntermediateOutputPath</_AnalyzerPropertiesToRemove>
+    <_AnalyzerPropertiesToRemove>$(_AnalyzerPropertiesToRemove);PublishDir;TargetFramework</_AnalyzerPropertiesToRemove>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Pgtail.Analyzers'
+                        and Exists('$(MSBuildThisFileDirectory)src/Pgtail.Analyzers/Pgtail.Analyzers.csproj')">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/Pgtail.Analyzers/Pgtail.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      GlobalPropertiesToRemove="$(_AnalyzerPropertiesToRemove)" />
+  </ItemGroup>
+</Project>
