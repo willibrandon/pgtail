@@ -21,10 +21,16 @@ internal sealed class TailHarness : IAsyncDisposable
     private readonly Task<int> _run;
     private readonly CancellationTokenSource _stop;
 
-    private TailHarness(PgtailSession session, string logFile, string directory, int width, int height, CancellationToken cancellationToken)
+    private TailHarness(
+        PgtailSession session,
+        IReadOnlyList<string> logFiles,
+        string directory,
+        int width,
+        int height,
+        CancellationToken cancellationToken)
     {
         Session = session;
-        var request = new TailRequest(new TailSource(Files: [logFile]), logFile, Stream: false);
+        var request = new TailRequest(new TailSource(Files: logFiles), logFiles[0], Stream: false);
         var source = LogSources.Create(request, session, directory, () => Stream.Null, TailScreen.BacklogLines);
         _screen = new TailScreen(session, request, source, directory);
         Hex1bAppOptions? options = null;
@@ -62,16 +68,32 @@ internal sealed class TailHarness : IAsyncDisposable
     /// <param name="width">The terminal width.</param>
     /// <param name="height">The terminal height.</param>
     /// <returns>The harness, once the status bar shows.</returns>
-    public static async Task<TailHarness> StartAsync(
+    public static Task<TailHarness> StartAsync(
         TestEnvironment environment,
         string logFile,
+        CancellationToken cancellationToken,
+        int width = 100,
+        int height = 24) => StartAsync(environment, [logFile], cancellationToken, width, height);
+
+    /// <summary>
+    /// Starts tail mode on several files together, with the command input focused as it starts.
+    /// </summary>
+    /// <param name="environment">The test's environment.</param>
+    /// <param name="logFiles">The log files.</param>
+    /// <param name="cancellationToken">Stops the terminal.</param>
+    /// <param name="width">The terminal width.</param>
+    /// <param name="height">The terminal height.</param>
+    /// <returns>The harness, once the status bar shows.</returns>
+    public static async Task<TailHarness> StartAsync(
+        TestEnvironment environment,
+        IReadOnlyList<string> logFiles,
         CancellationToken cancellationToken,
         int width = 100,
         int height = 24)
     {
         var session = environment.CreateSession();
         session.Time = new TimeFilter(since: DateTime.UtcNow.AddDays(-1), originalInput: "1d");
-        var harness = new TailHarness(session, logFile, environment.Root, width, height, cancellationToken);
+        var harness = new TailHarness(session, logFiles, environment.Root, width, height, cancellationToken);
         await harness.Automator.WaitUntilTextAsync("FOLLOW");
         return harness;
     }

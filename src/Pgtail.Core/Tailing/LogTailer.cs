@@ -67,9 +67,11 @@ public sealed class LogTailer(
             }
         }
 
-        if (_grouper.Flush() is { } last)
+        // A read that stopped short of the end may have split an entry from its continuation lines, so its last entry
+        // waits for the next read.
+        if (outcome != ReadOutcome.Read || _cursor.AtEnd)
         {
-            Post(new LogSourceEvent(LogSourceEventKind.Entry, last));
+            FlushEntry();
         }
 
         if (!_caughtUp && _cursor.AtEnd)
@@ -131,6 +133,14 @@ public sealed class LogTailer(
         }
     }
 
+    private void FlushEntry()
+    {
+        if (_grouper.Flush() is { } last)
+        {
+            Post(new LogSourceEvent(LogSourceEventKind.Entry, last));
+        }
+    }
+
     private void FinishOlder()
     {
         _olderEnd = -1;
@@ -164,6 +174,7 @@ public sealed class LogTailer(
 
     private void Switch(string next)
     {
+        FlushEntry();
         _cursor = new FileCursor(next);
         _cursor.Open(fromStart: true);
         IsUnavailable = false;

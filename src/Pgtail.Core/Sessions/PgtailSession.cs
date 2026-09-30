@@ -245,6 +245,23 @@ public sealed class PgtailSession
     /// <param name="isNew">Whether the entry was logged after tailing started.</param>
     public void Observe(LogEntry entry, bool isNew)
     {
+        Count(entry);
+        if (isNew)
+        {
+            Notifications.Consider(entry);
+        }
+    }
+
+    /// <summary>
+    /// Counts an entry in the statistics.
+    /// </summary>
+    /// <remarks>
+    /// The statistics take entries in the order they were logged: a disconnection closes the connection opened before it,
+    /// and the newest events are the ones kept when there are too many.
+    /// </remarks>
+    /// <param name="entry">The entry.</param>
+    public void Count(LogEntry entry)
+    {
         ArgumentNullException.ThrowIfNull(entry);
         if (DurationExtractor.Extract(entry.Message) is { } duration)
         {
@@ -253,10 +270,16 @@ public sealed class PgtailSession
 
         Errors.Add(entry);
         _ = Connections.Add(entry);
-        if (isNew)
-        {
-            Notifications.Consider(entry);
-        }
+    }
+
+    /// <summary>
+    /// Forgets the statistics, as before counting entries over again in the order they were logged.
+    /// </summary>
+    public void ClearStatistics()
+    {
+        Durations.Clear();
+        Errors.Clear();
+        Connections.Clear();
     }
 
     /// <summary>

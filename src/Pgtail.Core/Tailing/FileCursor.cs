@@ -334,6 +334,7 @@ public sealed class FileCursor(string path)
             Generation++;
             Position = 0;
             Format = null;
+            _formatSample = null;
             _pending = [];
             _pendingSeen = false;
         }

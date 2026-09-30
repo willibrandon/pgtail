@@ -33,7 +33,6 @@ public static partial class TimeParser
         var match = Relative().Match(value);
         if (match.Success)
         {
-            var amount = long.Parse(match.Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
             var unit = char.ToLowerInvariant(match.Groups[2].Value[0]);
             var ticks = unit switch
             {
@@ -45,6 +44,7 @@ public static partial class TimeParser
 
             try
             {
+                var amount = long.Parse(match.Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture);
                 return DateTime.SpecifyKind(utcNow.AddTicks(checked(-amount * ticks)), DateTimeKind.Utc);
             }
             catch (Exception exception) when (exception is OverflowException or ArgumentOutOfRangeException)

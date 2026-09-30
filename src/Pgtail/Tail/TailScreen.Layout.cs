@@ -59,6 +59,9 @@ internal sealed partial class TailScreen
     /// <summary>
     /// Stops the watcher and the source once the app has stopped.
     /// </summary>
+    /// <remarks>
+    /// The statistics outlast tail mode, so a recount still going on is finished.
+    /// </remarks>
     /// <returns>A task that completes when the source has stopped.</returns>
     public async Task EndAsync()
     {
@@ -70,6 +73,7 @@ internal sealed partial class TailScreen
         }
 
         await _source.DisposeAsync();
+        Recount(int.MaxValue);
     }
 
     private async Task WatchAsync(Hex1bApp app, CancellationToken cancellationToken)

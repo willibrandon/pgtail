@@ -21,6 +21,7 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
         ? StringComparer.OrdinalIgnoreCase
         : StringComparer.Ordinal);
 
+    private readonly Dictionary<FileCursor, EntryGrouper> _groupers = [];
     private readonly List<ReadOnlyMemory<byte>> _lines = [];
     private long _lastScan;
     private bool _caughtUp;
@@ -57,14 +58,19 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
             _lines.Clear();
             var outcome = cursor.Read(_lines, format => Post(new LogSourceEvent(LogSourceEventKind.FormatDetected, Format: format,
                 Path: cursor.Path)));
+            var grouper = _groupers[cursor];
             if (outcome != ReadOutcome.Read)
             {
                 unavailable.Add(cursor.Path);
+                if (grouper.Flush() is { } held)
+                {
+                    entries.Add(held);
+                }
+
                 continue;
             }
 
             var name = Path.GetFileName(cursor.Path);
-            var grouper = new EntryGrouper();
             foreach (var line in _lines)
             {
                 var entry = LogLineParser.Parse(line, cursor.Format ?? LogFormat.Text);
@@ -75,7 +81,9 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
                 }
             }
 
-            if (grouper.Flush() is { } last)
+            // A read that stopped short of the end may have split an entry from its continuation lines, so its last
+            // entry waits for the next read.
+            if (cursor.AtEnd && grouper.Flush() is { } last)
             {
                 entries.Add(last);
             }
@@ -126,5 +134,6 @@ public sealed class MultiFileTailer(IReadOnlyList<string> paths, GlobPattern? pa
         var cursor = new FileCursor(path);
         cursor.Open(start);
         _cursors[path] = cursor;
+        _groupers[cursor] = new EntryGrouper();
     }
 }

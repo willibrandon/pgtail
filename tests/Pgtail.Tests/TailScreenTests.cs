@@ -513,6 +513,97 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// An error whose line ends one read of the file keeps the statement the next read starts with.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LevelCommand_ErrorAtReadBoundary_KeepsItsStatement()
+    {
+        using var environment = new TestEnvironment();
+        var path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
+        await using var tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
+        await ShowsErrorWithStatementAsync(tail);
+    }
+
+    /// <summary>
+    /// Tailing several files, an error whose line ends one read of its file keeps the statement the next read starts with.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task LevelCommand_SeveralFiles_ErrorAtReadBoundary_KeepsItsStatement()
+    {
+        using var environment = new TestEnvironment();
+        var path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
+        var other = Path.Combine(environment.Root, "logs", "other.log");
+        LogFiles.Append(other, LogFiles.Text(DateTime.UtcNow.AddMinutes(-6), 2003, "LOG", "another file"));
+        await using var tail = await TailHarness.StartAsync(environment, [path, other], TestContext.CancellationToken);
+        await ShowsErrorWithStatementAsync(tail);
+    }
+
+    /// <summary>
+    /// Older entries read back count in the statistics in the order logged, so a connection they open stays closed.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Connections_OlderEntriesReadBack_CountInOrder()
+    {
+        using var environment = new TestEnvironment();
+        var count = Tail.TailScreen.BacklogLines + 5_000;
+        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        var start = DateTime.UtcNow.AddMinutes(-10);
+        LogFiles.Append(log,
+        [
+            LogFiles.Text(start, 3001, "LOG", "connection authorized: user=alice database=orders"),
+            .. Enumerable.Range(1, count - 2).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3002, "LOG", $"entry {i:D6}")),
+            LogFiles.Text(start.AddMinutes(1), 3001, "LOG",
+                "disconnection: session time: 0:00:01.000 user=alice database=orders host=[local]"),
+        ]);
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.Status(screen) is var status
+                && status.Contains($"| {count.ToString("N0", CultureInfo.InvariantCulture)} lines |", StringComparison.Ordinal)
+                && !status.Contains("loading older", StringComparison.Ordinal),
+            description: "every line read");
+        await tail.RunAsync("connections", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("Active: 0  Connects: 1  Disconnects: 1");
+    }
+
+    /// <summary>
+    /// A time too far back to work out is an error the command reports.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task SinceCommand_HugeDuration_ReportsIt()
+    {
+        using var environment = new TestEnvironment();
+        var log = WriteLog(environment, ("LOG", "hello"));
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("hello");
+        await tail.RunAsync("since 999999999999999999999h", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("The duration is too long.");
+        Assert.IsFalse(tail.Stopped);
+    }
+
+    /// <summary>
+    /// A long log that is truncated and starts over in another format is read in the new one.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Truncated_InAnotherFormat_ReadsTheNewFormat()
+    {
+        using var environment = new TestEnvironment();
+        var count = Tail.TailScreen.BacklogLines + 100;
+        var log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
+        await using var tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync($"entry {count:D6}");
+        var time = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+        File.WriteAllText(log,
+            $$"""{"timestamp":"{{time}} UTC","pid":3001,"error_severity":"ERROR","message":"relation \"nope\" does not exist"}"""
+            + "\n");
+        await tail.Automator.WaitUntilTextAsync("ERROR  : relation \"nope\" does not exist");
+    }
+
+    /// <summary>
     /// Pressing the scrollbar jumps to that point of the log, and dragging it to the bottom follows again.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
@@ -864,6 +955,18 @@ public sealed class TailScreenTests
         LogFiles.Append(path, entries.Select((entry, index) => LogFiles.Text(start.AddSeconds(index), 1000
             + index, entry.Level, entry.Message)));
         return path;
+    }
+
+    // Waits for the log LogFiles.ErrorAtBoundary wrote to be read, then shows only its error.
+    private async Task ShowsErrorWithStatementAsync(TailHarness tail)
+    {
+        await tail.Automator.WaitUntilTextAsync("checkpoint starting");
+        await tail.RunAsync("level error", TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => TailHarness.LogRows(screen).Where(row => row.Length > 0).ToList() is [var shown, var statement]
+                && shown.EndsWith("ERROR  : relation \"nope\" does not exist", StringComparison.Ordinal)
+                && statement == "STATEMENT:  select * from nope",
+            description: "the error with its statement");
     }
 
     private static int? RowOf(Hex1bTerminalSnapshot screen, string text)

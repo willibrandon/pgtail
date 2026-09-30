@@ -37,16 +37,23 @@ public static class ConnectionMessageParser
             return null;
         }
 
+        // Most lines are neither, and looking for the words each pattern starts with is much cheaper than matching it.
+        var connect = message.Contains("connection authorized:", StringComparison.Ordinal);
+        var disconnect = message.Contains("disconnection:", StringComparison.Ordinal);
+        if (!connect && !disconnect && !isFatal)
+        {
+            return null;
+        }
+
         using var text = new Utf8Text(message);
         var bytes = text.Bytes;
-        // Most lines are neither, and asking whether one matches is much cheaper than finding its parts.
-        if (Authorized.IsMatch(bytes) && Authorized.FindCaptures(bytes) is { } authorized)
+        if (connect && Authorized.FindCaptures(bytes) is { } authorized)
         {
             return new ConnectionMessage(ConnectionEventType.Connect, Group(bytes, authorized, 1), Group(bytes, authorized, 2),
                 Group(bytes, authorized, 3));
         }
 
-        if (Disconnection.IsMatch(bytes) && Disconnection.FindCaptures(bytes) is { } ended)
+        if (disconnect && Disconnection.FindCaptures(bytes) is { } ended)
         {
             return new ConnectionMessage(ConnectionEventType.Disconnect, Group(bytes, ended, 2), Group(bytes, ended, 3),
                 Host: Group(bytes, ended, 4), Port: Group(bytes, ended, 5), Duration: Group(bytes, ended, 1));

@@ -1,15 +1,18 @@
 using System.Globalization;
-using Pgtail.Matching;
-using Scout.Text.Regex;
 
 namespace Pgtail.Statistics;
 
 /// <summary>
 /// Reads query durations from log messages.
 /// </summary>
+/// <remarks>
+/// A duration is <c>duration:</c>, in any case, then a number with an optional decimal point and the unit <c>ms</c> or
+/// <c>s</c>, with any spaces between them. The first such duration in the text counts. The text is scanned rather than
+/// matched with a pattern, since every entry read is checked and most in a log of statement durations have one.
+/// </remarks>
 public static class DurationExtractor
 {
-    private static readonly ByteRegex Duration = ByteRegex.Compile(@"(?i)duration:\s*([0-9]+\.?[0-9]*)\s*(ms|s)");
+    private const string Label = "duration:";
 
     /// <summary>
     /// Finds <c>duration: 234.567 ms</c> or <c>duration: 1.234 s</c> in a text.
@@ -19,20 +22,53 @@ public static class DurationExtractor
     public static double? Extract(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        using var utf8 = new Utf8Text(text);
+        for (var at = text.IndexOf(Label, StringComparison.OrdinalIgnoreCase); at >= 0;
+            at = text.IndexOf(Label, at + Label.Length, StringComparison.OrdinalIgnoreCase))
+        {
+            if (Read(text.AsSpan(at + Label.Length)) is { } duration)
+            {
+                return duration;
+            }
+        }
 
-        // Most lines have no duration, and asking whether one matches is much cheaper than finding its parts.
-        if (!Duration.IsMatch(utf8.Bytes) || Duration.FindCaptures(utf8.Bytes) is not { } captures || captures.GetGroup(1) is not { } number
-            || !double.TryParse(number.Value(utf8.Bytes), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+        return null;
+    }
+
+    // The number and unit after a label, in milliseconds, or null when they are not there.
+    private static double? Read(ReadOnlySpan<char> rest)
+    {
+        rest = rest.TrimStart();
+        var length = Digits(rest, 0);
+        if (length == 0)
         {
             return null;
         }
 
-        if (captures.GetGroup(2) is { Length: 1 })
+        if (length < rest.Length && rest[length] == '.')
         {
-            value *= 1000;
+            length = Digits(rest, length + 1);
         }
 
-        return value < 0 ? null : value;
+        var unit = rest[length..].TrimStart();
+        var milliseconds = unit.StartsWith("ms", StringComparison.OrdinalIgnoreCase);
+        if ((!milliseconds && !unit.StartsWith("s", StringComparison.OrdinalIgnoreCase))
+            || !double.TryParse(rest[..length], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+        {
+            return null;
+        }
+
+        return milliseconds ? value : value * 1000;
+    }
+
+    // Where the run of digits starting at an index ends.
+    private static int Digits(ReadOnlySpan<char> text, int start)
+    {
+        var end = start;
+        while (end < text.Length && char.IsAsciiDigit(text[end]))
+        {
+            end++;
+        }
+
+        return end;
     }
 }

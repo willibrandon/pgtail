@@ -33,6 +33,7 @@ internal sealed partial class TailScreen : ITailHost
 
     private const int EntriesPerFrame = 2_000;
     private const int LoadPerFrame = 20_000;
+    private const int RecountPerFrame = 5_000;
     private readonly TailRequest _request;
     private readonly ILogSource _source;
     private readonly List<LogEntry> _entries = [];
@@ -49,6 +50,8 @@ internal sealed partial class TailScreen : ITailHost
     private bool _portDetected;
     private bool _ended;
     private bool _caughtUp;
+    private bool _olderAdded;
+    private int? _recounted;
 
     /// <summary>
     /// Creates the screen for a request.
@@ -277,6 +280,11 @@ internal sealed partial class TailScreen : ITailHost
         }
 
         TrimEntries();
+        Recount(RecountPerFrame);
+        if (_recounted is not null)
+        {
+            _app?.Invalidate();
+        }
 
         if (shown.Count > 0)
         {
@@ -317,6 +325,11 @@ internal sealed partial class TailScreen : ITailHost
                 break;
             case LogSourceEventKind.OlderRead:
                 Status.LoadingOlder = false;
+                if (_olderAdded)
+                {
+                    StartRecount();
+                }
+
                 break;
             case LogSourceEventKind.EndOfInput:
                 shown.Add(TailSegment.Of(TailLine.From(
@@ -383,20 +396,23 @@ internal sealed partial class TailScreen : ITailHost
     {
         if (_entries.Count > MaxEntries)
         {
-            _entries.RemoveRange(0, _entries.Count - MaxEntries);
+            var removed = _entries.Count - MaxEntries;
+            _entries.RemoveRange(0, removed);
+            _recounted = _recounted is { } recounted ? Math.Max(0, recounted - removed) : null;
         }
     }
 
-    // Puts entries read back in front, as many as tail mode keeps, and stops reading back once it is full.
+    // Puts entries read back in front, as many as tail mode keeps, and stops reading back once it is full. They count in
+    // the statistics once all are read, since those take entries oldest first.
     private void AddOlder(IReadOnlyList<LogEntry> older)
     {
         var room = MaxEntries - _entries.Count;
         var kept = older.Count > room ? older.Skip(older.Count - Math.Max(0, room)).ToList() : older;
         _entries.InsertRange(0, kept);
+        _olderAdded |= kept.Count > 0;
         var segments = new List<TailSegment>();
         foreach (var entry in kept)
         {
-            Session.Observe(entry, isNew: false);
             if (Session.ShouldShow(entry))
             {
                 Status.Count(entry);
@@ -415,11 +431,49 @@ internal sealed partial class TailScreen : ITailHost
         }
     }
 
+    // Once older entries are read back behind those counted, the statistics count every entry kept over again in the
+    // order they were logged, a frame's worth at a time, and the newest are kept for export.
+    private void StartRecount()
+    {
+        Session.ClearStatistics();
+        _recounted = 0;
+        Session.Buffer.Clear();
+        foreach (var entry in _entries.Skip(Math.Max(0, _entries.Count - Session.Buffer.Capacity)))
+        {
+            Session.Buffer.Add(entry);
+        }
+    }
+
+    // Counts the next entries of a recount. Entries that come in meanwhile are counted when the recount reaches them.
+    private void Recount(int count)
+    {
+        if (_recounted is not { } start)
+        {
+            return;
+        }
+
+        var end = start + Math.Min(count, _entries.Count - start);
+        for (var i = start; i < end; i++)
+        {
+            Session.Count(_entries[i]);
+        }
+
+        _recounted = end < _entries.Count ? end : null;
+    }
+
     private void Keep(LogEntry entry, bool isNew)
     {
         _entries.Add(entry);
         Session.Buffer.Add(entry);
-        Session.Observe(entry, isNew);
+        if (_recounted is null)
+        {
+            Session.Observe(entry, isNew);
+        }
+        else if (isNew)
+        {
+            Session.Notifications.Consider(entry);
+        }
+
         DetectInstance(entry);
     }
 

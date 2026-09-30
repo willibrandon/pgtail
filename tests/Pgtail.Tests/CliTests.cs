@@ -210,6 +210,31 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// Piped input split between an error and its statement keeps the statement with the error.
+    /// </summary>
+    /// <remarks>
+    /// Input is read 64 KiB at a time, and the pipe is full before pgtail first reads it, so the first read ends right
+    /// after the error.
+    /// </remarks>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TailStdinStream_ErrorAtReadBoundary_KeepsItsStatement()
+    {
+        using var environment = new TestEnvironment();
+        var log = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "piped.log"), 64 * 1024);
+        var output = Path.Combine(environment.Root, "output.txt");
+        var reader = OperatingSystem.IsWindows() ? "type" : "cat";
+        await using var shell = PgtailProcess.Shell(environment,
+            $"{reader} \"{log}\" | {{pgtail}} tail --stdin --stream > \"{output}\"", TestContext.CancellationToken);
+        Assert.AreEqual(0, await shell.WaitForExitAsync());
+        var lines = File.ReadAllLines(output);
+        var error = Array.FindIndex(lines, line => line.EndsWith("ERROR  : relation \"nope\" does not exist", StringComparison.Ordinal));
+        Assert.IsGreaterThanOrEqualTo(0, error, "the error is written");
+        Assert.AreEqual("STATEMENT:  select * from nope", lines[error + 1]);
+        Assert.EndsWith("LOG    : checkpoint starting: time", lines[error + 2]);
+    }
+
+    /// <summary>
     /// With <c>NO_COLOR</c>, streamed entries have no colors.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
@@ -278,6 +303,40 @@ public sealed class CliTests
         await pgtail.Automator.WaitUntilAsync(
             screen => screen.ContainsText(expected) && ReplHarness.PromptLine(screen) == "pgtail>",
             description: "the shell's output and a new prompt");
+    }
+
+    /// <summary>
+    /// stats counts each duration logged in milliseconds or seconds, in any case, and skips a label with no duration.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task Repl_Stats_CountsDurationsInEitherUnit()
+    {
+        using var environment = new TestEnvironment();
+        var log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        var time = DateTime.UtcNow.AddMinutes(-1);
+        LogFiles.Append(log,
+            LogFiles.Text(time, 4600, "LOG", "duration: 250.000 ms  statement: select 1"),
+            LogFiles.Text(time, 4601, "LOG", "DURATION: 3 MS  statement: select 2"),
+            LogFiles.Text(time, 4602, "LOG", "duration: 1.5 s  statement: select pg_sleep(1.5)"),
+            LogFiles.Text(time, 4603, "LOG", "duration: unknown, then duration: 7ms  statement: select 3"),
+            LogFiles.Text(time, 4604, "LOG", "duration: 12 min  statement: select 4"));
+        await using var pgtail = PgtailProcess.Start(environment, 160, 40, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        await pgtail.Automator.TypeAsync($"tail --file {log} --since 1h --stream", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("select 4");
+        await pgtail.Automator.Ctrl().KeyAsync(Hex1bKey.C, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("paused [postgresql.log]>");
+        await pgtail.Automator.TypeAsync("stop", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(screen => ReplHarness.PromptLine(screen) == "pgtail>", description: "the prompt");
+        await pgtail.Automator.TypeAsync("stats", TestContext.CancellationToken);
+        await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("Queries:  4") && screen.ContainsText("Average:  440.0ms")
+                && screen.ContainsText("max:    1500.0ms"),
+            description: "four durations: 250 ms, 3 ms, 1.5 s, and 7 ms");
     }
 
     /// <summary>

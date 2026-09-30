@@ -4,13 +4,18 @@ namespace Pgtail.Parsing;
 /// Joins the lines that continue a text log entry, such as its <c>DETAIL:</c> and <c>STATEMENT:</c> lines, to it.
 /// </summary>
 /// <remarks>
-/// Entries are added as lines are read. Each entry is held until the next one shows it is complete, or until the end of
-/// a read, since PostgreSQL writes a message and its continuation lines together. A labeled line continues only the
-/// entry of the same backend; a tab-indented line continues whatever came before it.
+/// Entries are added as lines are read. Each entry is held until the next one shows it is complete, or until the reader
+/// has read all there is for now, since PostgreSQL writes a message and its continuation lines together. A labeled line
+/// continues only the entry of the same backend; a tab-indented line continues whatever came before it.
 /// </remarks>
 public sealed class EntryGrouper
 {
     private LogEntry? _pending;
+
+    /// <summary>
+    /// Whether an entry is held back.
+    /// </summary>
+    public bool IsHolding => _pending is not null;
 
     /// <summary>
     /// Adds the next entry read.
@@ -32,7 +37,7 @@ public sealed class EntryGrouper
     }
 
     /// <summary>
-    /// Takes the entry held back, at the end of a read.
+    /// Takes the entry held back, once all there is for now is read.
     /// </summary>
     /// <returns>The entry, or null.</returns>
     public LogEntry? Flush()

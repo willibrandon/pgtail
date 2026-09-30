@@ -69,6 +69,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   line of the range, filters such as `level error` cover all of it, and it can be scrolled back to its start. It kept
   only the newest 10,000 lines, which the count showed as `10,000 lines`; it now keeps up to 200,000 entries, making
   rows only when they are drawn. A filter change redraws the log at once.
+- An error whose `STATEMENT:` or `DETAIL:` line fell in the next read of the file, or of piped input, was split in two:
+  the continuation became an entry of its own, which a level filter dropped and exports wrote apart. An entry now waits
+  for its continuation lines until the file's end is read, or until piped input is quiet for a moment.
+- `errors`, `connections`, and `stats` count the entries a time filter reads back in the order they were logged. The
+  older part of the range was counted after the newest, so a connection it opened and the newest entries closed showed
+  as still open, and the error list kept older errors in place of newer ones.
+- A log truncated and started over in another format, such as jsonlog in place of text, is read in the new format; a
+  long log went on being read in the format of its first line before the truncation.
+- `since 999999999999999999999h` reports that the duration is too long instead of failing with an overflow.
+- Counting query durations is about ten times faster, which shortens loading a log of statement durations.
 - Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.
 - Alerts that arrive within 5 seconds of a notification are summarized in one notification when the 5 seconds are up
   instead of being dropped, and a message repeated within a minute, apart from its numbers, is counted instead of shown

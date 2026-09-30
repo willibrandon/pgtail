@@ -228,3 +228,17 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   the command list. Command output is written into the log again and the panel is gone; the status bar's line count
   leaves such output out. Page Up and Page Down now scroll a whole page with the cursor line along, as a pager does;
   they moved the cursor line a page, so from the newest line the view moved by one line.
+- Four review findings, each now covered by a terminal test that fails without the fix. Sources flushed the entry
+  grouper after every read, so an error ending a one-megabyte read (or a 64 KiB read of piped input) lost its
+  `STATEMENT:` to a separate entry; files now hold the last entry until the read reaches the end, each file of a
+  multi-file tail keeps its own grouper, and piped input holds it until more input arrives or 100 ms pass without any.
+  Entries read back were counted in the statistics after the newest, which reopened closed connections and moved the
+  last error time back; tail mode now clears the statistics once reading back ends and counts every entry kept again in
+  order, 5,000 a frame, counting entries that arrive meanwhile when it reaches them and finishing when tail mode ends.
+  A truncated file kept the cached first line tail mode detects the format from, and `long.Parse` of a huge relative
+  time threw outside the overflow guard.
+- The recount first took 675 ms at once for the test server's day (136,336 entries): 3.3 µs an entry went to the
+  duration regex, which matches 108,000 of them, and 1.5 µs to encoding each message and matching the connection
+  patterns. Durations are now scanned for by hand (same results, by the new stats test run against both) and the
+  connection patterns run only on messages with their opening words, so the day recounts in 143 ms over 28 frames of at
+  most 27 ms in the Native AOT build.

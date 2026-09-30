@@ -8,11 +8,13 @@ namespace Pgtail.Tailing;
 /// </summary>
 /// <remarks>
 /// Every entry is marked as coming from <c>stdin</c>. The format is detected from the first non-blank line. Piped input
-/// has no backlog to tell apart, so every entry counts as new.
+/// has no backlog to tell apart, so every entry counts as new. An entry's continuation lines may come in a later read, so
+/// the last entry read waits until more input shows it is complete, or until the input is quiet for a moment.
 /// </remarks>
 /// <param name="input">The piped input.</param>
 public sealed class StreamLogSource(Stream input) : ILogSource
 {
+    private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(100);
     private readonly Channel<LogSourceEvent> _events = Channel.CreateUnbounded<LogSourceEvent>(
         new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
 
@@ -74,7 +76,13 @@ public sealed class StreamLogSource(Stream input) : ILogSource
         {
             while (true)
             {
-                var read = await input.ReadAsync(buffer, _stop.Token).ConfigureAwait(false);
+                var reading = input.ReadAsync(buffer, _stop.Token).AsTask();
+                if (_grouper.IsHolding && await Task.WhenAny(reading, Task.Delay(Quiet, _stop.Token)).ConfigureAwait(false) != reading)
+                {
+                    Flush();
+                }
+
+                var read = await reading.ConfigureAwait(false);
                 if (read == 0)
                 {
                     break;
@@ -93,19 +101,19 @@ public sealed class StreamLogSource(Stream input) : ILogSource
                 }
 
                 pending.AddRange(buffer.AsSpan(start, read - start));
-                Flush();
-            }
-
-            if (pending.Count > 0)
-            {
-                Emit([.. pending], ref format);
-                Flush();
             }
         }
         catch (IOException)
         {
             // A closed pipe ends the input like end of file.
         }
+
+        if (pending.Count > 0)
+        {
+            Emit([.. pending], ref format);
+        }
+
+        Flush();
 
         _events.Writer.TryWrite(new LogSourceEvent(LogSourceEventKind.EndOfInput, LinesRead: LinesRead));
         _events.Writer.TryComplete();
