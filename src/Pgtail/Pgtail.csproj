@@ -28,7 +28,7 @@
     <ToolCommandName>pgtail</ToolCommandName>
     <PackageId>pgtail</PackageId>
     <Description>Interactive PostgreSQL log tailer with auto-detection, filtering, semantic highlighting, and a full screen tail mode.</Description>
-    <PackageTags>postgresql;postgres;logs;log-viewer;tail;cli;dotnet-tool;hex1b</PackageTags>
+    <PackageTags>postgresql;postgres;logs;log-viewer;tail;cli;dotnet-tool</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
