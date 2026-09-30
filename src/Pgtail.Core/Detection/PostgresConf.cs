@@ -20,7 +20,7 @@ public static partial class PostgresConf
     public static string? FindConfFile(string dataDirectory)
     {
         ArgumentNullException.ThrowIfNull(dataDirectory);
-        string standard = Path.Combine(dataDirectory, "postgresql.conf");
+        string standard = Path.Join(dataDirectory, "postgresql.conf");
         if (File.Exists(standard))
         {
             return standard;
@@ -58,16 +58,8 @@ public static partial class PostgresConf
         ArgumentNullException.ThrowIfNull(key);
         var pattern = new Regex($@"^\s*{Regex.Escape(key)}\s*=\s*['""]?([^'""#\n]+)['""]?",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        foreach (string line in content.Split('\n'))
-        {
-            Match match = pattern.Match(line.TrimEnd('\r'));
-            if (match.Success)
-            {
-                return match.Groups[1].Value.Trim();
-            }
-        }
-
-        return null;
+        Match? match = content.Split('\n').Select(line => pattern.Match(line.TrimEnd('\r'))).FirstOrDefault(found => found.Success);
+        return match?.Groups[1].Value.Trim();
     }
 
     /// <summary>
@@ -80,7 +72,7 @@ public static partial class PostgresConf
         ArgumentNullException.ThrowIfNull(dataDirectory);
         try
         {
-            return File.ReadAllText(Path.Combine(dataDirectory, "PG_VERSION")).Trim();
+            return File.ReadAllText(Path.Join(dataDirectory, "PG_VERSION")).Trim();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -103,7 +95,7 @@ public static partial class PostgresConf
             return port;
         }
 
-        string[]? lines = ReadText(Path.Combine(dataDirectory, "postmaster.pid"))?.Split('\n');
+        string[]? lines = ReadText(Path.Join(dataDirectory, "postmaster.pid"))?.Split('\n');
         return lines is { Length: >= 4 }
             && int.TryParse(lines[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int running)
                 ? running
@@ -137,7 +129,7 @@ public static partial class PostgresConf
         }
 
         string configured = GetValue(content, "log_directory") ?? "log";
-        string directory = configured.StartsWith('/') ? configured : Path.Combine(dataDirectory, configured);
+        string directory = configured.StartsWith('/') ? configured : Path.Join(dataDirectory, configured);
         bool accessible = false;
         try
         {
@@ -145,9 +137,9 @@ public static partial class PostgresConf
             {
                 accessible = true;
             }
-            else if (Directory.Exists(Path.Combine(dataDirectory, "pg_log")))
+            else if (Directory.Exists(Path.Join(dataDirectory, "pg_log")))
             {
-                directory = Path.Combine(dataDirectory, "pg_log");
+                directory = Path.Join(dataDirectory, "pg_log");
                 accessible = true;
             }
         }
@@ -173,7 +165,7 @@ public static partial class PostgresConf
     public static string? ReadCurrentLogfiles(string dataDirectory)
     {
         ArgumentNullException.ThrowIfNull(dataDirectory);
-        if (ReadText(Path.Combine(dataDirectory, "current_logfiles")) is not { } content)
+        if (ReadText(Path.Join(dataDirectory, "current_logfiles")) is not { } content)
         {
             return null;
         }
@@ -185,7 +177,7 @@ public static partial class PostgresConf
             {
                 string path = parts[1];
                 bool absolute = path.StartsWith('/') || (path.Length >= 2 && path[1] == ':');
-                return absolute ? path : Path.Combine(dataDirectory, path);
+                return absolute ? path : Path.Join(dataDirectory, path);
             }
         }
 

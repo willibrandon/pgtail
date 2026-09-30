@@ -84,7 +84,7 @@ public sealed record ConnectionEvent(
             return null;
         }
 
-        return (hours * 3600) + (minutes * 60) + seconds;
+        return (hours * 3600.0) + (minutes * 60.0) + seconds;
     }
 
     private static string? OrNull(string? value) => string.IsNullOrEmpty(value) ? null : value;

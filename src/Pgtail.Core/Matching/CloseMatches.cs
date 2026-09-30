@@ -24,7 +24,8 @@ public static class CloseMatches
         foreach (string candidate in candidates)
         {
             double ratio = Ratio(word, candidate);
-            if (ratio > bestRatio || (ratio == bestRatio && best is null && ratio >= cutoff))
+            // The first candidate need only reach the cutoff; a later one must beat the best so far.
+            if (best is null ? ratio >= bestRatio : ratio > bestRatio)
             {
                 best = candidate;
                 bestRatio = ratio;

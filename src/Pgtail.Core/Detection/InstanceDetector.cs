@@ -132,12 +132,12 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
 
     private IEnumerable<string> FromPgrx()
     {
-        string pgrx = Path.Combine(home, ".pgrx");
-        foreach (string directory in Matching(Path.Combine(pgrx, "data-*")))
+        string pgrx = Path.Join(home, ".pgrx");
+        foreach (string directory in Matching(Path.Join(pgrx, "data-*")))
         {
             string suffix = Path.GetFileName(directory)[5..];
             if ((OperatingSystem.IsWindows() || (suffix.Length > 0 && suffix.All(char.IsAsciiDigit)))
-                && File.Exists(Path.Combine(directory, "PG_VERSION")))
+                && File.Exists(Path.Join(directory, "PG_VERSION")))
             {
                 yield return directory;
             }
@@ -150,25 +150,25 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         {
             string programFiles = environment("ProgramFiles") ?? @"C:\Program Files";
             string programFilesX86 = environment("ProgramFiles(x86)") ?? @"C:\Program Files (x86)";
-            foreach (string? directory in Matching(Path.Combine(programFiles, "PostgreSQL", "*", "data"))
-                .Concat(Matching(Path.Combine(programFilesX86, "PostgreSQL", "*", "data"))))
+            foreach (string? directory in Matching(Path.Join(programFiles, "PostgreSQL", "*", "data"))
+                .Concat(Matching(Path.Join(programFilesX86, "PostgreSQL", "*", "data"))))
             {
                 yield return directory;
             }
 
             if (environment("APPDATA") is { Length: > 0 } appData)
             {
-                yield return Path.Combine(appData, "PostgreSQL", "data");
+                yield return Path.Join(appData, "PostgreSQL", "data");
             }
 
             if (environment("LOCALAPPDATA") is { Length: > 0 } localAppData)
             {
-                yield return Path.Combine(localAppData, "PostgreSQL", "data");
+                yield return Path.Join(localAppData, "PostgreSQL", "data");
             }
 
-            yield return Path.Combine(home, "postgres");
-            yield return Path.Combine(home, "postgresql");
-            yield return Path.Combine(home, "PostgreSQL", "data");
+            yield return Path.Join(home, "postgres");
+            yield return Path.Join(home, "postgresql");
+            yield return Path.Join(home, "PostgreSQL", "data");
             yield break;
         }
 
@@ -185,10 +185,10 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
             "/var/lib/pgsql/data",
             "/var/lib/pgsql/*/data",
             "/var/lib/postgres/data",
-            Path.Combine(home, "Library", "Application Support", "Postgres", "var-*"),
-            Path.Combine(home, "postgres"),
-            Path.Combine(home, "postgresql"),
-            Path.Combine(home, ".postgres"),
+            Path.Join(home, "Library", "Application Support", "Postgres", "var-*"),
+            Path.Join(home, "postgres"),
+            Path.Join(home, "postgresql"),
+            Path.Join(home, ".postgres"),
         ];
 
         foreach (string pattern in patterns)
@@ -217,7 +217,7 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
     {
         try
         {
-            return Directory.Exists(path) && (File.Exists(Path.Combine(path, "PG_VERSION"))
+            return Directory.Exists(path) && (File.Exists(Path.Join(path, "PG_VERSION"))
                 || (PostgresConf.DebianConfFile(path) is { } conf && File.Exists(conf)));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -235,7 +235,7 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
 
         try
         {
-            string[] lines = File.ReadAllText(Path.Combine(resolved, "postmaster.pid")).Split('\n');
+            string[] lines = File.ReadAllText(Path.Join(resolved, "postmaster.pid")).Split('\n');
             if (int.TryParse(lines[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int pid)
                 && ProcessTable.NameOf(pid) is { } name && name.Contains("postgres", StringComparison.OrdinalIgnoreCase))
             {

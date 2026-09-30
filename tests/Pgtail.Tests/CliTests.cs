@@ -85,10 +85,10 @@ public sealed class CliTests
     {
         using var environment = new TestEnvironment();
         string expected = OperatingSystem.IsMacOS()
-            ? Path.Combine(environment.Home, "Library", "Application Support", "pgtail", "config.toml")
+            ? Path.Join(environment.Home, "Library", "Application Support", "pgtail", "config.toml")
             : OperatingSystem.IsWindows()
-                ? Path.Combine(environment.Home, "AppData", "Roaming", "pgtail", "config.toml")
-                : Path.Combine(environment.Home, ".config", "pgtail", "config.toml");
+                ? Path.Join(environment.Home, "AppData", "Roaming", "pgtail", "config.toml")
+                : Path.Join(environment.Home, ".config", "pgtail", "config.toml");
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "config", "--path");
         await pgtail.Automator.WaitUntilTextAsync(expected);
         Assert.AreEqual(0, await pgtail.WaitForExitAsync());
@@ -107,8 +107,8 @@ public sealed class CliTests
     {
         using var environment = new TestEnvironment();
         string data = OperatingSystem.IsWindows()
-            ? Path.Combine(environment.Home, "AppData", "Local", "PostgreSQL", "data")
-            : Path.Combine(environment.Home, "Library", "Application Support", "Postgres", "var-16");
+            ? Path.Join(environment.Home, "AppData", "Local", "PostgreSQL", "data")
+            : Path.Join(environment.Home, "Library", "Application Support", "Postgres", "var-16");
         DataDirectories.CreateAt(data, "16", 5493);
         await using var pgtail = PgtailProcess.Run(environment, TestContext.CancellationToken, "list-instances");
         await pgtail.Automator.WaitUntilAsync(
@@ -142,7 +142,7 @@ public sealed class CliTests
     public async Task TailStreamFilePrintsEntriesUntilCtrlC()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4100, "ERROR",
             "duplicate key value violates unique constraint"));
         await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken, "tail", "--file", log,
@@ -162,7 +162,7 @@ public sealed class CliTests
     public async Task ReplDisplayFullDebianPrefixShowsUserAndDatabase()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql-18-main.log");
         string time = DateTime.UtcNow.AddMinutes(-1).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         LogFiles.Append(log,
             $"{time} UTC [4200] alice@orders ERROR:  division by zero",
@@ -196,7 +196,7 @@ public sealed class CliTests
     public async Task TailStdinStreamPipedLogPrintsEntries()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "piped.log");
+        string log = Path.Join(environment.Root, "piped.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 4200, "WARNING", "piped warning line"),
             LogFiles.Text(DateTime.UtcNow, 4201, "LOG", "piped log line"));
         string reader = OperatingSystem.IsWindows() ? "type" : "cat";
@@ -221,8 +221,8 @@ public sealed class CliTests
     public async Task TailStdinStreamErrorAtReadBoundaryKeepsItsStatement()
     {
         using var environment = new TestEnvironment();
-        string log = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "piped.log"), 64 * 1024);
-        string output = Path.Combine(environment.Root, "output.txt");
+        string log = LogFiles.ErrorAtBoundary(Path.Join(environment.Root, "piped.log"), 64 * 1024);
+        string output = Path.Join(environment.Root, "output.txt");
         string reader = OperatingSystem.IsWindows() ? "type" : "cat";
         await using var shell = PgtailProcess.Shell(environment,
             $"{reader} \"{log}\" | {{pgtail}} tail --stdin --stream > \"{output}\"", TestContext.CancellationToken);
@@ -242,7 +242,7 @@ public sealed class CliTests
     public async Task TailStreamNoColorPrintsWithoutColors()
     {
         using var environment = new TestEnvironment(new Dictionary<string, string?> { ["NO_COLOR"] = "1" });
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4300, "ERROR", "uncolored failure"));
         await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken, "tail", "--file", log,
             "--since", "1h", "--stream");
@@ -259,7 +259,7 @@ public sealed class CliTests
     public async Task TailFullScreenQuitExitsZero()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4400, "LOG", "full screen entry"));
         await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken, "tail", "--file", log, "--since", "1h");
         await pgtail.Automator.WaitUntilAsync(
@@ -314,7 +314,7 @@ public sealed class CliTests
     public async Task ReplBangCommandKeepsQuotes()
     {
         using var environment = new TestEnvironment();
-        File.WriteAllText(Path.Combine(environment.Root, "two words.txt"), "quoted-file-contents\n");
+        File.WriteAllText(Path.Join(environment.Root, "two words.txt"), "quoted-file-contents\n");
         await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("pgtail>");
         await pgtail.Automator.TypeAsync(OperatingSystem.IsWindows() ? "!type \"two words.txt\"" : "!cat \"two words.txt\"",
@@ -375,7 +375,7 @@ public sealed class CliTests
     public async Task ReplStatsCountsDurationsInEitherUnit()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime time = DateTime.UtcNow.AddMinutes(-1);
         LogFiles.Append(log,
             LogFiles.Text(time, 4600, "LOG", "duration: 250.000 ms  statement: select 1"),
@@ -426,7 +426,7 @@ public sealed class CliTests
     public async Task ReplTailThenQuitReturnsToPrompt()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4500, "LOG", "entry seen from the repl"));
         await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("pgtail>");
@@ -454,7 +454,7 @@ public sealed class CliTests
     public async Task ReplTailModeReportsMouse()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4600, "LOG", "entry with the mouse on"));
         await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("pgtail>");

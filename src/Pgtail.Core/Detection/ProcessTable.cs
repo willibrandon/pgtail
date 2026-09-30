@@ -87,12 +87,12 @@ public static partial class ProcessTable
 
         foreach (string directory in directories)
         {
-            if (!int.TryParse(Path.GetFileName(directory), out int pid) || ReadText(Path.Combine(directory, "comm")) is not { } comm)
+            if (!int.TryParse(Path.GetFileName(directory), out int pid) || ReadText(Path.Join(directory, "comm")) is not { } comm)
             {
                 continue;
             }
 
-            string commandLine = ReadText(Path.Combine(directory, "cmdline")) ?? "";
+            string commandLine = ReadText(Path.Join(directory, "cmdline")) ?? "";
             string[] arguments = commandLine.Split('\0');
             int count = arguments.Length > 0 && arguments[^1].Length == 0 ? arguments.Length - 1 : arguments.Length;
             entries.Add(new ProcessEntry(pid, comm.Trim(), arguments[..count]));

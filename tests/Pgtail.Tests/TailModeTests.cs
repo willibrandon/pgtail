@@ -21,7 +21,7 @@ public sealed class TailModeTests
     public async Task TailFileQuitReturnsToPrompt()
     {
         using var environment = new TestEnvironment();
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 100, "LOG", "database system is ready to accept connections"));
         // Wide enough for the command on one line, with the long temp directories of macOS and Windows.
         await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);

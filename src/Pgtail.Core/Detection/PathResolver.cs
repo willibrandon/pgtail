@@ -30,11 +30,11 @@ public static class PathResolver
         string current = root;
         for (int i = 0; i < parts.Length; i++)
         {
-            string next = Path.Combine(current, parts[i]);
+            string next = Path.Join(current, parts[i]);
             FileSystemInfo info = Directory.Exists(next) ? new DirectoryInfo(next) : new FileInfo(next);
             if (!info.Exists)
             {
-                return Path.Combine([current, .. parts[i..]]);
+                return Path.Join([current, .. parts[i..]]);
             }
 
             try

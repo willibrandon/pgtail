@@ -125,7 +125,14 @@ internal static class SlowCommands
             return Task.CompletedTask;
         }
 
-        session.Slow = new SlowQueryConfig { Enabled = true, WarningMs = threshold, SlowMs = threshold * 2, CriticalMs = threshold * 5 };
+        session.Slow = new SlowQueryConfig
+        {
+            Enabled = true,
+            WarningMs = threshold,
+            SlowMs = threshold * 2.0,
+            CriticalMs = threshold * 5.0,
+        };
+
         host.RefreshStatus();
         host.Rebuild();
         return Task.CompletedTask;

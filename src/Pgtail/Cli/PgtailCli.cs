@@ -342,10 +342,9 @@ internal static class PgtailCli
 
     private static async Task<int> FullScreenAsync(PgtailSession session, TailRequest request)
     {
-        Stream? piped = null;
-        if (request.Source.Stdin)
+        using MemoryStream? piped = request.Source.Stdin ? new MemoryStream() : null;
+        if (piped is { } buffer)
         {
-            var buffer = new MemoryStream();
             await Console.OpenStandardInput().CopyToAsync(buffer);
             if (buffer.Length == 0 || Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length).Trim().Length == 0)
             {
@@ -361,7 +360,6 @@ internal static class PgtailCli
             }
 
             buffer.Position = 0;
-            piped = buffer;
         }
 
         ILogSource source = LogSources.Create(request, session, Environment.CurrentDirectory, () => piped!, TailScreen.BacklogLines);

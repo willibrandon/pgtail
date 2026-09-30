@@ -76,7 +76,7 @@ public sealed record ColorStyle(
     {
         bool flag => flag,
         long number => number != 0,
-        double real => real != 0,
+        double real => real is > 0 or < 0,
         string text => text.Length > 0,
         TomlArray array => array.Count > 0,
         TomlTable nested => nested.Count > 0,

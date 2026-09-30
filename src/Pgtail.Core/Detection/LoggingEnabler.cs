@@ -16,19 +16,8 @@ public static class LoggingEnabler
     {
         ArgumentNullException.ThrowIfNull(path);
         var settings = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (string raw in File.ReadLines(path))
+        foreach (string line in File.ReadLines(path).Select(WithoutComment))
         {
-            string line = raw.Trim();
-            if (line.Length == 0 || line.StartsWith('#') || !line.Contains('=', StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (line.Contains('#', StringComparison.Ordinal))
-            {
-                line = line[..line.IndexOf('#', StringComparison.Ordinal)].Trim();
-            }
-
             int separator = line.IndexOf('=', StringComparison.Ordinal);
             if (separator < 0)
             {
@@ -36,16 +25,20 @@ public static class LoggingEnabler
             }
 
             string value = line[(separator + 1)..].Trim();
-            if (value.Length >= 2 && ((value[0] == '\'' && value[^1] == '\'') || (value[0] == '"' && value[^1] == '"')))
-            {
-                value = value[1..^1];
-            }
-
-            settings[line[..separator].Trim()] = value;
+            settings[line[..separator].Trim()] = IsQuoted(value, '\'') || IsQuoted(value, '"') ? value[1..^1] : value;
         }
 
         return settings;
     }
+
+    // A line without its surrounding space and its comment; a line that is only a comment is empty.
+    private static string WithoutComment(string line)
+    {
+        int comment = line.IndexOf('#', StringComparison.Ordinal);
+        return (comment < 0 ? line : line[..comment]).Trim();
+    }
+
+    private static bool IsQuoted(string value, char quote) => value.Length >= 2 && value[0] == quote && value[^1] == quote;
 
     /// <summary>
     /// Sets values in a <c>postgresql.conf</c>.
@@ -131,7 +124,7 @@ public static class LoggingEnabler
         string? conf = configPath ?? PostgresConf.FindConfFile(dataDirectory);
         if (conf is null || !File.Exists(conf))
         {
-            var checkedPaths = new List<string> { Path.Combine(dataDirectory, "postgresql.conf") };
+            var checkedPaths = new List<string> { Path.Join(dataDirectory, "postgresql.conf") };
             if (PostgresConf.DebianConfFile(dataDirectory) is { } debian)
             {
                 checkedPaths.Add(debian);
@@ -183,8 +176,9 @@ public static class LoggingEnabler
                 $"Permission denied writing to {conf}\n\n{string.Join('\n', PermissionAdvice.ConfPermission(conf))}", []);
         }
 
-        string logDirectory = Path.Combine(dataDirectory,
-            updates.FirstOrDefault(update => update.Key == "log_directory").Value ?? current.GetValueOrDefault("log_directory", "log"));
+        string configured = updates.FirstOrDefault(update => update.Key == "log_directory").Value
+            ?? current.GetValueOrDefault("log_directory", "log");
+        string logDirectory = Path.IsPathRooted(configured) ? configured : Path.Join(dataDirectory, configured);
         if (!Directory.Exists(logDirectory))
         {
             try

@@ -75,8 +75,7 @@ public sealed class KeywordHighlighter : IHighlighter
         {
             string word = matcher.Keyword(keyword);
             int start = end - word.Length;
-            if (_wordBoundary && ((start > 0 && char.IsLetterOrDigit(search[start - 1]))
-                || (end < search.Length && char.IsLetterOrDigit(search[end]))))
+            if (_wordBoundary && (IsWordCharacter(search, start - 1) || IsWordCharacter(search, end)))
             {
                 continue;
             }
@@ -84,4 +83,8 @@ public sealed class KeywordHighlighter : IHighlighter
             yield return new HighlightMatch(start, end, StyleOf[word]);
         }
     }
+
+    // Whether the character at an index, when there is one, is part of a word.
+    private static bool IsWordCharacter(string text, int index) =>
+        index >= 0 && index < text.Length && char.IsLetterOrDigit(text[index]);
 }

@@ -101,7 +101,7 @@ public static class EntryExporter
         return count;
     }
 
-    private static string Quote(string text) => "\"" + JsonEncodedText.Encode(text, s_encoder).ToString() + "\"";
+    private static string Quote(string text) => $"\"{JsonEncodedText.Encode(text, s_encoder)}\"";
 
     private static string CsvField(string value) =>
         value.AsSpan().IndexOfAny(",\"\r\n") >= 0 ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : value;

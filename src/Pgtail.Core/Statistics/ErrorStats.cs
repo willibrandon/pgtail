@@ -120,9 +120,8 @@ public sealed class ErrorStats
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         var order = new List<string>();
-        foreach (ErrorEvent item in _events)
+        foreach (string code in _events.Select(item => item.SqlState ?? "UNKNOWN"))
         {
-            string code = item.SqlState ?? "UNKNOWN";
             if (!counts.TryGetValue(code, out int count))
             {
                 order.Add(code);

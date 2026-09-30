@@ -28,7 +28,7 @@ public static class ExecutableFinder
         {
             foreach (string extension in extensions)
             {
-                string candidate = Path.Combine(directory, name + extension);
+                string candidate = Path.Join(directory, name + extension);
                 if (IsExecutable(candidate))
                 {
                     return candidate;

@@ -229,12 +229,10 @@ internal static partial class HighlightCommands
             {
                 style = args[++i];
             }
-            else if (args[i] == "--priority" && i + 1 < args.Count)
+            else if (args[i] == "--priority" && i + 1 < args.Count
+                && int.TryParse(args[++i], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value))
             {
-                if (int.TryParse(args[++i], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value))
-                {
-                    priority = value;
-                }
+                priority = value;
             }
         }
 

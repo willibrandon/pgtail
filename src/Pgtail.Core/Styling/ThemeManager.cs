@@ -30,7 +30,7 @@ public sealed class ThemeManager(string themesDirectory)
     /// </summary>
     /// <param name="name">The theme name.</param>
     /// <returns>The path.</returns>
-    public string ThemeFile(string name) => Path.Combine(ThemesDirectory, name + ".toml");
+    public string ThemeFile(string name) => Path.Join(ThemesDirectory, name + ".toml");
 
     /// <summary>
     /// Reads every custom theme file again.

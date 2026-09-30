@@ -212,25 +212,25 @@ internal static class ShellCompletion
         switch (shell)
         {
             case "bash":
-                string bashScript = Path.Combine(home, ".bash_completions", "pgtail.sh");
+                string bashScript = Path.Join(home, ".bash_completions", "pgtail.sh");
                 Write(bashScript, script);
-                AppendOnce(Path.Combine(home, ".bashrc"), $"source {bashScript}");
+                AppendOnce(Path.Join(home, ".bashrc"), $"source {bashScript}");
                 return bashScript;
             case "zsh":
-                string zshScript = Path.Combine(home, ".zfunc", "_pgtail");
+                string zshScript = Path.Join(home, ".zfunc", "_pgtail");
                 Write(zshScript, script);
-                AppendOnce(Path.Combine(home, ".zshrc"), "fpath+=~/.zfunc");
-                AppendOnce(Path.Combine(home, ".zshrc"), "autoload -Uz compinit && compinit");
+                AppendOnce(Path.Join(home, ".zshrc"), "fpath+=~/.zfunc");
+                AppendOnce(Path.Join(home, ".zshrc"), "autoload -Uz compinit && compinit");
                 return zshScript;
             case "fish":
-                string fishScript = Path.Combine(home, ".config", "fish", "completions", "pgtail.fish");
+                string fishScript = Path.Join(home, ".config", "fish", "completions", "pgtail.fish");
                 Write(fishScript, script);
                 return fishScript;
             default:
                 string profile = OperatingSystem.IsWindows()
-                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "PowerShell",
+                    ? Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "PowerShell",
                         "Microsoft.PowerShell_profile.ps1")
-                    : Path.Combine(home, ".config", "powershell", "Microsoft.PowerShell_profile.ps1");
+                    : Path.Join(home, ".config", "powershell", "Microsoft.PowerShell_profile.ps1");
                 if (!File.Exists(profile) || !File.ReadAllText(profile).Contains("-CommandName pgtail", StringComparison.Ordinal))
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(profile)!);

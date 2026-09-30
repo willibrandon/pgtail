@@ -180,7 +180,7 @@ public sealed class TailScreenTests
     public async Task DebianPrefixLevelCommandKeepsErrorWithStatement()
     {
         using var environment = new TestEnvironment();
-        string path = Path.Combine(environment.Root, "logs", "postgresql-18-main.log");
+        string path = Path.Join(environment.Root, "logs", "postgresql-18-main.log");
         string time = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         LogFiles.Append(path,
             $"{time} UTC [4200] [unknown]@[unknown] LOG:  connection received: host=::1 port=50000",
@@ -208,7 +208,7 @@ public sealed class TailScreenTests
     public async Task LevelCommandErrorWithDetailKeepsContinuationLines()
     {
         using var environment = new TestEnvironment();
-        string path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string path = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime time = DateTime.UtcNow.AddMinutes(-5);
         LogFiles.Append(path,
             LogFiles.Text(time, 2001, "ERROR", "duplicate key value violates unique constraint \"t_pkey\""),
@@ -521,7 +521,7 @@ public sealed class TailScreenTests
     public async Task LevelCommandErrorAtReadBoundaryKeepsItsStatement()
     {
         using var environment = new TestEnvironment();
-        string path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
+        string path = LogFiles.ErrorAtBoundary(Path.Join(environment.Root, "logs", "postgresql.log"), 1 << 20);
         await using TailHarness tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken);
         await ShowsErrorWithStatementAsync(tail);
     }
@@ -534,8 +534,8 @@ public sealed class TailScreenTests
     public async Task LevelCommandSeveralFilesErrorAtReadBoundaryKeepsItsStatement()
     {
         using var environment = new TestEnvironment();
-        string path = LogFiles.ErrorAtBoundary(Path.Combine(environment.Root, "logs", "postgresql.log"), 1 << 20);
-        string other = Path.Combine(environment.Root, "logs", "other.log");
+        string path = LogFiles.ErrorAtBoundary(Path.Join(environment.Root, "logs", "postgresql.log"), 1 << 20);
+        string other = Path.Join(environment.Root, "logs", "other.log");
         LogFiles.Append(other, LogFiles.Text(DateTime.UtcNow.AddMinutes(-6), 2003, "LOG", "another file"));
         await using TailHarness tail = await TailHarness.StartAsync(environment, [path, other], TestContext.CancellationToken);
         await ShowsErrorWithStatementAsync(tail);
@@ -550,7 +550,7 @@ public sealed class TailScreenTests
     {
         using var environment = new TestEnvironment();
         int count = Tail.TailScreen.BacklogLines + 5_000;
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime start = DateTime.UtcNow.AddMinutes(-10);
         LogFiles.Append(log,
         [
@@ -584,7 +584,7 @@ public sealed class TailScreenTests
         const int count = 200_000;
         // One error just before the newest lines, in the first chunk read back, and one at the end.
         const int older = count - Tail.TailScreen.BacklogLines - 10;
-        string log = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime start = DateTime.UtcNow.AddMinutes(-30);
         LogFiles.Append(log, Enumerable.Range(1, count).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000,
             i is older or count ? "ERROR" : "LOG", $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
@@ -621,7 +621,7 @@ public sealed class TailScreenTests
         File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddMinutes(-1));
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("first file");
-        LogFiles.Append(Path.Combine(Path.GetDirectoryName(log)!, "postgresql-next.log"),
+        LogFiles.Append(Path.Join(Path.GetDirectoryName(log)!, "postgresql-next.log"),
             LogFiles.Text(DateTime.UtcNow, 1500, "LOG", "second file"));
         await tail.Automator.WaitUntilTextAsync("second file");
     }
@@ -636,9 +636,9 @@ public sealed class TailScreenTests
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "tailed file"));
         // Written at the same time, any of them can count as the newest, so with several copies it is seldom the tailed one.
-        foreach (string? name in new[] { "copy-1.log", "copy-2.log", "copy-3.log" })
+        string[] names = ["copy-1.log", "copy-2.log", "copy-3.log"];
+        foreach (string copy in names.Select(name => Path.Join(Path.GetDirectoryName(log)!, name)))
         {
-            string copy = Path.Combine(Path.GetDirectoryName(log)!, name);
             LogFiles.Append(copy, LogFiles.Text(DateTime.UtcNow.AddMinutes(-5), 1600, "LOG", "copied file"));
             File.SetLastWriteTimeUtc(copy, File.GetLastWriteTimeUtc(log));
         }
@@ -663,7 +663,7 @@ public sealed class TailScreenTests
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "tailed file"));
         File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddHours(-2));
-        string newer = Path.Combine(Path.GetDirectoryName(log)!, "postgresql-newer.log");
+        string newer = Path.Join(Path.GetDirectoryName(log)!, "postgresql-newer.log");
         LogFiles.Append(newer, LogFiles.Text(DateTime.UtcNow.AddHours(-1), 1700, "LOG", "newer file"));
         File.SetLastWriteTimeUtc(newer, DateTime.UtcNow.AddHours(-1));
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
@@ -879,7 +879,7 @@ public sealed class TailScreenTests
     {
         using var environment = new TestEnvironment();
         string log = WriteLog(environment, ("LOG", "keep this one"), ("ERROR", "and this error"));
-        string output = Path.Combine(environment.Root, "exported.log");
+        string output = Path.Join(environment.Root, "exported.log");
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken, width: 160);
         await tail.Automator.WaitUntilTextAsync("and this error");
         await tail.RunAsync($"export {output}", TestContext.CancellationToken);
@@ -897,11 +897,11 @@ public sealed class TailScreenTests
     public async Task ZoneWrittenInLogShowsTimeAsWrittenAndExportsOffset()
     {
         using var environment = new TestEnvironment();
-        string path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string path = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime written = DateTime.UtcNow.AddHours(-7).AddMinutes(-5);
         string stamp = written.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         LogFiles.Append(path, $"{stamp} PDT [3001] ERROR:  relation \"missing_table\" does not exist");
-        string output = Path.Combine(environment.Root, "exported.json");
+        string output = Path.Join(environment.Root, "exported.json");
         await using TailHarness tail = await TailHarness.StartAsync(environment, path, TestContext.CancellationToken, width: 160);
         await tail.Automator.WaitUntilTextAsync($"{stamp[11..]} [3001 ] ERROR  : relation \"missing_table\" does not exist");
         await tail.RunAsync($"export --format json {output}", TestContext.CancellationToken);
@@ -1063,7 +1063,7 @@ public sealed class TailScreenTests
 
     private static string WriteLog(TestEnvironment environment, params (string Level, string Message)[] entries)
     {
-        string path = Path.Combine(environment.Root, "logs", "postgresql.log");
+        string path = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime start = DateTime.UtcNow.AddMinutes(-10);
         LogFiles.Append(path, entries.Select((entry, index) => LogFiles.Text(start.AddSeconds(index), 1000
             + index, entry.Level, entry.Message)));
