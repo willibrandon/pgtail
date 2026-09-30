@@ -44,7 +44,8 @@ if (await RunAsync(repo, "dotnet", ["publish", project, "-c", "Release", "-r", r
 }
 
 // Hex1b's console driver on Linux and macOS calls its native helper, which must sit beside the executable. On Windows,
-// Hex1b's native files serve only its pseudo-terminal support, which pgtail does not use but which ships as Hex1b does.
+// Hex1b also ships programs for hosting a pseudo-terminal, which pgtail never starts; the project removes them, since
+// package validation runs every program an installer puts down and they exit with an error on their own.
 var published = Directory.GetFiles(publishDirectory, "*", SearchOption.AllDirectories)
     .Select(path => Path.GetRelativePath(publishDirectory, path)).ToHashSet();
 string[] required = OperatingSystem.IsWindows() ? [executableName]
@@ -54,6 +55,12 @@ if (required.Any(file => !published.Contains(file))
 {
     Console.Error.WriteLine($"expected {string.Join(", ", required)} and no symbols or documentation, found: "
         + string.Join(", ", published));
+    return 1;
+}
+
+if (UnexpectedPrograms(publishDirectory, executableName) is { Count: > 0 } extra)
+{
+    Console.Error.WriteLine("only pgtail may be published as a program, found: " + string.Join(", ", extra));
     return 1;
 }
 
@@ -80,6 +87,12 @@ string unpacked = Directory.CreateTempSubdirectory("pgtail-package-").FullName;
 try
 {
     ZipFile.ExtractToDirectory(package, unpacked);
+    if (UnexpectedPrograms(unpacked, executableName) is { Count: > 0 } packed)
+    {
+        Console.Error.WriteLine("only pgtail may be packed as a program, found: " + string.Join(", ", packed));
+        return 1;
+    }
+
     string settings = Directory.GetFiles(unpacked, "DotnetToolSettings.xml", SearchOption.AllDirectories).Single();
     string entryPoint = XDocument.Load(settings).Descendants("Command").Single().Attribute("EntryPoint")!.Value;
     string packaged = Path.Join(Path.GetDirectoryName(settings)!, entryPoint);
@@ -239,7 +252,10 @@ static async Task<bool> SmokeAsync(string executable, string version)
             Console.WriteLine($"checked: {command}");
         }
 
-        return await InteractiveAsync(executable, environment)
+        // A terminal names itself in the environment; without a name, pgtail alone in a Windows console leaves.
+        var terminal = new Dictionary<string, string>(environment) { ["TERM"] = "xterm-256color" };
+        return await InteractiveAsync(executable, terminal)
+            && await RedirectedAsync(executable, environment)
             && (!OperatingSystem.IsWindows() || await WithoutConsoleAsync(executable, environment));
     }
     finally
@@ -283,6 +299,55 @@ static async Task<bool> InteractiveAsync(string executable, Dictionary<string, s
 
     Console.Error.WriteLine("the REPL did not start and leave cleanly in a pseudo-terminal");
     return false;
+}
+
+// The programs under a directory other than pgtail itself.
+static List<string> UnexpectedPrograms(string directory, string executableName) =>
+    [.. Directory.GetFiles(directory, "*.exe", SearchOption.AllDirectories)
+        .Where(path => !Path.GetFileName(path).Equals(executableName, StringComparison.OrdinalIgnoreCase))
+        .Select(path => Path.GetRelativePath(directory, path))];
+
+// Starts pgtail with no arguments and its input and output redirected, as an installer's check does, and expects it to
+// leave at once with status 0 and nothing on its error output.
+static async Task<bool> RedirectedAsync(string executable, Dictionary<string, string> environment)
+{
+    var info = new ProcessStartInfo(executable)
+    {
+        UseShellExecute = false,
+        RedirectStandardInput = true,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+    };
+
+    foreach ((string name, string value) in environment)
+    {
+        info.Environment[name] = value;
+    }
+
+    using Process process = Process.Start(info)!;
+    process.StandardInput.Close();
+    Task<string> errors = process.StandardError.ReadToEndAsync();
+    _ = process.StandardOutput.ReadToEndAsync();
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    try
+    {
+        await process.WaitForExitAsync(timeout.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        process.Kill();
+        Console.Error.WriteLine("pgtail with no arguments and no terminal waited instead of leaving");
+        return false;
+    }
+
+    if (process.ExitCode != 0 || (await errors).Length > 0)
+    {
+        Console.Error.WriteLine($"pgtail with no arguments and no terminal left with exit code {process.ExitCode}: {await errors}");
+        return false;
+    }
+
+    Console.WriteLine("checked: pgtail (no arguments and no terminal leaves at once)");
+    return true;
 }
 
 // Starts the REPL on Windows in a console of its own with no window, as Start-Process or package validation does, and

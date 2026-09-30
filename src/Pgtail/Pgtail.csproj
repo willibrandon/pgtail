@@ -50,4 +50,23 @@
     <InternalsVisibleTo Include="Pgtail.Tests" />
   </ItemGroup>
 
+  <!--
+    Hex1b ships programs for hosting a pseudo-terminal on Windows, which pgtail never starts. Package validation runs
+    every program an installer puts on the machine, and these exit with an error when run on their own, so pgtail.exe
+    is the only program published.
+  -->
+  <Target Name="RemoveUnusedWindowsProgramsFromPublish"
+          AfterTargets="Publish"
+          Condition="'$(RuntimeIdentifier)' == 'any' or $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win-', System.StringComparison.Ordinal))">
+    <ItemGroup>
+      <_UnusedWindowsProgram Include="$(PublishDir)**\*.exe" Exclude="$(PublishDir)pgtail.exe" />
+    </ItemGroup>
+    <Delete Files="@(_UnusedWindowsProgram)" />
+    <ItemGroup>
+      <_LeftoverWindowsProgram Include="$(PublishDir)**\*.exe" Exclude="$(PublishDir)pgtail.exe" />
+    </ItemGroup>
+    <Error Condition="'@(_LeftoverWindowsProgram)' != ''"
+           Text="Only pgtail.exe may be published; found @(_LeftoverWindowsProgram)." />
+  </Target>
+
 </Project>

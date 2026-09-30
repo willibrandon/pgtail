@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-30
+
 ### Changed
 - **pgtail is now a .NET 10 application** published with Native AOT: each release is a single native executable per
   platform, with no Python or other runtime to install. The REPL, tail mode, and editor are built on
@@ -90,6 +92,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   waiting; it kept printing until it caught up, which on a busy log was never.
 - Text pasted at the REPL prompt goes into the line; the paste was ignored. Line breaks become spaces.
 - The `pgtail` of the REPL prompt is drawn in the selected theme's `prompt` color instead of a fixed green.
+- Started with no arguments and no terminal (input or output redirected, or alone in a Windows console), pgtail leaves
+  at once with status 0, as installers and package validation expect.
+- The Windows archive, installer, and tool package hold `pgtail.exe` as their only program; Hex1b's pseudo-terminal
+  host is no longer shipped.
 - On Windows, `!` commands keep their quotes, so a quoted path with spaces reaches the command whole.
 - Counting query durations is about ten times faster, which shortens loading a log of statement durations.
 - Notifications fire only for entries logged after tailing starts; history read back by `--since` notified as if new.
