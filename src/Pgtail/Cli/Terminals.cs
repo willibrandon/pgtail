@@ -33,6 +33,17 @@ internal static class Terminals
     }
 
     /// <summary>
+    /// Waits, at the end of a flow, until the terminal has written what the flow printed.
+    /// </summary>
+    /// <remarks>
+    /// A flow's output is queued for the terminal to write, and a terminal whose flow has returned stops without writing
+    /// what is still queued. The line a finished prompt leaves behind is queued just before the flow returns, so without
+    /// the wait it was sometimes never drawn, and the command's output appeared under a blank row.
+    /// </remarks>
+    /// <returns>A task that completes when the output has had time to be written.</returns>
+    public static Task DrainOutputAsync() => Task.Delay(TimeSpan.FromMilliseconds(50));
+
+    /// <summary>
     /// Waits until a stopped terminal no longer reads the console, before anything else reads it.
     /// </summary>
     /// <remarks>

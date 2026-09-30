@@ -71,15 +71,21 @@ internal static class ReplRunner
             }
 
             await using (var terminal = Terminals.Builder()
-                .WithHex1bFlow(async flow => request = await host.RunAsync(flow), options =>
-                {
-                    Terminals.FlowOptions(options);
-                    if (startRow is { } row)
+                .WithHex1bFlow(
+                    async flow =>
                     {
-                        options.InitialCursorRow = row;
-                        options.CursorRowProvider = () => row;
-                    }
-                })
+                        request = await host.RunAsync(flow);
+                        await Terminals.DrainOutputAsync();
+                    },
+                    options =>
+                    {
+                        Terminals.FlowOptions(options);
+                        if (startRow is { } row)
+                        {
+                            options.InitialCursorRow = row;
+                            options.CursorRowProvider = () => row;
+                        }
+                    })
                 .Build())
             {
                 _ = await terminal.RunAsync();

@@ -327,6 +327,47 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// Shell commands run one after another each keep their command line above their output, with nothing between.
+    /// </summary>
+    /// <remarks>
+    /// On Windows, pgtail started from PowerShell runs them with PowerShell and otherwise with cmd, so both run here.
+    /// </remarks>
+    /// <param name="fromPowerShell">Whether pgtail looks started from PowerShell.</param>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Repl_BangCommands_InARow_KeepCommandAndOutputTogether(bool fromPowerShell)
+    {
+        using var environment = new TestEnvironment();
+        if (fromPowerShell && OperatingSystem.IsWindows())
+        {
+            environment.Set("PSModulePath", Environment.GetEnvironmentVariable("PSModulePath"));
+        }
+
+        await using var pgtail = PgtailProcess.Start(environment, 100, 16, TestContext.CancellationToken);
+        await pgtail.Automator.WaitUntilTextAsync("pgtail>");
+        foreach (var word in new[] { "first", "second", "third" })
+        {
+            await pgtail.Automator.TypeAsync($"!echo {word}", TestContext.CancellationToken);
+            await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
+            await pgtail.Automator.WaitUntilAsync(
+                screen => ReplHarness.LineAfter(screen, $"echo {word}") == word && ReplHarness.PromptLine(screen) == "pgtail>",
+                description: $"{word} under its command, and a new prompt");
+        }
+
+        using var final = pgtail.Automator.CreateSnapshot();
+        var rows = Enumerable.Range(0, final.Height).Select(final.GetLineTrimmed).ToList();
+        var start = rows.FindIndex(row => row.EndsWith("echo first", StringComparison.Ordinal));
+        // A command line reads "! echo first", or "pgtail> !echo first" when Enter came before the prompt redrew.
+        string[] expected = ["echo first", "first", "echo second", "second", "echo third", "third", "pgtail>"];
+        var shown = rows.Skip(start).Take(expected.Length).Select(row => row.Contains("echo", StringComparison.Ordinal)
+            ? row[row.IndexOf("echo", StringComparison.Ordinal)..]
+            : row);
+        Assert.AreSequenceEqual(expected, shown, string.Join("\n", rows));
+    }
+
+    /// <summary>
     /// stats counts each duration logged in milliseconds or seconds, in any case, and skips a label with no duration.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

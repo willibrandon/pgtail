@@ -276,3 +276,9 @@ Port of pgtail from Python (Textual/prompt_toolkit/Rich) to C# on .NET 10 with N
   and the prompt erased the lines below. The REPL now puts the cursor back below the flow's output after each terminal.
   `cmd /c` also got its command through `ArgumentList`, whose backslash-escaped quotes cmd does not read; it now runs
   `cmd /d /s /c "command"` verbatim, as Node.js does.
+- Blank rows where `!` command lines should be, reported on Windows, reproduced on Linux in a 16-row terminal about
+  every other run. Recordings of a good and a bad run differ only in that the bad one has nothing after the step's
+  region is cleared: Hex1b waits for queued output only when its workload is a process, so a flow that returns right
+  after its prompt completes can stop the terminal before the finished line is written. The flow now waits 50 ms
+  before returning. Still open: on Windows `!` runs PowerShell for every shell but cmd, nushell included, as the
+  Python release did.
