@@ -412,7 +412,8 @@ public sealed class CliTests
     public async Task Repl_ConfigEdit_OpensEditorAndCloses()
     {
         using var environment = new TestEnvironment();
-        await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
+        // Wide enough for the title's path, which is long under a test's temp directory on Windows.
+        await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("pgtail>");
         await pgtail.Automator.TypeAsync("config edit", TestContext.CancellationToken);
         await pgtail.Automator.EnterAsync(TestContext.CancellationToken);
@@ -433,7 +434,8 @@ public sealed class CliTests
     public async Task Repl_ConfigEdit_UndoneEdit_ClosesWithoutWarning()
     {
         using var environment = new TestEnvironment();
-        await using var pgtail = PgtailProcess.Start(environment, TestContext.CancellationToken);
+        // Wide enough for the title's path, which is long under a test's temp directory on Windows.
+        await using var pgtail = PgtailProcess.Start(environment, 160, 30, TestContext.CancellationToken);
         await pgtail.Automator.WaitUntilTextAsync("pgtail>");
         await pgtail.Automator.TypeAsync("config edit", TestContext.CancellationToken);
         await pgtail.Automator.EnterAsync(TestContext.CancellationToken);

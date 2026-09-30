@@ -45,6 +45,9 @@ jobs:
         run: dotnet build -c Release
 
       - name: Test
+        env:
+          # Terminal recordings of the tests that run pgtail, uploaded with the results for playback.
+          PGTAIL_TEST_RECORDINGS: ${{ github.workspace }}/TestResults/recordings
         run: >-
           dotnet test -c Release --no-build --report-trx --results-directory TestResults
           --hangdump --hangdump-timeout 10m --hangdump-type None

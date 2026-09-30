@@ -31,7 +31,7 @@ internal sealed class PgtailProcess : IAsyncDisposable
             File.WriteAllText(environment.Paths.ConfigFile, "[updates]\ncheck = false\n");
         }
 
-        _terminal = workload(Hex1bTerminal.CreateBuilder())
+        _terminal = Record(workload(Hex1bTerminal.CreateBuilder()), environment)
             .WithHeadless()
             .WithDimensions(width, height)
             .Build();
@@ -102,7 +102,8 @@ internal sealed class PgtailProcess : IAsyncDisposable
     /// <param name="arguments">The arguments.</param>
     /// <returns>The running process.</returns>
     public static PgtailProcess Run(TestEnvironment environment, CancellationToken cancellationToken, params string[] arguments) =>
-        new(environment, builder => builder.WithProcess(StartInfo(environment, Executable, arguments)), 160, 40, cancellationToken);
+        new(environment, builder => builder.WithProcess(StartInfo(environment, new ProcessStartInfo(Executable, arguments))), 160, 40,
+            cancellationToken);
 
     /// <summary>
     /// Runs a command line through the platform shell with its output piped to the terminal, for pipes into pgtail.
@@ -114,9 +115,11 @@ internal sealed class PgtailProcess : IAsyncDisposable
     public static PgtailProcess Shell(TestEnvironment environment, string commandLine, CancellationToken cancellationToken)
     {
         var command = commandLine.Replace("{pgtail}", $"\"{Executable}\"", StringComparison.Ordinal);
+        // cmd reads its command line itself instead of by the C runtime's rules, which would escape the quotes around the
+        // executable with backslashes; with /s it runs what is between the first and last quotes as written.
         var info = OperatingSystem.IsWindows()
-            ? StartInfo(environment, "cmd.exe", ["/d", "/c", command])
-            : StartInfo(environment, "/bin/sh", ["-c", command]);
+            ? StartInfo(environment, new ProcessStartInfo("cmd.exe", $"/d /s /c \"{command}\""))
+            : StartInfo(environment, new ProcessStartInfo("/bin/sh", ["-c", command]));
         return new(environment, builder => builder.WithProcess(info), 160, 40, cancellationToken);
     }
 
@@ -149,6 +152,14 @@ internal sealed class PgtailProcess : IAsyncDisposable
         _stop.Dispose();
     }
 
+    // With PGTAIL_TEST_RECORDINGS set, as CI sets it, each terminal is recorded there in asciinema format, named after
+    // the test's directory, so a failure on a platform no one runs locally can be played back.
+    private static Hex1bTerminalBuilder Record(Hex1bTerminalBuilder builder, TestEnvironment environment) =>
+        Environment.GetEnvironmentVariable("PGTAIL_TEST_RECORDINGS") is { Length: > 0 } directory
+            ? builder.WithAsciinemaRecording(Path.Combine(Directory.CreateDirectory(directory).FullName,
+                Path.GetFileName(environment.Root) + ".cast"))
+            : builder;
+
     private static string FindExecutable()
     {
         var output = new DirectoryInfo(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
@@ -159,9 +170,9 @@ internal sealed class PgtailProcess : IAsyncDisposable
         return File.Exists(executable) ? executable : throw new FileNotFoundException("pgtail has not been built", executable);
     }
 
-    private static ProcessStartInfo StartInfo(TestEnvironment environment, string fileName, IEnumerable<string> arguments)
+    private static ProcessStartInfo StartInfo(TestEnvironment environment, ProcessStartInfo info)
     {
-        var info = new ProcessStartInfo(fileName, arguments) { WorkingDirectory = environment.Root };
+        info.WorkingDirectory = environment.Root;
         info.Environment.Clear();
         foreach (var (name, value) in Variables(environment))
         {

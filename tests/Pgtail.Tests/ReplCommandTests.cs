@@ -430,41 +430,22 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
-    /// notify on its own reports the notification status and platform.
+    /// notify on its own reports whether notifications are on and the platform's way of showing them.
     /// </summary>
+    /// <remarks>
+    /// That is osascript on macOS, WinRT toasts on Windows, and notify-send on Linux. On Windows, WinRT Toast means the
+    /// Start menu shortcut that registers pgtail's application ID was written and the toast API was activated.
+    /// </remarks>
     /// <returns>A task that completes when the check has run.</returns>
     [TestMethod]
-    public async Task Notify_Status_ShowsDisabled()
+    public async Task Notify_Status_ShowsStatusAndPlatform()
     {
         using var environment = new TestEnvironment();
         await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
         await repl.RunAsync("notify", TestContext.CancellationToken);
         await repl.Automator.WaitUntilAsync(
-            snapshot => snapshot.ContainsText("Notifications: disabled") && snapshot.ContainsText("Platform:"),
-            description: "notification status");
-    }
-
-    /// <summary>
-    /// notify names the platform's way of showing notifications: osascript, WinRT toasts, or notify-send.
-    /// </summary>
-    /// <remarks>
-    /// On Windows, WinRT Toast means the Start menu shortcut that registers pgtail's application ID was written and the
-    /// toast API was activated.
-    /// </remarks>
-    /// <returns>A task that completes when the check has run.</returns>
-    [TestMethod]
-    public async Task Notify_Status_NamesPlatformNotifier()
-    {
-        using var environment = new TestEnvironment();
-        var expected = OperatingSystem.IsMacOS() ? "Platform: macOS (osascript)"
-            : OperatingSystem.IsWindows() ? "Platform: Windows (WinRT Toast)"
-            : (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
-                .Any(directory => directory.Length > 0 && File.Exists(Path.Combine(directory, "notify-send")))
-                ? "Platform: Linux (notify-send)"
-                : "Platform: Linux (notify-send not found)";
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
-        await repl.RunAsync("notify", TestContext.CancellationToken);
-        await repl.Automator.WaitUntilTextAsync(expected);
+            snapshot => snapshot.ContainsText(PlatformNotifier.Status) && snapshot.ContainsText(PlatformNotifier.Platform),
+            description: "notification status and platform");
     }
 
     /// <summary>

@@ -17,7 +17,8 @@ internal sealed class TestEnvironment : IDisposable
     /// <param name="variables">More environment variables, such as <c>PGDATA</c>.</param>
     public TestEnvironment(IReadOnlyDictionary<string, string?>? variables = null)
     {
-        Root = Path.Combine(Path.GetTempPath(), "pgtail-tests", Guid.NewGuid().ToString("N"));
+        // pgtail shows paths with links followed, as on macOS, where the temp directory is under /var, a link to /private/var.
+        Root = PathResolver.Resolve(Path.Combine(Path.GetTempPath(), "pgtail-tests", Guid.NewGuid().ToString("N")));
         Home = Path.Combine(Root, "home");
         Directory.CreateDirectory(Home);
         _variables = new Dictionary<string, string?>(StringComparer.Ordinal)

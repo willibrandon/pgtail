@@ -23,7 +23,8 @@ public sealed class TailModeTests
         using var environment = new TestEnvironment();
         var log = Path.Combine(environment.Root, "logs", "postgresql.log");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 100, "LOG", "database system is ready to accept connections"));
-        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken);
+        // Wide enough for the command on one line, with the long temp directories of macOS and Windows.
+        await using var repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 160);
         await repl.RunAsync($"tail --file {log}", TestContext.CancellationToken);
         var screen = await repl.WaitForScreenAsync();
         await screen.WaitUntilTextAsync("FOLLOW");

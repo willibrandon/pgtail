@@ -1009,7 +1009,7 @@ public sealed class TailScreenTests
                 && TailHarness.Status(screen).Contains("slow:>50ms", StringComparison.Ordinal),
             description: "the setting applied");
         await tail.RunAsync("notify", TestContext.CancellationToken);
-        await tail.Automator.WaitUntilTextAsync("Notifications: disabled");
+        await tail.Automator.WaitUntilTextAsync(PlatformNotifier.Status);
         var config = await File.ReadAllTextAsync(environment.Paths.ConfigFile, TestContext.CancellationToken);
         Assert.Contains("warn = 50", config);
         Assert.Contains("name = \"monokai\"", config);
