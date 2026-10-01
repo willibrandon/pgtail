@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-10-01
+
 ### Fixed
 - Tail mode scrolls sideways again as it did before 0.7.0: the left and right arrow keys scroll the log unless a line is
   highlighted or text is selected, and a trackpad's sideways swipe, a tilted wheel, and the wheel with Shift or Ctrl
@@ -292,6 +294,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.7.3]: https://github.com/willibrandon/pgtail/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/willibrandon/pgtail/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/willibrandon/pgtail/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/willibrandon/pgtail/compare/v0.6.1...v0.7.0
