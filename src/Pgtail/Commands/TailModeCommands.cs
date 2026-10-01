@@ -85,6 +85,7 @@ internal static class TailModeCommands
         foreach ((string key, string description) in new[]
         {
             ("Up/Down", "Scroll 1 line"),
+            ("Left/Right", "Scroll sideways"),
             ("PgUp/PgDn", "Scroll full page"),
             ("Ctrl+u/d", "Scroll half page"),
             ("Ctrl+b/f", "Scroll full page"),

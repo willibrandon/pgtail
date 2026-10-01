@@ -210,7 +210,7 @@ internal sealed class TailStatus
     {
         (string Key, string Description)[] hints =
         [
-            ("q", "Quit"), ("?", "Help"), ("/", "Cmd"), ("v", "Visual"), ("y", "Yank"), ("p", "Pause"), ("f", "s_follow"),
+            ("q", "Quit"), ("?", "Help"), ("/", "Cmd"), ("v", "Visual"), ("y", "Yank"), ("p", "Pause"), ("f", "Follow"),
             ("g/G", "Top/End"),
         ];
         var text = new StyledText(" ");

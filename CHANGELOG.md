@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Tail mode scrolls sideways again as it did before 0.7.0: the left and right arrow keys scroll the log unless a line is
+  highlighted or text is selected, and a trackpad's sideways swipe, a tilted wheel, and the wheel with Shift or Ctrl
+  scroll it too. Scrolling stops at the end of the widest line on screen.
+- Tail mode's key hints read `f Follow` again instead of `f s_follow`.
+
 ## [0.7.2] - 2026-09-30
 
 ### Changed

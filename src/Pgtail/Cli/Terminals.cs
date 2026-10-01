@@ -21,6 +21,12 @@ internal static class Terminals
     }
 
     /// <summary>
+    /// A builder for a full screen with the mouse, where a sideways swipe or tilted wheel scrolls sideways.
+    /// </summary>
+    /// <returns>The builder.</returns>
+    public static Hex1bTerminalBuilder ScreenBuilder() => Builder().WithMouse().WithPresentation(new SidewaysWheelPresentation());
+
+    /// <summary>
     /// The REPL flow's options: scrollback-friendly output that reflows on resize, and the mouse for tail mode.
     /// </summary>
     /// <param name="options">The options to set.</param>

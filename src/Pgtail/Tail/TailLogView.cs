@@ -15,7 +15,8 @@ namespace Pgtail.Tail;
 /// The view stays on the newest rows while it is at the end. Moving the cursor highlights its row and marks its column;
 /// <c>v</c> selects characters from where it was pressed and <c>V</c> whole rows; <c>y</c> copies the selection. The
 /// mouse wheel scrolls, a click selects a row, and dragging selects text and copies it on release. Rows longer than the
-/// view scroll sideways to keep the cursor in sight.
+/// view scroll sideways to keep the cursor in sight, and with the arrow keys, a sideways swipe, or the wheel with Shift or
+/// Ctrl, as far as the widest row on screen.
 /// </remarks>
 /// <param name="log">The rows.</param>
 /// <param name="color">False to draw attributes only, for <c>NO_COLOR</c>.</param>
@@ -238,8 +239,8 @@ internal sealed class TailLogView(TailLog log, bool color)
 
         bindings.Key(Hex1bKey.DownArrow).Action(_ => Move(1), "Down one line");
         bindings.Key(Hex1bKey.UpArrow).Action(_ => Move(-1), "Up one line");
-        bindings.Key(Hex1bKey.LeftArrow).Action(_ => Left(), "Left");
-        bindings.Key(Hex1bKey.RightArrow).Action(_ => Right(), "Right");
+        bindings.Key(Hex1bKey.LeftArrow).Action(_ => Arrow(-1), "Scroll left, or move the cursor left");
+        bindings.Key(Hex1bKey.RightArrow).Action(_ => Arrow(1), "Scroll right, or move the cursor right");
         bindings.Key(Hex1bKey.Home).Action(_ => Top(), "Top");
         bindings.Key(Hex1bKey.End).Action(_ => Bottom(), "Bottom");
         bindings.Ctrl().Key(Hex1bKey.D).Action(_ => ScrollWithCaret(_viewport / 2), "Half page down");
@@ -252,8 +253,10 @@ internal sealed class TailLogView(TailLog log, bool color)
         bindings.Ctrl().Key(Hex1bKey.A).Action(_ => SelectAll(), "Select all");
         bindings.Mouse(MouseButton.ScrollUp).Action(_ => Scroll(-WheelLines), "Scroll up");
         bindings.Mouse(MouseButton.ScrollDown).Action(_ => Scroll(WheelLines), "Scroll down");
-        bindings.Mouse(MouseButton.ScrollUp).Shift().Action(_ => _left = Math.Max(0, _left - WheelLines), "Scroll left");
-        bindings.Mouse(MouseButton.ScrollDown).Shift().Action(_ => _left += WheelLines, "Scroll right");
+        bindings.Mouse(MouseButton.ScrollUp).Shift().Action(_ => ScrollSideways(-WheelLines), "Scroll left");
+        bindings.Mouse(MouseButton.ScrollDown).Shift().Action(_ => ScrollSideways(WheelLines), "Scroll right");
+        bindings.Mouse(MouseButton.ScrollUp).Ctrl().Action(_ => ScrollSideways(-WheelLines), "Scroll left");
+        bindings.Mouse(MouseButton.ScrollDown).Ctrl().Action(_ => ScrollSideways(WheelLines), "Scroll right");
         bindings.Drag(MouseButton.Left).Action(Drag, "Click to select a line, or drag to select and copy");
     }
 
@@ -264,6 +267,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         int count = Log.Count;
         int maxTop = Math.Max(0, count - _viewport);
         _top = Following ? maxTop : Math.Clamp(_top, 0, maxTop);
+        _left = Math.Clamp(_left, 0, MaxLeft());
         (int StartLine, int StartColumn, int EndLine, int EndColumn)? selection = Selection();
         for (int row = 0; row < _viewport && _top + row < count; row++)
         {
@@ -493,6 +497,47 @@ internal sealed class TailLogView(TailLog log, bool color)
         _line = Log.Count - 1;
         _column = Math.Min(_column, Length(_line));
         Reveal();
+    }
+
+    // The arrow keys move the cursor while a row is highlighted or text is being selected, and otherwise scroll sideways.
+    private void Arrow(int direction)
+    {
+        if (Navigating || Visual)
+        {
+            if (direction < 0)
+            {
+                Left();
+            }
+            else
+            {
+                Right();
+            }
+        }
+        else
+        {
+            ScrollSideways(direction);
+        }
+    }
+
+    private void ScrollSideways(int columns) => _left = Math.Clamp(_left + columns, 0, MaxLeft());
+
+    // How far the view can scroll sideways: to the end of the widest row on screen, or past it to the cursor at a row's end.
+    private int MaxLeft()
+    {
+        int top = Following ? Math.Max(0, Log.Count - _viewport) : _top;
+        int widest = 0;
+        for (int index = top; index < Math.Min(Log.Count, top + _viewport); index++)
+        {
+            string text = Log.Row(index).Text;
+            widest = Math.Max(widest, GraphemeHelper.IndexToDisplayColumn(text, text.Length));
+        }
+
+        if ((Navigating || Visual) && _line >= top && _line < Math.Min(Log.Count, top + _viewport))
+        {
+            widest = Math.Max(widest, GraphemeHelper.IndexToDisplayColumn(Log.Row(_line).Text, Math.Min(_column, Length(_line))) + 1);
+        }
+
+        return Math.Max(0, widest - _width);
     }
 
     private void Left()
