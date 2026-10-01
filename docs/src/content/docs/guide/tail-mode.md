@@ -103,6 +103,7 @@ back to the rest.
 |-----|--------|
 | `j` / `↓` | Down one line |
 | `k` / `↑` | Up one line |
+| `←` / `→` | Scroll sideways; with a line highlighted or text selected, move the cursor |
 | `Ctrl+d` | Half page down |
 | `Ctrl+u` | Half page up |
 | `Ctrl+f` / `PageDown` | Full page down |
@@ -141,14 +142,16 @@ Keys typed faster than the screen draws still each take effect, so holding `j` s
 | `Ctrl+c` | Copy the selection; with nothing selected, leave tail mode |
 | `Escape` | Clear the selection |
 
-Lines longer than the window scroll sideways to keep the cursor in view.
+Lines longer than the window scroll sideways to keep the cursor in view. Scrolling sideways goes as far as the end
+of the widest line on screen.
 
 ### Mouse
 
 | Action | Result |
 |--------|--------|
 | Wheel | Scroll up or down three lines |
-| Shift+wheel | Scroll sideways |
+| Sideways swipe or tilted wheel | Scroll sideways |
+| Shift+wheel or Ctrl+wheel | Scroll sideways |
 | Click | Select the clicked line |
 | Drag | Select text; it is copied when you release the button |
 | Click or drag the scrollbar | Jump to that point of the log, and move through it while dragging |

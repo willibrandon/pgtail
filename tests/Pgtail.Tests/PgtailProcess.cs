@@ -130,8 +130,16 @@ internal sealed class PgtailProcess : IAsyncDisposable
     /// <param name="text">The text.</param>
     /// <param name="cancellationToken">Cancels the send.</param>
     /// <returns>A task that completes when the text is sent.</returns>
-    public Task PasteAsync(string text, CancellationToken cancellationToken) =>
-        _terminal.SendInputAsync(Encoding.UTF8.GetBytes($"\e[200~{text}\e[201~"), cancellationToken);
+    public Task PasteAsync(string text, CancellationToken cancellationToken) => SendAsync($"\e[200~{text}\e[201~", cancellationToken);
+
+    /// <summary>
+    /// Sends input as the terminal would, such as a mouse report the automator has no step for.
+    /// </summary>
+    /// <param name="input">The input.</param>
+    /// <param name="cancellationToken">Cancels the send.</param>
+    /// <returns>A task that completes when the input is sent.</returns>
+    public Task SendAsync(string input, CancellationToken cancellationToken) =>
+        _terminal.SendInputAsync(Encoding.UTF8.GetBytes(input), cancellationToken);
 
     /// <summary>
     /// Waits for the process to exit and returns its exit code.

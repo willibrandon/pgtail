@@ -157,8 +157,7 @@ internal static class ReplRunner
     {
         ArgumentNullException.ThrowIfNull(screen);
         Hex1bAppOptions? options = null;
-        await using (Hex1bTerminal terminal = Terminals.Builder()
-            .WithMouse()
+        await using (Hex1bTerminal terminal = Terminals.ScreenBuilder()
             .WithHex1bApp(configure => options = configure, app => screen(app, options!))
             .Build())
         {

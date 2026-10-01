@@ -31,7 +31,7 @@ public sealed class TailScreenTests
             ("ERROR", "relation \"users\" does not exist"), ("WARNING", "checkpoints are occurring too frequently"));
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
-            screen => screen.ContainsText("q Quit")
+            screen => screen.ContainsText("q Quit") && screen.ContainsText("f Follow")
                 && screen.ContainsText("relation \"users\" does not exist")
                 && TailHarness.Status(screen).Contains("E:1 W:1 | 3 lines", StringComparison.Ordinal)
                 && TailHarness.Status(screen).Contains("postgresql.log", StringComparison.Ordinal),
@@ -876,6 +876,66 @@ public sealed class TailScreenTests
     }
 
     /// <summary>
+    /// The arrow keys scroll a long row sideways, and move the cursor instead while a row is highlighted.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ArrowKeysScrollSideways()
+    {
+        using var environment = new TestEnvironment();
+        string log = WriteLog(environment, ("LOG", $"statement: SELECT {WideColumns()} FROM wide_table END_OF_ROW"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
+        await tail.Automator.TabAsync(TestContext.CancellationToken);
+        for (int press = 0; press < 40; press++)
+        {
+            await tail.Automator.RightAsync(TestContext.CancellationToken);
+        }
+
+        await tail.Automator.WaitUntilAsync(
+            screen => !screen.ContainsText("statement: SELECT") && screen.ContainsText("column_3"),
+            description: "the row scrolled sideways");
+        for (int press = 0; press < 40; press++)
+        {
+            await tail.Automator.LeftAsync(TestContext.CancellationToken);
+        }
+
+        await tail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
+        await tail.Automator.TypeAsync("k", TestContext.CancellationToken);
+        for (int press = 0; press < 20; press++)
+        {
+            await tail.Automator.RightAsync(TestContext.CancellationToken);
+        }
+
+        await Task.Delay(200, TestContext.CancellationToken);
+        Assert.IsTrue(tail.Automator.CreateSnapshot().ContainsText("statement: SELECT column_0"),
+            "the cursor should move within the row without scrolling it");
+    }
+
+    /// <summary>
+    /// The wheel with Shift or Ctrl scrolls sideways, stopping at the end of the widest row rather than past it.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task ModifiedWheelScrollsSidewaysToTheWidestRow()
+    {
+        using var environment = new TestEnvironment();
+        string log = WriteLog(environment, ("LOG", $"statement: SELECT {WideColumns()} FROM wide_table END_OF_ROW"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
+        await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Shift().ScrollDown(200), ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("END_OF_ROW") && !screen.ContainsText("statement: SELECT"),
+            description: "the end of the row in view");
+        await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Ctrl().ScrollUp(4), ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => !screen.ContainsText("END_OF_ROW") && screen.ContainsText("FROM wide"),
+            description: "scrolled back from the end at once");
+        await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Ctrl().ScrollUp(200), ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
+    }
+
+    /// <summary>
     /// export writes the shown entries to a file.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
@@ -1065,6 +1125,8 @@ public sealed class TailScreenTests
         await tail.Automator.TypeAsync("q", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped");
     }
+
+    private static string WideColumns() => string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));
 
     private static string WriteLog(TestEnvironment environment, params (string Level, string Message)[] entries)
     {

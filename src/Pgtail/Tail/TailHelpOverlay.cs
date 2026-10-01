@@ -22,6 +22,7 @@ internal sealed class TailHelpOverlay
         [
             ("j / ↓", "Scroll down one line"),
             ("k / ↑", "Scroll up one line"),
+            ("← / →", "Scroll sideways"),
             ("g", "Go to top"),
             ("G", "Go to bottom (resume FOLLOW)"),
             ("Ctrl+d", "Half page down"),
@@ -35,7 +36,7 @@ internal sealed class TailHelpOverlay
         [
             ("v", "Visual mode (character)"),
             ("V", "Visual line mode"),
-            ("h / l", "Move cursor left/right"),
+            ("h / l / ← / →", "Move cursor left/right"),
             ("0 / $", "Line start/end"),
             ("y", "Yank (copy) selection"),
             ("Escape", "Clear selection"),

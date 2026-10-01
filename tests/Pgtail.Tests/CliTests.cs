@@ -155,6 +155,39 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// A sideways swipe on a trackpad scrolls tail mode's log sideways and back.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TailSidewaysSwipeScrollsTheLog()
+    {
+        using var environment = new TestEnvironment();
+        string log = Path.Join(environment.Root, "logs", "postgresql.log");
+        string columns = string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow.AddMinutes(-1), 4300, "LOG",
+            $"statement: SELECT {columns} FROM wide_table END_OF_ROW"));
+        await using var pgtail = PgtailProcess.Start(environment, 100, 30, TestContext.CancellationToken, "tail", "--file", log,
+            "--since", "1h");
+        await pgtail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
+        for (int swipe = 0; swipe < 120; swipe++)
+        {
+            await pgtail.SendAsync("\e[<67;20;5M", TestContext.CancellationToken);
+        }
+
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("END_OF_ROW") && !screen.ContainsText("statement: SELECT"),
+            description: "the end of the row in view");
+        for (int swipe = 0; swipe < 120; swipe++)
+        {
+            await pgtail.SendAsync("\e[<66;20;5M", TestContext.CancellationToken);
+        }
+
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("statement: SELECT column_0") && !screen.ContainsText("END_OF_ROW"),
+            description: "the start of the row in view");
+    }
+
+    /// <summary>
     /// The full display names the user and database Debian and Ubuntu's <c>log_line_prefix</c> writes.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>
