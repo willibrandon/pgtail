@@ -66,7 +66,13 @@ internal sealed class SidewaysWheelPresentation : IHex1bTerminalPresentationAdap
                 return rest.Length > 0 ? rest : data;
             }
 
-            ReadOnlyMemory<byte> input = _held.Length == 0 ? data : (byte[])[.. _held, .. data.Span];
+            ReadOnlyMemory<byte> input = data;
+            if (_held.Length > 0)
+            {
+                byte[] joined = [.. _held, .. data.Span];
+                input = joined;
+            }
+
             byte[]? translated = Translate(input.Span, out int held);
             _held = input.Span[(input.Length - held)..].ToArray();
             ReadOnlyMemory<byte> ready = translated ?? input[..(input.Length - held)];
