@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- On Windows, `!` commands typed in a pgtail started from PowerShell run in PowerShell 7 when it is installed, rather
+  than always in Windows PowerShell.
+
 ## [0.8.0] - 2026-10-02
 
 ### Added

@@ -13,7 +13,7 @@ internal static class ShellRunner
     /// </summary>
     /// <remarks>
     /// Unix runs it with <c>sh -c</c>. Windows runs it with PowerShell when pgtail was started from PowerShell and
-    /// with <c>cmd /c</c> otherwise.
+    /// with <c>cmd /c</c> otherwise. PowerShell 7 runs it when installed, and Windows PowerShell when not.
     /// </remarks>
     /// <param name="command">The command line.</param>
     /// <param name="error">Receives a message when the shell cannot be started.</param>
@@ -45,7 +45,8 @@ internal static class ShellRunner
     {
         if (StartedFromPowerShell())
         {
-            return new ProcessStartInfo("powershell") { ArgumentList = { "-NoProfile", "-Command", command } };
+            string shell = OnPath("pwsh.exe") ? "pwsh" : "powershell";
+            return new ProcessStartInfo(shell) { ArgumentList = { "-NoLogo", "-NoProfile", "-Command", command } };
         }
 
         // cmd reads its command line itself instead of by the C runtime's rules, which escape quotes with backslashes,
@@ -53,6 +54,11 @@ internal static class ShellRunner
         // shell commands.
         return new ProcessStartInfo(Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe", $"/d /s /c \"{command}\"");
     }
+
+    private static bool OnPath(string program) =>
+        (Environment.GetEnvironmentVariable("PATH") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(directory => File.Exists(Path.Join(directory, program)));
 
     private static bool StartedFromPowerShell()
     {
