@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-02
+
 ### Added
 - Tail mode shows a scrollbar along the bottom of the log when a line is wider than the window, drawn like the one
   beside it; clicking or dragging it scrolls sideways.
@@ -302,6 +304,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.8.0]: https://github.com/willibrandon/pgtail/compare/v0.7.3...v0.8.0
 [0.7.3]: https://github.com/willibrandon/pgtail/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/willibrandon/pgtail/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/willibrandon/pgtail/compare/v0.7.0...v0.7.1
