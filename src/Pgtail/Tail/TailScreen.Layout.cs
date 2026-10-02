@@ -1,5 +1,6 @@
 using Hex1b;
 using Hex1b.Input;
+using Hex1b.Layout;
 using Hex1b.Nodes;
 using Hex1b.Widgets;
 using Pgtail.Detection;
@@ -184,7 +185,7 @@ internal sealed partial class TailScreen
     }
 
     // The screen's rows: the log's, and the bars, rules, and input around them.
-    private int ScreenRows() => _view.Rows + 6;
+    private int ScreenRows() => _view.Height + 6;
 
     // Keys typed on the log that are not its own start a command.
     private void TypeCommand(string text, InputBindingActionContext context)
@@ -213,7 +214,7 @@ internal sealed partial class TailScreen
                 StyledBlock.DrawRow(surface, 0, 0, [.. row.Select(span => span with { Style = panel.Then(span.Style) })],
                     Session.ColorEnabled);
             }),
-        ]).Height(Hex1b.Layout.SizeHint.Fixed(1));
+        ]).Height(SizeHint.Fixed(1));
     }
 
     private SurfaceWidget Rule<TParent>(WidgetContext<TParent> context)
@@ -221,5 +222,5 @@ internal sealed partial class TailScreen
         [
             s.Layer(surface => StyledBlock.DrawRow(surface, 0, 0, [new StyledSpan(new string('─', surface.Width), s_separator)],
                 Session.ColorEnabled)),
-        ]).Height(Hex1b.Layout.SizeHint.Fixed(1));
+        ]).Height(SizeHint.Fixed(1));
 }

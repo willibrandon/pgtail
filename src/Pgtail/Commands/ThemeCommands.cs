@@ -115,7 +115,7 @@ internal static class ThemeCommands
         string file = session.Themes.ThemeFile(name);
         if (File.Exists(file))
         {
-            (Theme? loaded, IReadOnlyList<string>? errors) = Styling.ThemeLoader.Load(file);
+            (Theme? loaded, IReadOnlyList<string>? errors) = ThemeLoader.Load(file);
             if (errors.Count > 0)
             {
                 output.Line($"Theme '{name}' has validation errors:");

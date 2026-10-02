@@ -1,5 +1,6 @@
 using System.Globalization;
 using Pgtail.Configuration;
+using Pgtail.Detection;
 using Pgtail.Highlighting;
 using Pgtail.Parsing;
 using Pgtail.Styling;
@@ -19,7 +20,7 @@ internal static class CompletionSources
     public static IEnumerable<CompletionItem> Instances(CompletionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        foreach (Detection.PostgresInstance instance in context.Session.Instances)
+        foreach (PostgresInstance instance in context.Session.Instances)
         {
             string id = instance.Id.ToString(CultureInfo.InvariantCulture);
             yield return new CompletionItem(id, $"v{instance.Version} ({instance.StatusText})");

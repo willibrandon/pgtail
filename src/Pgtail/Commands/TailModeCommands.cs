@@ -1,4 +1,5 @@
 using Pgtail.Styling;
+using Pgtail.Tail;
 
 namespace Pgtail.Commands;
 
@@ -189,7 +190,7 @@ internal static class TailModeCommands
 
     private static void Keys(CommandOutput output)
     {
-        foreach ((string category, IReadOnlyList<(string Key, string Description)> keys) in Tail.TailHelpOverlay.Keybindings)
+        foreach ((string category, IReadOnlyList<(string Key, string Description)> keys) in TailHelpOverlay.Keybindings)
         {
             output.Markup($"[bold cyan]{category}[/bold cyan]");
             foreach ((string key, string description) in keys)

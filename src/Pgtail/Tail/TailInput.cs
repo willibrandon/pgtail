@@ -5,6 +5,7 @@ using Hex1b.Nodes;
 using Hex1b.Surfaces;
 using Hex1b.Theming;
 using Hex1b.Widgets;
+using Pgtail.Commands;
 using Pgtail.Display;
 using Pgtail.Editing;
 
@@ -54,7 +55,7 @@ internal sealed class TailInput
         _screen = screen;
         _history = history;
         _lineKeys = new LineEditingKeys(_line, Edited);
-        _suggester = new TailSuggester(Commands.TailCatalog.Catalog, screen, history);
+        _suggester = new TailSuggester(TailCatalog.Catalog, screen, history);
     }
 
     /// <summary>

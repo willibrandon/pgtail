@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Pgtail.Configuration;
 using Pgtail.Filtering;
 using Pgtail.Highlighting;
@@ -375,6 +376,6 @@ internal static partial class HighlightCommands
         output.Line($"Regex highlight added: /{parsed.Pattern}/{(parsed.CaseSensitive ? " (case-sensitive)" : "")}");
     }
 
-    [System.Text.RegularExpressions.GeneratedRegex("^[a-z][a-z0-9_]*$")]
-    private static partial System.Text.RegularExpressions.Regex CustomName();
+    [GeneratedRegex("^[a-z][a-z0-9_]*$")]
+    private static partial Regex CustomName();
 }

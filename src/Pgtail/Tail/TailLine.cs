@@ -1,4 +1,5 @@
 using System.Text;
+using Hex1b;
 using Pgtail.Styling;
 
 namespace Pgtail.Tail;
@@ -66,6 +67,75 @@ internal sealed class TailLine
         return [.. Split(quick).Select((row, index) => new TailLine(row.Text, row.Styles, highlighting, index))];
     }
 
+    /// <summary>
+    /// The display width of the widest row text splits into, worked out without making the rows.
+    /// </summary>
+    /// <param name="text">The plain text, as formatted for the log.</param>
+    /// <returns>The width in columns.</returns>
+    public static int Widest(string text) => Widest(0, text);
+
+    /// <summary>
+    /// The display width of the widest row text splits into, its first row put after a number of ASCII characters.
+    /// </summary>
+    /// <param name="start">How many ASCII characters, with no tabs, come before the text on its first row.</param>
+    /// <param name="text">The plain text, as formatted for the log.</param>
+    /// <returns>The width in columns.</returns>
+    public static int Widest(int start, string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        int widest = 0;
+        ReadOnlySpan<char> rest = text;
+        while (true)
+        {
+            int end = rest.IndexOf('\n');
+            widest = Math.Max(widest, Width(start, end < 0 ? rest : rest[..end]));
+            if (end < 0)
+            {
+                return widest;
+            }
+
+            start = 0;
+            rest = rest[(end + 1)..];
+        }
+    }
+
+    // The display width of one row's text after some ASCII characters, with tabs expanded and control characters left
+    // out as Split does.
+    private static int Width(int start, ReadOnlySpan<char> row)
+    {
+        if (Ascii.IsValid(row))
+        {
+            int column = start;
+            foreach (char character in row)
+            {
+                column += character == '\t' ? TabWidth - (column % TabWidth) : char.IsControl(character) ? 0 : 1;
+            }
+
+            return column;
+        }
+
+        StringBuilder builder = new StringBuilder().Append(' ', start);
+        AppendExpanded(builder, row);
+        string expanded = builder.ToString();
+        return GraphemeHelper.IndexToDisplayColumn(expanded, expanded.Length);
+    }
+
+    // Appends text with tabs expanded to the next multiple of TabWidth and control characters left out.
+    private static void AppendExpanded(StringBuilder builder, ReadOnlySpan<char> text)
+    {
+        foreach (char character in text)
+        {
+            if (character == '\t')
+            {
+                builder.Append(' ', TabWidth - (builder.Length % TabWidth));
+            }
+            else if (!char.IsControl(character))
+            {
+                builder.Append(character);
+            }
+        }
+    }
+
     private static List<(string Text, IReadOnlyList<(int Start, int End, TextStyle Style)> Styles)> Split(StyledText text)
     {
         var rows = new List<(string, IReadOnlyList<(int, int, TextStyle)>)>();
@@ -77,17 +147,7 @@ internal sealed class TailLine
             foreach (StyledSpan span in row.Spans)
             {
                 int start = builder.Length;
-                foreach (char character in span.Text)
-                {
-                    if (character == '\t')
-                    {
-                        builder.Append(' ', TabWidth - (builder.Length % TabWidth));
-                    }
-                    else if (!char.IsControl(character))
-                    {
-                        builder.Append(character);
-                    }
-                }
+                AppendExpanded(builder, span.Text);
 
                 if (!span.Style.IsPlain && builder.Length > start)
                 {

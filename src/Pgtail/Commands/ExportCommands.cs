@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Pgtail.Display;
 using Pgtail.Exporting;
 using Pgtail.Filtering;
 using Pgtail.Parsing;
@@ -218,7 +219,7 @@ internal static class ExportCommands
         try
         {
             Func<LogEntry, string>? line = highlighted
-                ? entry => AnsiText.Render(Display.EntryFormatter.TailLine(entry, session.Theme, session.Chain, session.SlowLevel(entry)),
+                ? entry => AnsiText.Render(EntryFormatter.TailLine(entry, session.Theme, session.Chain, session.SlowLevel(entry)),
                     session.ColorEnabled)
                 : null;
             int count = EntryExporter.WriteFile(entries, path, format, append: false, line);
