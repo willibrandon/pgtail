@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-02
+
 ### Changed
 - On Windows, `!` commands typed in a pgtail started from PowerShell run in PowerShell 7 when it is installed, rather
   than always in Windows PowerShell.
@@ -308,6 +310,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.8.1]: https://github.com/willibrandon/pgtail/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/willibrandon/pgtail/compare/v0.7.3...v0.8.0
 [0.7.3]: https://github.com/willibrandon/pgtail/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/willibrandon/pgtail/compare/v0.7.1...v0.7.2
