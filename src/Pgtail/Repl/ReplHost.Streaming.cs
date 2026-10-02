@@ -1,4 +1,5 @@
 using Pgtail.Commands;
+using Pgtail.Display;
 using Pgtail.Rendering;
 using Pgtail.Styling;
 using Pgtail.Tailing;
@@ -49,7 +50,7 @@ internal sealed partial class ReplHost
             Output.Line(Session.Fields.FormatStatus());
         }
 
-        if (Session.Display.Mode != Display.DisplayMode.Compact || Session.Display.OutputFormat != Display.OutputFormat.Text)
+        if (Session.Display.Mode != DisplayMode.Compact || Session.Display.OutputFormat != OutputFormat.Text)
         {
             Output.Line(Session.Display.FormatStatus());
         }

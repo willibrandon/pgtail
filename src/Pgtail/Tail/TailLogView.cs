@@ -15,8 +15,8 @@ namespace Pgtail.Tail;
 /// The view stays on the newest rows while it is at the end. Moving the cursor highlights its row and marks its column;
 /// <c>v</c> selects characters from where it was pressed and <c>V</c> whole rows; <c>y</c> copies the selection. The
 /// mouse wheel scrolls, a click selects a row, and dragging selects text and copies it on release. Rows longer than the
-/// view scroll sideways to keep the cursor in sight, and with the arrow keys, a sideways swipe, or the wheel with Shift or
-/// Ctrl, as far as the widest row on screen.
+/// view scroll sideways to keep the cursor in sight, and with the arrow keys, a sideways swipe, the wheel with Shift or
+/// Ctrl, or the scrollbar along the bottom, as far as the widest row in the log.
 /// </remarks>
 /// <param name="log">The rows.</param>
 /// <param name="color">False to draw attributes only, for <c>NO_COLOR</c>.</param>
@@ -28,7 +28,9 @@ internal sealed class TailLogView(TailLog log, bool color)
     private int _top;
     private int _left;
     private int _viewport = 20;
+    private int _height = 20;
     private int _width = 80;
+    private bool _sideways;
     private int _line;
     private int _column;
     private int _anchorLine;
@@ -108,9 +110,9 @@ internal sealed class TailLogView(TailLog log, bool color)
     }
 
     /// <summary>
-    /// The number of rows the view showed when last drawn.
+    /// The number of screen rows the view took when last drawn, its sideways scrollbar included.
     /// </summary>
-    public int Rows => _viewport;
+    public int Height => _height;
 
     /// <summary>
     /// Scrolls a page at a time, as Page Up and Page Down do.
@@ -262,8 +264,10 @@ internal sealed class TailLogView(TailLog log, bool color)
 
     private void Draw(Surface surface)
     {
-        _viewport = Math.Max(1, surface.Height);
+        _height = Math.Max(1, surface.Height);
         _width = Math.Max(1, surface.Width - 1);
+        _sideways = MaxLeft() > 0 && _height > 1;
+        _viewport = _height - (_sideways ? 1 : 0);
         int count = Log.Count;
         int maxTop = Math.Max(0, count - _viewport);
         _top = Following ? maxTop : Math.Clamp(_top, 0, maxTop);
@@ -288,6 +292,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         }
 
         DrawScrollbar(surface, count);
+        DrawSidewaysScrollbar(surface);
     }
 
     private void DrawLine(Surface surface, int row, TailLine line)
@@ -391,6 +396,25 @@ internal sealed class TailLogView(TailLog log, bool color)
         {
             bool inThumb = row >= position && row < position + thumb;
             _ = surface.WriteText(x, row, inThumb ? "▉" : "│", color ? s_scrollTrack : null, null);
+        }
+    }
+
+    // The sideways scrollbar, drawn below the rows like the scrollbar beside them, when a row is wider than the view.
+    private void DrawSidewaysScrollbar(Surface surface)
+    {
+        if (!_sideways)
+        {
+            return;
+        }
+
+        int maxLeft = MaxLeft();
+        int thumb = Math.Max(1, _width * _width / (_width + maxLeft));
+        int travel = _width - thumb;
+        int position = travel * _left / Math.Max(1, maxLeft);
+        for (int x = 0; x < _width; x++)
+        {
+            bool inThumb = x >= position && x < position + thumb;
+            _ = surface.WriteText(x, _viewport, inThumb ? "▇" : "─", color ? s_scrollTrack : null, null);
         }
     }
 
@@ -521,24 +545,12 @@ internal sealed class TailLogView(TailLog log, bool color)
 
     private void ScrollSideways(int columns) => _left = Math.Clamp(_left + columns, 0, MaxLeft());
 
-    // How far the view can scroll sideways: to the end of the widest row on screen, or past it to the cursor at a row's end.
-    private int MaxLeft()
-    {
-        int top = Following ? Math.Max(0, Log.Count - _viewport) : _top;
-        int widest = 0;
-        for (int index = top; index < Math.Min(Log.Count, top + _viewport); index++)
-        {
-            string text = Log.Row(index).Text;
-            widest = Math.Max(widest, GraphemeHelper.IndexToDisplayColumn(text, text.Length));
-        }
+    // How far the view can scroll sideways: to the end of the widest row in the log, and one column past it while there is
+    // a cursor, which can sit just after a row's last character.
+    private int MaxLeft() => Math.Max(0, Log.Widest + (Navigating || Visual ? 1 : 0) - _width);
 
-        if ((Navigating || Visual) && _line >= top && _line < Math.Min(Log.Count, top + _viewport))
-        {
-            widest = Math.Max(widest, GraphemeHelper.IndexToDisplayColumn(Log.Row(_line).Text, Math.Min(_column, Length(_line))) + 1);
-        }
-
-        return Math.Max(0, widest - _width);
-    }
+    private void ScrollSidewaysTo(int column) =>
+        _left = (int)((long)Math.Clamp(column, 0, _width - 1) * MaxLeft() / Math.Max(1, _width - 1));
 
     private void Left()
     {
@@ -649,7 +661,18 @@ internal sealed class TailLogView(TailLog log, bool color)
             return new DragHandler();
         }
 
-        // Pressing the scrollbar jumps to that point of the log, and dragging moves through it.
+        // Pressing a scrollbar jumps to that point of the log, and dragging moves through it.
+        if (_sideways && y >= _viewport)
+        {
+            if (x >= _width)
+            {
+                return new DragHandler();
+            }
+
+            ScrollSidewaysTo(x);
+            return new DragHandler(onMove: (_, deltaX, _) => ScrollSidewaysTo(x + deltaX));
+        }
+
         if (x >= _width && Log.Count > _viewport)
         {
             ScrollTo(y);

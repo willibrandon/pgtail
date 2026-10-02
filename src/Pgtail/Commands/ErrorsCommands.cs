@@ -1,4 +1,5 @@
 using System.Globalization;
+using Pgtail.Detection;
 using Pgtail.Filtering;
 using Pgtail.Parsing;
 using Pgtail.Sessions;
@@ -301,7 +302,7 @@ internal static class ErrorsCommands
     {
         PgtailSession session = invocation.Session;
         CommandOutput output = invocation.Output;
-        Detection.PostgresInstance? instance = session.LastSource?.Instance
+        PostgresInstance? instance = session.LastSource?.Instance
             ?? session.Instances.FirstOrDefault(item => item.LogPath is { } log && File.Exists(log));
         if (instance?.LogPath is not { } path)
         {

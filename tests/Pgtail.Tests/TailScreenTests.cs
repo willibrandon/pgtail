@@ -1,8 +1,10 @@
 using System.Globalization;
+using Hex1b;
 using Hex1b.Automation;
 using Hex1b.Input;
 using Hex1b.Theming;
 using Pgtail.Sessions;
+using Pgtail.Tail;
 
 namespace Pgtail.Tests;
 
@@ -500,7 +502,7 @@ public sealed class TailScreenTests
     public async Task TimeFilterLongLogLoadsWholeRangeAndCountsIt()
     {
         using var environment = new TestEnvironment();
-        int count = Tail.TailScreen.BacklogLines + 12_345;
+        int count = TailScreen.BacklogLines + 12_345;
         string log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
@@ -549,7 +551,7 @@ public sealed class TailScreenTests
     public async Task ConnectionsOlderEntriesReadBackCountInOrder()
     {
         using var environment = new TestEnvironment();
-        int count = Tail.TailScreen.BacklogLines + 5_000;
+        int count = TailScreen.BacklogLines + 5_000;
         string log = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime start = DateTime.UtcNow.AddMinutes(-10);
         LogFiles.Append(log,
@@ -583,13 +585,13 @@ public sealed class TailScreenTests
         using var environment = new TestEnvironment();
         const int count = 200_000;
         // One error just before the newest lines, in the first chunk read back, and one at the end.
-        const int older = count - Tail.TailScreen.BacklogLines - 10;
+        const int older = count - TailScreen.BacklogLines - 10;
         string log = Path.Join(environment.Root, "logs", "postgresql.log");
         DateTime start = DateTime.UtcNow.AddMinutes(-30);
         LogFiles.Append(log, Enumerable.Range(1, count).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000,
             i is older or count ? "ERROR" : "LOG", $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
         // The warm-up reads back a short log of its own; the long one takes a loaded CI machine longer than a wait allows.
-        const int warmCount = Tail.TailScreen.BacklogLines + 10_000;
+        const int warmCount = TailScreen.BacklogLines + 10_000;
         string warmLog = Path.Join(environment.Root, "warm", "postgresql.log");
         LogFiles.Append(warmLog, Enumerable.Range(1, warmCount).Select(i => LogFiles.Text(start.AddMilliseconds(i), 3000, "LOG",
             $"duration: 0.{i % 1000:D3} ms  statement: select * from t where id = {i}")));
@@ -706,7 +708,7 @@ public sealed class TailScreenTests
     public async Task TruncatedInAnotherFormatReadsTheNewFormat()
     {
         using var environment = new TestEnvironment();
-        int count = Tail.TailScreen.BacklogLines + 100;
+        int count = TailScreen.BacklogLines + 100;
         string log = WriteLog(environment, [.. Enumerable.Range(1, count).Select(i => ("LOG", $"entry {i:D6}"))]);
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync($"entry {count:D6}");
@@ -761,7 +763,7 @@ public sealed class TailScreenTests
             description: "the cursor with the log focused");
         for (int sample = 0; sample < 6; sample++)
         {
-            await Task.Delay(Tail.TailInput.BlinkInterval / 2, TestContext.CancellationToken);
+            await Task.Delay(TailInput.BlinkInterval / 2, TestContext.CancellationToken);
             using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
             Assert.AreEqual("tail> ".Length, TailHarness.InputCursor(screen), "the cursor stays on while the log has focus");
         }
@@ -824,7 +826,7 @@ public sealed class TailScreenTests
         using Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot();
         int row = RowOf(screen, "something failed")!.Value;
         int column = screen.GetLineTrimmed(row).IndexOf("ERROR", StringComparison.Ordinal);
-        Hex1b.TerminalCell cell = screen.GetCell(column, row);
+        TerminalCell cell = screen.GetCell(column, row);
         Assert.IsTrue(cell.IsBold, "ERROR should be bold");
         Assert.IsNotNull(cell.Foreground, "ERROR should be colored");
     }
@@ -933,6 +935,78 @@ public sealed class TailScreenTests
             description: "scrolled back from the end at once");
         await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Ctrl().ScrollUp(200), ct: TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("statement: SELECT column_0");
+    }
+
+    /// <summary>
+    /// Scrolling sideways goes as far as the widest row in the log, also while that row is off screen.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task SidewaysScrollReachesTheWidestRowOffScreen()
+    {
+        using var environment = new TestEnvironment();
+        string log = WriteLog(environment, [("LOG", $"statement: SELECT {WideColumns()} FROM wide_table END_OF_ROW"),
+            .. Enumerable.Range(0, 40).Select(i => ("LOG", $"short line {i:D2}"))]);
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("short line 39") && !screen.ContainsText("wide_table"),
+            description: "the wide row off screen");
+        await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Shift().ScrollDown(200), ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => !screen.ContainsText("short line"),
+            description: "the short rows scrolled past their ends");
+        await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).ScrollUp(20), ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("END_OF_ROW") && !screen.ContainsText("statement: SELECT"),
+            description: "the end of the wide row at the top");
+    }
+
+    /// <summary>
+    /// A scrollbar along the bottom of the log appears when a row is wider than the view, and shows how far it scrolled.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task SidewaysScrollbarShowsWhenARowIsWider()
+    {
+        using var environment = new TestEnvironment();
+        string log = WriteLog(environment, ("LOG", "a short row"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilTextAsync("a short row");
+        Assert.IsFalse(tail.Automator.CreateSnapshot().ContainsText("▇"), "no sideways scrollbar for rows that fit");
+        LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 2000, "LOG", $"statement: SELECT {WideColumns()} FROM wide_table END_OF_ROW"));
+        await tail.Automator.WaitUntilAsync(
+            screen => SidewaysScrollbar(screen) is { } bar && bar.StartsWith('▇') && bar.EndsWith('─'),
+            description: "the scrollbar at the start");
+        await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Shift().ScrollDown(200), ct: TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(
+            screen => SidewaysScrollbar(screen) is { } bar && bar.StartsWith('─') && bar.EndsWith('▇'),
+            description: "the scrollbar at the end");
+    }
+
+    /// <summary>
+    /// Pressing the sideways scrollbar jumps to that point of the rows, and dragging it scrolls them.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task SidewaysScrollbarPressAndDragScrolls()
+    {
+        using var environment = new TestEnvironment();
+        string log = WriteLog(environment, ("LOG", $"statement: SELECT {WideColumns()} FROM wide_table END_OF_ROW"));
+        await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
+        await tail.Automator.WaitUntilAsync(screen => SidewaysScrollbar(screen) is not null, description: "the sideways scrollbar");
+        using (Hex1bTerminalSnapshot screen = tail.Automator.CreateSnapshot())
+        {
+            int row = screen.Height - 5;
+            int end = screen.Width - 2;
+            await tail.Automator.ClickAtAsync(end, row, ct: TestContext.CancellationToken);
+            await tail.Automator.WaitUntilAsync(
+                current => current.ContainsText("END_OF_ROW") && !current.ContainsText("statement: SELECT"),
+                description: "the end of the row");
+            await tail.Automator.DragAsync(end, row, 0, row, ct: TestContext.CancellationToken);
+            await tail.Automator.WaitUntilAsync(
+                current => current.ContainsText("statement: SELECT column_0") && !current.ContainsText("END_OF_ROW"),
+                description: "the start of the row");
+        }
     }
 
     /// <summary>
@@ -1124,6 +1198,13 @@ public sealed class TailScreenTests
         await tail.Automator.TabAsync(TestContext.CancellationToken);
         await tail.Automator.TypeAsync("q", TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(_ => tail.Stopped, description: "tail mode stopped");
+    }
+
+    // The sideways scrollbar along the bottom of the log, or null when it is not drawn.
+    private static string? SidewaysScrollbar(Hex1bTerminalSnapshot screen)
+    {
+        string row = screen.GetLineTrimmed(screen.Height - 5);
+        return row.Contains('▇', StringComparison.Ordinal) ? row : null;
     }
 
     private static string WideColumns() => string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));

@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Hex1b;
 using Hex1b.Automation;
 using Hex1b.Widgets;
+using Pgtail.Cli;
 using Pgtail.Commands;
 using Pgtail.Repl;
 using Pgtail.Sessions;
@@ -58,7 +59,7 @@ internal sealed class ReplHarness : IAsyncDisposable
                             break;
                     }
                 }
-            }, Cli.Terminals.FlowOptions)
+            }, Terminals.FlowOptions)
             .WithPresentation(_presentation)
             .WithDimensions(width, height)
             .Build();

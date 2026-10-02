@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Tail mode shows a scrollbar along the bottom of the log when a line is wider than the window, drawn like the one
+  beside it; clicking or dragging it scrolls sideways.
+
+### Changed
+- Tail mode scrolls sideways as far as the widest line loaded, rather than the widest line on screen, so how far it
+  goes no longer changes as the log scrolls.
+
 ## [0.7.3] - 2026-10-01
 
 ### Fixed

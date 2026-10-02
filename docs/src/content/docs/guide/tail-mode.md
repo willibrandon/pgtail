@@ -142,8 +142,9 @@ Keys typed faster than the screen draws still each take effect, so holding `j` s
 | `Ctrl+c` | Copy the selection; with nothing selected, leave tail mode |
 | `Escape` | Clear the selection |
 
-Lines longer than the window scroll sideways to keep the cursor in view. Scrolling sideways goes as far as the end
-of the widest line on screen.
+Lines longer than the window scroll sideways to keep the cursor in view. When a line is wider than the window, a
+scrollbar along the bottom of the log shows how far it is scrolled, and scrolling sideways goes as far as the end of
+the widest line loaded, on screen or not.
 
 ### Mouse
 
@@ -155,6 +156,7 @@ of the widest line on screen.
 | Click | Select the clicked line |
 | Drag | Select text; it is copied when you release the button |
 | Click or drag the scrollbar | Jump to that point of the log, and move through it while dragging |
+| Click or drag the bottom scrollbar | Jump to that point of the lines, and move along them while dragging |
 | Click the input | Put the cursor there |
 
 The input's cursor is a block that blinks while the input has focus and stays solid while the log has it.

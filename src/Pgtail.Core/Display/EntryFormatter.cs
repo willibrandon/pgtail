@@ -243,9 +243,22 @@ public static class EntryFormatter
     /// <returns>The formatted line.</returns>
     public static StyledText TailLine(LogEntry entry, Theme theme, HighlighterChain chain, SlowQueryLevel? slow)
     {
-        ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(chain);
+        StyledText text = TailPrefix(entry);
+        return slow is { } level
+            ? text.Append(entry.Message, theme.Style(SlowElement(level)))
+            : text.Append(chain.Apply(entry.Message, theme));
+    }
+
+    /// <summary>
+    /// What comes before the message in the tail mode line: <c>[file] time [pid  ] LEVEL   SQLSTATE: </c>.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <returns>The formatted start of the line.</returns>
+    public static StyledText TailPrefix(LogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
         var text = new StyledText();
         if (entry.SourceFile is { } file)
         {
@@ -268,10 +281,34 @@ public static class EntryFormatter
             text.Append(" ").Append(state, TailStyles.SqlState);
         }
 
-        text.Append(": ");
-        return slow is { } level
-            ? text.Append(entry.Message, theme.Style(SlowElement(level)))
-            : text.Append(chain.Apply(entry.Message, theme));
+        return text.Append(": ");
+    }
+
+    /// <summary>
+    /// The number of characters in <see cref="TailPrefix"/>, worked out without formatting it, when they are all ASCII.
+    /// </summary>
+    /// <remarks>
+    /// Every log line's width is measured as it is read, so this keeps that from formatting each line twice.
+    /// </remarks>
+    /// <param name="entry">The entry.</param>
+    /// <returns>The length, or null when the file name or SQLSTATE has other characters.</returns>
+    public static int? TailPrefixLength(LogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        if ((entry.SourceFile is { } file && !Ascii.IsValid(file)) || (entry.SqlState is { } code && !Ascii.IsValid(code)))
+        {
+            return null;
+        }
+
+        Span<char> digits = stackalloc char[11];
+        int length = entry.SourceFile is { } name ? name.Length + 3 : 0;
+        length += entry.WrittenTime is null ? 0 : "HH:mm:ss.fff ".Length;
+        length += entry.Pid is { } pid && pid.TryFormat(digits, out int written, provider: CultureInfo.InvariantCulture)
+            ? Math.Max(5, written) + 3
+            : 0;
+        length += Math.Max(7, entry.Level.ToName().Length);
+        length += entry.SqlState is { } state ? state.Length + 1 : 0;
+        return length + 2;
     }
 
     /// <summary>

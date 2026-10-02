@@ -8,9 +8,10 @@ namespace Pgtail.Tail;
 /// and made rows can be forgotten again and made once more when scrolled back to.
 /// </remarks>
 /// <param name="rowCount">How many rows the segment has.</param>
+/// <param name="width">The display width of its widest row.</param>
 /// <param name="make">Makes the rows.</param>
 /// <param name="isEntry">Whether the rows are a log entry's, which the status bar counts, rather than a message's.</param>
-internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> make, bool isEntry = true)
+internal sealed class TailSegment(int rowCount, int width, Func<IReadOnlyList<TailLine>> make, bool isEntry = true)
 {
     private IReadOnlyList<TailLine>? _rows;
 
@@ -18,6 +19,11 @@ internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> ma
     /// How many rows the segment has.
     /// </summary>
     public int RowCount { get; } = rowCount;
+
+    /// <summary>
+    /// The display width of the segment's widest row, known without making the rows.
+    /// </summary>
+    public int Width { get; } = width;
 
     /// <summary>
     /// Whether the rows are a log entry's rather than a message's, such as a command's output.
@@ -42,7 +48,8 @@ internal sealed class TailSegment(int rowCount, Func<IReadOnlyList<TailLine>> ma
     public static TailSegment Of(IReadOnlyList<TailLine> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
-        return new TailSegment(rows.Count, () => rows, isEntry: false);
+        int width = rows.Select(row => TailLine.Widest(row.Text)).DefaultIfEmpty().Max();
+        return new TailSegment(rows.Count, width, () => rows, isEntry: false);
     }
 
     /// <summary>

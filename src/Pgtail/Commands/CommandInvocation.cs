@@ -1,3 +1,4 @@
+using Pgtail.Sessions;
 namespace Pgtail.Commands;
 
 /// <summary>
@@ -28,7 +29,7 @@ internal sealed record CommandInvocation(
     /// <summary>
     /// The session.
     /// </summary>
-    public Sessions.PgtailSession Session => Host.Session;
+    public PgtailSession Session => Host.Session;
 
     /// <summary>
     /// The rest of the line as typed, from one of the words on, with its quotes.

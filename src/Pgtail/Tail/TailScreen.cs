@@ -1,5 +1,8 @@
 using Hex1b;
 using Pgtail.Commands;
+using Pgtail.Display;
+using Pgtail.Filtering;
+using Pgtail.Highlighting;
 using Pgtail.Parsing;
 using Pgtail.Sessions;
 using Pgtail.Styling;
@@ -178,8 +181,8 @@ internal sealed partial class TailScreen : ITailHost, IAsyncDisposable
     public void ClearEverything()
     {
         Session.ActiveLevels = null;
-        Session.Regex = new Filtering.RegexFilterState();
-        Session.Time = Filtering.TimeFilter.Empty;
+        Session.Regex = new RegexFilterState();
+        Session.Time = TimeFilter.Empty;
         Session.Fields.Clear();
         _entries.Clear();
         _log.Clear();
@@ -220,7 +223,7 @@ internal sealed partial class TailScreen : ITailHost, IAsyncDisposable
         WriteLines(Output.Take());
     }
 
-    private static string? TimeStatus(Filtering.TimeFilter time)
+    private static string? TimeStatus(TimeFilter time)
     {
         if (!time.IsActive)
         {
@@ -496,12 +499,19 @@ internal sealed partial class TailScreen : ITailHost, IAsyncDisposable
     // highlighting, which comes when a row is first drawn.
     private TailSegment Segment(LogEntry entry) => new(
         1 + entry.Message.AsSpan().Count('\n'),
+        Width(entry),
         () => TailLine.From(
-            Display.EntryFormatter.TailLine(entry, Session.Theme, Highlighting.HighlighterChain.None, Session.SlowLevel(entry)),
+            EntryFormatter.TailLine(entry, Session.Theme, HighlighterChain.None, Session.SlowLevel(entry)),
             () => Formatted(entry)));
 
+    // The width of the entry's widest row, measured without formatting the entry unless its prefix has characters
+    // outside ASCII.
+    private static int Width(LogEntry entry) => EntryFormatter.TailPrefixLength(entry) is { } prefix
+        ? TailLine.Widest(prefix, entry.Message)
+        : TailLine.Widest(EntryFormatter.TailPrefix(entry).PlainText + entry.Message);
+
     private StyledText Formatted(LogEntry entry) =>
-        Display.EntryFormatter.TailLine(entry, Session.Theme, Session.Chain, Session.SlowLevel(entry));
+        EntryFormatter.TailLine(entry, Session.Theme, Session.Chain, Session.SlowLevel(entry));
 
     private void DetectInstance(LogEntry entry)
     {
