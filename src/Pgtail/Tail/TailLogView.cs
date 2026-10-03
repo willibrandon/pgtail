@@ -414,7 +414,7 @@ internal sealed class TailLogView(TailLog log, bool color)
         for (int x = 0; x < _width; x++)
         {
             bool inThumb = x >= position && x < position + thumb;
-            _ = surface.WriteText(x, _viewport, inThumb ? "▇" : "─", color ? s_scrollTrack : null, null);
+            _ = surface.WriteText(x, _viewport, inThumb ? "▄" : "─", color ? s_scrollTrack : null, null);
         }
     }
 
