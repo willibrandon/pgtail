@@ -972,14 +972,14 @@ public sealed class TailScreenTests
         string log = WriteLog(environment, ("LOG", "a short row"));
         await using TailHarness tail = await TailHarness.StartAsync(environment, log, TestContext.CancellationToken);
         await tail.Automator.WaitUntilTextAsync("a short row");
-        Assert.IsFalse(tail.Automator.CreateSnapshot().ContainsText("▇"), "no sideways scrollbar for rows that fit");
+        Assert.IsFalse(tail.Automator.CreateSnapshot().ContainsText("▄"), "no sideways scrollbar for rows that fit");
         LogFiles.Append(log, LogFiles.Text(DateTime.UtcNow, 2000, "LOG", $"statement: SELECT {WideColumns()} FROM wide_table END_OF_ROW"));
         await tail.Automator.WaitUntilAsync(
-            screen => SidewaysScrollbar(screen) is { } bar && bar.StartsWith('▇') && bar.EndsWith('─'),
+            screen => SidewaysScrollbar(screen) is { } bar && bar.StartsWith('▄') && bar.EndsWith('─'),
             description: "the scrollbar at the start");
         await tail.Automator.SequenceAsync(input => input.MouseMoveTo(20, 5).Shift().ScrollDown(200), ct: TestContext.CancellationToken);
         await tail.Automator.WaitUntilAsync(
-            screen => SidewaysScrollbar(screen) is { } bar && bar.StartsWith('─') && bar.EndsWith('▇'),
+            screen => SidewaysScrollbar(screen) is { } bar && bar.StartsWith('─') && bar.EndsWith('▄'),
             description: "the scrollbar at the end");
     }
 
@@ -1204,7 +1204,7 @@ public sealed class TailScreenTests
     private static string? SidewaysScrollbar(Hex1bTerminalSnapshot screen)
     {
         string row = screen.GetLineTrimmed(screen.Height - 5);
-        return row.Contains('▇', StringComparison.Ordinal) ? row : null;
+        return row.Contains('▄', StringComparison.Ordinal) ? row : null;
     }
 
     private static string WideColumns() => string.Join(", ", Enumerable.Range(0, 30).Select(i => $"column_{i}"));
