@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-10-02
+
 ### Fixed
 - Tail mode's sideways scrollbar is drawn about as thick as the scrollbar beside the log, rather than twice as thick.
 
@@ -313,6 +315,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.8.2]: https://github.com/willibrandon/pgtail/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/willibrandon/pgtail/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/willibrandon/pgtail/compare/v0.7.3...v0.8.0
 [0.7.3]: https://github.com/willibrandon/pgtail/compare/v0.7.2...v0.7.3
