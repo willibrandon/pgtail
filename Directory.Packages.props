@@ -8,7 +8,7 @@
     <PackageVersion Include="Hex1b" Version="0.174.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Scout.IO.Globbing" Version="0.7.0" />
-    <PackageVersion Include="Scout.IO.Ignore" Version="0.6.1" />
+    <PackageVersion Include="Scout.IO.Ignore" Version="0.7.0" />
     <PackageVersion Include="Scout.Text.Regex" Version="0.7.0" />
   </ItemGroup>
 </Project>
