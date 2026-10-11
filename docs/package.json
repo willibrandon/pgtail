@@ -18,5 +18,10 @@
   },
   "devDependencies": {
     "@expressive-code/core": "0.44.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss-selector-parser": "^7.1.6"
+    }
   }
 }
