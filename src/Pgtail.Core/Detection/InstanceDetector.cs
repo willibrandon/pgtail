@@ -159,13 +159,8 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
     private IEnumerable<string> FromAnkus()
     {
         string ankus = environment("ANKUS_HOME") is { Length: > 0 } configured ? configured : Path.Join(home, ".ankus");
-        foreach (string directory in Matching(Path.Join(ankus, "clusters", "*")))
-        {
-            if (File.Exists(Path.Join(directory, AnkusLauncher.MarkerFileName)) && File.Exists(Path.Join(directory, "PG_VERSION")))
-            {
-                yield return directory;
-            }
-        }
+        return Matching(Path.Join(ankus, "clusters", "*")).Where(directory =>
+            File.Exists(Path.Join(directory, AnkusLauncher.MarkerFileName)) && File.Exists(Path.Join(directory, "PG_VERSION")));
     }
 
     private IEnumerable<string> KnownPaths()
