@@ -36,9 +36,9 @@ public static partial class PostgresConf
     /// <returns>The path, or null when the data directory is not a Debian cluster directory.</returns>
     public static string? DebianConfFile(string dataDirectory)
     {
-        ArgumentNullException.ThrowIfNull(dataDirectory);
-        Match match = DebianDataDirectory().Match(dataDirectory);
-        return match.Success ? $"/etc/postgresql/{match.Groups[1].Value}/{match.Groups[2].Value}/postgresql.conf" : null;
+        return DebianCluster(dataDirectory) is (string version, string cluster)
+            ? $"/etc/postgresql/{version}/{cluster}/postgresql.conf"
+            : null;
     }
 
     /// <summary>
@@ -47,19 +47,15 @@ public static partial class PostgresConf
     public const string DebianLogDirectory = "/var/log/postgresql";
 
     /// <summary>
-    /// Reads a setting from <c>postgresql.conf</c> text: the first line setting the key, with quotes and comments removed.
+    /// The version and the name of the Debian or Ubuntu cluster that a data directory belongs to.
     /// </summary>
-    /// <param name="content">The file contents.</param>
-    /// <param name="key">The setting name, matched ignoring case.</param>
-    /// <returns>The value, or null when the key is not set.</returns>
-    public static string? GetValue(string content, string key)
+    /// <param name="dataDirectory">The data directory.</param>
+    /// <returns>The version and the cluster, or null when the data directory is not a Debian cluster directory.</returns>
+    public static (string Version, string Cluster)? DebianCluster(string dataDirectory)
     {
-        ArgumentNullException.ThrowIfNull(content);
-        ArgumentNullException.ThrowIfNull(key);
-        var pattern = new Regex($@"^\s*{Regex.Escape(key)}\s*=\s*['""]?([^'""#\n]+)['""]?",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        Match? match = content.Split('\n').Select(line => pattern.Match(line.TrimEnd('\r'))).FirstOrDefault(found => found.Success);
-        return match?.Groups[1].Value.Trim();
+        ArgumentNullException.ThrowIfNull(dataDirectory);
+        Match match = DebianDataDirectory().Match(dataDirectory);
+        return match.Success ? (match.Groups[1].Value, match.Groups[2].Value) : null;
     }
 
     /// <summary>
@@ -82,20 +78,20 @@ public static partial class PostgresConf
     }
 
     /// <summary>
-    /// Reads the port from <c>postgresql.conf</c>, or from line 4 of <c>postmaster.pid</c> when it is not configured.
+    /// Finds the port: the <c>port</c> setting, or line 4 of <c>postmaster.pid</c> when nothing sets it.
     /// </summary>
-    /// <param name="dataDirectory">The data directory.</param>
+    /// <param name="settings">The server's settings.</param>
     /// <returns>The port, or null.</returns>
-    public static int? GetPort(string dataDirectory)
+    public static int? GetPort(ServerSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(dataDirectory);
-        if (FindConfFile(dataDirectory) is { } conf && ReadText(conf) is { } content && GetValue(content, "port") is { } configured
-            && int.TryParse(configured, NumberStyles.Integer, CultureInfo.InvariantCulture, out int port))
+        ArgumentNullException.ThrowIfNull(settings);
+        if (settings["port"] is { } configured
+            && int.TryParse(configured.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int port))
         {
             return port;
         }
 
-        string[]? lines = ReadText(Path.Join(dataDirectory, "postmaster.pid"))?.Split('\n');
+        string[]? lines = ReadText(Path.Join(settings.DataDirectory, "postmaster.pid"))?.Split('\n');
         return lines is { Length: >= 4 }
             && int.TryParse(lines[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int running)
                 ? running
@@ -106,30 +102,38 @@ public static partial class PostgresConf
     /// Finds where an instance logs.
     /// </summary>
     /// <remarks>
-    /// Logging is on when <c>logging_collector</c> is on. The directory is <c>log_directory</c> (default <c>log</c>,
-    /// relative to the data directory), or <c>pg_log</c> for older versions. The current file comes from
-    /// <c>current_logfiles</c>, or else is the newest log file in the directory. With the collector off, a Debian or Ubuntu
-    /// cluster still logs: <c>pg_ctlcluster</c> sends the server's output to one file, which is then the log and has no
-    /// directory to follow, since the directory holds every cluster's log.
+    /// <para>
+    /// With <c>logging_collector</c> on, the directory is <c>log_directory</c> (default <c>log</c>, from the data
+    /// directory), or <c>pg_log</c> for older versions. The current file comes from <c>current_logfiles</c>, or else is
+    /// the newest log file in the directory.
+    /// </para>
+    /// <para>
+    /// With the collector off, the log is the server's output, so it is wherever the program that started the server
+    /// sends it. On Linux, the output of a running server shows in <c>/proc</c>; if it goes to the console, a pipe, or
+    /// nowhere, the server logs to no file. Otherwise the launcher tells: ankus, cargo pgrx, and <c>pg_ctlcluster</c>
+    /// each send it to a file of their own. That file is then the log, with no directory to follow.
+    /// </para>
     /// </remarks>
-    /// <param name="dataDirectory">The data directory.</param>
+    /// <param name="settings">The server's settings.</param>
+    /// <param name="launcher">What starts the server.</param>
     /// <returns>The current log file, the log directory, and whether logging is on.</returns>
-    public static (string? LogPath, string? LogDirectory, bool LoggingEnabled) GetLogInfo(string dataDirectory)
+    public static (string? LogPath, string? LogDirectory, bool LoggingEnabled) GetLogInfo(ServerSettings settings, ServerLauncher launcher)
     {
-        ArgumentNullException.ThrowIfNull(dataDirectory);
-        if (FindConfFile(dataDirectory) is not { } conf || ReadText(conf) is not { } content)
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(launcher);
+        string dataDirectory = settings.DataDirectory;
+        if (!settings.IsOn("logging_collector"))
         {
-            return (null, null, false);
+            (bool known, string? output) = RunningServerOutput(dataDirectory);
+            if (known)
+            {
+                return output is null ? (null, null, false) : (output, null, true);
+            }
+
+            return launcher.OutputFile is { } file && File.Exists(file) ? (file, null, true) : (null, null, false);
         }
 
-        string? collector = GetValue(content, "logging_collector");
-        if (collector is null || collector.ToLowerInvariant() is not ("on" or "true" or "yes" or "1"))
-        {
-            return DebianServerLog(dataDirectory) is { } serverLog ? (serverLog, null, true) : (null, null, false);
-        }
-
-        string configured = GetValue(content, "log_directory") ?? "log";
-        string directory = configured.StartsWith('/') ? configured : Path.Join(dataDirectory, configured);
+        string directory = PostgresPath.Resolve(settings["log_directory"]?.Value ?? "log", dataDirectory);
         bool accessible = false;
         try
         {
@@ -175,9 +179,7 @@ public static partial class PostgresConf
             string[] parts = line.Trim().Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 2 && parts[0] is "stderr" or "csvlog" or "jsonlog")
             {
-                string path = parts[1];
-                bool absolute = path.StartsWith('/') || (path.Length >= 2 && path[1] == ':');
-                return absolute ? path : Path.Join(dataDirectory, path);
+                return PostgresPath.Resolve(parts[1], dataDirectory);
             }
         }
 
@@ -212,26 +214,32 @@ public static partial class PostgresConf
         }
     }
 
-    // pg_ctlcluster logs to the target of the log link in the cluster's configuration directory, which
-    // pg_createcluster --logfile makes, or else to postgresql-<version>-<cluster>.log.
-    private static string? DebianServerLog(string dataDirectory)
+    // Where the output of the server running from a data directory goes, from its standard error in /proc on Linux. Known
+    // is false when that cannot be seen: on another platform, with no server running, or with the process closed to us.
+    // The file is null when the output goes to the console, a pipe, a device, or a file since deleted.
+    private static (bool Known, string? File) RunningServerOutput(string dataDirectory)
     {
-        if (DebianDataDirectory().Match(dataDirectory) is not { Success: true } match)
+        if (!OperatingSystem.IsLinux() || ReadText(Path.Join(dataDirectory, "postmaster.pid")) is not { } pidFile
+            || !int.TryParse(pidFile.Split('\n')[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int pid)
+            || ProcessTable.NameOf(pid) is not { } name || !name.Contains("postgres", StringComparison.Ordinal))
         {
-            return null;
+            return (false, null);
         }
 
-        (string? version, string? cluster) = (match.Groups[1].Value, match.Groups[2].Value);
         try
         {
-            var link = new FileInfo($"/etc/postgresql/{version}/{cluster}/log");
-            string log = (link.LinkTarget is null ? null : link.ResolveLinkTarget(returnFinalTarget: false)?.FullName)
-                ?? $"{DebianLogDirectory}/postgresql-{version}-{cluster}.log";
-            return File.Exists(log) ? log : null;
+            if (new FileInfo($"/proc/{pid}/fd/2").LinkTarget is not { } target)
+            {
+                return (false, null);
+            }
+
+            bool file = target.StartsWith('/') && !target.StartsWith("/dev/", StringComparison.Ordinal)
+                && !target.EndsWith(" (deleted)", StringComparison.Ordinal) && File.Exists(target);
+            return (true, file ? target : null);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return null;
+            return (false, null);
         }
     }
 

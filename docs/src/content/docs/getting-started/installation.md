@@ -233,5 +233,6 @@ pg_ctl reload    # after changing other settings
 ```
 
 `pgtail enable-logging <id>`, or `enable-logging <id>` in the REPL, turns on the logging collector for a detected
-instance: it sets `logging_collector = on`, and `log_directory` and `log_filename` when they are not set, keeping a
-backup of `postgresql.conf`. Restart PostgreSQL afterward.
+instance. It sets `logging_collector = on` in `postgresql.auto.conf`, as `ALTER SYSTEM SET logging_collector = on`
+does. Then it reads the settings again, to make sure that nothing turns the collector off. Restart PostgreSQL
+afterward.

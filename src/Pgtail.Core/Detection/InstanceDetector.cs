@@ -24,42 +24,22 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
     /// Detects every instance, most reliable sources first.
     /// </summary>
     /// <remarks>
-    /// Running processes come first, then pgrx data directories, then <c>PGDATA</c>, then platform default locations.
-    /// A data directory found more than once is listed once, under its first source.
+    /// Running processes come first, then pgrx data directories, then ankus clusters, then <c>PGDATA</c>, then platform
+    /// default locations. A data directory found more than once is listed once, under its first source.
     /// </remarks>
     /// <returns>The instances, numbered from 0.</returns>
     public IReadOnlyList<PostgresInstance> DetectAll()
     {
         var instances = new List<PostgresInstance>();
-        var seen = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-        var running = new Dictionary<string, int>(seen.Comparer);
-        foreach ((string directory, int pid) in FromProcesses())
-        {
-            running.TryAdd(PathResolver.Resolve(directory, home), pid);
-        }
-
+        var seen = new HashSet<string>(PathComparer);
+        Dictionary<string, int> running = Running();
         void Add(string directory, DetectionSource source)
         {
             string resolved = PathResolver.Resolve(directory, home);
-            if (!seen.Add(resolved))
+            if (seen.Add(resolved))
             {
-                return;
+                instances.Add(Describe(instances.Count, directory, source, running));
             }
-
-            (bool isRunning, int? pid) = IsRunning(resolved, running);
-            (string? logPath, string? logDirectory, bool loggingEnabled) = PostgresConf.GetLogInfo(directory);
-            instances.Add(new PostgresInstance(
-                instances.Count,
-                PostgresConf.GetVersion(directory),
-                directory,
-                logPath,
-                logDirectory,
-                source,
-                source == DetectionSource.Process || isRunning,
-                pid,
-                PostgresConf.GetPort(directory),
-                loggingEnabled,
-                PostgresConf.FindConfFile(directory)));
         }
 
         foreach (string directory in running.Keys)
@@ -70,6 +50,11 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         foreach (string directory in FromPgrx())
         {
             Add(directory, DetectionSource.Pgrx);
+        }
+
+        foreach (string directory in FromAnkus())
+        {
+            Add(directory, DetectionSource.Ankus);
         }
 
         if (environment("PGDATA") is { Length: > 0 } pgdata && IsDataDirectory(pgdata))
@@ -83,6 +68,31 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         }
 
         return instances;
+    }
+
+    /// <summary>
+    /// Reads an instance again, for a server started, stopped, or reconfigured since it was detected.
+    /// </summary>
+    /// <param name="instance">The instance as detected.</param>
+    /// <returns>The instance as it is now, with the same ID and source.</returns>
+    public PostgresInstance Reread(PostgresInstance instance)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        return Describe(instance.Id, instance.DataDirectory, instance.Source, Running());
+    }
+
+    private static StringComparer PathComparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    // The data directories of running servers, resolved, with their process IDs.
+    private Dictionary<string, int> Running()
+    {
+        var running = new Dictionary<string, int>(PathComparer);
+        foreach ((string directory, int pid) in FromProcesses())
+        {
+            running.TryAdd(PathResolver.Resolve(directory, home), pid);
+        }
+
+        return running;
     }
 
     /// <summary>
@@ -130,9 +140,10 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         }
     }
 
+    // The data directories in the pgrx home, PGRX_HOME or ~/.pgrx, which cargo pgrx names data-<major>.
     private IEnumerable<string> FromPgrx()
     {
-        string pgrx = Path.Join(home, ".pgrx");
+        string pgrx = environment("PGRX_HOME") is { Length: > 0 } configured ? configured : Path.Join(home, ".pgrx");
         foreach (string directory in Matching(Path.Join(pgrx, "data-*")))
         {
             string suffix = Path.GetFileName(directory)[5..];
@@ -142,6 +153,14 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
                 yield return directory;
             }
         }
+    }
+
+    // The clusters in the ankus home, ANKUS_HOME or ~/.ankus, each marked with the file that holds its label.
+    private IEnumerable<string> FromAnkus()
+    {
+        string ankus = environment("ANKUS_HOME") is { Length: > 0 } configured ? configured : Path.Join(home, ".ankus");
+        return Matching(Path.Join(ankus, "clusters", "*")).Where(directory =>
+            File.Exists(Path.Join(directory, AnkusLauncher.MarkerFileName)) && File.Exists(Path.Join(directory, "PG_VERSION")));
     }
 
     private IEnumerable<string> KnownPaths()
@@ -224,6 +243,27 @@ public sealed class InstanceDetector(Func<string, string?> environment, string h
         {
             return false;
         }
+    }
+
+    // An instance with its settings read once for its version, port, log, and launcher.
+    private PostgresInstance Describe(int id, string directory, DetectionSource source, Dictionary<string, int> running)
+    {
+        (bool isRunning, int? pid) = IsRunning(PathResolver.Resolve(directory, home), running);
+        ServerSettings settings = ServerSettings.Read(directory);
+        ServerLauncher launcher = ServerLauncher.For(directory);
+        (string? logPath, string? logDirectory, bool loggingEnabled) = PostgresConf.GetLogInfo(settings, launcher);
+        return new PostgresInstance(
+            id,
+            PostgresConf.GetVersion(directory),
+            directory,
+            logPath,
+            logDirectory,
+            source,
+            isRunning,
+            launcher,
+            pid,
+            PostgresConf.GetPort(settings),
+            loggingEnabled);
     }
 
     private static (bool Running, int? Pid) IsRunning(string resolved, Dictionary<string, int> running)

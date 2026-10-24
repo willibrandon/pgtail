@@ -11,9 +11,14 @@ public enum DetectionSource
     Process,
 
     /// <summary>
-    /// A pgrx data directory under <c>~/.pgrx</c>.
+    /// A pgrx data directory under <c>~/.pgrx</c> or <c>PGRX_HOME</c>.
     /// </summary>
     Pgrx,
+
+    /// <summary>
+    /// An ankus development cluster under <c>~/.ankus/clusters</c>.
+    /// </summary>
+    Ankus,
 
     /// <summary>
     /// The <c>PGDATA</c> environment variable.

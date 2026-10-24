@@ -55,8 +55,9 @@ The [quick start](https://pgtail.dev/getting-started/quickstart/) walks through 
 
 ## What it does
 
-- Finds instances from running processes, pgrx, `PGDATA`, and the usual Homebrew, Debian and Ubuntu, PGDG, Postgres.app,
-  and Windows locations, and follows PostgreSQL to its next log file after a rotation or restart
+- Finds instances from running processes, pgrx, ankus, `PGDATA`, and the usual Homebrew, Debian and Ubuntu, PGDG,
+  Postgres.app, and Windows locations, reads their settings as PostgreSQL does, and follows PostgreSQL to its next log
+  file after a rotation or restart
 - Reads text, csvlog, and jsonlog, from an instance, from files and globs, or from a pipe
 - Filters by level, regular expression, time range, and csvlog or jsonlog fields, changed while the log runs
 - Highlights SQL, durations, SQLSTATE codes, LSNs, locks, and more with thirty semantic highlighters, plus your own

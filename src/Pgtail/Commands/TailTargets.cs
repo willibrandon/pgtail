@@ -106,4 +106,74 @@ internal static class TailTargets
             ? PostgresConf.FindLatestLog(directory)
             : null);
     }
+
+    /// <summary>
+    /// Why an instance has no log file to tail, and what to do about it.
+    /// </summary>
+    /// <param name="instance">The instance, as read just before.</param>
+    /// <param name="enableCommand">The command that turns on logging, such as <c>enable-logging 0</c>.</param>
+    /// <returns>The lines to show.</returns>
+    public static IReadOnlyList<string> NoLog(PostgresInstance instance, string enableCommand)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        if (!instance.LoggingEnabled)
+        {
+            return
+            [
+                $"Logging not enabled for instance {instance.Id}",
+                $"Data directory: {instance.DataDirectory}",
+                "",
+                $"Enable logging with: {enableCommand}",
+            ];
+        }
+
+        if (instance.LogPath is { } path)
+        {
+            return [$"Log file not found: {path}"];
+        }
+
+        string directory = instance.LogDirectory ?? "unknown";
+        if (!IsMissingOrEmpty(instance.LogDirectory))
+        {
+            return
+            [
+                $"Cannot access log files for instance {instance.Id}",
+                $"Log directory: {directory}",
+                "",
+                .. PermissionAdvice.LogsNotFound(),
+            ];
+        }
+
+        // The collector makes the directory and its first file when the server starts, so the server is older than the setting.
+        return
+        [
+            $"No log file yet for instance {instance.Id}",
+            $"Log directory: {directory}",
+            "",
+            "The server makes its first log file when it starts with logging_collector on.",
+            instance.Running ? "If the setting changed after the server started, restart PostgreSQL:" : "Start PostgreSQL:",
+            .. instance.Launcher.RestartCommands(instance.Running).Select(command => $"    {command}"),
+        ];
+    }
+
+    private static bool IsMissingOrEmpty(string? directory)
+    {
+        if (directory is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return !Directory.EnumerateFileSystemEntries(directory).Any();
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
 }

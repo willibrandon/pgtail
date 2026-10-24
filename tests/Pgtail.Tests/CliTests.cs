@@ -119,6 +119,60 @@ public sealed class CliTests
     }
 
     /// <summary>
+    /// enable-logging on an ankus cluster names the log that ankus keeps and the ankus commands, and changes no file.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task EnableLoggingAnkusClusterChangesNothing()
+    {
+        using var environment = new TestEnvironment();
+        string home = Path.Join(environment.Root, "ankus");
+        string data = DataDirectories.CreateAnkusCluster(home, "pg18");
+        string recorded = Path.Join(home, "clusters", "pg18.log");
+        File.WriteAllText(Path.Join(data, ".ankus-log"), recorded + "\n");
+        environment.Set("ANKUS_HOME", home);
+        string conf = File.ReadAllText(Path.Join(data, "postgresql.conf"));
+
+        // A terminal wide enough for the paths, which a pseudo-terminal starts on new lines.
+        await using var pgtail = PgtailProcess.Start(environment, 240, 30, TestContext.CancellationToken, "enable-logging", data);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText("ankus manages logging for instance") && screen.ContainsText(recorded)
+                && screen.ContainsText("Start the server with ankus:") && screen.ContainsText("ankus start --pg 18 --home"),
+            description: "the log that ankus keeps and how to start the cluster");
+
+        Assert.AreEqual(0, await pgtail.WaitForExitAsync());
+        Assert.AreEqual(conf, File.ReadAllText(Path.Join(data, "postgresql.conf")));
+        Assert.IsFalse(File.Exists(Path.Join(data, "postgresql.auto.conf")));
+    }
+
+    /// <summary>
+    /// enable-logging sets the collector in postgresql.auto.conf and says how to start the server.
+    /// </summary>
+    /// <remarks>
+    /// postgresql.auto.conf comes after the included file that turns the collector off.
+    /// </remarks>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task EnableLoggingSetsCollectorInAutoConf()
+    {
+        using var environment = new TestEnvironment();
+        (string data, string _) = DataDirectories.Create(environment.Root, "17", 5497);
+        File.WriteAllText(Path.Join(data, "postgresql.conf"), "port = 5497\ninclude = 'overrides.conf'\n");
+        File.WriteAllText(Path.Join(data, "overrides.conf"), "logging_collector = off\n");
+        environment.Set("PGDATA", data);
+
+        await using var pgtail = PgtailProcess.Start(environment, 240, 30, TestContext.CancellationToken, "enable-logging", data);
+        await pgtail.Automator.WaitUntilAsync(
+            screen => screen.ContainsText($"Set logging_collector = 'on' in {Path.Join(data, "postgresql.auto.conf")}")
+                && screen.ContainsText("Start PostgreSQL to start the logging collector:")
+                && screen.ContainsText($"pg_ctl start -D {data}"),
+            description: "the change and how to start the server");
+
+        Assert.AreEqual(0, await pgtail.WaitForExitAsync());
+        Assert.Contains("logging_collector = 'on'", File.ReadAllText(Path.Join(data, "postgresql.auto.conf")));
+    }
+
+    /// <summary>
     /// Shell completion offers the tail command's options.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

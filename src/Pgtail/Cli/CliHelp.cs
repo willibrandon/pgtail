@@ -63,8 +63,10 @@ internal static class CliHelp
 
               Enable logging_collector for an instance.
 
-              Edits postgresql.conf (keeping a backup) to turn on the logging collector.
-              PostgreSQL must be restarted afterward.
+              Sets logging_collector = on in postgresql.auto.conf, which PostgreSQL reads
+              after postgresql.conf and the files it includes. Restart PostgreSQL afterward.
+              For an ankus or cargo pgrx cluster, shows the log file that the tool keeps and
+              changes nothing.
 
             Arguments:
               INSTANCE  Instance ID or data directory.
