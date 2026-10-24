@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-23
+
 ### Added
 - Detection finds ankus development clusters in `~/.ankus/clusters`, or under `ANKUS_HOME`, and pgrx instances under
   `PGRX_HOME`. pgtail tails the file that ankus or `cargo pgrx start` sends the server's output to, as it does for
@@ -347,6 +349,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to file and pipe to external commands
 - Cross-platform support (macOS, Linux, Windows)
 
+[0.9.0]: https://github.com/willibrandon/pgtail/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/willibrandon/pgtail/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/willibrandon/pgtail/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/willibrandon/pgtail/compare/v0.7.3...v0.8.0
