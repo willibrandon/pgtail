@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Detection finds ankus development clusters in `~/.ankus/clusters`, or under `ANKUS_HOME`, and pgrx instances under
+  `PGRX_HOME`. pgtail tails the file that ankus or `cargo pgrx start` sends the server's output to, as it does for
+  `pg_ctlcluster`.
+- On Linux, with the logging collector off, the log of a running server is the file that its output goes to, whatever
+  program started it. If the output goes to the console or nowhere, the instance shows no log.
+
+### Changed
+- `enable-logging` sets `logging_collector = on` in `postgresql.auto.conf`, as `ALTER SYSTEM` does, instead of in
+  `postgresql.conf`. PostgreSQL reads that file after `postgresql.conf` and the files that it includes, so the setting
+  takes effect even if one of them turns the collector off. Then pgtail reads the settings again, and reports an error
+  if the server's command line still turns the collector off. pgtail no longer makes the log directory, which the
+  server makes when it starts.
+- For an ankus or cargo pgrx cluster, `enable-logging` shows the file that the tool keeps the log in and changes
+  nothing. The restart command that it shows is the one for the program that starts the server: `ankus stop` and
+  `ankus start`, `cargo pgrx stop` and `cargo pgrx start`, `pg_ctlcluster`, or `pg_ctl`.
+
+### Fixed
+- pgtail reads the settings of a server as PostgreSQL does: `postgresql.conf` with the files that it includes through
+  `include`, `include_if_exists`, and `include_dir`, then `postgresql.auto.conf`, then the options in `postmaster.opts`.
+  The last value is the one in effect. pgtail read only `postgresql.conf` and took the first value, so an ankus cluster,
+  whose `ankus.conf` turns the logging collector off, showed logging on but no log file came.
+- `enable-logging` no longer says that logging is already enabled, and asks for one more restart, when a setting that
+  PostgreSQL reads later turns the collector off.
+- `tail` in the REPL reads the instance again, so pgtail finds the log of a server that restarted with logging after
+  pgtail started, without `refresh`.
+- `pgtail tail <id>` on an instance with no log file tells why, instead of `Log file not found:` with no path. If the
+  collector has not made its first file yet, it gives the command that starts or restarts the server.
+- On Windows, an absolute `log_directory` such as `C:\pglogs` is no longer joined to the data directory, and a line of
+  `current_logfiles` that starts with a backslash is read correctly. Paths follow PostgreSQL's rule, so a
+  drive-relative `C:pglogs` starts from the data directory.
+
 ## [0.8.2] - 2026-10-02
 
 ### Fixed

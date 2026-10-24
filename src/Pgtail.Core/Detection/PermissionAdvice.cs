@@ -54,13 +54,13 @@ public static class PermissionAdvice
     }
 
     /// <summary>
-    /// How to read or write a <c>postgresql.conf</c> that is not accessible.
+    /// How to turn on the logging collector when pgtail cannot write <c>postgresql.auto.conf</c>.
     /// </summary>
-    /// <param name="confPath">The configuration file.</param>
+    /// <param name="autoConfPath">The file.</param>
     /// <returns>The advice lines.</returns>
-    public static IReadOnlyList<string> ConfPermission(string confPath)
+    public static IReadOnlyList<string> AutoConfPermission(string autoConfPath)
     {
-        ArgumentNullException.ThrowIfNull(confPath);
+        ArgumentNullException.ThrowIfNull(autoConfPath);
         return OperatingSystem.IsWindows()
             ?
             [
@@ -69,18 +69,18 @@ public static class PermissionAdvice
                 "1. Run your terminal as Administrator:",
                 "   Right-click terminal -> Run as administrator",
                 "",
-                "2. Grant your user access to the config file:",
-                $"   icacls \"{confPath}\" /grant %USERNAME%:R",
+                "2. Or, as a superuser in psql, run:",
+                "   ALTER SYSTEM SET logging_collector = on;",
             ]
             :
             [
                 "Options to fix:",
                 "",
-                "1. Edit as the postgres user:",
-                $"   sudo -u postgres nano {confPath}",
-                "",
-                "2. Or run pgtail as the postgres user:",
+                "1. Run pgtail as the user that owns the data directory, usually postgres:",
                 "   sudo -u postgres pgtail",
+                "",
+                "2. Or, as a superuser in psql, run:",
+                "   ALTER SYSTEM SET logging_collector = on;",
             ];
     }
 

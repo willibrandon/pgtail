@@ -399,6 +399,51 @@ public sealed class ReplCommandTests
     }
 
     /// <summary>
+    /// tail reads the instance again, so a server restarted with logging after the scan is tailed without refresh.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TailRereadsInstanceAfterLoggingStarts()
+    {
+        using var environment = new TestEnvironment();
+        (string data, string log) = DataDirectories.Create(environment.Root, "17", 5495);
+        File.WriteAllText(Path.Join(data, "postgresql.conf"), "port = 5495\n");
+        environment.Set("PGDATA", data);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 220);
+
+        // As after enable-logging and a restart: the collector is on and the server lists its file.
+        File.WriteAllText(Path.Join(data, "postgresql.auto.conf"), "logging_collector = 'on'\n");
+        File.WriteAllText(Path.Join(data, "current_logfiles"), "stderr log/postgresql.log\n");
+        await repl.RunAsync($"tail {data} --stream", TestContext.CancellationToken);
+        _ = await repl.WaitForRequestAsync(ReplRequestKind.Stream);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => ReplHarness.PromptLine(snapshot).StartsWith("paused [", StringComparison.Ordinal)
+                && !snapshot.ContainsText("Logging not enabled"),
+            description: "the stream started, then paused");
+        Assert.AreEqual(log, repl.Session.Instances.Single(instance => instance.DataDirectory == data).LogPath);
+    }
+
+    /// <summary>
+    /// tail on an instance whose collector is on in the settings but has made no file yet says to start the server.
+    /// </summary>
+    /// <returns>A task that completes when the check has run.</returns>
+    [TestMethod]
+    public async Task TailWithoutLogFileExplainsStart()
+    {
+        using var environment = new TestEnvironment();
+        (string data, string _) = DataDirectories.Create(environment.Root, "17", 5494);
+        Directory.Delete(Path.Join(data, "log"), recursive: true);
+        environment.Set("PGDATA", data);
+        await using ReplHarness repl = await ReplHarness.StartAsync(environment, TestContext.CancellationToken, width: 220);
+        await repl.RunAsync($"tail {data}", TestContext.CancellationToken);
+        await repl.Automator.WaitUntilAsync(
+            snapshot => snapshot.ContainsText("No log file yet for instance")
+                && snapshot.ContainsText("The server makes its first log file when it starts with logging_collector on.")
+                && snapshot.ContainsText($"pg_ctl start -D {data}"),
+            description: "how to make the first log file");
+    }
+
+    /// <summary>
     /// Tailing a file that does not exist says so and stays at the prompt.
     /// </summary>
     /// <returns>A task that completes when the check has run.</returns>

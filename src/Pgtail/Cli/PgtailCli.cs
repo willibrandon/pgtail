@@ -302,16 +302,13 @@ internal static class PgtailCli
         }
 
         PostgresInstance instance = instances[id];
-        if (!instance.LoggingEnabled)
-        {
-            await error.WriteLineAsync($"Logging not enabled for instance {id}.");
-            await error.WriteLineAsync($"Enable with: pgtail enable-logging {id}");
-            return null;
-        }
-
         if (TailTargets.LogFile(instance) is not { } log || !File.Exists(log))
         {
-            await error.WriteLineAsync($"Log file not found: {instance.LogPath}");
+            foreach (string line in TailTargets.NoLog(instance, $"pgtail enable-logging {id}"))
+            {
+                await error.WriteLineAsync(line);
+            }
+
             return null;
         }
 

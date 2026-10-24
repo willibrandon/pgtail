@@ -90,7 +90,7 @@ internal static class TailCommand
             return;
         }
 
-        PostgresInstance? instance;
+        PostgresInstance? found;
         if (instanceArgument is null)
         {
             switch (session.Instances.Count)
@@ -107,11 +107,11 @@ internal static class TailCommand
                     return;
             }
 
-            instance = session.Instances[0];
+            found = session.Instances[0];
         }
-        else if (InstanceTable.Find(session.Instances, instanceArgument, invocation.Host.CurrentDirectory) is { } found)
+        else if (InstanceTable.Find(session.Instances, instanceArgument, invocation.Host.CurrentDirectory) is { } match)
         {
-            instance = found;
+            found = match;
         }
         else
         {
@@ -119,29 +119,11 @@ internal static class TailCommand
             return;
         }
 
-        if (TailTargets.LogFile(instance) is not { } log)
+        // The server can have restarted with other settings since the scan, as after enable-logging.
+        PostgresInstance instance = session.Refresh(found);
+        if (TailTargets.LogFile(instance) is not { } log || !File.Exists(log))
         {
-            if (instance.LoggingEnabled)
-            {
-                output.Line($"Cannot access log files for instance {instance.Id}");
-                output.Line($"Log directory: {instance.LogDirectory ?? "unknown"}");
-                output.Line();
-                output.Lines(PermissionAdvice.LogsNotFound());
-            }
-            else
-            {
-                output.Line($"Logging not enabled for instance {instance.Id}");
-                output.Line($"Data directory: {instance.DataDirectory}");
-                output.Line();
-                output.Line($"Enable logging with: enable-logging {instance.Id}");
-            }
-
-            return;
-        }
-
-        if (!File.Exists(log))
-        {
-            output.Line($"Log file not found: {log}");
+            output.Lines(TailTargets.NoLog(instance, $"enable-logging {instance.Id}"));
             return;
         }
 

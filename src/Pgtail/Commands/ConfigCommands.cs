@@ -256,17 +256,19 @@ internal static class ConfigCommands
         {
             output.Line("Usage: enable-logging <id|path>");
             output.Line();
-            output.Line("Enables logging_collector in postgresql.conf");
-            output.Line("After running, you must restart PostgreSQL for changes to take effect.");
+            output.Line("Sets logging_collector = on in postgresql.auto.conf.");
+            output.Line("Restart PostgreSQL afterward.");
             return Task.CompletedTask;
         }
 
-        if (InstanceTable.Find(session.Instances, invocation.Args[0], invocation.Host.CurrentDirectory) is not { } instance)
+        if (InstanceTable.Find(session.Instances, invocation.Args[0], invocation.Host.CurrentDirectory) is not { } found)
         {
             InstanceNotFound(invocation, invocation.Args[0]);
             return Task.CompletedTask;
         }
 
+        PostgresInstance instance = session.Refresh(found);
+        ServerLauncher launcher = instance.Launcher;
         if (instance.LogPath is { } log && File.Exists(log))
         {
             output.Line($"Logging is already enabled for instance {instance.Id}");
@@ -274,10 +276,24 @@ internal static class ConfigCommands
             return Task.CompletedTask;
         }
 
+        // ankus and cargo pgrx keep the server's output in a file, which is the log; the collector would empty it.
+        if (launcher.ManagesLogging)
+        {
+            output.Line($"{launcher.Name} manages logging for instance {instance.Id}. It sends the server's output to:");
+            output.Line($"  {launcher.OutputFile}");
+            output.Line("pgtail tails that file, so no change is necessary.");
+            output.Line();
+            output.Line(instance.Running
+                ? $"The server does not write to that file now. Restart it with {launcher.Name}:"
+                : $"Start the server with {launcher.Name}:");
+            Commands(output, launcher.RestartCommands(instance.Running));
+            return Task.CompletedTask;
+        }
+
         output.Line($"Enabling logging for instance {instance.Id}...");
         output.Line($"Data directory: {instance.DataDirectory}");
         output.Line();
-        ConfigUpdate result = LoggingEnabler.Enable(instance.DataDirectory, instance.ConfigPath);
+        ConfigUpdate result = LoggingEnabler.Enable(instance.DataDirectory);
         if (result.Changes.Count > 0)
         {
             output.Line("Changes made:");
@@ -297,11 +313,31 @@ internal static class ConfigCommands
 
         output.Line(result.Message);
         output.Line();
-        output.Line("⚠️  PostgreSQL must be restarted for changes to take effect:");
-        output.Line(instance.Running ? $"    pg_ctl restart -D {instance.DataDirectory}" : $"    pg_ctl start -D {instance.DataDirectory}");
+        if (result.Changes.Count == 0)
+        {
+            output.Line(instance.Running
+                ? "If the setting changed after the server started, restart PostgreSQL:"
+                : "Start PostgreSQL to start the logging collector:");
+        }
+        else
+        {
+            output.Line(instance.Running
+                ? "Restart PostgreSQL to start the logging collector:"
+                : "Start PostgreSQL to start the logging collector:");
+        }
+
+        Commands(output, launcher.RestartCommands(instance.Running));
         output.Line();
-        output.Line("After restarting, run 'refresh' to update instance list.");
+        output.Line($"Then run 'tail {instance.Id}'.");
         return Task.CompletedTask;
+    }
+
+    private static void Commands(CommandOutput output, IReadOnlyList<string> commands)
+    {
+        foreach (string command in commands)
+        {
+            output.Line($"    {command}");
+        }
     }
 
     /// <summary>

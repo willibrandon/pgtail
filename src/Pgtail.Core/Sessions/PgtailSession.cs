@@ -212,6 +212,22 @@ public sealed class PgtailSession
     public void Refresh() => Instances = _detector.DetectAll();
 
     /// <summary>
+    /// Reads one instance again and keeps it in <see cref="Instances"/>.
+    /// </summary>
+    /// <remarks>
+    /// The server can have started, stopped, or changed its settings since the last scan.
+    /// </remarks>
+    /// <param name="instance">The instance as found by the last scan.</param>
+    /// <returns>The instance as it is now.</returns>
+    public PostgresInstance Refresh(PostgresInstance instance)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        PostgresInstance current = _detector.Reread(instance);
+        Instances = [.. Instances.Select(item => item.Id == instance.Id ? current : item)];
+        return current;
+    }
+
+    /// <summary>
     /// Loads the configuration file again and applies it, as after <c>config reset</c> or <c>config edit</c>.
     /// </summary>
     public void Reload()

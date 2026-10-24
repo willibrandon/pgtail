@@ -42,9 +42,10 @@ pgtail> list
 pgtail finds PostgreSQL instances from:
 
 1. Running processes (`postgres` or `postmaster`)
-2. pgrx development instances (`~/.pgrx/data-*`)
-3. The `PGDATA` environment variable
-4. Platform locations: Homebrew, Debian and Ubuntu clusters, PGDG and RPM layouts, Arch Linux, Postgres.app, and the
+2. pgrx development instances (`~/.pgrx/data-*`, or the same under `PGRX_HOME`)
+3. ankus development clusters (`~/.ankus/clusters/*`, or the same under `ANKUS_HOME`)
+4. The `PGDATA` environment variable
+5. Platform locations: Homebrew, Debian and Ubuntu clusters, PGDG and RPM layouts, Arch Linux, Postgres.app, and the
    Windows installer's `Program Files\PostgreSQL\*\data`
 
 A Debian or Ubuntu cluster is found from `/etc/postgresql/<version>/<cluster>` even though its data directory is closed
@@ -60,8 +61,17 @@ Example output:
   1  16       5433   stopped  on   pgrx    ~/.pgrx/data-16
 ```
 
-`LOG` says whether the instance logs to files: the logging collector is on, or a Debian or Ubuntu cluster logs through
-`pg_ctlcluster`. Run `refresh` to scan again after starting an instance.
+An ankus or cargo pgrx cluster keeps the logging collector off. The tool sends the server's output to a file beside the
+data directory, `~/.ankus/clusters/<label>.log` or `~/.pgrx/<major>.log`, and pgtail tails that file. On Linux, pgtail
+also looks at where a running server sends its output, whatever program started it.
+
+pgtail reads the settings of an instance as PostgreSQL does. It reads `postgresql.conf` with the files that it
+includes, then `postgresql.auto.conf`, then the options of the server's command line in `postmaster.opts`. If a setting
+occurs more than once, the last value is the one in effect.
+
+`LOG` says whether the instance logs to files: the logging collector is on, or the program that starts the server sends
+its output to a file. Run `refresh` to scan again after starting an instance. `tail` reads its instance again, so a
+server that restarted with logging is tailed without `refresh`.
 
 ## Start tailing
 

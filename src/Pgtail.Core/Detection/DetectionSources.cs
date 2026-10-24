@@ -6,7 +6,7 @@ namespace Pgtail.Detection;
 public static class DetectionSources
 {
     /// <summary>
-    /// The short name shown in instance lists: <c>process</c>, <c>pgrx</c>, <c>pgdata</c>, or <c>known</c>.
+    /// The short name shown in instance lists: <c>process</c>, <c>pgrx</c>, <c>ankus</c>, <c>pgdata</c>, or <c>known</c>.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>The name.</returns>
@@ -14,6 +14,7 @@ public static class DetectionSources
     {
         DetectionSource.Process => "process",
         DetectionSource.Pgrx => "pgrx",
+        DetectionSource.Ankus => "ankus",
         DetectionSource.Pgdata => "pgdata",
         _ => "known",
     };

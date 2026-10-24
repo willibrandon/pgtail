@@ -88,8 +88,16 @@ built-in editor, and `--reset` resets it to the defaults, keeping a backup. See 
 pgtail enable-logging INSTANCE
 ```
 
-Edits the instance's `postgresql.conf`, keeping a backup, to turn on the logging collector. `INSTANCE` is an
-instance ID or data directory. PostgreSQL must be restarted afterward.
+Turns on the logging collector for an instance. `INSTANCE` is an instance ID or data directory. pgtail sets
+`logging_collector = on` in `postgresql.auto.conf`, the file that `ALTER SYSTEM` writes. PostgreSQL reads that file
+after `postgresql.conf` and the files that it includes, so the setting takes effect even if one of them turns the
+collector off. Restart PostgreSQL afterward. pgtail shows the command to use.
+
+If the server's command line turns the collector off, a file cannot turn it on. pgtail then changes nothing and exits
+with code 1.
+
+An ankus or cargo pgrx cluster sends the server's output to a file, and pgtail tails that file. For these clusters,
+`enable-logging` shows the file and the command that starts the cluster, and changes nothing.
 
 ### Exit codes
 

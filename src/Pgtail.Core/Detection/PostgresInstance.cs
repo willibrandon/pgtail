@@ -12,13 +12,13 @@ namespace Pgtail.Detection;
 /// <param name="LogDirectory">The directory the logging collector writes to, or null when it is off.</param>
 /// <param name="Source">How it was found.</param>
 /// <param name="Running">Whether its postmaster is running.</param>
+/// <param name="Launcher">What starts and stops it, and where its output goes when the logging collector is off.</param>
 /// <param name="Pid">The postmaster's process ID when running.</param>
 /// <param name="Port">The port, when configured.</param>
 /// <param name="LoggingEnabled">
-/// Whether the server logs to files: <c>logging_collector</c> is on, or a Debian or Ubuntu cluster logs through
-/// <c>pg_ctlcluster</c>.
+/// Whether the server logs to files: <c>logging_collector</c> is on, or the program that starts it, such as ankus,
+/// cargo pgrx, or <c>pg_ctlcluster</c>, sends its output to a file.
 /// </param>
-/// <param name="ConfigPath">The <c>postgresql.conf</c> in use, when found.</param>
 public sealed record PostgresInstance(
     int Id,
     string Version,
@@ -27,10 +27,10 @@ public sealed record PostgresInstance(
     string? LogDirectory,
     DetectionSource Source,
     bool Running,
+    ServerLauncher Launcher,
     int? Pid = null,
     int? Port = null,
-    bool LoggingEnabled = false,
-    string? ConfigPath = null)
+    bool LoggingEnabled = false)
 {
     /// <summary>
     /// <c>running</c> or <c>stopped</c>.
