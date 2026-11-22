@@ -12,12 +12,12 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.42.6",
-    "astro": "^7.4.2",
+    "@astrojs/starlight": "^0.43.1",
+    "astro": "^7.4.13",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "@expressive-code/core": "0.44.3"
+    "@expressive-code/core": "0.44.4"
   },
   "pnpm": {
     "overrides": {
